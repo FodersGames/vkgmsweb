@@ -72,7 +72,7 @@ class CreateUserResponse(BaseModel):
 class SendItemRequest(BaseModel):
     uid: str
     variable: str
-    amount: int
+    amount: str  # Changed to accept any text or number
 
 class ClaimItemsResponse(BaseModel):
     items: List[dict]
@@ -88,9 +88,19 @@ class LogEntry(BaseModel):
     user: Optional[str] = None
     uid: Optional[str] = None
     variable: Optional[str] = None
-    amount: Optional[int] = None
+    amount: Optional[str] = None  # Changed to string
     timestamp: datetime
     message: str
+
+class UpdateUserPermissionsRequest(BaseModel):
+    permissions: List[Literal["send_items", "change_status", "view_logs", "manage_users", "manage_variables"]]
+
+class VariableCreateRequest(BaseModel):
+    variable_name: str
+    values: List[str]  # Support multiple values
+
+class VariableUpdateRequest(BaseModel):
+    values: List[str]
 
 # ============== HELPER FUNCTIONS ==============
 
@@ -144,7 +154,7 @@ def require_permission(permission: str):
     return check_permission
 
 async def log_action(log_type: str, message: str, user: Optional[str] = None, uid: Optional[str] = None, 
-                    variable: Optional[str] = None, amount: Optional[int] = None):
+                    variable: Optional[str] = None, amount: Optional[str] = None):
     """Log an action to the database"""
     log_entry = {
         "type": log_type,
@@ -259,6 +269,52 @@ async def list_users(current_user: dict = Depends(get_current_user)):
     users = await db.users.find({}, {"_id": 0, "access_key_hash": 0}).to_list(1000)
     return {"users": users}
 
+@api_router.delete("/users/{username}")
+async def delete_user(username: str, current_user: dict = Depends(get_current_user)):
+    """Delete a user (Super Admin only)"""
+    if not current_user["is_super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Super Admin can delete users")
+    
+    # Prevent deleting self or non-existent users
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    result = await db.users.delete_one({"username": username})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await log_action("user_action", f"User '{username}' deleted", user=current_user["username"])
+    return {"success": True, "message": f"User '{username}' deleted successfully"}
+
+@api_router.put("/users/{username}/permissions")
+async def update_user_permissions(
+    username: str, 
+    update_req: UpdateUserPermissionsRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update user permissions (Super Admin only)"""
+    if not current_user["is_super_admin"]:
+        raise HTTPException(status_code=403, detail="Only Super Admin can update permissions")
+    
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    result = await db.users.update_one(
+        {"username": username},
+        {"$set": {"permissions": update_req.permissions}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="No changes made")
+    
+    await log_action("user_action", f"User '{username}' permissions updated to: {', '.join(update_req.permissions)}", 
+                    user=current_user["username"])
+    
+    return {"success": True, "username": username, "permissions": update_req.permissions}
+
 # ============== ITEMS ENDPOINTS ==============
 
 @api_router.post("/items/send")
@@ -354,6 +410,100 @@ async def get_logs(
     
     return {"logs": logs, "count": len(logs)}
 
+# ============== VARIABLES ENDPOINTS ==============
+
+@api_router.post("/variables")
+async def create_variable(
+    var_req: VariableCreateRequest,
+    current_user: dict = Depends(require_permission("manage_variables"))
+):
+    """Create a new variable (requires manage_variables permission)"""
+    # Check if variable already exists
+    existing = await db.variables.find_one({"variable_name": var_req.variable_name})
+    if existing:
+        raise HTTPException(status_code=400, detail="Variable already exists")
+    
+    variable_doc = {
+        "variable_name": var_req.variable_name,
+        "values": var_req.values,
+        "created_at": datetime.now(timezone.utc),
+        "created_by": current_user["username"],
+        "updated_at": datetime.now(timezone.utc),
+        "updated_by": current_user["username"]
+    }
+    
+    await db.variables.insert_one(variable_doc)
+    await log_action("variable_action", f"Variable '{var_req.variable_name}' created with {len(var_req.values)} value(s)", 
+                    user=current_user["username"])
+    
+    return {"success": True, "variable_name": var_req.variable_name, "values": var_req.values}
+
+@api_router.get("/variables")
+async def list_variables(current_user: dict = Depends(require_permission("manage_variables"))):
+    """List all variables (requires manage_variables permission)"""
+    variables = await db.variables.find({}, {"_id": 0}).to_list(1000)
+    return {"variables": variables}
+
+@api_router.get("/variable/{variable_name}")
+async def get_variable(variable_name: str):
+    """PUBLIC endpoint - Get variable value(s) by name"""
+    variable = await db.variables.find_one({"variable_name": variable_name}, {"_id": 0})
+    
+    if not variable:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    
+    await log_action("variable_access", f"Variable '{variable_name}' accessed", variable=variable_name)
+    
+    # Return just the values or single value if only one
+    values = variable.get("values", [])
+    if len(values) == 1:
+        return {"variable_name": variable_name, "value": values[0], "values": values}
+    return {"variable_name": variable_name, "values": values}
+
+@api_router.put("/variables/{variable_name}")
+async def update_variable(
+    variable_name: str,
+    update_req: VariableUpdateRequest,
+    current_user: dict = Depends(require_permission("manage_variables"))
+):
+    """Update variable values (requires manage_variables permission)"""
+    variable = await db.variables.find_one({"variable_name": variable_name})
+    if not variable:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    
+    result = await db.variables.update_one(
+        {"variable_name": variable_name},
+        {"$set": {
+            "values": update_req.values,
+            "updated_at": datetime.now(timezone.utc),
+            "updated_by": current_user["username"]
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="No changes made")
+    
+    await log_action("variable_action", f"Variable '{variable_name}' updated to {len(update_req.values)} value(s)", 
+                    user=current_user["username"], variable=variable_name)
+    
+    return {"success": True, "variable_name": variable_name, "values": update_req.values}
+
+@api_router.delete("/variables/{variable_name}")
+async def delete_variable(
+    variable_name: str,
+    current_user: dict = Depends(require_permission("manage_variables"))
+):
+    """Delete a variable (requires manage_variables permission)"""
+    result = await db.variables.delete_one({"variable_name": variable_name})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    
+    await log_action("variable_action", f"Variable '{variable_name}' deleted", 
+                    user=current_user["username"], variable=variable_name)
+    
+    return {"success": True, "message": f"Variable '{variable_name}' deleted successfully"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -374,6 +524,7 @@ async def startup_event():
         await db.items.create_index("uid")
         await db.logs.create_index("type")
         await db.logs.create_index("timestamp")
+        await db.variables.create_index("variable_name", unique=True)
         
         # Initialize server status if not exists
         status_doc = await db.server_status.find_one({})

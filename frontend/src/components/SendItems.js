@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Package } from '@phosphor-icons/react';
+import { Package } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,17 +25,17 @@ export const SendItems = () => {
         {
           uid: formData.uid,
           variable: formData.variable,
-          amount: parseInt(formData.amount)
+          amount: formData.amount  // Now accepts text or numbers
         },
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
-      toast.success(`Sent ${formData.amount}x ${formData.variable} to ${formData.uid}`);
+      toast.success(`Envoyé ${formData.amount}x ${formData.variable} à ${formData.uid}`);
       setFormData({ uid: '', variable: '', amount: '' });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send items');
+      toast.error(error.response?.data?.detail || 'Échec de l\'envoi des items');
     } finally {
       setLoading(false);
     }
@@ -43,76 +43,69 @@ export const SendItems = () => {
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-white border border-neutral-300 p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Package size={28} weight="bold" className="text-neutral-950" />
-          <h2 className="text-3xl font-bold text-neutral-950" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            SEND ITEMS
-          </h2>
+      <div className="bg-white border border-[#EDEBE9] rounded-sm">
+        <div className="px-6 py-4 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+          <div className="flex items-center gap-3">
+            <Package size={20} className="text-[#0078D4]" />
+            <h3 className="text-lg font-medium text-[#201F1E]">Envoyer des Items</h3>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} data-testid="send-items-form">
-          <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-6" data-testid="send-items-form">
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
-                     style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
-                PLAYER UID
+              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
+                UID DU JOUEUR
               </label>
               <input
                 type="text"
                 value={formData.uid}
                 onChange={(e) => setFormData({ ...formData, uid: e.target.value })}
-                className="w-full px-4 py-3 border border-neutral-300 bg-white text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:border-neutral-950"
+                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm p-2 focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
                 placeholder="player_12345"
                 required
                 data-testid="uid-input"
-                style={{ fontFamily: 'JetBrains Mono, monospace' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
-                     style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
-                ITEM VARIABLE
+              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
+                VARIABLE DE L'ITEM
               </label>
               <input
                 type="text"
                 value={formData.variable}
                 onChange={(e) => setFormData({ ...formData, variable: e.target.value })}
-                className="w-full px-4 py-3 border border-neutral-300 bg-white text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:border-neutral-950"
+                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm p-2 focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
                 placeholder="wood, workbench, etc."
                 required
                 data-testid="variable-input"
-                style={{ fontFamily: 'JetBrains Mono, monospace' }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
-                     style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
-                AMOUNT
+              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
+                MONTANT (texte ou nombre)
               </label>
               <input
-                type="number"
-                min="1"
+                type="text"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-4 py-3 border border-neutral-300 bg-white text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:border-neutral-950"
-                placeholder="10"
+                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm p-2 focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
+                placeholder="10, '100 gold', 'legendary', etc."
                 required
                 data-testid="amount-input"
-                style={{ fontFamily: 'JetBrains Mono, monospace' }}
               />
+              <p className="text-xs text-[#605E5C] mt-1">Vous pouvez entrer n'importe quel texte ou nombre</p>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-neutral-950 text-white py-3 font-bold uppercase tracking-wider hover:bg-neutral-800 transition-all duration-200 disabled:opacity-50"
+              className="w-full bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               data-testid="send-items-submit"
-              style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}
             >
-              {loading ? 'SENDING...' : 'SEND ITEMS'}
+              {loading ? 'Envoi...' : 'Envoyer les Items'}
             </button>
           </div>
         </form>

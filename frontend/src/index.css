@@ -5,25 +5,25 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --foreground: 210 11% 9%;
+    --card: 0 0% 98%;
+    --card-foreground: 210 11% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 0 0% 4%;
+    --popover-foreground: 210 11% 9%;
+    --primary: 206 100% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 4%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 32%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 4%;
-    --destructive: 0 84% 60%;
+    --secondary: 210 11% 96%;
+    --secondary-foreground: 210 11% 9%;
+    --muted: 210 11% 96%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 210 11% 95%;
+    --accent-foreground: 206 100% 42%;
+    --destructive: 4 90% 42%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 89%;
-    --input: 0 0% 89%;
-    --ring: 0 0% 4%;
-    --radius: 0rem;
+    --border: 0 0% 93%;
+    --input: 0 0% 93%;
+    --ring: 206 100% 42%;
+    --radius: 0.125rem;
   }
 }
 

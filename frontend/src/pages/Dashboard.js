@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Copy, Users, Package, ActivityIcon, FileText, Power } from '@phosphor-icons/react';
+import { Users, Package, ActivityIcon, FileText, Database, LogOut } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
 import { ServerStatus } from '../components/ServerStatus';
 import { LogsViewer } from '../components/LogsViewer';
+import { VariablesManagement } from '../components/VariablesManagement';
 import { ApiEndpoints } from '../components/ApiEndpoints';
 import { toast } from 'sonner';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const Dashboard = () => {
   const { user, logout, hasPermission } = useAuth();
@@ -21,86 +19,97 @@ export const Dashboard = () => {
       setActiveTab('users');
     } else if (!hasPermission('send_items') && hasPermission('view_logs')) {
       setActiveTab('logs');
+    } else if (!hasPermission('send_items') && hasPermission('manage_variables')) {
+      setActiveTab('variables');
     }
   }, [user]);
 
-  const tabs = [
-    { id: 'send-items', label: 'Send Items', icon: Package, permission: 'send_items' },
-    { id: 'status', label: 'Server Status', icon: ActivityIcon, permission: 'change_status' },
-    { id: 'logs', label: 'Logs', icon: FileText, permission: 'view_logs' },
-    { id: 'users', label: 'User Management', icon: Users, permission: 'manage_users' },
-    { id: 'api', label: 'API Endpoints', icon: Copy, permission: null },
+  const menuItems = [
+    { id: 'send-items', label: 'Envoyer Items', icon: Package, permission: 'send_items' },
+    { id: 'status', label: 'Statut Serveur', icon: ActivityIcon, permission: 'change_status' },
+    { id: 'variables', label: 'Variables', icon: Database, permission: 'manage_variables' },
+    { id: 'logs', label: 'Journaux', icon: FileText, permission: 'view_logs' },
+    { id: 'users', label: 'Utilisateurs', icon: Users, permission: 'manage_users' },
   ];
 
-  const visibleTabs = tabs.filter(tab => !tab.permission || hasPermission(tab.permission));
+  // Add API Endpoints only for Super Admin
+  if (user?.is_super_admin) {
+    menuItems.push({ id: 'api', label: 'API Endpoints', icon: FileText, permission: null });
+  }
+
+  const visibleMenuItems = menuItems.filter(item => !item.permission || hasPermission(item.permission));
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-300">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img 
-              src="https://static.prod-images.emergentagent.com/jobs/f4da9165-836d-4ccd-bb4d-66097fd9ce9d/images/7959d5bfda4904e20ed02658ab39cf2916576428116ff2ceb76690c434011089.png" 
-              alt="Logo" 
-              className="h-10 w-10"
-            />
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-neutral-950"
-                  style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-                ADMIN DASHBOARD
-              </h1>
-              <p className="text-xs text-neutral-500" style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
-                {user?.username} {user?.is_super_admin && '(Super Admin)'}
-              </p>
-            </div>
-          </div>
+    <div className="flex h-screen bg-[#FAFAFA]">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-[#EDEBE9] flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-[#EDEBE9]">
+          <h1 className="text-xl font-semibold text-[#201F1E]" style={{ fontFamily: 'Chivo, sans-serif' }}>
+            Admin Dashboard
+          </h1>
+          <p className="text-xs text-[#605E5C] mt-1">{user?.username}</p>
+          {user?.is_super_admin && (
+            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-[#0078D4] text-white rounded-sm">
+              Super Admin
+            </span>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-2" data-testid="sidebar-nav">
+          {visibleMenuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'bg-[#F3F2F1] text-[#0078D4] font-medium border-l-2 border-[#0078D4]'
+                    : 'text-[#605E5C] hover:bg-[#F3F2F1] hover:text-[#201F1E]'
+                }`}
+                data-testid={`sidebar-nav-${item.id}`}
+              >
+                <Icon size={16} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <div className="p-4 border-t border-[#EDEBE9]">
           <button
             onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 border border-neutral-300 hover:bg-neutral-100 transition-all duration-200"
+            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] hover:text-[#A4262C] rounded-sm transition-colors"
             data-testid="logout-button"
-            style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}
           >
-            <Power size={16} />
-            LOGOUT
+            <LogOut size={16} />
+            Déconnexion
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b border-neutral-300">
-        <div className="max-w-7xl mx-auto px-6">
-          <nav className="flex gap-1" data-testid="dashboard-nav">
-            {visibleTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-200 ${
-                    activeTab === tab.id
-                      ? 'bg-neutral-950 text-white'
-                      : 'text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                  data-testid={`tab-${tab.id}`}
-                  style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}
-                >
-                  <Icon size={18} weight="bold" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white border-b border-[#EDEBE9] px-6 py-4">
+          <h2 className="text-2xl font-semibold text-[#201F1E]" style={{ fontFamily: 'Chivo, sans-serif' }}>
+            {visibleMenuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+          </h2>
+        </header>
+
+        {/* Content Area */}
+        <div className="p-6">
+          {activeTab === 'send-items' && hasPermission('send_items') && <SendItems />}
+          {activeTab === 'status' && hasPermission('change_status') && <ServerStatus />}
+          {activeTab === 'variables' && hasPermission('manage_variables') && <VariablesManagement />}
+          {activeTab === 'logs' && hasPermission('view_logs') && <LogsViewer />}
+          {activeTab === 'users' && hasPermission('manage_users') && <UserManagement />}
+          {activeTab === 'api' && user?.is_super_admin && <ApiEndpoints />}
         </div>
-      </div>
-
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {activeTab === 'send-items' && hasPermission('send_items') && <SendItems />}
-        {activeTab === 'status' && hasPermission('change_status') && <ServerStatus />}
-        {activeTab === 'logs' && hasPermission('view_logs') && <LogsViewer />}
-        {activeTab === 'users' && hasPermission('manage_users') && <UserManagement />}
-        {activeTab === 'api' && <ApiEndpoints />}
       </main>
     </div>
   );
