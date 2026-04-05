@@ -26,11 +26,11 @@ export const Dashboard = () => {
   }, [user]);
 
   const menuItems = [
-    { id: 'send-items', label: 'Envoyer Items', icon: Package, permission: 'send_items' },
-    { id: 'status', label: 'Statut Serveur', icon: ActivityIcon, permission: 'change_status' },
+    { id: 'send-items', label: 'Send Items', icon: Package, permission: 'send_items' },
+    { id: 'status', label: 'Server Status', icon: ActivityIcon, permission: 'change_status' },
     { id: 'variables', label: 'Variables', icon: Database, permission: 'manage_variables' },
-    { id: 'logs', label: 'Journaux', icon: FileText, permission: 'view_logs' },
-    { id: 'users', label: 'Utilisateurs', icon: Users, permission: 'manage_users' },
+    { id: 'logs', label: 'Logs', icon: FileText, permission: 'view_logs' },
+    { id: 'users', label: 'Users', icon: Users, permission: 'manage_users' },
   ];
 
   // Add API Endpoints only for Super Admin
@@ -113,5 +113,7 @@ export const Dashboard = () => {
         </div>
       </main>
     </div>
+  );
+};iv>
   );
 };

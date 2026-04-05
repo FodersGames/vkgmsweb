@@ -335,18 +335,35 @@ async def send_items(item_req: SendItemRequest, current_user: dict = Depends(req
     
     return {"success": True, "message": f"Sent {item_req.amount}x {item_req.variable} to {item_req.uid}"}
 
-@api_router.get("/claimgift/{uid}", response_model=ClaimItemsResponse)
+@api_router.get("/claimgift/{uid}")
 @limiter.limit("30/minute")
 async def claim_gift(request: Request, uid: str):
-    """PUBLIC endpoint - Claim all pending items for a UID"""
-    items = await db.items.find({"uid": uid}, {"_id": 0, "uid": 0, "created_at": 0, "created_by": 0}).to_list(1000)
+    """PUBLIC endpoint - Claim items for a UID (FIFO queue - returns all, deletes first)"""
+    # Get all items for this UID, sorted by creation time (oldest first)
+    items = await db.items.find({"uid": uid}).sort("created_at", 1).to_list(1000)
     
-    if items:
-        # Delete claimed items
-        await db.items.delete_many({"uid": uid})
-        await log_action("claim", f"User {uid} claimed {len(items)} item(s)", uid=uid)
+    if not items:
+        return {"length": 0}
     
-    return ClaimItemsResponse(items=items)
+    # Prepare response without wrapper
+    response_items = []
+    for item in items:
+        response_items.append({
+            "variable": item["variable"],
+            "amount": item["amount"]
+        })
+    
+    # Delete only the FIRST (oldest) item
+    oldest_item = items[0]
+    await db.items.delete_one({"_id": oldest_item["_id"]})
+    await log_action("claim", f"User {uid} claimed 1 item: {oldest_item['variable']} x{oldest_item['amount']}", uid=uid)
+    
+    # Return length and all items (frontend will process)
+    return {
+        "length": len(response_items),
+        **response_items[0] if len(response_items) == 1 else {},
+        "items": response_items if len(response_items) > 1 else None
+    }
 
 # ============== SERVER STATUS ENDPOINTS ==============
 

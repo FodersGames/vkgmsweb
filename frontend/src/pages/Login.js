@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Lock } from 'lucide-react';
 
 export const Login = () => {
   const [key, setKey] = useState('');
@@ -25,42 +26,28 @@ export const Login = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        backgroundImage: 'url(https://static.prod-images.emergentagent.com/jobs/f4da9165-836d-4ccd-bb4d-66097fd9ce9d/images/71cceb5faf1d82eb04ae5805de8b0e42da44516216391ca58a86c0a93b9f36a6.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}
-    >
-      <div className="absolute inset-0 bg-white/80"></div>
-      
-      <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white border-2 border-neutral-950 p-12 shadow-[8px_8px_0_0_rgba(0,0,0,0.1)]">
-          <div className="flex justify-center mb-8">
-            <img 
-              src="https://static.prod-images.emergentagent.com/jobs/f4da9165-836d-4ccd-bb4d-66097fd9ce9d/images/7959d5bfda4904e20ed02658ab39cf2916576428116ff2ceb76690c434011089.png" 
-              alt="Logo" 
-              className="h-16 w-16"
-            />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAFAFA]">
+      <div className="w-full max-w-md">
+        <div className="bg-white border border-[#EDEBE9] rounded-sm shadow-sm">
+          {/* Header */}
+          <div className="px-8 py-6 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-[#0078D4] rounded-sm flex items-center justify-center">
+                <Lock size={24} className="text-white" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-semibold text-[#201F1E] text-center" style={{ fontFamily: 'Chivo, sans-serif' }}>
+              Admin Dashboard
+            </h1>
+            <p className="text-sm text-[#605E5C] text-center mt-2">
+              Secure authentication
+            </p>
           </div>
-          
-          <h1 className="text-4xl font-black tracking-tighter text-neutral-950 mb-2 text-center"
-              style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            ADMIN ACCESS
-          </h1>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-500 text-center mb-8"
-             style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}>
-            SECURE AUTHENTICATION
-          </p>
 
-          <form onSubmit={handleSubmit} data-testid="login-form">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8" data-testid="login-form">
             <div className="mb-6">
-              <label 
-                htmlFor="access-key" 
-                className="block text-xs font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
-                style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}
-              >
+              <label htmlFor="access-key" className="block text-xs font-semibold text-[#605E5C] mb-2">
                 ACCESS KEY
               </label>
               <input
@@ -68,16 +55,16 @@ export const Login = () => {
                 type="password"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-neutral-300 bg-white text-neutral-950 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:border-neutral-950 transition-all duration-200"
+                className="w-full px-3 py-2 border border-[#EDEBE9] bg-white text-[#201F1E] rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
                 placeholder="Enter your access key"
                 required
                 data-testid="access-key-input"
-                style={{ fontFamily: 'JetBrains Mono, monospace' }}
+                style={{ fontFamily: 'IBM Plex Mono, monospace' }}
               />
             </div>
 
             {error && (
-              <div className="mb-6 p-3 border border-red-600 bg-red-50 text-red-900 text-sm" data-testid="login-error">
+              <div className="mb-6 p-3 border border-[#A4262C] bg-[#FDE7E9] text-[#A4262C] text-sm rounded-sm" data-testid="login-error">
                 {error}
               </div>
             )}
@@ -85,13 +72,16 @@ export const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-neutral-950 text-white py-3 font-bold uppercase tracking-wider hover:bg-neutral-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="login-submit-button"
-              style={{ fontFamily: 'IBM Plex Sans, sans-serif' }}
             >
-              {loading ? 'AUTHENTICATING...' : 'LOGIN'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+        </div>
+
+        <div className="mt-4 text-center text-xs text-[#605E5C]">
+          Protected by enterprise-grade security
         </div>
       </div>
     </div>
