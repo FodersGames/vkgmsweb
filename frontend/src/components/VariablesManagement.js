@@ -19,6 +19,7 @@ export const VariablesManagement = () => {
 
   useEffect(() => {
     fetchVariables();
+    // eslint-disable-next-line
   }, []);
 
   const fetchVariables = async () => {

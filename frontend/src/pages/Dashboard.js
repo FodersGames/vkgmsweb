@@ -22,6 +22,7 @@ export const Dashboard = () => {
     } else if (!hasPermission('send_items') && hasPermission('manage_variables')) {
       setActiveTab('variables');
     }
+    // eslint-disable-next-line
   }, [user]);
 
   const menuItems = [
