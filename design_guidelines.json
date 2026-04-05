@@ -1,0 +1,97 @@
+{
+  "theme": "Light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast)",
+  "vibe": "Objective, rigid, functional, high-security command center",
+  "typography": {
+    "fonts": {
+      "headings": "Cabinet Grotesk",
+      "body": "IBM Plex Sans",
+      "mono": "JetBrains Mono",
+      "import_instructions": "Import via Google Fonts or Fontsource. Do NOT use Inter, Roboto, Open Sans, or Lato."
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl font-black tracking-tighter leading-none text-neutral-950",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight text-neutral-950",
+      "h3": "text-xl sm:text-2xl font-semibold tracking-tight text-neutral-900",
+      "h4": "text-lg sm:text-xl font-medium tracking-tight text-neutral-900",
+      "body": "text-base font-normal leading-relaxed text-neutral-700",
+      "small_labels": "text-xs font-bold uppercase tracking-[0.2em] text-neutral-500",
+      "mono_data": "font-mono text-sm tracking-tight text-neutral-800"
+    }
+  },
+  "colors": {
+    "background": "#FFFFFF",
+    "surface": "#F7F7F8",
+    "surface_secondary": "#F0F0F2",
+    "text_primary": "#0A0A0B",
+    "text_secondary": "#52525B",
+    "border": "#E4E4E7",
+    "border_strong": "#D4D4D8",
+    "primary_action": "#0A0A0B",
+    "primary_action_hover": "#27272A",
+    "primary_action_text": "#FFFFFF",
+    "status_open": "#16A34A",
+    "status_maintenance": "#F59E0B",
+    "status_closed": "#DC2626",
+    "info_accent": "#2563EB",
+    "notes": "Never use pure #000000 or #808080. All grays are slightly tinted. Primary CTA is Stark Black. No generic gradients. Color is used strictly for function (status indicators) and not for decoration."
+  },
+  "spacing_and_layout": {
+    "protocol": "Mode B: The 'Control Room' Grid",
+    "containers": "Generous internal padding required (p-6, p-8, p-12). Never cramp text near borders.",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "alignment": "Left-align paragraphs, labels, and dense content. Center-align only major empty states or specific modal headers.",
+    "borders": "1px solid borders on everything. No soft drop shadows. Expose the structural skeleton.",
+    "radii": "rounded-none or max rounded-sm (2px). Strict, sharp, architectural look."
+  },
+  "surface_strategies": {
+    "dashboard_cards": "Flat background (surface), 1px solid border (border_strong), zero shadow. On hover, slight lift (-translate-y-1) and shadow-sm.",
+    "login_hero": "Use the provided abstract architecture image with a heavy white/light overlay (bg-white/80) so the login card floats clearly. High contrast text.",
+    "tables_and_logs": "border-collapse. Use clear border-b on rows. Hover state on rows must explicitly change bg (hover:bg-neutral-100) and text color.",
+    "modals": "Solid white background. Thick black 2px border. shadow-[8px_8px_0_0_rgba(0,0,0,0.1)] for a slight neo-brutalist grounding."
+  },
+  "components": {
+    "general": "Use Shadcn primitives but customize to be flat, cardless where possible, with sharp edges.",
+    "buttons": "Square edges (rounded-none). High contrast. primary: bg-neutral-950 text-white hover:bg-neutral-800. secondary: bg-white border border-neutral-300 hover:bg-neutral-100.",
+    "inputs": "Shadcn Form/Input. rounded-none. focus:ring-2 focus:ring-neutral-950 focus:border-neutral-950. No subtle blue glow. Sharp focus.",
+    "select_and_dropdown": "Shadcn primitives. Square edges. High contrast hover states.",
+    "badges": "For RBAC roles. Small, uppercase, mono font. e.g., border border-neutral-950 bg-neutral-100 text-neutral-900.",
+    "toast": "Use Sonner. Customize styling to match the sharp, white-theme brutalist-lite aesthetic. 1px black border."
+  },
+  "icons": {
+    "library": "Phosphor Icons (@phosphor-icons/react) for dense data clarity and a technical look. Use 'regular' or 'bold' weight depending on context.",
+    "install_command": "yarn add @phosphor-icons/react"
+  },
+  "media": {
+    "image_urls": [
+      {
+        "category": "login_background",
+        "url": "https://static.prod-images.emergentagent.com/jobs/f4da9165-836d-4ccd-bb4d-66097fd9ce9d/images/71cceb5faf1d82eb04ae5805de8b0e42da44516216391ca58a86c0a93b9f36a6.png",
+        "description": "Abstract macro photography of white architectural folds. Use as the full-screen background for the Login page with a slight white semi-transparent overlay to ensure the login card stands out."
+      },
+      {
+        "category": "secure_admin_logo",
+        "url": "https://static.prod-images.emergentagent.com/jobs/f4da9165-836d-4ccd-bb4d-66097fd9ce9d/images/7959d5bfda4904e20ed02658ab39cf2916576428116ff2ceb76690c434011089.png",
+        "description": "Minimalist flat geometric logo icon. Use in the header/nav bar and login screen above the title."
+      }
+    ]
+  },
+  "motion": {
+    "transitions": "Fast and deliberate. transition-all duration-200 ease-in-out.",
+    "hover_states": "Must explicitly set text color and background on hover. E.g. hover:bg-neutral-950 hover:text-white.",
+    "loading": "Use mono text blinkers or stark linear progress bars instead of generic spinning circles."
+  },
+  "accessibility_and_testing": {
+    "contrast": "Maintain APCA / WCAG AA minimums. Black text on white/gray.",
+    "testing_attributes": "CRITICAL: All interactive elements (login form, send items form, status buttons, table filters) MUST have a data-testid attribute. E.g., data-testid='login-submit-button', data-testid='send-item-input'."
+  },
+  "instructions_to_main_agent": {
+    "1": "Implement the frontend strictly according to these E1 design guidelines. Overwrite default Shadcn soft radii and subtle shadows with sharp (rounded-none) and flat borders.",
+    "2": "For the Login Page, use the 'login_background' image behind the authentication form. Ensure the layout remains strictly 'White Clean Theme'.",
+    "3": "The Admin Dashboard should use a heavy data-focused layout (Mode B). The sidebar or top nav must use the 'secure_admin_logo'.",
+    "4": "Ensure the 'Send Items' form, 'Server Status Control', and 'User Management' sections use generous padding and clear visual hierarchy (h2/h3 separation max 2 steps).",
+    "5": "Logs Viewer must use mono font for timestamps and IDs, organized via a strict grid table.",
+    "6": "Add data-testid attributes to EVERY button, input, tab, and navigation link.",
+    "7": "Use @phosphor-icons/react for all icons."
+  }
+}
