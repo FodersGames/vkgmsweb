@@ -88,7 +88,7 @@ export const Dashboard = () => {
             data-testid="logout-button"
           >
             <LogOut size={16} />
-            Déconnexion
+            Logout
           </button>
         </div>
       </aside>
@@ -113,7 +113,5 @@ export const Dashboard = () => {
         </div>
       </main>
     </div>
-  );
-};iv>
   );
 };

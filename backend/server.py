@@ -345,7 +345,7 @@ async def claim_gift(request: Request, uid: str):
     if not items:
         return {"length": 0}
     
-    # Prepare response without wrapper
+    # Prepare response items
     response_items = []
     for item in items:
         response_items.append({
@@ -358,12 +358,19 @@ async def claim_gift(request: Request, uid: str):
     await db.items.delete_one({"_id": oldest_item["_id"]})
     await log_action("claim", f"User {uid} claimed 1 item: {oldest_item['variable']} x{oldest_item['amount']}", uid=uid)
     
-    # Return length and all items (frontend will process)
-    return {
-        "length": len(response_items),
-        **response_items[0] if len(response_items) == 1 else {},
-        "items": response_items if len(response_items) > 1 else None
-    }
+    # Build response
+    result = {"length": len(response_items)}
+    
+    # Add first item directly to response (not in array)
+    if len(response_items) > 0:
+        result["variable"] = response_items[0]["variable"]
+        result["amount"] = response_items[0]["amount"]
+    
+    # Add remaining items if more than 1
+    if len(response_items) > 1:
+        result["items"] = response_items[1:]
+    
+    return result
 
 # ============== SERVER STATUS ENDPOINTS ==============
 

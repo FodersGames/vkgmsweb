@@ -174,7 +174,7 @@ class AdminDashboardAPITester:
         return success
 
     def test_send_items(self):
-        """Test send items functionality"""
+        """Test send items functionality with text amounts"""
         print("\n" + "="*50)
         print("TESTING SEND ITEMS")
         print("="*50)
@@ -183,37 +183,50 @@ class AdminDashboardAPITester:
             print("❌ No token available for send items test")
             return False
         
-        # Test sending items
+        # Test sending items with numeric amount
         test_uid = f"player_{datetime.now().strftime('%H%M%S')}"
         success, response = self.run_test(
-            "Send Items",
+            "Send Items (Numeric Amount)",
             "POST",
             "api/items/send",
             200,
             data={
                 "uid": test_uid,
                 "variable": "wood",
-                "amount": 10
+                "amount": "10"
+            }
+        )
+        
+        # Test sending items with text amount
+        success_text, response_text = self.run_test(
+            "Send Items (Text Amount)",
+            "POST",
+            "api/items/send",
+            200,
+            data={
+                "uid": test_uid,
+                "variable": "gold",
+                "amount": "legendary sword"
+            }
+        )
+        
+        # Test sending items with mixed text/number
+        success_mixed, response_mixed = self.run_test(
+            "Send Items (Mixed Text/Number)",
+            "POST",
+            "api/items/send",
+            200,
+            data={
+                "uid": test_uid,
+                "variable": "coins",
+                "amount": "100 gold coins"
             }
         )
         
         if success:
-            print(f"   Sent 10x wood to {test_uid}")
+            print(f"   Sent items to {test_uid}")
             
-            # Test claiming the items
-            success_claim, response_claim = self.run_test(
-                "Claim Sent Items",
-                "GET",
-                f"api/claimgift/{test_uid}",
-                200
-            )
-            
-            if success_claim and 'items' in response_claim:
-                print(f"   Items claimed: {len(response_claim['items'])}")
-                for item in response_claim['items']:
-                    print(f"     - {item.get('amount', 0)}x {item.get('variable', 'unknown')}")
-        
-        return success
+        return success and success_text and success_mixed
 
     def test_server_status_management(self):
         """Test server status management"""
@@ -334,7 +347,7 @@ class AdminDashboardAPITester:
                     data={
                         "uid": test_uid,
                         "variable": "stone",
-                        "amount": 5
+                        "amount": "5"  # Send as string
                     }
                 )
                 
@@ -386,6 +399,204 @@ class AdminDashboardAPITester:
         
         return success and success_no_auth and success_invalid_token
 
+    def test_fifo_queue_system(self):
+        """Test FIFO queue system for claimgift endpoint"""
+        print("\n" + "="*50)
+        print("TESTING FIFO QUEUE SYSTEM")
+        print("="*50)
+        
+        if not self.token:
+            print("❌ No token available for FIFO queue test")
+            return False
+        
+        # Create a unique test UID
+        test_uid = f"fifo_test_{datetime.now().strftime('%H%M%S')}"
+        
+        # Send multiple items to the same UID
+        items_to_send = [
+            {"variable": "wood", "amount": "10"},
+            {"variable": "stone", "amount": "5"},
+            {"variable": "gold", "amount": "legendary item"}
+        ]
+        
+        print(f"   Sending {len(items_to_send)} items to {test_uid}...")
+        for i, item in enumerate(items_to_send):
+            success, response = self.run_test(
+                f"Send Item {i+1}",
+                "POST",
+                "api/items/send",
+                200,
+                data={
+                    "uid": test_uid,
+                    "variable": item["variable"],
+                    "amount": item["amount"]
+                }
+            )
+            if not success:
+                return False
+        
+        # Test FIFO behavior - first claim should return all items but delete only first
+        success_claim1, response_claim1 = self.run_test(
+            "First Claim (FIFO Test)",
+            "GET",
+            f"api/claimgift/{test_uid}",
+            200
+        )
+        
+        if success_claim1:
+            print(f"   First claim - Length: {response_claim1.get('length', 0)}")
+            print(f"   First claim - Variable: {response_claim1.get('variable', 'none')}")
+            print(f"   First claim - Amount: {response_claim1.get('amount', 'none')}")
+            
+            # Should have length 3, return first item (wood, 10)
+            if response_claim1.get('length') == 3 and response_claim1.get('variable') == 'wood':
+                print("   ✅ FIFO working correctly - returned all items, first item is wood")
+            else:
+                print("   ❌ FIFO not working correctly")
+                return False
+        
+        # Second claim should have length 2 (one item deleted)
+        success_claim2, response_claim2 = self.run_test(
+            "Second Claim (FIFO Test)",
+            "GET",
+            f"api/claimgift/{test_uid}",
+            200
+        )
+        
+        if success_claim2:
+            print(f"   Second claim - Length: {response_claim2.get('length', 0)}")
+            print(f"   Second claim - Variable: {response_claim2.get('variable', 'none')}")
+            
+            # Should have length 2, return second item (stone, 5)
+            if response_claim2.get('length') == 2 and response_claim2.get('variable') == 'stone':
+                print("   ✅ FIFO deletion working correctly - first item deleted, second item returned")
+            else:
+                print("   ❌ FIFO deletion not working correctly")
+                return False
+        
+        return success_claim1 and success_claim2
+
+    def test_variables_management(self):
+        """Test variables CRUD operations"""
+        print("\n" + "="*50)
+        print("TESTING VARIABLES MANAGEMENT")
+        print("="*50)
+        
+        if not self.token:
+            print("❌ No token available for variables test")
+            return False
+        
+        # Test creating a variable
+        test_var_name = f"test_var_{datetime.now().strftime('%H%M%S')}"
+        success_create, response_create = self.run_test(
+            "Create Variable",
+            "POST",
+            "api/variables",
+            200,
+            data={
+                "variable_name": test_var_name,
+                "values": ["value1", "value2", "value3"]
+            }
+        )
+        
+        if not success_create:
+            return False
+        
+        # Test listing variables
+        success_list, response_list = self.run_test(
+            "List Variables",
+            "GET",
+            "api/variables",
+            200
+        )
+        
+        if success_list and 'variables' in response_list:
+            print(f"   Total variables: {len(response_list['variables'])}")
+            # Check if our variable is in the list
+            found_var = any(var['variable_name'] == test_var_name for var in response_list['variables'])
+            if found_var:
+                print(f"   ✅ Created variable found in list")
+            else:
+                print(f"   ❌ Created variable not found in list")
+                return False
+        
+        # Test getting single variable (public endpoint)
+        success_get, response_get = self.run_test(
+            "Get Single Variable (Public)",
+            "GET",
+            f"api/variable/{test_var_name}",
+            200
+        )
+        
+        if success_get:
+            print(f"   Variable values: {response_get.get('values', [])}")
+        
+        # Test updating variable
+        success_update, response_update = self.run_test(
+            "Update Variable",
+            "PUT",
+            f"api/variables/{test_var_name}",
+            200,
+            data={
+                "values": ["updated_value1", "updated_value2"]
+            }
+        )
+        
+        # Test deleting variable
+        success_delete, response_delete = self.run_test(
+            "Delete Variable",
+            "DELETE",
+            f"api/variables/{test_var_name}",
+            200
+        )
+        
+        return success_create and success_list and success_get and success_update and success_delete
+
+    def test_user_permissions_update(self):
+        """Test updating user permissions"""
+        print("\n" + "="*50)
+        print("TESTING USER PERMISSIONS UPDATE")
+        print("="*50)
+        
+        if not self.token:
+            print("❌ No token available for user permissions test")
+            return False
+        
+        if not self.created_users:
+            print("❌ No users created to test permissions update")
+            return False
+        
+        user = self.created_users[0]
+        username = user['username']
+        
+        # Test updating user permissions
+        new_permissions = ["send_items", "view_logs", "manage_variables"]
+        success_update, response_update = self.run_test(
+            f"Update User Permissions ({username})",
+            "PUT",
+            f"api/users/{username}/permissions",
+            200,
+            data={
+                "permissions": new_permissions
+            }
+        )
+        
+        if success_update:
+            print(f"   Updated permissions for {username}: {new_permissions}")
+        
+        # Test deleting user
+        success_delete, response_delete = self.run_test(
+            f"Delete User ({username})",
+            "DELETE",
+            f"api/users/{username}",
+            200
+        )
+        
+        if success_delete:
+            print(f"   Successfully deleted user: {username}")
+        
+        return success_update and success_delete
+
 def main():
     """Main test execution"""
     print("🚀 Starting Admin Dashboard API Tests")
@@ -414,6 +625,12 @@ def main():
     # Send items
     tester.test_send_items()
     
+    # FIFO queue system
+    tester.test_fifo_queue_system()
+    
+    # Variables management
+    tester.test_variables_management()
+    
     # Server status
     tester.test_server_status_management()
     
@@ -422,6 +639,9 @@ def main():
     
     # Created user login
     tester.test_created_user_login()
+    
+    # User permissions update and deletion
+    tester.test_user_permissions_update()
     
     # Invalid authentication
     tester.test_invalid_authentication()
