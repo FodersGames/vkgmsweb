@@ -17,6 +17,9 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+# Version
+VERSION = "1.0.2"
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -31,7 +34,8 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 # Master Key for Super Admin
-MASTER_KEY = "#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd"
+# ⚠️ Change this in production via environment variable
+MASTER_KEY = os.environ.get('MASTER_KEY', '#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd')
 
 # Rate Limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -169,6 +173,11 @@ async def log_action(log_type: str, message: str, user: Optional[str] = None, ui
     logger.info(f"[{log_type}] {message}")
 
 # ============== AUTH ENDPOINTS ==============
+
+@api_router.get("/version")
+async def get_version():
+    """Get API version"""
+    return {"version": VERSION, "name": "Admin Dashboard API"}
 
 @api_router.post("/auth/login", response_model=LoginResponse)
 @limiter.limit("10/minute")

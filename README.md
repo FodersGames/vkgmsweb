@@ -92,10 +92,12 @@ A professional admin dashboard with Azure DevOps/FreshService design theme, feat
 ## 🚀 Quick Start
 
 ### 1. Login
-Navigate to the dashboard and use the master key:
+Navigate to the dashboard and use the master key (configured in backend environment variables):
 ```
-#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd
+MASTER_KEY=your_secure_master_key_here
 ```
+
+⚠️ **Security Note**: Change the default master key before deployment!
 
 ### 2. Create a User
 ```bash
@@ -365,7 +367,15 @@ yarn start
 
 ## 📝 Changelog
 
-### v2.0 (Latest)
+### v1.0.2 (Current)
+- 🔒 Master key moved to environment variable (MASTER_KEY)
+- 📚 Complete security documentation (DEPLOYMENT_SECURITY.md)
+- 🔐 .env.example files added for both frontend and backend
+- 📋 Enhanced .gitignore for secret protection
+- 🎯 Version indicator in dashboard sidebar
+- 📡 Version endpoint: GET /api/version
+
+### v2.0
 - ✨ Azure DevOps/FreshService theme
 - ✨ FIFO queue system for gift items
 - ✨ Flexible amount field (text + numbers)

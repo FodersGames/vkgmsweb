@@ -143,16 +143,18 @@
 
 ### For Production Deployment
 
-1. **Change the Master Key** to a unique, strong key
-2. **Use environment variables** for all secrets
-3. **Enable HTTPS** (SSL/TLS)
-4. **Implement IP whitelisting** for admin access
-5. **Add 2FA** for Super Admin accounts
-6. **Regular security audits**
-7. **Keep dependencies updated**
-8. **Monitor for suspicious activity**
-9. **Implement backup strategy**
-10. **Use a WAF** (Web Application Firewall) for DDoS protection
+1. **Generate a new Master Key**: Use `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+2. **Set as environment variable**: Add `MASTER_KEY=your_generated_key` to .env
+3. **Never commit secrets**: Add .env to .gitignore
+4. **Use environment variables** for all secrets (JWT_SECRET, MASTER_KEY)
+5. **Enable HTTPS** (SSL/TLS)
+6. **Implement IP whitelisting** for admin access
+7. **Add 2FA** for Super Admin accounts
+8. **Regular security audits**
+9. **Keep dependencies updated**
+10. **Monitor for suspicious activity**
+11. **Implement backup strategy**
+12. **Use a WAF** (Web Application Firewall) for DDoS protection
 
 ### Sensitive Data
 - **Access keys**: Never logged or displayed after creation

@@ -81,15 +81,23 @@ export const Dashboard = () => {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-[#EDEBE9]">
+        <div className="border-t border-[#EDEBE9]">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] hover:text-[#A4262C] rounded-sm transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2 m-4 mb-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] hover:text-[#A4262C] rounded-sm transition-colors"
             data-testid="logout-button"
           >
             <LogOut size={16} />
             Logout
           </button>
+          
+          {/* Version Indicator */}
+          <div className="px-4 pb-4 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FAFAFA] border border-[#EDEBE9] rounded-sm">
+              <div className="w-2 h-2 rounded-full bg-[#107C10]"></div>
+              <span className="text-xs font-medium text-[#605E5C]" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>v1.0.2</span>
+            </div>
+          </div>
         </div>
       </aside>
 

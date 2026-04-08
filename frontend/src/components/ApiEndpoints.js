@@ -71,7 +71,7 @@ export const ApiEndpoints = () => {
     "permissions": ["send_items", "change_status", "view_logs", "manage_users", "manage_variables"]
   }
 }`,
-          note: 'Master key: #fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd'
+          note: 'Use the master key configured in backend environment (MASTER_KEY)'
         },
         {
           method: 'GET',
