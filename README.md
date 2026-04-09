@@ -367,7 +367,10 @@ yarn start
 
 ## 📝 Changelog
 
-### v1.0.2 (Current)
+### v1.0.3 (Current)
+- 🎯 Version updated to 1.0.3
+
+### v1.0.2
 - 🔒 Master key moved to environment variable (MASTER_KEY)
 - 📚 Complete security documentation (DEPLOYMENT_SECURITY.md)
 - 🔐 .env.example files added for both frontend and backend

@@ -95,7 +95,7 @@ export const Dashboard = () => {
           <div className="px-4 pb-4 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FAFAFA] border border-[#EDEBE9] rounded-sm">
               <div className="w-2 h-2 rounded-full bg-[#107C10]"></div>
-              <span className="text-xs font-medium text-[#605E5C]" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>v1.0.2</span>
+              <span className="text-xs font-medium text-[#605E5C]" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>v1.0.3</span>
             </div>
           </div>
         </div>
