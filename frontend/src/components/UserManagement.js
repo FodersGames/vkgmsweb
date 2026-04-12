@@ -16,168 +16,113 @@ export const UserManagement = () => {
   const [loading, setLoading] = useState(false);
 
   const availablePermissions = [
-    { id: 'send_items', label: 'Send Items' },
-    { id: 'change_status', label: 'Change Status' },
-    { id: 'view_logs', label: 'View Logs' },
-    { id: 'manage_users', label: 'Manage Users' },
-    { id: 'manage_variables', label: 'Manage Variables' }
+    { id: 'send_items', label: 'Send Items', color: '#F2994A' },
+    { id: 'change_status', label: 'Change Status', color: '#27AE60' },
+    { id: 'view_logs', label: 'View Logs', color: '#9B51E0' },
+    { id: 'manage_users', label: 'Manage Users', color: '#F2994A' },
+    { id: 'manage_variables', label: 'Manage Variables', color: '#2F80ED' }
   ];
 
-  useEffect(() => {
-    fetchUsers();
-    // eslint-disable-next-line
-  }, []);
+  useEffect(() => { fetchUsers(); /* eslint-disable-next-line */ }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_URL}/api/users`, { headers: { Authorization: `Bearer ${token}` } });
       setUsers(response.data.users);
-    } catch (error) {
-      console.error('Failed to fetch users');
-    }
+    } catch (error) { console.error('Failed to fetch users'); }
   };
 
   const togglePermission = (permId) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(permId)
-        ? prev.permissions.filter(p => p !== permId)
-        : [...prev.permissions, permId]
-    }));
+    setFormData(prev => ({ ...prev, permissions: prev.permissions.includes(permId) ? prev.permissions.filter(p => p !== permId) : [...prev.permissions, permId] }));
   };
 
   const toggleEditPermission = (permId) => {
-    setEditingUser(prev => ({
-      ...prev,
-      permissions: prev.permissions.includes(permId)
-        ? prev.permissions.filter(p => p !== permId)
-        : [...prev.permissions, permId]
-    }));
+    setEditingUser(prev => ({ ...prev, permissions: prev.permissions.includes(permId) ? prev.permissions.filter(p => p !== permId) : [...prev.permissions, permId] }));
   };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_URL}/api/users`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.post(`${API_URL}/api/users`, formData, { headers: { Authorization: `Bearer ${token}` } });
       setCreatedUser(response.data);
       toast.success(`User ${formData.username} created`);
       setFormData({ username: '', permissions: [] });
       setShowCreateForm(false);
       fetchUsers();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create user');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { toast.error(error.response?.data?.detail || 'Failed to create user'); }
+    finally { setLoading(false); }
   };
 
   const handleUpdatePermissions = async (username) => {
     setLoading(true);
     try {
-      await axios.put(
-        `${API_URL}/api/users/${username}/permissions`,
-        { permissions: editingUser.permissions },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.put(`${API_URL}/api/users/${username}/permissions`, { permissions: editingUser.permissions }, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Permissions updated');
       setEditingUser(null);
       fetchUsers();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { toast.error(error.response?.data?.detail || 'Failed to update'); }
+    finally { setLoading(false); }
   };
 
   const handleDeleteUser = async (username) => {
     if (!window.confirm(`Delete user "${username}"?`)) return;
     try {
-      await axios.delete(`${API_URL}/api/users/${username}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${API_URL}/api/users/${username}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('User deleted');
       fetchUsers();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete');
-    }
+    } catch (error) { toast.error(error.response?.data?.detail || 'Failed to delete'); }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
-  };
+  const copyToClipboard = (text) => { navigator.clipboard.writeText(text); toast.success('Copied to clipboard'); };
 
   return (
     <div className="max-w-6xl">
-      <div className="bg-white border border-[#EDEBE9] rounded-sm shadow-sm">
-        <div className="px-6 py-4 border-b border-[#EDEBE9] bg-[#FAFAFA] flex justify-between items-center">
+      <div className="bg-white rounded-xl border border-[#EDE5DB] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#F2994A]/5 to-[#F2C94C]/5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0078D4] rounded-sm flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#F2C94C] flex items-center justify-center shadow-sm">
               <Users size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-[#201F1E]">User Management</h3>
-              <p className="text-xs text-[#605E5C] mt-1">Create and manage user accounts</p>
+              <h3 className="text-base font-semibold text-[#1A1A2E]">User Management</h3>
+              <p className="text-xs text-[#8A8A9A]">Create and manage user accounts</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
-            data-testid="create-user-button"
-          >
+          <button onClick={() => setShowCreateForm(!showCreateForm)}
+            className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white hover:from-[#E88A3A] hover:to-[#D84848] rounded-lg px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 shadow-sm"
+            data-testid="create-user-button">
             {showCreateForm ? <X size={16} /> : <Plus size={16} />}
             {showCreateForm ? 'Cancel' : 'Create User'}
           </button>
         </div>
 
         {showCreateForm && (
-          <div className="p-6 bg-[#FAFAFA] border-b border-[#EDEBE9]">
+          <div className="p-6 bg-[#FBF9F7] border-b border-[#EDE5DB]">
             <form onSubmit={handleCreateUser} data-testid="create-user-form">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#605E5C] mb-2">USERNAME</label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
-                    required
-                    data-testid="username-input"
-                  />
+                  <label className="block text-xs font-semibold text-[#8A8A9A] mb-2 uppercase tracking-wider">Username</label>
+                  <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full border border-[#EDE5DB] bg-white rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F2994A]/20 focus:border-[#F2994A]"
+                    required data-testid="username-input" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-[#605E5C] mb-3">PERMISSIONS</div>
+                  <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Permissions</div>
                   <div className="grid grid-cols-2 gap-3">
                     {availablePermissions.map((perm) => (
-                      <label
-                        key={perm.id}
-                        className="flex items-center gap-2 p-3 border border-[#EDEBE9] bg-white rounded-sm cursor-pointer hover:bg-[#F3F2F1] transition-colors"
-                        data-testid={`permission-${perm.id}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.permissions.includes(perm.id)}
-                          onChange={() => togglePermission(perm.id)}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-[#201F1E]">{perm.label}</span>
+                      <label key={perm.id} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                        formData.permissions.includes(perm.id) ? 'border-[#F2994A] bg-[#F2994A]/5' : 'border-[#EDE5DB] bg-white hover:bg-[#FBF9F7]'}`}
+                        data-testid={`permission-${perm.id}`}>
+                        <input type="checkbox" checked={formData.permissions.includes(perm.id)} onChange={() => togglePermission(perm.id)} className="w-4 h-4 rounded" />
+                        <span className="text-sm text-[#1A1A2E]">{perm.label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={loading || formData.permissions.length === 0}
-                  className="w-full bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
-                  data-testid="create-user-submit"
-                >
+                <button type="submit" disabled={loading || formData.permissions.length === 0}
+                  className="w-full bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50 shadow-sm"
+                  data-testid="create-user-submit">
                   {loading ? 'Creating...' : 'Create User'}
                 </button>
               </div>
@@ -186,104 +131,83 @@ export const UserManagement = () => {
         )}
 
         {createdUser && (
-          <div className="mx-6 mt-6 p-4 border border-[#107C10] bg-[#DFF6DD] rounded-sm" data-testid="created-user-info">
-            <div className="text-sm font-medium text-[#107C10] mb-3">✓ User created successfully</div>
+          <div className="mx-6 mt-6 p-4 border border-[#27AE60]/30 bg-[#27AE60]/5 rounded-xl" data-testid="created-user-info">
+            <div className="text-sm font-medium text-[#27AE60] mb-3">User created successfully</div>
             <div className="space-y-2 text-sm">
+              <div><span className="text-xs font-semibold text-[#8A8A9A]">USERNAME:</span><span className="ml-2 text-[#1A1A2E]">{createdUser.username}</span></div>
               <div>
-                <span className="text-xs font-semibold text-[#605E5C]">USERNAME:</span>
-                <span className="ml-2 text-[#201F1E]">{createdUser.username}</span>
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-[#605E5C]">ACCESS KEY:</span>
+                <span className="text-xs font-semibold text-[#8A8A9A]">ACCESS KEY:</span>
                 <div className="flex items-center gap-2 mt-1">
-                  <code className="flex-1 p-2 bg-white border border-[#107C10] text-[#201F1E] text-xs rounded-sm break-all font-mono">
-                    {createdUser.access_key}
-                  </code>
-                  <button
-                    onClick={() => copyToClipboard(createdUser.access_key)}
-                    className="p-2 border border-[#107C10] bg-white hover:bg-[#DFF6DD] rounded-sm"
-                    data-testid="copy-access-key"
-                  >
-                    <Copy size={16} />
-                  </button>
+                  <code className="flex-1 p-2 bg-white border border-[#27AE60]/30 text-[#1A1A2E] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
+                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#27AE60]/30 bg-white hover:bg-[#27AE60]/5 rounded-lg" data-testid="copy-access-key"><Copy size={16} /></button>
                 </div>
               </div>
-              <div className="text-xs text-[#605E5C] mt-2">⚠️ Save this key now. It won't be shown again.</div>
+              <div className="text-xs text-[#8A8A9A] mt-2">Save this key now. It will not be shown again.</div>
             </div>
           </div>
         )}
 
         <div className="p-6">
-          <div className="text-xs font-semibold text-[#605E5C] mb-4">USERS ({users.length})</div>
+          <div className="text-xs font-semibold text-[#8A8A9A] mb-4 uppercase tracking-wider">Users ({users.length})</div>
           <div className="space-y-3" data-testid="users-list">
             {users.map((user) => {
               const isEditing = editingUser?.username === user.username;
               return (
-                <div key={user.username} className="border border-[#EDEBE9] rounded-sm bg-white">
+                <div key={user.username} className="border border-[#EDE5DB] rounded-xl bg-white hover:shadow-sm transition-all">
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="font-medium text-[#201F1E] mb-1">{user.username}</div>
-                        <div className="text-xs text-[#605E5C]">Created by: {user.created_by}</div>
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#F2994A]/20 to-[#EB5757]/20 flex items-center justify-center text-sm font-semibold text-[#F2994A]">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium text-[#1A1A2E]">{user.username}</div>
+                          <div className="text-xs text-[#C4B5A5]">Created by {user.created_by}</div>
+                        </div>
                       </div>
                       {!isEditing && (
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditingUser({ ...user })}
-                            className="px-3 py-1.5 border border-[#EDEBE9] hover:bg-[#F3F2F1] rounded-sm text-[#0078D4] text-sm flex items-center gap-1"
-                            data-testid={`edit-user-${user.username}`}
-                          >
-                            <Edit2 size={14} />Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.username)}
-                            className="px-3 py-1.5 border border-[#A4262C] hover:bg-[#A4262C] hover:text-white rounded-sm text-[#A4262C] text-sm flex items-center gap-1 transition-colors"
-                            data-testid={`delete-user-${user.username}`}
-                          >
-                            <Trash2 size={14} />Delete
-                          </button>
+                          <button onClick={() => setEditingUser({ ...user })}
+                            className="px-3 py-1.5 border border-[#EDE5DB] hover:bg-[#FBF9F7] rounded-lg text-[#2F80ED] text-sm flex items-center gap-1 transition-all"
+                            data-testid={`edit-user-${user.username}`}><Edit2 size={14} />Edit</button>
+                          <button onClick={() => handleDeleteUser(user.username)}
+                            className="px-3 py-1.5 border border-[#EB5757]/30 hover:bg-[#EB5757] hover:text-white rounded-lg text-[#EB5757] text-sm flex items-center gap-1 transition-all"
+                            data-testid={`delete-user-${user.username}`}><Trash2 size={14} />Delete</button>
                         </div>
                       )}
                     </div>
                     {isEditing ? (
                       <div>
-                        <div className="text-xs font-semibold text-[#605E5C] mb-3">EDIT PERMISSIONS</div>
+                        <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Edit Permissions</div>
                         <div className="grid grid-cols-2 gap-2 mb-4">
                           {availablePermissions.map((perm) => (
-                            <label key={perm.id} className="flex items-center gap-2 p-2 border border-[#EDEBE9] bg-white rounded-sm cursor-pointer hover:bg-[#F3F2F1] transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={editingUser.permissions.includes(perm.id)}
-                                onChange={() => toggleEditPermission(perm.id)}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm text-[#201F1E]">{perm.label}</span>
+                            <label key={perm.id} className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all ${
+                              editingUser.permissions.includes(perm.id) ? 'border-[#F2994A] bg-[#F2994A]/5' : 'border-[#EDE5DB] bg-white'}`}>
+                              <input type="checkbox" checked={editingUser.permissions.includes(perm.id)} onChange={() => toggleEditPermission(perm.id)} className="w-4 h-4" />
+                              <span className="text-sm text-[#1A1A2E]">{perm.label}</span>
                             </label>
                           ))}
                         </div>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUpdatePermissions(user.username)}
-                            disabled={loading}
-                            className="bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
-                          >
-                            <Save size={14} />Save
-                          </button>
-                          <button
-                            onClick={() => setEditingUser(null)}
-                            className="bg-white text-[#201F1E] border border-[#EDEBE9] hover:bg-[#F3F2F1] rounded-sm px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
-                          >
-                            <X size={14} />Cancel
-                          </button>
+                          <button onClick={() => handleUpdatePermissions(user.username)} disabled={loading}
+                            className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 shadow-sm">
+                            <Save size={14} />Save</button>
+                          <button onClick={() => setEditingUser(null)}
+                            className="bg-white text-[#1A1A2E] border border-[#EDE5DB] hover:bg-[#FBF9F7] rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2">
+                            <X size={14} />Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {user.permissions.map((perm) => (
-                          <span key={perm} className="px-2 py-1 border border-[#0078D4] bg-[#DEECF9] text-[#0078D4] text-xs rounded-sm font-medium">
-                            {availablePermissions.find(p => p.id === perm)?.label || perm}
-                          </span>
-                        ))}
+                        {user.permissions.map((perm) => {
+                          const permConfig = availablePermissions.find(p => p.id === perm);
+                          return (
+                            <span key={perm} className="px-2.5 py-1 rounded-full text-xs font-medium"
+                              style={{ backgroundColor: `${permConfig?.color || '#8A8A9A'}15`, color: permConfig?.color || '#8A8A9A' }}>
+                              {permConfig?.label || perm}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

@@ -367,7 +367,10 @@ yarn start
 
 ## 📝 Changelog
 
-### v1.0.3 (Current)
+### v1.0.4 (Current)
+- 🎯 Version updated to 1.0.4
+
+### v1.0.3
 - 🎯 Version updated to 1.0.3
 
 ### v1.0.2

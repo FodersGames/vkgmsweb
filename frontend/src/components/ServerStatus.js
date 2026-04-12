@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { ActivityIcon } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,11 +28,8 @@ export const ServerStatus = () => {
   const changeStatus = async (newStatus) => {
     setLoading(true);
     try {
-      await axios.post(
-        `${API_URL}/api/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`${API_URL}/api/status`, { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } });
       setCurrentStatus(newStatus);
       toast.success(`Server status changed to ${newStatus}`);
     } catch (error) {
@@ -43,55 +40,48 @@ export const ServerStatus = () => {
   };
 
   const statusConfig = {
-    open: { color: '#107C10', bg: '#DFF6DD', label: 'Open' },
-    maintenance: { color: '#F59E0B', bg: '#FEF3C7', label: 'Maintenance' },
-    closed: { color: '#A4262C', bg: '#FDE7E9', label: 'Closed' }
+    open: { color: '#27AE60', bg: '#27AE60/10', gradient: 'from-[#27AE60] to-[#219653]', label: 'Open' },
+    maintenance: { color: '#F2994A', bg: '#F2994A/10', gradient: 'from-[#F2994A] to-[#F2C94C]', label: 'Maintenance' },
+    closed: { color: '#EB5757', bg: '#EB5757/10', gradient: 'from-[#EB5757] to-[#E04848]', label: 'Closed' }
   };
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-white border border-[#EDEBE9] rounded-sm shadow-sm">
-        <div className="px-6 py-4 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+      <div className="bg-white rounded-xl border border-[#EDE5DB] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#27AE60]/5 to-[#219653]/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0078D4] rounded-sm flex items-center justify-center">
-              <ActivityIcon size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#27AE60] to-[#219653] flex items-center justify-center shadow-sm">
+              <Activity size={16} className="text-white" />
             </div>
-            <h3 className="text-lg font-medium text-[#201F1E]">Server Status</h3>
+            <div>
+              <h3 className="text-base font-semibold text-[#1A1A2E]">Server Status</h3>
+              <p className="text-xs text-[#8A8A9A]">Control your server state</p>
+            </div>
           </div>
         </div>
-
         <div className="p-6 space-y-6">
           <div>
-            <div className="text-xs font-semibold text-[#605E5C] mb-3">CURRENT STATUS</div>
-            <div 
-              className="inline-flex items-center px-4 py-2 rounded-sm font-medium text-sm"
-              style={{ 
-                backgroundColor: statusConfig[currentStatus].bg,
-                color: statusConfig[currentStatus].color
-              }}
-              data-testid="current-status"
-            >
-              <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: statusConfig[currentStatus].color }}></span>
+            <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Current Status</div>
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm"
+              style={{ backgroundColor: `${statusConfig[currentStatus].color}15`, color: statusConfig[currentStatus].color }}
+              data-testid="current-status">
+              <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: statusConfig[currentStatus].color }}></span>
               {statusConfig[currentStatus].label}
             </div>
           </div>
-
           <div>
-            <div className="text-xs font-semibold text-[#605E5C] mb-3">CHANGE STATUS</div>
+            <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Change Status</div>
             <div className="grid grid-cols-3 gap-3">
               {Object.entries(statusConfig).map(([status, config]) => (
-                <button
-                  key={status}
-                  onClick={() => changeStatus(status)}
+                <button key={status} onClick={() => changeStatus(status)}
                   disabled={loading || currentStatus === status}
-                  className="py-2.5 px-4 border rounded-sm text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    borderColor: config.color,
-                    backgroundColor: currentStatus === status ? config.color : 'white',
-                    color: currentStatus === status ? 'white' : config.color
-                  }}
-                  data-testid={`status-${status}-button`}
-                >
+                  className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                    currentStatus === status 
+                      ? `bg-gradient-to-r ${config.gradient} text-white shadow-md` 
+                      : 'bg-[#FBF9F7] border border-[#EDE5DB] hover:shadow-sm'
+                  }`}
+                  style={currentStatus !== status ? { color: config.color } : {}}
+                  data-testid={`status-${status}-button`}>
                   {config.label}
                 </button>
               ))}

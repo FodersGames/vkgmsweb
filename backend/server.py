@@ -18,7 +18,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Version
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -487,11 +487,18 @@ async def get_variable(variable_name: str):
     
     await log_action("variable_access", f"Variable '{variable_name}' accessed", variable=variable_name)
     
-    # Return just the values or single value if only one
+    # Build response with variable name and indexed values
+    result = {"variable_name": variable_name}
+    
+    # Add each value as a separate property
     values = variable.get("values", [])
-    if len(values) == 1:
-        return {"variable_name": variable_name, "value": values[0], "values": values}
-    return {"variable_name": variable_name, "values": values}
+    for index, value in enumerate(values):
+        result[f"value_{index}"] = value
+    
+    # Also include total count
+    result["count"] = len(values)
+    
+    return result
 
 @api_router.put("/variables/{variable_name}")
 async def update_variable(

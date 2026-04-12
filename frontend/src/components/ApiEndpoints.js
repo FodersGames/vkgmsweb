@@ -295,15 +295,15 @@ export const ApiEndpoints = () => {
 
   return (
     <div className="max-w-7xl">
-      <div className="bg-white border border-[#EDEBE9] rounded-sm shadow-sm">
-        <div className="px-6 py-4 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+      <div className="bg-white border border-[#EDE5DB] rounded-xl shadow-sm">
+        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#4F4F4F]/5 to-[#828282]/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0078D4] rounded-sm flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#4F4F4F] to-[#828282] flex items-center justify-center shadow-sm">
               <FileText size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-[#201F1E]">API Documentation</h3>
-              <p className="text-xs text-[#605E5C] mt-1">Complete API reference with examples</p>
+              <h3 className="text-lg font-medium text-[#1A1A2E]">API Documentation</h3>
+              <p className="text-xs text-[#8A8A9A] mt-1">Complete API reference with examples</p>
             </div>
           </div>
         </div>
@@ -312,29 +312,29 @@ export const ApiEndpoints = () => {
           {endpoints.map((section, sectionIdx) => (
             <div key={sectionIdx}>
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-px flex-1 bg-[#EDEBE9]"></div>
-                <div className="text-xs font-bold text-[#605E5C] px-3">{section.category}</div>
-                <div className="h-px flex-1 bg-[#EDEBE9]"></div>
+                <div className="h-px flex-1 bg-[#EDE5DB]"></div>
+                <div className="text-xs font-bold text-[#8A8A9A] px-3">{section.category}</div>
+                <div className="h-px flex-1 bg-[#EDE5DB]"></div>
               </div>
 
               <div className="space-y-4">
                 {section.items.map((endpoint, endpointIdx) => {
                   const uniqueId = `${sectionIdx}-${endpointIdx}`;
                   const methodColors = {
-                    GET: { bg: '#DFF6DD', color: '#107C10', border: '#107C10' },
-                    POST: { bg: '#DEECF9', color: '#0078D4', border: '#0078D4' },
+                    GET: { bg: '#27AE6015', color: '#27AE60', border: '#27AE60' },
+                    POST: { bg: '#2F80ED15', color: '#2F80ED', border: '#2F80ED' },
                     PUT: { bg: '#FEF3C7', color: '#F59E0B', border: '#F59E0B' },
-                    DELETE: { bg: '#FDE7E9', color: '#A4262C', border: '#A4262C' }
+                    DELETE: { bg: '#EB575715', color: '#EB5757', border: '#EB5757' }
                   };
                   const methodStyle = methodColors[endpoint.method];
 
                   return (
-                    <div key={endpointIdx} className="border border-[#EDEBE9] rounded-sm bg-white">
-                      <div className="p-4 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+                    <div key={endpointIdx} className="border border-[#EDE5DB] rounded-lg bg-white">
+                      <div className="p-4 border-b border-[#EDE5DB] bg-[#FBF9F7]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1">
                             <span
-                              className="px-3 py-1 text-xs font-bold rounded-sm"
+                              className="px-3 py-1 text-xs font-bold rounded-lg"
                               style={{
                                 backgroundColor: methodStyle.bg,
                                 color: methodStyle.color,
@@ -343,40 +343,40 @@ export const ApiEndpoints = () => {
                             >
                               {endpoint.method}
                             </span>
-                            <code className="text-sm font-mono text-[#201F1E] flex-1">
+                            <code className="text-sm font-mono text-[#1A1A2E] flex-1">
                               {endpoint.path}
                             </code>
                             {endpoint.auth && (
-                              <span className="text-xs px-2 py-1 bg-[#FEF3C7] text-[#F59E0B] border border-[#F59E0B] rounded-sm font-medium">
+                              <span className="text-xs px-2 py-1 bg-[#FEF3C7] text-[#F59E0B] border border-[#F59E0B] rounded-lg font-medium">
                                 AUTH REQUIRED
                               </span>
                             )}
                           </div>
                           <button
                             onClick={() => copyToClipboard(endpoint.example, `url-${uniqueId}`)}
-                            className="ml-3 p-2 border border-[#EDEBE9] hover:bg-[#F3F2F1] rounded-sm transition-colors"
+                            className="ml-3 p-2 border border-[#EDE5DB] hover:bg-[#F5F0EB] rounded-lg transition-colors"
                             data-testid={`copy-endpoint-${uniqueId}`}
                           >
                             {copied === `url-${uniqueId}` ? (
-                              <CheckCircle size={16} className="text-[#107C10]" />
+                              <CheckCircle size={16} className="text-[#27AE60]" />
                             ) : (
-                              <Copy size={16} className="text-[#605E5C]" />
+                              <Copy size={16} className="text-[#8A8A9A]" />
                             )}
                           </button>
                         </div>
-                        <p className="mt-2 text-sm text-[#605E5C]">{endpoint.description}</p>
+                        <p className="mt-2 text-sm text-[#8A8A9A]">{endpoint.description}</p>
                         {endpoint.note && (
-                          <div className="mt-2 p-2 bg-[#DEECF9] border border-[#0078D4] rounded-sm">
-                            <p className="text-xs text-[#0078D4]">💡 {endpoint.note}</p>
+                          <div className="mt-2 p-2 bg-[#2F80ED15] border border-[#2F80ED] rounded-lg">
+                            <p className="text-xs text-[#2F80ED]">💡 {endpoint.note}</p>
                           </div>
                         )}
                       </div>
 
                       <div className="p-4 space-y-4">
                         <div>
-                          <div className="text-xs font-semibold text-[#605E5C] mb-2">ENDPOINT URL</div>
+                          <div className="text-xs font-semibold text-[#8A8A9A] mb-2">ENDPOINT URL</div>
                           <div className="flex items-center gap-2">
-                            <code className="flex-1 p-2 bg-[#FAFAFA] border border-[#EDEBE9] text-[#201F1E] text-sm font-mono rounded-sm break-all">
+                            <code className="flex-1 p-2 bg-[#FBF9F7] border border-[#EDE5DB] text-[#1A1A2E] text-sm font-mono rounded-lg break-all">
                               {endpoint.example}
                             </code>
                           </div>
@@ -384,19 +384,19 @@ export const ApiEndpoints = () => {
 
                         {endpoint.body && (
                           <div>
-                            <div className="text-xs font-semibold text-[#605E5C] mb-2">REQUEST BODY</div>
+                            <div className="text-xs font-semibold text-[#8A8A9A] mb-2">REQUEST BODY</div>
                             <div className="flex items-start gap-2">
-                              <pre className="flex-1 p-3 bg-[#FAFAFA] border border-[#EDEBE9] text-[#201F1E] text-sm font-mono rounded-sm overflow-x-auto">
+                              <pre className="flex-1 p-3 bg-[#FBF9F7] border border-[#EDE5DB] text-[#1A1A2E] text-sm font-mono rounded-lg overflow-x-auto">
                                 {endpoint.body}
                               </pre>
                               <button
                                 onClick={() => copyToClipboard(endpoint.body, `body-${uniqueId}`)}
-                                className="p-2 border border-[#EDEBE9] hover:bg-[#F3F2F1] rounded-sm transition-colors"
+                                className="p-2 border border-[#EDE5DB] hover:bg-[#F5F0EB] rounded-lg transition-colors"
                               >
                                 {copied === `body-${uniqueId}` ? (
-                                  <CheckCircle size={16} className="text-[#107C10]" />
+                                  <CheckCircle size={16} className="text-[#27AE60]" />
                                 ) : (
-                                  <Copy size={16} className="text-[#605E5C]" />
+                                  <Copy size={16} className="text-[#8A8A9A]" />
                                 )}
                               </button>
                             </div>
@@ -405,27 +405,27 @@ export const ApiEndpoints = () => {
 
                         {endpoint.auth && (
                           <div>
-                            <div className="text-xs font-semibold text-[#605E5C] mb-2">AUTHORIZATION</div>
-                            <code className="block p-2 bg-[#FAFAFA] border border-[#EDEBE9] text-[#201F1E] text-sm font-mono rounded-sm">
+                            <div className="text-xs font-semibold text-[#8A8A9A] mb-2">AUTHORIZATION</div>
+                            <code className="block p-2 bg-[#FBF9F7] border border-[#EDE5DB] text-[#1A1A2E] text-sm font-mono rounded-lg">
                               Authorization: Bearer YOUR_JWT_TOKEN
                             </code>
                           </div>
                         )}
 
                         <div>
-                          <div className="text-xs font-semibold text-[#605E5C] mb-2">RESPONSE EXAMPLE</div>
+                          <div className="text-xs font-semibold text-[#8A8A9A] mb-2">RESPONSE EXAMPLE</div>
                           <div className="flex items-start gap-2">
-                            <pre className="flex-1 p-3 bg-[#FAFAFA] border border-[#EDEBE9] text-[#201F1E] text-sm font-mono rounded-sm overflow-x-auto">
+                            <pre className="flex-1 p-3 bg-[#FBF9F7] border border-[#EDE5DB] text-[#1A1A2E] text-sm font-mono rounded-lg overflow-x-auto">
                               {endpoint.response}
                             </pre>
                             <button
                               onClick={() => copyToClipboard(endpoint.response, `response-${uniqueId}`)}
-                              className="p-2 border border-[#EDEBE9] hover:bg-[#F3F2F1] rounded-sm transition-colors"
+                              className="p-2 border border-[#EDE5DB] hover:bg-[#F5F0EB] rounded-lg transition-colors"
                             >
                               {copied === `response-${uniqueId}` ? (
-                                <CheckCircle size={16} className="text-[#107C10]" />
+                                <CheckCircle size={16} className="text-[#27AE60]" />
                               ) : (
-                                <Copy size={16} className="text-[#605E5C]" />
+                                <Copy size={16} className="text-[#8A8A9A]" />
                               )}
                             </button>
                           </div>
@@ -438,17 +438,17 @@ export const ApiEndpoints = () => {
           ))}
         </div>
 
-        <div className="mx-6 mb-6 p-4 border border-[#0078D4] bg-[#DEECF9] rounded-sm">
-          <div className="text-sm font-medium text-[#0078D4] mb-2">🔒 Security Note</div>
-          <p className="text-sm text-[#201F1E]">
+        <div className="mx-6 mb-6 p-4 border border-[#2F80ED] bg-[#2F80ED15] rounded-lg">
+          <div className="text-sm font-medium text-[#2F80ED] mb-2">🔒 Security Note</div>
+          <p className="text-sm text-[#1A1A2E]">
             All authenticated endpoints require a valid JWT token in the Authorization header.
             Only public endpoints (claimgift, status, variable) can be accessed without authentication.
           </p>
         </div>
 
-        <div className="mx-6 mb-6 p-4 border border-[#107C10] bg-[#DFF6DD] rounded-sm">
-          <div className="text-sm font-medium text-[#107C10] mb-2">📘 Permissions System</div>
-          <div className="text-sm text-[#201F1E] space-y-1">
+        <div className="mx-6 mb-6 p-4 border border-[#27AE60] bg-[#27AE6015] rounded-lg">
+          <div className="text-sm font-medium text-[#27AE60] mb-2">📘 Permissions System</div>
+          <div className="text-sm text-[#1A1A2E] space-y-1">
             <p><strong>send_items:</strong> Send items to players</p>
             <p><strong>change_status:</strong> Change server status</p>
             <p><strong>view_logs:</strong> View activity logs</p>

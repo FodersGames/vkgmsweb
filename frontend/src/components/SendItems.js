@@ -2,30 +2,22 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Package } from 'lucide-react';
+import { Package, Send } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const SendItems = () => {
   const { token } = useAuth();
-  const [formData, setFormData] = useState({
-    uid: '',
-    variable: '',
-    amount: ''
-  });
+  const [formData, setFormData] = useState({ uid: '', variable: '', amount: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      await axios.post(
-        `${API_URL}/api/items/send`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      await axios.post(`${API_URL}/api/items/send`, formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       toast.success(`Sent ${formData.amount}x ${formData.variable} to ${formData.uid}`);
       setFormData({ uid: '', variable: '', amount: '' });
     } catch (error) {
@@ -37,70 +29,43 @@ export const SendItems = () => {
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-white border border-[#EDEBE9] rounded-sm shadow-sm">
-        <div className="px-6 py-4 border-b border-[#EDEBE9] bg-[#FAFAFA]">
+      <div className="bg-white rounded-xl border border-[#EDE5DB] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#F2994A]/5 to-[#EB5757]/5">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#0078D4] rounded-sm flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#EB5757] flex items-center justify-center shadow-sm">
               <Package size={16} className="text-white" />
             </div>
-            <h3 className="text-lg font-medium text-[#201F1E]">Send Items</h3>
+            <div>
+              <h3 className="text-base font-semibold text-[#1A1A2E]">Send Items</h3>
+              <p className="text-xs text-[#8A8A9A]">Send items to a player</p>
+            </div>
           </div>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6" data-testid="send-items-form">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
-                PLAYER UID
-              </label>
-              <input
-                type="text"
-                value={formData.uid}
-                onChange={(e) => setFormData({ ...formData, uid: e.target.value })}
-                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
-                placeholder="player_12345"
-                required
-                data-testid="uid-input"
-              />
+              <label className="block text-xs font-semibold text-[#8A8A9A] mb-2 uppercase tracking-wider">Player UID</label>
+              <input type="text" value={formData.uid} onChange={(e) => setFormData({ ...formData, uid: e.target.value })}
+                className="w-full border border-[#EDE5DB] bg-[#FBF9F7] rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F2994A]/20 focus:border-[#F2994A] transition-all"
+                placeholder="player_12345" required data-testid="uid-input" />
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
-                ITEM VARIABLE
-              </label>
-              <input
-                type="text"
-                value={formData.variable}
-                onChange={(e) => setFormData({ ...formData, variable: e.target.value })}
-                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
-                placeholder="wood, workbench, etc."
-                required
-                data-testid="variable-input"
-              />
+              <label className="block text-xs font-semibold text-[#8A8A9A] mb-2 uppercase tracking-wider">Item Variable</label>
+              <input type="text" value={formData.variable} onChange={(e) => setFormData({ ...formData, variable: e.target.value })}
+                className="w-full border border-[#EDE5DB] bg-[#FBF9F7] rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F2994A]/20 focus:border-[#F2994A] transition-all"
+                placeholder="wood, workbench, etc." required data-testid="variable-input" />
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-[#605E5C] mb-2">
-                AMOUNT (text or number)
-              </label>
-              <input
-                type="text"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full border border-[#EDEBE9] bg-white rounded-sm text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#0078D4] focus:border-[#0078D4]"
-                placeholder="10, '100 gold', 'legendary', etc."
-                required
-                data-testid="amount-input"
-              />
-              <p className="text-xs text-[#605E5C] mt-1">Accepts any text or number value</p>
+              <label className="block text-xs font-semibold text-[#8A8A9A] mb-2 uppercase tracking-wider">Amount (text or number)</label>
+              <input type="text" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                className="w-full border border-[#EDE5DB] bg-[#FBF9F7] rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F2994A]/20 focus:border-[#F2994A] transition-all"
+                placeholder="10, '100 gold', 'legendary', etc." required data-testid="amount-input" />
+              <p className="text-xs text-[#C4B5A5] mt-1.5">Accepts any text or number value</p>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#0078D4] text-white hover:bg-[#005A9E] rounded-sm px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
-              data-testid="send-items-submit"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white hover:from-[#E88A3A] hover:to-[#D84848] rounded-lg px-4 py-3 text-sm font-semibold transition-all disabled:opacity-50 shadow-md shadow-[#F2994A]/15 flex items-center justify-center gap-2"
+              data-testid="send-items-submit">
+              <Send size={16} />
               {loading ? 'Sending...' : 'Send Items'}
             </button>
           </div>
