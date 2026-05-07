@@ -1,44 +1,56 @@
-# Admin Dashboard API - PRD
+# Admin Dashboard API - Vakar Games - PRD
 
 ## Problem Statement
-Build a secure backend API with an admin dashboard (web interface) for managing multiple game projects. Each project has isolated data (items, server status, variables, logs). Features include Super Admin login via master key, RBAC, send items to players, public FIFO claim endpoint, server status management, variables, and activity logs.
+Build a secure backend API with admin dashboard and official website for Vakar Games. Multi-project system with isolated data per game. Granular permission system for fine-grained access control.
 
 ## Architecture
-- **Frontend**: React + Tailwind CSS (warm theme) 
+- **Frontend**: React + Tailwind CSS
 - **Backend**: Python FastAPI
 - **Database**: MongoDB
 - **Auth**: Custom JWT with Master Key + User Keys (bcrypt hashed)
 
-## Key Endpoints (v1.0.5)
-All game data scoped under `/api/projects/{project_slug}/...`
-- `POST /api/projects` - Create project
-- `GET /api/projects` - List projects
-- `DELETE /api/projects/{slug}` - Delete project + all data
-- `POST /api/projects/{slug}/items/send` - Send items (auth)
-- `GET /api/projects/{slug}/claimgift/{uid}` - FIFO claim (public)
-- `GET/POST /api/projects/{slug}/status` - Server status
-- CRUD `/api/projects/{slug}/variables` - Variables management
-- `GET /api/projects/{slug}/variable/{name}` - Flat JSON (public)
-- `GET /api/projects/{slug}/logs` - Activity logs (auth)
-- `POST /api/auth/login` / `GET /api/auth/verify` - Auth (global)
-- CRUD `/api/users` - User management (global)
+## Routes
+- `/` — Vakar Games landing page (public)
+- `/login` — Admin login
+- `/dashboard` — Admin dashboard (protected)
+
+## Permissions (13 total, 6 groups)
+- **Projects**: view_projects, create_projects, delete_projects
+- **Items**: send_items, delete_items
+- **Server**: change_status
+- **Variables**: view_variables, create_variables, edit_variables, delete_variables
+- **Logs & Docs**: view_logs, view_api_docs
+- **Users**: manage_users
+
+## Key Endpoints (v1.1.0)
+- `GET /api/permissions` — List all available permissions
+- `POST/GET/DELETE /api/projects` — Project CRUD
+- `POST /api/projects/{slug}/items/send` — Send items
+- `DELETE /api/projects/{slug}/items/{uid}` — Delete items for a UID
+- `GET /api/projects/{slug}/claimgift/{uid}` — FIFO claim (public)
+- `GET/POST /api/projects/{slug}/status` — Server status
+- `CRUD /api/projects/{slug}/variables` — Variables
+- `GET /api/projects/{slug}/variable/{name}` — Flat JSON (public)
+- `GET /api/projects/{slug}/logs` — Logs
+- `CRUD /api/users` — User management
 
 ## What's Implemented
-- [x] JWT auth with master key + user keys (bcrypt)
-- [x] RBAC (send_items, change_status, view_logs, manage_users, manage_variables)
+- [x] Vakar Games landing page (hero, about, games, contact, footer)
+- [x] 13 granular permissions in 6 groups
 - [x] Multi-project system with data isolation
-- [x] Project CRUD (create, list, delete with cascade)
-- [x] Project selector in dashboard sidebar
-- [x] Send items to players (project-scoped)
-- [x] FIFO claim gift endpoint (public, project-scoped)
+- [x] JWT auth with master key + user keys
+- [x] RBAC with fine-grained permission checks
+- [x] Project CRUD with cascade delete
+- [x] Send/delete items (project-scoped)
+- [x] FIFO claim gift (public, project-scoped)
 - [x] Server status management (project-scoped)
-- [x] Variables management with flat JSON public endpoint (project-scoped)
+- [x] Variables with flat JSON public endpoint (project-scoped)
 - [x] Activity logs with filtering (project-scoped)
-- [x] User management (global)
-- [x] API documentation page (updated for project endpoints)
-- [x] Warm theme UI across all components
-- [x] Rate limiting on login and claim endpoints
-- [x] Version indicator (v1.0.5)
+- [x] User management with granular permission grid
+- [x] API documentation page
+- [x] Warm theme UI
+- [x] Rate limiting
+- [x] Version v1.1.0
 
 ## Backlog
 - No pending tasks. Ask user for next features.

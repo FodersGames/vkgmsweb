@@ -4,11 +4,13 @@
 - **Master Key**: `#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd`
 
 ## Existing Data
-- **Project**: "My Game" (slug: `my-game`)
+- **Project**: "My City" (slug: `my-city`)
 - **User**: `thomas` (created via dashboard)
 
-## Frontend URL
-- https://express-api-panel.preview.emergentagent.com
+## URLs
+- Landing page: https://express-api-panel.preview.emergentagent.com/
+- Login: https://express-api-panel.preview.emergentagent.com/login
+- Dashboard: https://express-api-panel.preview.emergentagent.com/dashboard
 
 ## Login Flow
 1. Go to `/login`
