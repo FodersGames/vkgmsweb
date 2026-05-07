@@ -39,13 +39,13 @@ const Home = () => {
                 style={{ fontFamily: "'Inter', sans-serif" }}>
                 About
               </button>
-              <a href="#games" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
+              <a href="/games" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
                 style={{ fontFamily: "'Inter', sans-serif" }}>
                 Games
               </a>
-              <a href="#contact" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
+              <a href="/blog" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
                 style={{ fontFamily: "'Inter', sans-serif" }}>
-                Contact
+                Blog
               </a>
             </div>
           </div>
@@ -94,7 +94,7 @@ const Home = () => {
               WHO WE ARE
             </h3>
             <p className="text-lg text-white/70 leading-relaxed mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-              Vakar Games is a game development studio driven by passion and creativity.
+              Vakar Games is a French video game development studio driven by passion and creativity.
               We build immersive worlds, unforgettable characters, and experiences that push boundaries.
             </p>
             <p className="text-lg text-white/70 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
@@ -170,7 +170,7 @@ const Home = () => {
           <p className="text-lg text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
             Interested in working with us or have a question? We'd love to hear from you.
           </p>
-          <a href="mailto:contact@vakargames.com"
+          <a href="mailto:vakargames@gmail.com"
             className="inline-block border-2 border-white text-white px-10 py-4 text-sm font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-[#0a0a0f] transition-all duration-300"
             style={{ fontFamily: "'Inter', sans-serif" }}
             data-testid="contact-email-button">
@@ -189,17 +189,13 @@ const Home = () => {
                 VAKAR GAMES
               </span>
               <div className="hidden md:flex items-center gap-6">
-                <button onClick={scrollToAbout} className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
-                  style={{ fontFamily: "'Inter', sans-serif" }}>
-                  About
-                </button>
-                <a href="#games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
+                <a href="/games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
                   style={{ fontFamily: "'Inter', sans-serif" }}>
                   Games
                 </a>
-                <a href="#contact" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
+                <a href="/blog" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase"
                   style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Contact
+                  Blog
                 </a>
               </div>
             </div>

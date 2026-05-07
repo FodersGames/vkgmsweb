@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield, Globe } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -60,6 +60,20 @@ const PERMISSION_GROUPS = [
     color: '#EB5757',
     permissions: [
       { id: 'manage_users', label: 'Manage Users' },
+    ]
+  },
+  {
+    label: 'Website',
+    icon: Code,
+    color: '#4ECDC4',
+    permissions: [
+      { id: 'manage_website', label: 'Website Settings' },
+      { id: 'create_games', label: 'Create Games' },
+      { id: 'edit_games', label: 'Edit Games' },
+      { id: 'delete_games', label: 'Delete Games' },
+      { id: 'create_blog', label: 'Create Blog' },
+      { id: 'edit_blog', label: 'Edit Blog' },
+      { id: 'delete_blog', label: 'Delete Blog' },
     ]
   }
 ];
@@ -152,8 +166,8 @@ export const UserManagement = () => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
-          <div key={group.label} className="border border-[#EDE5DB] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#FBF9F7] border-b border-[#EDE5DB]">
+          <div key={group.label} className="border border-[#2a2a3c] rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#1c1c2e] border-b border-[#2a2a3c]">
               <Icon size={14} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1"></div>
@@ -167,7 +181,7 @@ export const UserManagement = () => {
                     if (!selectedPerms.includes(p.id)) onToggle(p.id);
                   });
                 }
-              }} className="text-[10px] font-semibold text-[#8A8A9A] hover:text-[#1A1A2E] uppercase">
+              }} className="text-[10px] font-semibold text-[#71717a] hover:text-[#e4e4e7] uppercase">
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
             </div>
@@ -175,8 +189,8 @@ export const UserManagement = () => {
               {group.permissions.map((perm) => (
                 <label key={perm.id} className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
                   selectedPerms.includes(perm.id)
-                    ? 'border-[#F2994A] bg-[#F2994A]/5 text-[#1A1A2E]'
-                    : 'border-[#EDE5DB] bg-white text-[#8A8A9A] hover:bg-[#FBF9F7]'
+                    ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
+                    : 'border-[#2a2a3c] bg-[#0d0d14] text-[#71717a] hover:bg-[#1c1c2e]'
                 }`}>
                   <input type="checkbox" checked={selectedPerms.includes(perm.id)} onChange={() => onToggle(perm.id)}
                     className="w-3.5 h-3.5 rounded" />
@@ -200,19 +214,19 @@ export const UserManagement = () => {
 
   return (
     <div className="max-w-6xl">
-      <div className="bg-white rounded-xl border border-[#EDE5DB] shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#F2994A]/5 to-[#F2C94C]/5 flex justify-between items-center">
+      <div className="bg-[#151520] rounded-xl border border-[#2a2a3c] overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#2a2a3c] flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#F2C94C] flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#F2C94C] flex items-center justify-center">
               <Users size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#1A1A2E]">User Management</h3>
-              <p className="text-xs text-[#8A8A9A]">Create and manage user accounts with granular permissions</p>
+              <h3 className="text-base font-semibold text-[#e4e4e7]">User Management</h3>
+              <p className="text-xs text-[#71717a]">Create and manage user accounts with granular permissions</p>
             </div>
           </div>
           <button onClick={() => { setShowCreateForm(!showCreateForm); setCreatedUser(null); }}
-            className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white hover:from-[#E88A3A] hover:to-[#D84848] rounded-lg px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 shadow-sm"
+            className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2"
             data-testid="create-user-button">
             {showCreateForm ? <X size={16} /> : <Plus size={16} />}
             {showCreateForm ? 'Cancel' : 'Create User'}
@@ -220,28 +234,28 @@ export const UserManagement = () => {
         </div>
 
         {showCreateForm && (
-          <div className="p-6 bg-[#FBF9F7] border-b border-[#EDE5DB]">
+          <div className="p-6 bg-[#1c1c2e] border-b border-[#2a2a3c]">
             <form onSubmit={handleCreateUser} data-testid="create-user-form">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#8A8A9A] mb-2 uppercase tracking-wider">Username</label>
+                  <label className="block text-xs font-semibold text-[#71717a] mb-2 uppercase tracking-wider">Username</label>
                   <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full border border-[#EDE5DB] bg-white rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F2994A]/20 focus:border-[#F2994A]"
+                    className="w-full bg-[#0d0d14] border border-[#2a2a3c] text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
                     required data-testid="username-input" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-xs font-semibold text-[#8A8A9A] uppercase tracking-wider">Permissions ({formData.permissions.length}/{ALL_PERMISSIONS.length})</div>
+                    <div className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Permissions ({formData.permissions.length}/{ALL_PERMISSIONS.length})</div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={selectAllPermissions} className="text-xs text-[#2F80ED] hover:underline">Select All</button>
-                      <span className="text-[#EDE5DB]">|</span>
-                      <button type="button" onClick={clearAllPermissions} className="text-xs text-[#EB5757] hover:underline">Clear All</button>
+                      <button type="button" onClick={selectAllPermissions} className="text-xs text-[#4ECDC4] hover:underline">Select All</button>
+                      <span className="text-[#2a2a3c]">|</span>
+                      <button type="button" onClick={clearAllPermissions} className="text-xs text-red-400 hover:underline">Clear All</button>
                     </div>
                   </div>
                   {renderPermissionGrid(formData.permissions, togglePermission)}
                 </div>
                 <button type="submit" disabled={loading || formData.permissions.length === 0}
-                  className="w-full bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50 shadow-sm"
+                  className="w-full bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
                   data-testid="create-user-submit">
                   {loading ? 'Creating...' : 'Create User'}
                 </button>
@@ -251,51 +265,51 @@ export const UserManagement = () => {
         )}
 
         {createdUser && (
-          <div className="mx-6 mt-6 p-4 border border-[#27AE60]/30 bg-[#27AE60]/5 rounded-xl" data-testid="created-user-info">
-            <div className="text-sm font-medium text-[#27AE60] mb-3">User created successfully</div>
+          <div className="mx-6 mt-6 p-4 border border-[#4ECDC4]/30 bg-[#4ECDC4]/5 rounded-xl" data-testid="created-user-info">
+            <div className="text-sm font-medium text-[#4ECDC4] mb-3">User created successfully</div>
             <div className="space-y-2 text-sm">
-              <div><span className="text-xs font-semibold text-[#8A8A9A]">USERNAME:</span><span className="ml-2 text-[#1A1A2E]">{createdUser.username}</span></div>
+              <div><span className="text-xs font-semibold text-[#71717a]">USERNAME:</span><span className="ml-2 text-[#e4e4e7]">{createdUser.username}</span></div>
               <div>
-                <span className="text-xs font-semibold text-[#8A8A9A]">ACCESS KEY:</span>
+                <span className="text-xs font-semibold text-[#71717a]">ACCESS KEY:</span>
                 <div className="flex items-center gap-2 mt-1">
-                  <code className="flex-1 p-2 bg-white border border-[#27AE60]/30 text-[#1A1A2E] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
-                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#27AE60]/30 bg-white hover:bg-[#27AE60]/5 rounded-lg" data-testid="copy-access-key"><Copy size={16} /></button>
+                  <code className="flex-1 p-2 bg-[#0d0d14] border border-[#4ECDC4]/30 text-[#e4e4e7] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
+                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#4ECDC4]/30 bg-[#1c1c2e] hover:bg-[#4ECDC4]/10 rounded-lg" data-testid="copy-access-key"><Copy size={16} className="text-[#4ECDC4]" /></button>
                 </div>
               </div>
-              <div className="text-xs text-[#8A8A9A] mt-2">Save this key now. It will not be shown again.</div>
+              <div className="text-xs text-[#71717a] mt-2">Save this key now. It will not be shown again.</div>
             </div>
           </div>
         )}
 
         <div className="p-6">
-          <div className="text-xs font-semibold text-[#8A8A9A] mb-4 uppercase tracking-wider">Users ({users.length})</div>
+          <div className="text-xs font-semibold text-[#71717a] mb-4 uppercase tracking-wider">Users ({users.length})</div>
           <div className="space-y-3" data-testid="users-list">
             {users.length === 0 && (
-              <div className="text-center py-12 text-[#C4B5A5]">No users yet. Create one to get started.</div>
+              <div className="text-center py-12 text-[#71717a]">No users yet. Create one to get started.</div>
             )}
             {users.map((user) => {
               const isEditing = editingUser?.username === user.username;
               return (
-                <div key={user.username} className="border border-[#EDE5DB] rounded-xl bg-white hover:shadow-sm transition-all">
+                <div key={user.username} className="bg-[#1c1c2e] border border-[#2a2a3c] rounded-xl hover:border-[#4ECDC4]/20 transition-all">
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#F2994A]/20 to-[#EB5757]/20 flex items-center justify-center text-sm font-semibold text-[#F2994A]">
+                        <div className="w-9 h-9 rounded-full bg-[#4ECDC4]/10 flex items-center justify-center text-sm font-semibold text-[#4ECDC4]">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-[#1A1A2E]">{user.username}</div>
-                          <div className="text-xs text-[#C4B5A5]">Created by {user.created_by} &bull; {user.permissions?.length || 0} permission(s)</div>
+                          <div className="font-medium text-[#e4e4e7]">{user.username}</div>
+                          <div className="text-xs text-[#71717a]">Created by {user.created_by} &bull; {user.permissions?.length || 0} permission(s)</div>
                         </div>
                       </div>
                       {!isEditing && (
                         <div className="flex gap-2">
                           <button onClick={() => setEditingUser({ ...user })}
-                            className="px-3 py-1.5 border border-[#EDE5DB] hover:bg-[#FBF9F7] rounded-lg text-[#2F80ED] text-sm flex items-center gap-1 transition-all"
-                            data-testid={`edit-user-${user.username}`}><Edit2 size={14} />Edit</button>
+                            className="p-2 border border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all"
+                            data-testid={`edit-user-${user.username}`}><Edit2 size={14} /></button>
                           <button onClick={() => handleDeleteUser(user.username)}
-                            className="px-3 py-1.5 border border-[#EB5757]/30 hover:bg-[#EB5757] hover:text-white rounded-lg text-[#EB5757] text-sm flex items-center gap-1 transition-all"
-                            data-testid={`delete-user-${user.username}`}><Trash2 size={14} />Delete</button>
+                            className="p-2 border border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all"
+                            data-testid={`delete-user-${user.username}`}><Trash2 size={14} /></button>
                         </div>
                       )}
                     </div>

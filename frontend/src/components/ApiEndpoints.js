@@ -216,15 +216,15 @@ export const ApiEndpoints = () => {
 
   return (
     <div className="max-w-7xl">
-      <div className="bg-white border border-[#EDE5DB] rounded-xl shadow-sm">
-        <div className="px-6 py-4 border-b border-[#EDE5DB] bg-gradient-to-r from-[#4F4F4F]/5 to-[#828282]/5">
+      <div className="bg-[#151520] border border-[#2a2a3c] rounded-xl">
+        <div className="px-6 py-4 border-b border-[#2a2a3c]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#4F4F4F] to-[#828282] flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#71717a] to-[#52525b] flex items-center justify-center">
               <FileText size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-[#1A1A2E]">API Documentation</h3>
-              <p className="text-xs text-[#8A8A9A] mt-1">Complete API reference - all endpoints are now scoped per project</p>
+              <h3 className="text-lg font-medium text-[#e4e4e7]">API Documentation</h3>
+              <p className="text-xs text-[#71717a] mt-1">All endpoints scoped per project</p>
             </div>
           </div>
         </div>
