@@ -1,56 +1,57 @@
-# Admin Dashboard API - Vakar Games - PRD
+# Vakar Games Admin Dashboard - PRD
 
 ## Problem Statement
-Build a secure backend API with admin dashboard and official website for Vakar Games. Multi-project system with isolated data per game. Granular permission system for fine-grained access control.
+Full-stack admin dashboard + public website for Vakar Games (French video game studio). Multi-project system, granular RBAC, website CMS for games and blog.
 
 ## Architecture
-- **Frontend**: React + Tailwind CSS
+- **Frontend**: React + Tailwind CSS (dark gaming theme)
 - **Backend**: Python FastAPI
 - **Database**: MongoDB
-- **Auth**: Custom JWT with Master Key + User Keys (bcrypt hashed)
+- **Auth**: Custom JWT + Master Key + User Keys (bcrypt)
 
 ## Routes
-- `/` — Vakar Games landing page (public)
+- `/` — Landing page (VAKAR GAMES, LEGENDS ARE BORN)
+- `/games` — Public games page
+- `/blog` — Public blog list
+- `/blog/:slug` — Blog post detail
 - `/login` — Admin login
-- `/dashboard` — Admin dashboard (protected)
+- `/dashboard` — Admin dashboard (dark theme)
 
-## Permissions (13 total, 6 groups)
+## Permissions (20 total, 7 groups)
 - **Projects**: view_projects, create_projects, delete_projects
 - **Items**: send_items, delete_items
 - **Server**: change_status
 - **Variables**: view_variables, create_variables, edit_variables, delete_variables
 - **Logs & Docs**: view_logs, view_api_docs
 - **Users**: manage_users
+- **Website**: manage_website, create_games, edit_games, delete_games, create_blog, edit_blog, delete_blog
 
-## Key Endpoints (v1.1.0)
-- `GET /api/permissions` — List all available permissions
-- `POST/GET/DELETE /api/projects` — Project CRUD
-- `POST /api/projects/{slug}/items/send` — Send items
-- `DELETE /api/projects/{slug}/items/{uid}` — Delete items for a UID
-- `GET /api/projects/{slug}/claimgift/{uid}` — FIFO claim (public)
-- `GET/POST /api/projects/{slug}/status` — Server status
-- `CRUD /api/projects/{slug}/variables` — Variables
-- `GET /api/projects/{slug}/variable/{name}` — Flat JSON (public)
-- `GET /api/projects/{slug}/logs` — Logs
-- `CRUD /api/users` — User management
+## Key API Endpoints (v1.2.0)
+- Auth: login, verify
+- Projects: CRUD + scoped items/status/variables/logs
+- Website Games: CRUD + public listing
+- Website Blog: CRUD + public listing + individual post
+- Website Settings: maintenance mode
+- Upload: image upload
+- Users: CRUD with 20 permissions
 
 ## What's Implemented
 - [x] Vakar Games landing page (hero, about, games, contact, footer)
-- [x] 13 granular permissions in 6 groups
+- [x] Public Games page with platform icons (Steam, Google Play, Apple, PC)
+- [x] Public Blog page with post listing and individual post view
+- [x] Dark themed admin dashboard matching website
+- [x] Website management: Games CRUD (name, description, logo, screenshots, platforms, status)
+- [x] Website management: Blog CRUD (title, content, image, published status)
+- [x] Website management: Settings (maintenance mode toggle)
+- [x] File upload endpoint for images
+- [x] 20 granular permissions in 7 groups
 - [x] Multi-project system with data isolation
-- [x] JWT auth with master key + user keys
-- [x] RBAC with fine-grained permission checks
-- [x] Project CRUD with cascade delete
-- [x] Send/delete items (project-scoped)
-- [x] FIFO claim gift (public, project-scoped)
-- [x] Server status management (project-scoped)
-- [x] Variables with flat JSON public endpoint (project-scoped)
-- [x] Activity logs with filtering (project-scoped)
+- [x] JWT auth + RBAC
+- [x] All project tools (Send Items, Status, Variables, Logs)
 - [x] User management with granular permission grid
-- [x] API documentation page
-- [x] Warm theme UI
+- [x] API documentation
 - [x] Rate limiting
-- [x] Version v1.1.0
+- [x] v1.2.0
 
 ## Backlog
-- No pending tasks. Ask user for next features.
+- No pending tasks

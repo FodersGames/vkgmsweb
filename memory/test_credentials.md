@@ -5,15 +5,13 @@
 
 ## Existing Data
 - **Project**: "My City" (slug: `my-city`)
-- **User**: `thomas` (created via dashboard)
+- **User**: `thomas`
+- **Game**: "Last Stand" (slug: `last-stand`, status: published)
+- **Blog Post**: "Welcome to Vakar Games!" (published)
 
 ## URLs
-- Landing page: https://express-api-panel.preview.emergentagent.com/
+- Landing: https://express-api-panel.preview.emergentagent.com/
+- Games: https://express-api-panel.preview.emergentagent.com/games
+- Blog: https://express-api-panel.preview.emergentagent.com/blog
 - Login: https://express-api-panel.preview.emergentagent.com/login
 - Dashboard: https://express-api-panel.preview.emergentagent.com/dashboard
-
-## Login Flow
-1. Go to `/login`
-2. Enter master key in the access key field
-3. Click "Sign In"
-4. Redirected to `/dashboard`
