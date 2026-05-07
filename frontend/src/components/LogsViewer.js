@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 import { FileText, Filter } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const LogsViewer = () => {
   const { token } = useAuth();
+  const { selectedProject } = useProject();
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState({ type: '', user: '', uid: '', limit: 100 });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { fetchLogs(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    if (selectedProject) fetchLogs();
+    // eslint-disable-next-line
+  }, [selectedProject]);
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -21,20 +26,22 @@ export const LogsViewer = () => {
       if (filters.user) params.append('user', filters.user);
       if (filters.uid) params.append('uid', filters.uid);
       params.append('limit', filters.limit);
-      const response = await axios.get(`${API_URL}/api/logs?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.get(`${API_URL}/api/projects/${selectedProject.slug}/logs?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setLogs(response.data.logs);
     } catch (error) { console.error('Failed to fetch logs'); }
     finally { setLoading(false); }
   };
 
   const logTypeColors = {
-    send: { color: '#F2994A', bg: '#F2994A' },
-    claim: { color: '#27AE60', bg: '#27AE60' },
-    status: { color: '#F2C94C', bg: '#F2C94C' },
-    auth: { color: '#9B51E0', bg: '#9B51E0' },
-    user_action: { color: '#EB5757', bg: '#EB5757' },
-    variable_action: { color: '#2F80ED', bg: '#2F80ED' },
-    variable_access: { color: '#8A8A9A', bg: '#8A8A9A' }
+    send: { color: '#F2994A' },
+    claim: { color: '#27AE60' },
+    status: { color: '#F2C94C' },
+    auth: { color: '#9B51E0' },
+    user_action: { color: '#EB5757' },
+    variable_action: { color: '#2F80ED' },
+    variable_access: { color: '#8A8A9A' }
   };
 
   const formatTimestamp = (timestamp) => {
@@ -55,7 +62,7 @@ export const LogsViewer = () => {
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#1A1A2E]">Activity Logs</h3>
-              <p className="text-xs text-[#8A8A9A]">View and filter all system activity</p>
+              <p className="text-xs text-[#8A8A9A]">View and filter project activity</p>
             </div>
           </div>
         </div>
@@ -75,8 +82,6 @@ export const LogsViewer = () => {
                 <option value="send">Send</option>
                 <option value="claim">Claim</option>
                 <option value="status">Status</option>
-                <option value="auth">Auth</option>
-                <option value="user_action">User Action</option>
                 <option value="variable_action">Variable Action</option>
               </select>
             </div>
@@ -125,11 +130,11 @@ export const LogsViewer = () => {
                   <tr key={index} className="hover:bg-[#FBF9F7] transition-colors border-b border-[#EDE5DB] last:border-b-0">
                     <td className="p-3">
                       <span className="px-2.5 py-1 text-xs font-semibold rounded-full"
-                        style={{ backgroundColor: `${logTypeColors[log.type]?.bg || '#8A8A9A'}15`, color: logTypeColors[log.type]?.color || '#8A8A9A' }}>
+                        style={{ backgroundColor: `${logTypeColors[log.type]?.color || '#8A8A9A'}15`, color: logTypeColors[log.type]?.color || '#8A8A9A' }}>
                         {log.type}
                       </span>
                     </td>
-                    <td className="p-3 text-sm text-[#8A8A9A] font-mono text-xs">{formatTimestamp(log.timestamp)}</td>
+                    <td className="p-3 text-xs text-[#8A8A9A] font-mono">{formatTimestamp(log.timestamp)}</td>
                     <td className="p-3 text-sm text-[#1A1A2E] font-medium">{log.user || '-'}</td>
                     <td className="p-3 text-sm text-[#1A1A2E]">{log.message}</td>
                     <td className="p-3 text-xs text-[#C4B5A5] font-mono">

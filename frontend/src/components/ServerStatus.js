@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
 import { Activity } from 'lucide-react';
 
@@ -8,17 +9,18 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const ServerStatus = () => {
   const { token } = useAuth();
+  const { selectedProject } = useProject();
   const [currentStatus, setCurrentStatus] = useState('open');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchStatus();
+    if (selectedProject) fetchStatus();
     // eslint-disable-next-line
-  }, []);
+  }, [selectedProject]);
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/status`);
+      const response = await axios.get(`${API_URL}/api/projects/${selectedProject.slug}/status`);
       setCurrentStatus(response.data.status);
     } catch (error) {
       console.error('Failed to fetch status');
@@ -28,7 +30,7 @@ export const ServerStatus = () => {
   const changeStatus = async (newStatus) => {
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/status`, { status: newStatus },
+      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/status`, { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } });
       setCurrentStatus(newStatus);
       toast.success(`Server status changed to ${newStatus}`);
@@ -40,9 +42,9 @@ export const ServerStatus = () => {
   };
 
   const statusConfig = {
-    open: { color: '#27AE60', bg: '#27AE60/10', gradient: 'from-[#27AE60] to-[#219653]', label: 'Open' },
-    maintenance: { color: '#F2994A', bg: '#F2994A/10', gradient: 'from-[#F2994A] to-[#F2C94C]', label: 'Maintenance' },
-    closed: { color: '#EB5757', bg: '#EB5757/10', gradient: 'from-[#EB5757] to-[#E04848]', label: 'Closed' }
+    open: { color: '#27AE60', gradient: 'from-[#27AE60] to-[#219653]', label: 'Open' },
+    maintenance: { color: '#F2994A', gradient: 'from-[#F2994A] to-[#F2C94C]', label: 'Maintenance' },
+    closed: { color: '#EB5757', gradient: 'from-[#EB5757] to-[#E04848]', label: 'Closed' }
   };
 
   return (
@@ -76,8 +78,8 @@ export const ServerStatus = () => {
                 <button key={status} onClick={() => changeStatus(status)}
                   disabled={loading || currentStatus === status}
                   className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                    currentStatus === status 
-                      ? `bg-gradient-to-r ${config.gradient} text-white shadow-md` 
+                    currentStatus === status
+                      ? `bg-gradient-to-r ${config.gradient} text-white shadow-md`
                       : 'bg-[#FBF9F7] border border-[#EDE5DB] hover:shadow-sm'
                   }`}
                   style={currentStatus !== status ? { color: config.color } : {}}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
 import { Database, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 
@@ -8,17 +9,23 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const VariablesManagement = () => {
   const { token } = useAuth();
+  const { selectedProject } = useProject();
   const [variables, setVariables] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingVar, setEditingVar] = useState(null);
   const [formData, setFormData] = useState({ variable_name: '', values: [''] });
 
-  useEffect(() => { fetchVariables(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    if (selectedProject) fetchVariables();
+    // eslint-disable-next-line
+  }, [selectedProject]);
 
   const fetchVariables = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/variables`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.get(`${API_URL}/api/projects/${selectedProject.slug}/variables`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setVariables(response.data.variables);
     } catch (error) { console.error('Failed to fetch variables'); }
   };
@@ -27,7 +34,7 @@ export const VariablesManagement = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/variables`,
+      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/variables`,
         { variable_name: formData.variable_name, values: formData.values.filter(v => v.trim() !== '') },
         { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Variable created');
@@ -41,7 +48,7 @@ export const VariablesManagement = () => {
   const handleUpdateVariable = async (variableName) => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/api/variables/${variableName}`,
+      await axios.put(`${API_URL}/api/projects/${selectedProject.slug}/variables/${variableName}`,
         { values: editingVar.values.filter(v => v.trim() !== '') },
         { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Variable updated');
@@ -54,7 +61,8 @@ export const VariablesManagement = () => {
   const handleDeleteVariable = async (variableName) => {
     if (!window.confirm(`Delete variable "${variableName}"?`)) return;
     try {
-      await axios.delete(`${API_URL}/api/variables/${variableName}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${API_URL}/api/projects/${selectedProject.slug}/variables/${variableName}`,
+        { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Variable deleted');
       fetchVariables();
     } catch (error) { toast.error(error.response?.data?.detail || 'Failed to delete'); }
@@ -70,7 +78,7 @@ export const VariablesManagement = () => {
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#1A1A2E]">Variables Management</h3>
-              <p className="text-xs text-[#8A8A9A]">Create and manage system variables</p>
+              <p className="text-xs text-[#8A8A9A]">Create and manage project variables</p>
             </div>
           </div>
           <button onClick={() => setShowCreateForm(!showCreateForm)}
@@ -191,7 +199,7 @@ export const VariablesManagement = () => {
       <div className="mt-4 bg-[#2F80ED]/5 border border-[#2F80ED]/10 rounded-xl p-4">
         <h4 className="text-sm font-semibold text-[#1A1A2E] mb-2">API Response Format</h4>
         <div className="text-xs text-[#1A1A2E] font-mono bg-white p-3 rounded-lg border border-[#EDE5DB]">
-          <p className="text-[#8A8A9A] mb-1">GET /api/variable/{'{variable_name}'}</p>
+          <p className="text-[#8A8A9A] mb-1">GET /api/projects/{'{project_slug}'}/variable/{'{variable_name}'}</p>
           <p>{'{ "variable_name": "test", "value_0": "val1", "value_1": "val2", "count": 2 }'}</p>
         </div>
       </div>

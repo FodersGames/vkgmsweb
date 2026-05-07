@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
 import { Package, Send } from 'lucide-react';
 
@@ -8,14 +9,16 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const SendItems = () => {
   const { token } = useAuth();
+  const { selectedProject } = useProject();
   const [formData, setFormData] = useState({ uid: '', variable: '', amount: '' });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedProject) return;
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/items/send`, formData, {
+      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/items/send`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success(`Sent ${formData.amount}x ${formData.variable} to ${formData.uid}`);
