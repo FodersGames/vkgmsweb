@@ -27,12 +27,11 @@ const DashboardContent = () => {
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
 
   useEffect(() => {
-    if (!hasPermission('send_items') && hasPermission('manage_users')) {
-      setActiveTab('users');
-    } else if (!hasPermission('send_items') && hasPermission('view_logs')) {
-      setActiveTab('logs');
-    } else if (!hasPermission('send_items') && hasPermission('manage_variables')) {
-      setActiveTab('variables');
+    if (!hasPermission('send_items')) {
+      if (hasPermission('view_projects')) setActiveTab('projects');
+      else if (hasPermission('manage_users')) setActiveTab('users');
+      else if (hasPermission('view_logs')) setActiveTab('logs');
+      else if (hasPermission('view_variables')) setActiveTab('variables');
     }
     // eslint-disable-next-line
   }, [user]);
@@ -42,17 +41,14 @@ const DashboardContent = () => {
   const needsProject = projectTabs.includes(activeTab);
 
   const menuItems = [
-    { id: 'projects', label: 'Projects', icon: Gamepad2, permission: null, section: 'global' },
+    { id: 'projects', label: 'Projects', icon: Gamepad2, permission: 'view_projects', section: 'global' },
     { id: 'send-items', label: 'Send Items', icon: Package, permission: 'send_items', section: 'project' },
     { id: 'status', label: 'Server Status', icon: Activity, permission: 'change_status', section: 'project' },
-    { id: 'variables', label: 'Variables', icon: Database, permission: 'manage_variables', section: 'project' },
+    { id: 'variables', label: 'Variables', icon: Database, permission: 'view_variables', section: 'project' },
     { id: 'logs', label: 'Logs', icon: FileText, permission: 'view_logs', section: 'project' },
     { id: 'users', label: 'Users', icon: Users, permission: 'manage_users', section: 'global' },
+    { id: 'api', label: 'API Docs', icon: Code, permission: 'view_api_docs', section: 'global' },
   ];
-
-  if (user?.is_super_admin) {
-    menuItems.push({ id: 'api', label: 'API Docs', icon: Code, permission: null, section: 'global' });
-  }
 
   const visibleMenuItems = menuItems.filter(item => !item.permission || hasPermission(item.permission));
 
@@ -187,7 +183,7 @@ const DashboardContent = () => {
           <div className="mt-2 px-3 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FBF9F7] border border-[#EDE5DB] rounded-full">
               <div className="w-1.5 h-1.5 rounded-full bg-[#27AE60]"></div>
-              <span className="text-[10px] font-medium text-[#8A8A9A]" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>v1.0.5</span>
+              <span className="text-[10px] font-medium text-[#8A8A9A]" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>v1.1.0</span>
             </div>
           </div>
         </div>
@@ -238,10 +234,10 @@ const DashboardContent = () => {
 
           {activeTab === 'send-items' && selectedProject && hasPermission('send_items') && <SendItems />}
           {activeTab === 'status' && selectedProject && hasPermission('change_status') && <ServerStatus />}
-          {activeTab === 'variables' && selectedProject && hasPermission('manage_variables') && <VariablesManagement />}
+          {activeTab === 'variables' && selectedProject && hasPermission('view_variables') && <VariablesManagement />}
           {activeTab === 'logs' && selectedProject && hasPermission('view_logs') && <LogsViewer />}
           {activeTab === 'users' && hasPermission('manage_users') && <UserManagement />}
-          {activeTab === 'api' && user?.is_super_admin && <ApiEndpoints />}
+          {activeTab === 'api' && hasPermission('view_api_docs') && <ApiEndpoints />}
         </div>
       </main>
     </div>

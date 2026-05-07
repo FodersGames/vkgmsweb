@@ -19,7 +19,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Version
-VERSION = "1.0.5"
+VERSION = "1.1.0"
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -55,6 +55,39 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ============== ALL PERMISSIONS ==============
+
+ALL_PERMISSIONS = [
+    # Projects
+    "view_projects",
+    "create_projects",
+    "delete_projects",
+    # Items
+    "send_items",
+    "delete_items",
+    # Server
+    "change_status",
+    # Variables
+    "view_variables",
+    "create_variables",
+    "edit_variables",
+    "delete_variables",
+    # Logs & Docs
+    "view_logs",
+    "view_api_docs",
+    # Users
+    "manage_users",
+]
+
+PERMISSION_LITERAL = Literal[
+    "view_projects", "create_projects", "delete_projects",
+    "send_items", "delete_items",
+    "change_status",
+    "view_variables", "create_variables", "edit_variables", "delete_variables",
+    "view_logs", "view_api_docs",
+    "manage_users"
+]
+
 # ============== MODELS ==============
 
 class LoginRequest(BaseModel):
@@ -66,7 +99,7 @@ class LoginResponse(BaseModel):
 
 class CreateUserRequest(BaseModel):
     username: str
-    permissions: List[Literal["send_items", "change_status", "view_logs", "manage_users", "manage_variables"]]
+    permissions: List[PERMISSION_LITERAL]
 
 class CreateUserResponse(BaseModel):
     username: str
@@ -85,7 +118,7 @@ class ServerStatusResponse(BaseModel):
     status: str
 
 class UpdateUserPermissionsRequest(BaseModel):
-    permissions: List[Literal["send_items", "change_status", "view_logs", "manage_users", "manage_variables"]]
+    permissions: List[PERMISSION_LITERAL]
 
 class VariableCreateRequest(BaseModel):
     variable_name: str
@@ -97,16 +130,9 @@ class VariableUpdateRequest(BaseModel):
 class CreateProjectRequest(BaseModel):
     name: str
 
-class ProjectResponse(BaseModel):
-    name: str
-    slug: str
-    created_at: str
-    created_by: str
-
 # ============== HELPER FUNCTIONS ==============
 
 def slugify(text: str) -> str:
-    """Convert a string to a URL-friendly slug"""
     text = text.lower().strip()
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[\s_]+', '-', text)
@@ -156,7 +182,6 @@ def require_permission(permission: str):
     return check_permission
 
 async def get_project_or_404(project_slug: str):
-    """Get a project by slug or raise 404"""
     project = await db.projects.find_one({"slug": project_slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -181,7 +206,11 @@ async def log_action(log_type: str, message: str, project_slug: str = None, user
 
 @api_router.get("/version")
 async def get_version():
-    return {"version": VERSION, "name": "Admin Dashboard API"}
+    return {"version": VERSION, "name": "Vakar Games Admin API"}
+
+@api_router.get("/permissions")
+async def get_all_permissions():
+    return {"permissions": ALL_PERMISSIONS}
 
 @api_router.post("/auth/login", response_model=LoginResponse)
 @limiter.limit("10/minute")
@@ -202,7 +231,7 @@ async def login(request: Request, login_req: LoginRequest):
                 "id": "super_admin",
                 "username": "Super Admin",
                 "is_super_admin": True,
-                "permissions": ["send_items", "change_status", "view_logs", "manage_users", "manage_variables"]
+                "permissions": ALL_PERMISSIONS
             }
         )
 
@@ -235,10 +264,7 @@ async def verify(user: dict = Depends(get_current_user)):
 # ============== PROJECT ENDPOINTS ==============
 
 @api_router.post("/projects")
-async def create_project(req: CreateProjectRequest, current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can create projects")
-
+async def create_project(req: CreateProjectRequest, current_user: dict = Depends(require_permission("create_projects"))):
     slug = slugify(req.name)
     if not slug:
         raise HTTPException(status_code=400, detail="Invalid project name")
@@ -255,13 +281,11 @@ async def create_project(req: CreateProjectRequest, current_user: dict = Depends
     }
     await db.projects.insert_one(project_doc)
 
-    # Initialize server status for this project
-    await db.server_status.insert_one({
-        "project_slug": slug,
-        "status": "open",
-        "updated_at": datetime.now(timezone.utc),
-        "updated_by": "system"
-    })
+    await db.server_status.update_one(
+        {"project_slug": slug},
+        {"$set": {"status": "open", "updated_at": datetime.now(timezone.utc), "updated_by": "system"}},
+        upsert=True
+    )
 
     await log_action("project", f"Project '{req.name}' created", project_slug=slug, user=current_user["username"])
 
@@ -274,7 +298,7 @@ async def create_project(req: CreateProjectRequest, current_user: dict = Depends
     }
 
 @api_router.get("/projects")
-async def list_projects(current_user: dict = Depends(get_current_user)):
+async def list_projects(current_user: dict = Depends(require_permission("view_projects"))):
     projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
     for p in projects:
         if "created_at" in p and isinstance(p["created_at"], datetime):
@@ -282,15 +306,11 @@ async def list_projects(current_user: dict = Depends(get_current_user)):
     return {"projects": projects}
 
 @api_router.delete("/projects/{project_slug}")
-async def delete_project(project_slug: str, current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can delete projects")
-
+async def delete_project(project_slug: str, current_user: dict = Depends(require_permission("delete_projects"))):
     project = await db.projects.find_one({"slug": project_slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Delete all project data
     await db.projects.delete_one({"slug": project_slug})
     await db.items.delete_many({"project_slug": project_slug})
     await db.server_status.delete_many({"project_slug": project_slug})
@@ -304,10 +324,7 @@ async def delete_project(project_slug: str, current_user: dict = Depends(get_cur
 # ============== USER MANAGEMENT ENDPOINTS ==============
 
 @api_router.post("/users", response_model=CreateUserResponse)
-async def create_user(user_req: CreateUserRequest, current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can create users")
-
+async def create_user(user_req: CreateUserRequest, current_user: dict = Depends(require_permission("manage_users"))):
     existing = await db.users.find_one({"username": user_req.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -325,15 +342,13 @@ async def create_user(user_req: CreateUserRequest, current_user: dict = Depends(
     }
 
     await db.users.insert_one(user_doc)
-    await log_action("user_action", f"User '{user_req.username}' created with permissions: {', '.join(user_req.permissions)}",
+    await log_action("user_action", f"User '{user_req.username}' created with {len(user_req.permissions)} permission(s)",
                      user=current_user["username"])
 
     return CreateUserResponse(username=user_req.username, access_key=access_key, permissions=user_req.permissions)
 
 @api_router.get("/users")
-async def list_users(current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can list users")
+async def list_users(current_user: dict = Depends(require_permission("manage_users"))):
     users = await db.users.find({}, {"_id": 0, "access_key_hash": 0}).to_list(1000)
     for u in users:
         if "created_at" in u and isinstance(u["created_at"], datetime):
@@ -341,9 +356,7 @@ async def list_users(current_user: dict = Depends(get_current_user)):
     return {"users": users}
 
 @api_router.delete("/users/{username}")
-async def delete_user(username: str, current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can delete users")
+async def delete_user(username: str, current_user: dict = Depends(require_permission("manage_users"))):
     user = await db.users.find_one({"username": username})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -353,20 +366,18 @@ async def delete_user(username: str, current_user: dict = Depends(get_current_us
 
 @api_router.put("/users/{username}/permissions")
 async def update_user_permissions(username: str, update_req: UpdateUserPermissionsRequest,
-                                  current_user: dict = Depends(get_current_user)):
-    if not current_user["is_super_admin"]:
-        raise HTTPException(status_code=403, detail="Only Super Admin can update permissions")
+                                  current_user: dict = Depends(require_permission("manage_users"))):
     user = await db.users.find_one({"username": username})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     result = await db.users.update_one({"username": username}, {"$set": {"permissions": update_req.permissions}})
     if result.modified_count == 0:
         raise HTTPException(status_code=400, detail="No changes made")
-    await log_action("user_action", f"User '{username}' permissions updated to: {', '.join(update_req.permissions)}",
+    await log_action("user_action", f"User '{username}' permissions updated",
                      user=current_user["username"])
     return {"success": True, "username": username, "permissions": update_req.permissions}
 
-# ============== PROJECT-SCOPED ITEMS ENDPOINTS ==============
+# ============== PROJECT-SCOPED ITEMS ==============
 
 @api_router.post("/projects/{project_slug}/items/send")
 async def send_items(project_slug: str, item_req: SendItemRequest,
@@ -385,6 +396,15 @@ async def send_items(project_slug: str, item_req: SendItemRequest,
                      project_slug=project_slug, user=current_user["username"],
                      uid=item_req.uid, variable=item_req.variable, amount=item_req.amount)
     return {"success": True, "message": f"Sent {item_req.amount}x {item_req.variable} to {item_req.uid}"}
+
+@api_router.delete("/projects/{project_slug}/items/{uid}")
+async def delete_items_for_uid(project_slug: str, uid: str,
+                               current_user: dict = Depends(require_permission("delete_items"))):
+    await get_project_or_404(project_slug)
+    result = await db.items.delete_many({"project_slug": project_slug, "uid": uid})
+    await log_action("delete", f"Deleted {result.deleted_count} item(s) for {uid}",
+                     project_slug=project_slug, user=current_user["username"], uid=uid)
+    return {"success": True, "deleted_count": result.deleted_count}
 
 @api_router.get("/projects/{project_slug}/claimgift/{uid}")
 @limiter.limit("30/minute")
@@ -421,11 +441,7 @@ async def change_status(project_slug: str, status_req: ServerStatusRequest,
     await get_project_or_404(project_slug)
     await db.server_status.update_one(
         {"project_slug": project_slug},
-        {"$set": {
-            "status": status_req.status,
-            "updated_at": datetime.now(timezone.utc),
-            "updated_by": current_user["username"]
-        }},
+        {"$set": {"status": status_req.status, "updated_at": datetime.now(timezone.utc), "updated_by": current_user["username"]}},
         upsert=True
     )
     await log_action("status", f"Server status changed to '{status_req.status}'",
@@ -437,12 +453,11 @@ async def get_status(project_slug: str):
     await get_project_or_404(project_slug)
     status_doc = await db.server_status.find_one({"project_slug": project_slug})
     if not status_doc:
-        await db.server_status.insert_one({
-            "project_slug": project_slug,
-            "status": "open",
-            "updated_at": datetime.now(timezone.utc),
-            "updated_by": "system"
-        })
+        await db.server_status.update_one(
+            {"project_slug": project_slug},
+            {"$set": {"status": "open", "updated_at": datetime.now(timezone.utc), "updated_by": "system"}},
+            upsert=True
+        )
         return ServerStatusResponse(status="open")
     return ServerStatusResponse(status=status_doc["status"])
 
@@ -471,7 +486,7 @@ async def get_logs(project_slug: str, log_type: Optional[str] = None, user: Opti
 
 @api_router.post("/projects/{project_slug}/variables")
 async def create_variable(project_slug: str, var_req: VariableCreateRequest,
-                          current_user: dict = Depends(require_permission("manage_variables"))):
+                          current_user: dict = Depends(require_permission("create_variables"))):
     await get_project_or_404(project_slug)
     existing = await db.variables.find_one({"project_slug": project_slug, "variable_name": var_req.variable_name})
     if existing:
@@ -492,7 +507,7 @@ async def create_variable(project_slug: str, var_req: VariableCreateRequest,
     return {"success": True, "variable_name": var_req.variable_name, "values": var_req.values}
 
 @api_router.get("/projects/{project_slug}/variables")
-async def list_variables(project_slug: str, current_user: dict = Depends(require_permission("manage_variables"))):
+async def list_variables(project_slug: str, current_user: dict = Depends(require_permission("view_variables"))):
     await get_project_or_404(project_slug)
     variables = await db.variables.find({"project_slug": project_slug}, {"_id": 0, "project_slug": 0}).to_list(1000)
     for v in variables:
@@ -521,7 +536,7 @@ async def get_variable(project_slug: str, variable_name: str):
 
 @api_router.put("/projects/{project_slug}/variables/{variable_name}")
 async def update_variable(project_slug: str, variable_name: str, update_req: VariableUpdateRequest,
-                          current_user: dict = Depends(require_permission("manage_variables"))):
+                          current_user: dict = Depends(require_permission("edit_variables"))):
     await get_project_or_404(project_slug)
     variable = await db.variables.find_one({"project_slug": project_slug, "variable_name": variable_name})
     if not variable:
@@ -540,7 +555,7 @@ async def update_variable(project_slug: str, variable_name: str, update_req: Var
 
 @api_router.delete("/projects/{project_slug}/variables/{variable_name}")
 async def delete_variable(project_slug: str, variable_name: str,
-                          current_user: dict = Depends(require_permission("manage_variables"))):
+                          current_user: dict = Depends(require_permission("delete_variables"))):
     await get_project_or_404(project_slug)
     result = await db.variables.delete_one({"project_slug": project_slug, "variable_name": variable_name})
     if result.deleted_count == 0:
@@ -571,7 +586,6 @@ async def startup_event():
         await db.logs.create_index([("project_slug", 1), ("type", 1)])
         await db.logs.create_index("timestamp")
         await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True)
-        await db.server_status.create_index("project_slug", unique=True)
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")

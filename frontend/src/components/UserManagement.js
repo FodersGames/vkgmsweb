@@ -2,9 +2,69 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Users, Plus, Edit2, Trash2, Save, X, Copy } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const PERMISSION_GROUPS = [
+  {
+    label: 'Projects',
+    icon: Gamepad2,
+    color: '#6C5CE7',
+    permissions: [
+      { id: 'view_projects', label: 'View Projects' },
+      { id: 'create_projects', label: 'Create Projects' },
+      { id: 'delete_projects', label: 'Delete Projects' },
+    ]
+  },
+  {
+    label: 'Items',
+    icon: Package,
+    color: '#F2994A',
+    permissions: [
+      { id: 'send_items', label: 'Send Items' },
+      { id: 'delete_items', label: 'Delete Items' },
+    ]
+  },
+  {
+    label: 'Server',
+    icon: Activity,
+    color: '#27AE60',
+    permissions: [
+      { id: 'change_status', label: 'Change Status' },
+    ]
+  },
+  {
+    label: 'Variables',
+    icon: Database,
+    color: '#2F80ED',
+    permissions: [
+      { id: 'view_variables', label: 'View Variables' },
+      { id: 'create_variables', label: 'Create Variables' },
+      { id: 'edit_variables', label: 'Edit Variables' },
+      { id: 'delete_variables', label: 'Delete Variables' },
+    ]
+  },
+  {
+    label: 'Logs & Docs',
+    icon: FileText,
+    color: '#9B51E0',
+    permissions: [
+      { id: 'view_logs', label: 'View Logs' },
+      { id: 'view_api_docs', label: 'View API Docs' },
+    ]
+  },
+  {
+    label: 'Users',
+    icon: Shield,
+    color: '#EB5757',
+    permissions: [
+      { id: 'manage_users', label: 'Manage Users' },
+    ]
+  }
+];
+
+const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.id));
 
 export const UserManagement = () => {
   const { token } = useAuth();
@@ -14,14 +74,6 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ username: '', permissions: [] });
   const [loading, setLoading] = useState(false);
-
-  const availablePermissions = [
-    { id: 'send_items', label: 'Send Items', color: '#F2994A' },
-    { id: 'change_status', label: 'Change Status', color: '#27AE60' },
-    { id: 'view_logs', label: 'View Logs', color: '#9B51E0' },
-    { id: 'manage_users', label: 'Manage Users', color: '#F2994A' },
-    { id: 'manage_variables', label: 'Manage Variables', color: '#2F80ED' }
-  ];
 
   useEffect(() => { fetchUsers(); /* eslint-disable-next-line */ }, []);
 
@@ -33,11 +85,29 @@ export const UserManagement = () => {
   };
 
   const togglePermission = (permId) => {
-    setFormData(prev => ({ ...prev, permissions: prev.permissions.includes(permId) ? prev.permissions.filter(p => p !== permId) : [...prev.permissions, permId] }));
+    setFormData(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(permId)
+        ? prev.permissions.filter(p => p !== permId)
+        : [...prev.permissions, permId]
+    }));
   };
 
   const toggleEditPermission = (permId) => {
-    setEditingUser(prev => ({ ...prev, permissions: prev.permissions.includes(permId) ? prev.permissions.filter(p => p !== permId) : [...prev.permissions, permId] }));
+    setEditingUser(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(permId)
+        ? prev.permissions.filter(p => p !== permId)
+        : [...prev.permissions, permId]
+    }));
+  };
+
+  const selectAllPermissions = () => {
+    setFormData(prev => ({ ...prev, permissions: [...ALL_PERMISSIONS] }));
+  };
+
+  const clearAllPermissions = () => {
+    setFormData(prev => ({ ...prev, permissions: [] }));
   };
 
   const handleCreateUser = async (e) => {
@@ -76,6 +146,58 @@ export const UserManagement = () => {
 
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text); toast.success('Copied to clipboard'); };
 
+  const renderPermissionGrid = (selectedPerms, onToggle) => (
+    <div className="space-y-4">
+      {PERMISSION_GROUPS.map((group) => {
+        const Icon = group.icon;
+        const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
+        return (
+          <div key={group.label} className="border border-[#EDE5DB] rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#FBF9F7] border-b border-[#EDE5DB]">
+              <Icon size={14} style={{ color: group.color }} />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
+              <div className="flex-1"></div>
+              <button type="button" onClick={() => {
+                if (allSelected) {
+                  group.permissions.forEach(p => {
+                    if (selectedPerms.includes(p.id)) onToggle(p.id);
+                  });
+                } else {
+                  group.permissions.forEach(p => {
+                    if (!selectedPerms.includes(p.id)) onToggle(p.id);
+                  });
+                }
+              }} className="text-[10px] font-semibold text-[#8A8A9A] hover:text-[#1A1A2E] uppercase">
+                {allSelected ? 'Deselect all' : 'Select all'}
+              </button>
+            </div>
+            <div className="p-2 flex flex-wrap gap-2">
+              {group.permissions.map((perm) => (
+                <label key={perm.id} className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
+                  selectedPerms.includes(perm.id)
+                    ? 'border-[#F2994A] bg-[#F2994A]/5 text-[#1A1A2E]'
+                    : 'border-[#EDE5DB] bg-white text-[#8A8A9A] hover:bg-[#FBF9F7]'
+                }`}>
+                  <input type="checkbox" checked={selectedPerms.includes(perm.id)} onChange={() => onToggle(perm.id)}
+                    className="w-3.5 h-3.5 rounded" />
+                  <span>{perm.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const getPermLabel = (permId) => {
+    for (const group of PERMISSION_GROUPS) {
+      const p = group.permissions.find(pp => pp.id === permId);
+      if (p) return { label: p.label, color: group.color };
+    }
+    return { label: permId, color: '#8A8A9A' };
+  };
+
   return (
     <div className="max-w-6xl">
       <div className="bg-white rounded-xl border border-[#EDE5DB] shadow-sm overflow-hidden">
@@ -86,10 +208,10 @@ export const UserManagement = () => {
             </div>
             <div>
               <h3 className="text-base font-semibold text-[#1A1A2E]">User Management</h3>
-              <p className="text-xs text-[#8A8A9A]">Create and manage user accounts</p>
+              <p className="text-xs text-[#8A8A9A]">Create and manage user accounts with granular permissions</p>
             </div>
           </div>
-          <button onClick={() => setShowCreateForm(!showCreateForm)}
+          <button onClick={() => { setShowCreateForm(!showCreateForm); setCreatedUser(null); }}
             className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white hover:from-[#E88A3A] hover:to-[#D84848] rounded-lg px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 shadow-sm"
             data-testid="create-user-button">
             {showCreateForm ? <X size={16} /> : <Plus size={16} />}
@@ -108,17 +230,15 @@ export const UserManagement = () => {
                     required data-testid="username-input" />
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Permissions</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {availablePermissions.map((perm) => (
-                      <label key={perm.id} className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
-                        formData.permissions.includes(perm.id) ? 'border-[#F2994A] bg-[#F2994A]/5' : 'border-[#EDE5DB] bg-white hover:bg-[#FBF9F7]'}`}
-                        data-testid={`permission-${perm.id}`}>
-                        <input type="checkbox" checked={formData.permissions.includes(perm.id)} onChange={() => togglePermission(perm.id)} className="w-4 h-4 rounded" />
-                        <span className="text-sm text-[#1A1A2E]">{perm.label}</span>
-                      </label>
-                    ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-semibold text-[#8A8A9A] uppercase tracking-wider">Permissions ({formData.permissions.length}/{ALL_PERMISSIONS.length})</div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={selectAllPermissions} className="text-xs text-[#2F80ED] hover:underline">Select All</button>
+                      <span className="text-[#EDE5DB]">|</span>
+                      <button type="button" onClick={clearAllPermissions} className="text-xs text-[#EB5757] hover:underline">Clear All</button>
+                    </div>
                   </div>
+                  {renderPermissionGrid(formData.permissions, togglePermission)}
                 </div>
                 <button type="submit" disabled={loading || formData.permissions.length === 0}
                   className="w-full bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50 shadow-sm"
@@ -150,6 +270,9 @@ export const UserManagement = () => {
         <div className="p-6">
           <div className="text-xs font-semibold text-[#8A8A9A] mb-4 uppercase tracking-wider">Users ({users.length})</div>
           <div className="space-y-3" data-testid="users-list">
+            {users.length === 0 && (
+              <div className="text-center py-12 text-[#C4B5A5]">No users yet. Create one to get started.</div>
+            )}
             {users.map((user) => {
               const isEditing = editingUser?.username === user.username;
               return (
@@ -162,7 +285,7 @@ export const UserManagement = () => {
                         </div>
                         <div>
                           <div className="font-medium text-[#1A1A2E]">{user.username}</div>
-                          <div className="text-xs text-[#C4B5A5]">Created by {user.created_by}</div>
+                          <div className="text-xs text-[#C4B5A5]">Created by {user.created_by} &bull; {user.permissions?.length || 0} permission(s)</div>
                         </div>
                       </div>
                       {!isEditing && (
@@ -179,16 +302,8 @@ export const UserManagement = () => {
                     {isEditing ? (
                       <div>
                         <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Edit Permissions</div>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                          {availablePermissions.map((perm) => (
-                            <label key={perm.id} className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all ${
-                              editingUser.permissions.includes(perm.id) ? 'border-[#F2994A] bg-[#F2994A]/5' : 'border-[#EDE5DB] bg-white'}`}>
-                              <input type="checkbox" checked={editingUser.permissions.includes(perm.id)} onChange={() => toggleEditPermission(perm.id)} className="w-4 h-4" />
-                              <span className="text-sm text-[#1A1A2E]">{perm.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
+                        {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}
+                        <div className="flex gap-2 mt-4">
                           <button onClick={() => handleUpdatePermissions(user.username)} disabled={loading}
                             className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 shadow-sm">
                             <Save size={14} />Save</button>
@@ -198,13 +313,13 @@ export const UserManagement = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {user.permissions.map((perm) => {
-                          const permConfig = availablePermissions.find(p => p.id === perm);
+                      <div className="flex flex-wrap gap-1.5">
+                        {(user.permissions || []).map((perm) => {
+                          const { label, color } = getPermLabel(perm);
                           return (
-                            <span key={perm} className="px-2.5 py-1 rounded-full text-xs font-medium"
-                              style={{ backgroundColor: `${permConfig?.color || '#8A8A9A'}15`, color: permConfig?.color || '#8A8A9A' }}>
-                              {permConfig?.label || perm}
+                            <span key={perm} className="px-2 py-1 rounded-full text-[10px] font-semibold"
+                              style={{ backgroundColor: `${color}15`, color }}>
+                              {label}
                             </span>
                           );
                         })}
