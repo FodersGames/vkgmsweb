@@ -6,7 +6,7 @@
 ## Existing Data
 - **Project**: "My City" (slug: `my-city`)
 - **User**: `thomas`
-- **Game**: "Last Stand" (slug: `last-stand`, status: published)
+- **Game**: "Last Stand" (slug: `last-stand`, status: published, featured: true)
 - **Blog Post**: "Welcome to Vakar Games!" (published)
 
 ## URLs
