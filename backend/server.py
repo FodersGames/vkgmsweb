@@ -125,6 +125,7 @@ class GameCreateRequest(BaseModel):
     screenshots: List[str] = []
     platforms: List[dict] = []  # [{name, url}]
     status: Literal["published", "draft"] = "draft"
+    featured: bool = False
 
 class GameUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -133,6 +134,7 @@ class GameUpdateRequest(BaseModel):
     screenshots: Optional[List[str]] = None
     platforms: Optional[List[dict]] = None
     status: Optional[Literal["published", "draft"]] = None
+    featured: Optional[bool] = None
 
 class BlogCreateRequest(BaseModel):
     title: str
@@ -451,8 +453,10 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
     slug = slugify(req.name)
     if await db.website_games.find_one({"slug": slug}):
         raise HTTPException(status_code=400, detail="Game with this name already exists")
+    if req.featured:
+        await db.website_games.update_many({}, {"$set": {"featured": False}})
     doc = {"name": req.name, "slug": slug, "description": req.description, "logo_url": req.logo_url,
-           "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status,
+           "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status, "featured": req.featured,
            "created_at": datetime.now(timezone.utc), "created_by": user["username"],
            "updated_at": datetime.now(timezone.utc)}
     await db.website_games.insert_one(doc)
@@ -469,6 +473,13 @@ async def list_games_public():
     games = await db.website_games.find({"status": "published"}).sort("created_at", -1).to_list(1000)
     return {"games": [serialize_doc(g) for g in games]}
 
+@api_router.get("/website/games/featured")
+async def get_featured_game():
+    game = await db.website_games.find_one({"featured": True, "status": "published"})
+    if not game:
+        return {"game": None}
+    return {"game": serialize_doc(game)}
+
 @api_router.put("/website/games/{game_slug}")
 async def update_game(game_slug: str, req: GameUpdateRequest, user=Depends(require_permission("edit_games"))):
     game = await db.website_games.find_one({"slug": game_slug})
@@ -476,6 +487,8 @@ async def update_game(game_slug: str, req: GameUpdateRequest, user=Depends(requi
         raise HTTPException(status_code=404, detail="Game not found")
     updates = {k: v for k, v in req.dict().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc)
+    if updates.get("featured"):
+        await db.website_games.update_many({"slug": {"$ne": game_slug}}, {"$set": {"featured": False}})
     if "name" in updates:
         updates["slug"] = slugify(updates["name"])
     await db.website_games.update_one({"slug": game_slug}, {"$set": updates})

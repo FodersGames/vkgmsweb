@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Menu, X as XIcon } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const BlogList = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/blog/public`).then(r => {
-      setPosts(r.data.posts);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    axios.get(`${API_URL}/api/website/blog/public`).then(r => { setPosts(r.data.posts); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   return (
@@ -27,8 +25,15 @@ export const BlogList = () => {
               <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-white uppercase">Blog</Link>
             </div>
           </div>
-          <Link to="/login" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase">Admin Panel</Link>
+          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenu(!mobileMenu)}>{mobileMenu ? <XIcon size={22}/> : <Menu size={22}/>}</button>
         </div>
+        {mobileMenu && (
+          <div className="md:hidden bg-[#111118] border-t border-white/5 px-6 py-4 space-y-3">
+            <Link to="/" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Home</Link>
+            <Link to="/games" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Games</Link>
+            <Link to="/blog" className="block text-sm text-white py-2" onClick={() => setMobileMenu(false)}>Blog</Link>
+          </div>
+        )}
       </nav>
 
       <div className="pt-16">
@@ -114,7 +119,6 @@ export const BlogPost = () => {
               <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-white uppercase">Blog</Link>
             </div>
           </div>
-          <Link to="/login" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase">Admin Panel</Link>
         </div>
       </nav>
 

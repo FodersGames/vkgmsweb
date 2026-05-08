@@ -11,6 +11,8 @@ const PLATFORMS = [
   { id: 'google_play', label: 'Google Play' },
   { id: 'apple', label: 'App Store' },
   { id: 'pc', label: 'PC' },
+  { id: 'web', label: 'Web' },
+  { id: 'android', label: 'Android' },
 ];
 
 export const GamesManagement = () => {
@@ -20,7 +22,7 @@ export const GamesManagement = () => {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft' });
+  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false });
 
   useEffect(() => { fetchGames(); /* eslint-disable-next-line */ }, []);
 
@@ -69,14 +71,14 @@ export const GamesManagement = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft' });
+    setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false });
     setEditing(null);
     setShowForm(false);
   };
 
   const startEdit = (game) => {
     setForm({ name: game.name, description: game.description, logo_url: game.logo_url || '', screenshots: game.screenshots || [],
-              platforms: game.platforms || [], status: game.status });
+              platforms: game.platforms || [], status: game.status, featured: game.featured || false });
     setEditing(game.slug);
     setShowForm(true);
   };
@@ -201,6 +203,15 @@ export const GamesManagement = () => {
                   </div>
                 </div>
 
+                {/* Featured */}
+                <label className="flex items-center gap-3 px-4 py-3 bg-[#0d0d14] border border-[#2a2a3c] rounded-lg cursor-pointer hover:border-[#4ECDC4]/30 transition-all" data-testid="featured-toggle">
+                  <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded" />
+                  <div>
+                    <span className="text-sm text-[#e4e4e7] font-medium">Featured Game</span>
+                    <p className="text-xs text-[#71717a]">Display this game on the homepage</p>
+                  </div>
+                </label>
+
                 <button type="submit" disabled={loading} className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-6 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
                   data-testid="submit-game-button">{editing ? <Save size={14} /> : <Plus size={14} />}{loading ? 'Saving...' : editing ? 'Save Changes' : 'Create Game'}</button>
               </div>
@@ -223,6 +234,7 @@ export const GamesManagement = () => {
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-[#e4e4e7]">{g.name}</h4>
                         <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${g.status === 'published' ? 'bg-[#4ECDC4]/15 text-[#4ECDC4]' : 'bg-[#71717a]/15 text-[#71717a]'}`}>{g.status}</span>
+                        {g.featured && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-[#F2994A]/15 text-[#F2994A]">Featured</span>}
                       </div>
                       <p className="text-xs text-[#71717a] truncate">{g.description}</p>
                       {g.platforms?.length > 0 && <div className="flex gap-1 mt-1">{g.platforms.map((p, i) => <span key={i} className="text-[10px] px-1.5 py-0.5 bg-[#0d0d14] border border-[#2a2a3c] rounded text-[#71717a]">{p.name}</span>)}</div>}
