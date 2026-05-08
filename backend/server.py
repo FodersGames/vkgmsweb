@@ -21,7 +21,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -33,7 +33,9 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_urlsafe(64))
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
-MASTER_KEY = os.environ.get('MASTER_KEY', '#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd')
+
+# Initial setup key — only works ONCE to bootstrap the Super Admin
+SETUP_KEY = os.environ.get('MASTER_KEY', '#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd')
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -84,6 +86,8 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     user: dict
+    first_login: bool = False
+    new_key: Optional[str] = None
 
 class CreateUserRequest(BaseModel):
     username: str
@@ -233,16 +237,49 @@ async def get_all_permissions():
 @limiter.limit("10/minute")
 async def login(request: Request, login_req: LoginRequest):
     key = login_req.key
-    if key == MASTER_KEY:
-        token = create_access_token("super_admin", "Super Admin", True, [])
-        await log_action("auth", "Super Admin logged in", user="Super Admin")
-        return LoginResponse(token=token, user={"id": "super_admin", "username": "Super Admin", "is_super_admin": True, "permissions": ALL_PERMISSIONS})
+
+    # Check if Super Admin has been set up in DB
+    super_admin_doc = await db.super_admin.find_one({"role": "super_admin"})
+
+    if super_admin_doc:
+        # Super Admin exists in DB — check against stored hash
+        if verify_key(key, super_admin_doc["key_hash"]):
+            token = create_access_token("super_admin", "Super Admin", True, [])
+            await log_action("auth", "Super Admin logged in", user="Super Admin")
+            return LoginResponse(token=token, user={"id": "super_admin", "username": "Super Admin", "is_super_admin": True, "permissions": ALL_PERMISSIONS})
+    else:
+        # No Super Admin yet — check if the key matches the initial setup key
+        if key == SETUP_KEY:
+            # First login! Generate a new secure key
+            new_key = secrets.token_urlsafe(48)
+            new_key_hash = hash_key(new_key)
+
+            # Store the hashed key in DB
+            await db.super_admin.insert_one({
+                "role": "super_admin",
+                "key_hash": new_key_hash,
+                "created_at": datetime.now(timezone.utc)
+            })
+
+            token = create_access_token("super_admin", "Super Admin", True, [])
+            await log_action("auth", "Super Admin first login — new secure key generated", user="Super Admin")
+            logger.info("=== SUPER ADMIN SETUP COMPLETE — Initial key is now invalidated ===")
+
+            return LoginResponse(
+                token=token,
+                user={"id": "super_admin", "username": "Super Admin", "is_super_admin": True, "permissions": ALL_PERMISSIONS},
+                first_login=True,
+                new_key=new_key
+            )
+
+    # Check user keys
     users = await db.users.find().to_list(1000)
     for u in users:
         if verify_key(key, u["access_key_hash"]):
             token = create_access_token(str(u["_id"]), u["username"], False, u["permissions"])
             await log_action("auth", f"User '{u['username']}' logged in", user=u["username"])
             return LoginResponse(token=token, user={"id": str(u["_id"]), "username": u["username"], "is_super_admin": False, "permissions": u["permissions"]})
+
     raise HTTPException(status_code=401, detail="Invalid access key")
 
 @api_router.get("/auth/verify")

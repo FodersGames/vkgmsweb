@@ -161,7 +161,7 @@ const DashboardContent = () => {
           <div className="mt-2 px-3 text-center">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#1c1c2e] border border-[#2a2a3c] rounded-full">
               <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]"></div>
-              <span className="text-[10px] font-mono text-[#71717a]">v1.2.0</span>
+              <span className="text-[10px] font-mono text-[#71717a]">v1.3.0</span>
             </div>
           </div>
         </div>

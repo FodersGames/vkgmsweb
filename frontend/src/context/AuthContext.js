@@ -36,11 +36,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (key) => {
     try {
       const response = await axios.post(`${API_URL}/api/auth/login`, { key });
-      const { token: newToken, user: userData } = response.data;
+      const { token: newToken, user: userData, first_login, new_key } = response.data;
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
-      return { success: true };
+      return { success: true, first_login, new_key };
     } catch (error) {
       return {
         success: false,
