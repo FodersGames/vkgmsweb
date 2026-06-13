@@ -1,192 +1,424 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Gamepad2, Code, Users, Zap, Menu, X } from 'lucide-react';
+import { ChevronRight, Gamepad2, Code, Users, Zap, Menu, X, ArrowRight, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-const HERO_BG = 'https://images.unsplash.com/photo-1680003935289-0c8d65e1ae30?auto=format&fit=crop&w=1920&q=80';
-const ABOUT_BG = 'https://images.unsplash.com/photo-1756737864755-3a4f37485ce4?auto=format&fit=crop&w=1920&q=80';
 
 const PLATFORM_ICONS = {
-  steam: 'Steam', google_play: 'Google Play', apple: 'App Store', pc: 'PC', web: 'Web', android: 'Android'
+  steam: 'Steam', google_play: 'Google Play', apple: 'App Store',
+  pc: 'PC', web: 'Web', android: 'Android'
 };
+
+/* ── Shared Nav ── */
+const Navbar = ({ activePath }) => {
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+        scrolled ? 'bg-white border-b border-[#E1DFDD] shadow-sm' : 'bg-white/95 border-b border-[#E1DFDD]'
+      }`}
+      data-testid="landing-navbar"
+    >
+      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <Link to="/" className="flex items-center gap-2.5 group" data-testid="landing-logo">
+            {/* Azure-style 3D logo mark */}
+            <div className="w-7 h-7 relative" style={{ perspective: '80px' }}>
+              <div style={{
+                width: '100%', height: '100%',
+                background: 'linear-gradient(135deg, #0078D4 0%, #40A9FF 100%)',
+                borderRadius: '3px',
+                transform: 'rotateX(10deg) rotateY(-12deg)',
+                boxShadow: '3px 4px 0px #005A9E, 1px 1px 8px rgba(0,120,212,0.3)',
+                transition: 'transform 0.3s',
+              }}
+              className="group-hover:[transform:rotateX(15deg)_rotateY(-18deg)]"
+              />
+            </div>
+            <span className="text-sm font-bold tracking-tight text-[#201F1E] font-display">VAKAR GAMES</span>
+          </Link>
+          <div className="hidden md:flex items-center gap-1">
+            {[
+              { to: '/#about', label: 'About', scroll: true },
+              { to: '/games', label: 'Games' },
+              { to: '/blog', label: 'Blog' },
+            ].map(({ to, label, scroll }) => (
+              <Link
+                key={label}
+                to={to}
+                className={`px-3 py-1.5 text-[0.8125rem] font-medium rounded-sm transition-colors font-body
+                  ${activePath === to ? 'text-[#0078D4] bg-[#EFF6FC]' : 'text-[#605E5C] hover:text-[#201F1E] hover:bg-[#F3F2F1]'}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <button className="md:hidden p-2 text-[#605E5C]" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
+          {mobileMenu ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+      {mobileMenu && (
+        <div className="md:hidden bg-white border-t border-[#E1DFDD] px-6 py-3 space-y-1" data-testid="mobile-menu">
+          <Link to="/" className="block px-3 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] rounded-sm" onClick={() => setMobileMenu(false)}>Home</Link>
+          <Link to="/games" className="block px-3 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] rounded-sm" onClick={() => setMobileMenu(false)}>Games</Link>
+          <Link to="/blog" className="block px-3 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] rounded-sm" onClick={() => setMobileMenu(false)}>Blog</Link>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+/* ── Isometric 3D Cube SVG decoration ── */
+const IsoCube = ({ size = 60, color = '#0078D4', className = '' }) => {
+  const d = size;
+  const h = d * 0.866;
+  return (
+    <svg width={d * 2} height={d * 1.8} viewBox={`0 0 ${d * 2} ${d * 1.8}`} className={className} style={{ filter: 'drop-shadow(0 8px 24px rgba(0,120,212,0.18))' }}>
+      {/* Top face */}
+      <polygon
+        points={`${d},0 ${d*2},${h*0.5} ${d},${h} 0,${h*0.5}`}
+        fill={color} opacity="0.9"
+      />
+      {/* Left face */}
+      <polygon
+        points={`0,${h*0.5} ${d},${h} ${d},${d*1.73} 0,${d*1.73*0.5+h*0.5}`}
+        fill={color} opacity="0.55"
+      />
+      {/* Right face */}
+      <polygon
+        points={`${d},${h} ${d*2},${h*0.5} ${d*2},${d*1.73*0.5+h*0.5} ${d},${d*1.73}`}
+        fill={color} opacity="0.35"
+      />
+    </svg>
+  );
+};
+
+/* ── Animated grid wires ── */
+const GridWires = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="az-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(0,120,212,0.07)" strokeWidth="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#az-grid)" />
+    </svg>
+  </div>
+);
 
 const Home = () => {
   const aboutRef = useRef(null);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [featuredGame, setFeaturedGame] = useState(null);
 
   useEffect(() => {
+    document.title = 'Vakar Games — Studio';
     axios.get(`${API_URL}/api/website/games/featured`).then(r => {
       if (r.data.game) setFeaturedGame(r.data.game);
     }).catch(() => {});
   }, []);
 
-  const scrollToAbout = () => { aboutRef.current?.scrollIntoView({ behavior: 'smooth' }); setMobileMenu(false); };
+  const scrollToAbout = () => aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <div className="bg-[#0a0a0f] text-white" style={{ fontFamily: "'Bebas Neue', 'Oswald', sans-serif" }}>
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-md border-b border-white/5" data-testid="landing-navbar">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-xl font-black tracking-[0.15em] text-white cursor-pointer"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.2em' }}
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} data-testid="landing-logo">
-              VAKAR GAMES
+    <div className="bg-white text-[#201F1E] font-body">
+      <Navbar activePath="/" />
+
+      {/* ── HERO ── */}
+      <section
+        className="relative min-h-screen flex items-center overflow-hidden pt-14"
+        style={{ background: 'linear-gradient(160deg, #FAFAFA 0%, #EFF6FC 45%, #F3F2F1 100%)' }}
+        data-testid="hero-section"
+      >
+        <GridWires />
+
+        {/* Floating 3D cubes decoration */}
+        <div className="absolute right-[8%] top-[15%] iso-cube opacity-70 hidden lg:block">
+          <IsoCube size={52} color="#0078D4" />
+        </div>
+        <div className="absolute right-[22%] top-[55%] opacity-40 hidden lg:block" style={{ animation: 'iso-float 8s ease-in-out infinite', animationDelay: '-3s' }}>
+          <IsoCube size={28} color="#40A9FF" />
+        </div>
+        <div className="absolute right-[5%] top-[55%] opacity-30 hidden lg:block" style={{ animation: 'iso-float 10s ease-in-out infinite', animationDelay: '-6s' }}>
+          <IsoCube size={18} color="#0078D4" />
+        </div>
+
+        {/* Blue accent vertical bar */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0078D4] via-[#40A9FF] to-transparent" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 lg:py-32 w-full grid lg:grid-cols-2 gap-16 items-center">
+          <div className="fade-up">
+            <h1 className="font-display font-black leading-[0.9] tracking-tight mb-6" style={{ fontSize: 'clamp(3.5rem, 8vw, 7rem)', color: '#201F1E' }}>
+              VAKAR<br />
+              <span style={{ WebkitTextStroke: '2px #0078D4', color: 'transparent' }}>GAMES</span>
             </h1>
-            <div className="hidden md:flex items-center gap-6">
-              <button onClick={scrollToAbout} className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>About</button>
-              <Link to="/games" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
-              <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
+
+            <p className="text-lg text-[#605E5C] leading-relaxed mb-10 max-w-lg font-body font-light">
+              We build games that players remember. Immersive worlds, unforgettable characters, and experiences engineered to push boundaries.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <button onClick={scrollToAbout} className="az-btn-primary flex items-center gap-2">
+                Discover our work <ArrowRight size={14} />
+              </button>
+              <Link to="/games" className="az-btn-ghost flex items-center gap-2">
+                Browse games <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            {/* Stat strip */}
+            <div className="mt-14 flex gap-8 pt-8 border-t border-[#E1DFDD]">
+              {[
+                { value: '100%', label: 'Indie & Passionate' },
+                { value: 'FR', label: 'French Studio' },
+                { value: '∞', label: 'Creative drive' },
+              ].map(({ value, label }) => (
+                <div key={label}>
+                  <p className="text-2xl font-bold font-display text-[#0078D4]">{value}</p>
+                  <p className="text-xs text-[#A19F9D] mt-0.5 font-body">{label}</p>
+                </div>
+              ))}
             </div>
           </div>
-          {/* Mobile burger */}
-          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
-            {mobileMenu ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-        {/* Mobile dropdown */}
-        {mobileMenu && (
-          <div className="md:hidden bg-[#111118] border-t border-white/5 px-6 py-4 space-y-3" data-testid="mobile-menu">
-            <button onClick={scrollToAbout} className="block w-full text-left text-sm text-[#8A8A9A] hover:text-white py-2">About</button>
-            <Link to="/games" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Games</Link>
-            <Link to="/blog" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Blog</Link>
-          </div>
-        )}
-      </nav>
 
-      {/* Hero */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden" data-testid="hero-section">
-        <div className="absolute inset-0">
-          <img src={HERO_BG} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-[#0a0a0f]/30 to-[#0a0a0f]"></div>
-        </div>
-        <div className="relative z-10 text-center px-6">
-          <h2 className="text-[7rem] sm:text-[10rem] md:text-[12rem] lg:text-[16rem] font-black leading-[0.85] tracking-tight text-white"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", textShadow: '0 4px 60px rgba(0,0,0,0.5)' }}>
-            VAKAR
-          </h2>
-          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.3em] text-white/80 mt-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            LEGENDS ARE BORN
-          </p>
-          <button onClick={scrollToAbout} className="mt-12 animate-bounce" data-testid="scroll-down-button">
-            <ChevronDown size={36} className="text-white/50" />
-          </button>
-        </div>
-      </section>
-
-      {/* About */}
-      <section ref={aboutRef} className="relative min-h-screen flex items-center overflow-hidden" data-testid="about-section"
-        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}>
-        <div className="absolute inset-0 opacity-10"><img src={ABOUT_BG} alt="" className="w-full h-full object-cover" /></div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>WHO WE ARE</h3>
-            <p className="text-base sm:text-lg text-white/70 leading-relaxed mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-              Vakar Games is a French video game development studio driven by passion and creativity. We build immersive worlds, unforgettable characters, and experiences that push boundaries.
-            </p>
-            <p className="text-base sm:text-lg text-white/70 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-              Our mission is simple: create games that players remember forever. From concept to launch, every detail matters.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[
-              { icon: Gamepad2, title: 'Game Dev', desc: 'Building worlds from scratch' },
-              { icon: Code, title: 'Technology', desc: 'Cutting-edge game engines' },
-              { icon: Users, title: 'Community', desc: 'Players at the center' },
-              { icon: Zap, title: 'Innovation', desc: 'Pushing the limits' }
-            ].map((item, i) => (
-              <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 hover:bg-white/10 transition-all duration-300">
-                <item.icon size={24} className="text-[#4ECDC4] mb-3" />
-                <h4 className="text-base sm:text-lg font-bold mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>{item.title}</h4>
-                <p className="text-xs sm:text-sm text-white/50" style={{ fontFamily: "'Inter', sans-serif" }}>{item.desc}</p>
+          {/* Right panel — stylized "terminal" card */}
+          <div className="hidden lg:block fade-up fade-up-2">
+            <div className="relative card-3d">
+              <div className="az-panel rounded-sm overflow-hidden" style={{ boxShadow: '0 24px 80px rgba(0,120,212,0.10), 0 4px 20px rgba(0,0,0,0.06)' }}>
+                {/* Terminal header */}
+                <div className="bg-[#1E1E1E] px-4 py-3 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+                  <div className="w-3 h-3 rounded-full bg-[#28CA41]" />
+                  <span className="ml-3 text-xs text-[#6E6E6E] font-mono">vakar-studio — zsh</span>
+                </div>
+                <div className="az-terminal p-6 text-sm leading-7 min-h-[280px]">
+                  <p><span className="text-[#569CD6]">$</span> <span className="text-[#9CDCFE]">vakar</span> <span className="text-[#CE9178]">init --studio</span></p>
+                  <p className="text-[#6A9955]">✓ Loading passion engine...</p>
+                  <p className="text-[#6A9955]">✓ Compiling world-builder v3.0</p>
+                  <p className="text-[#6A9955]">✓ Loading player experience SDK</p>
+                  <p className="mt-2"><span className="text-[#569CD6]">$</span> <span className="text-[#9CDCFE]">vakar</span> <span className="text-[#CE9178]">build --release</span></p>
+                  <p className="text-[#C8C6C4]">Building <span className="text-[#4EC9B0]">legendary games</span>...</p>
+                  <p><span className="text-[#D4D4D4]">Progress: </span>
+                    <span className="text-[#0078D4]">████████████</span>
+                    <span className="text-[#3C3C3C]">████</span>
+                    <span className="text-[#9CDCFE]"> 75%</span>
+                  </p>
+                  <p className="animate-pulse">
+                    <span className="text-[#569CD6]">$</span>
+                    <span className="text-[#D4D4D4]"> _</span>
+                  </p>
+                </div>
               </div>
-            ))}
+              {/* Shadow depth element */}
+              <div className="absolute -bottom-3 -right-3 w-full h-full border border-[#C7E0F4] rounded-sm -z-10 bg-[#EFF6FC]" />
+              <div className="absolute -bottom-5 -right-5 w-full h-full border border-[#E1DFDD] rounded-sm -z-20" />
+            </div>
           </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+          <span className="text-[10px] tracking-widest uppercase font-body text-[#605E5C]">Scroll</span>
+          <div className="w-px h-10 bg-gradient-to-b from-[#0078D4] to-transparent" />
         </div>
       </section>
 
-      {/* Featured Game Section */}
-      <section id="games" className="relative min-h-[60vh] flex items-center overflow-hidden" data-testid="games-section"
-        style={{ background: 'linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%)' }}>
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 w-full">
-          {featuredGame ? (
-            <div className="flex flex-col lg:flex-row gap-10 items-center">
-              <div className="lg:w-1/2">
-                {featuredGame.logo_url ? (
-                  <img src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
-                    alt={featuredGame.name} className="w-full max-w-lg mx-auto rounded-xl shadow-2xl shadow-black/50" />
-                ) : featuredGame.screenshots?.length > 0 ? (
-                  <img src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
-                    alt={featuredGame.name} className="w-full rounded-xl shadow-2xl shadow-black/50" />
-                ) : (
-                  <div className="w-full aspect-video bg-white/5 rounded-xl flex items-center justify-center">
-                    <span className="text-white/20 text-3xl font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{featuredGame.name}</span>
+      {/* ── ABOUT ── */}
+      <section ref={aboutRef} className="relative py-28 overflow-hidden bg-white" data-testid="about-section">
+        <div className="absolute inset-0 az-dot-grid opacity-50" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          {/* Section label */}
+          <div className="flex items-center gap-4 mb-12">
+            <div className="w-8 h-px bg-[#0078D4]" />
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#0078D4] font-body">About the Studio</span>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div>
+              <h2 className="font-display font-black text-5xl md:text-6xl leading-none tracking-tight mb-8 text-[#201F1E]">
+                WHO<br />WE ARE
+              </h2>
+              <p className="text-base text-[#605E5C] leading-relaxed mb-5 font-body">
+                Vakar Games is a French video game development studio driven by passion and creativity. We build immersive worlds, unforgettable characters, and experiences that push boundaries.
+              </p>
+              <p className="text-base text-[#605E5C] leading-relaxed mb-10 font-body">
+                From concept to launch, every pixel, every line of code, every mechanic is crafted with intent. Our mission is simple: create games players remember forever.
+              </p>
+              <Link to="/games" className="az-btn-primary inline-flex items-center gap-2">
+                See our games <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {/* Capability cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: Gamepad2, title: 'Game Development', desc: 'Building worlds from concept to launch across multiple platforms', color: '#0078D4' },
+                { icon: Code, title: 'Technology', desc: 'Cutting-edge engines and tools for seamless player experiences', color: '#40A9FF' },
+                { icon: Users, title: 'Community', desc: 'Players at the center of every design decision we make', color: '#0078D4' },
+                { icon: Zap, title: 'Innovation', desc: 'Pushing the limits of what interactive experiences can be', color: '#40A9FF' },
+              ].map(({ icon: Icon, title, desc, color }, i) => (
+                <div
+                  key={i}
+                  className="card-3d az-panel p-5 relative az-accent-bar"
+                  style={{ '--accent-color': color }}
+                >
+                  <div className="mt-2">
+                    <div className="w-9 h-9 rounded-sm flex items-center justify-center mb-4" style={{ background: `${color}14` }}>
+                      <Icon size={18} style={{ color }} />
+                    </div>
+                    <h4 className="text-sm font-semibold text-[#201F1E] mb-1.5 font-display">{title}</h4>
+                    <p className="text-xs text-[#605E5C] leading-relaxed font-body">{desc}</p>
                   </div>
-                )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURED GAME ── */}
+      <section
+        id="games"
+        className="relative py-28 overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #F8F8F8 0%, #EFF6FC 100%)' }}
+        data-testid="games-section"
+      >
+        <GridWires />
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-4 mb-12">
+            <div className="w-8 h-px bg-[#0078D4]" />
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#0078D4] font-body">Featured Game</span>
+          </div>
+
+          {featuredGame ? (
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="card-3d">
+                <div className="az-panel rounded-sm overflow-hidden">
+                  {featuredGame.logo_url ? (
+                    <img
+                      src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
+                      alt={featuredGame.name}
+                      className="w-full object-cover"
+                    />
+                  ) : featuredGame.screenshots?.length > 0 ? (
+                    <img
+                      src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
+                      alt={featuredGame.name}
+                      className="w-full object-cover aspect-video"
+                    />
+                  ) : (
+                    <div className="aspect-video bg-[#F3F2F1] flex items-center justify-center">
+                      <Gamepad2 size={48} className="text-[#C8C6C4]" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="lg:w-1/2 space-y-6">
-                <div className="text-xs font-bold tracking-[0.2em] text-[#4ECDC4] uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Featured Game</div>
-                <h3 className="text-4xl sm:text-5xl md:text-6xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{featuredGame.name}</h3>
-                <p className="text-base sm:text-lg text-white/60 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{featuredGame.description}</p>
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#DFF6DD] border border-[#107C10]/20 rounded-sm text-xs font-semibold text-[#107C10] mb-6 font-body">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#107C10] inline-block" /> Available Now
+                </span>
+                <h3 className="font-display font-black text-4xl md:text-5xl leading-none tracking-tight mb-5 text-[#201F1E]">{featuredGame.name}</h3>
+                <p className="text-base text-[#605E5C] leading-relaxed mb-8 font-body">{featuredGame.description}</p>
+
                 {featuredGame.platforms?.length > 0 && (
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex gap-2 flex-wrap mb-8">
                     {featuredGame.platforms.map((p, i) => (
-                      <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-[#4ECDC4]/30 transition-all text-sm font-medium text-white/70 hover:text-white"
-                        style={{ fontFamily: "'Inter', sans-serif" }}>
+                      <a
+                        key={i} href={p.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E1DFDD] rounded-sm text-xs font-medium text-[#605E5C] hover:border-[#0078D4] hover:text-[#0078D4] hover:bg-[#EFF6FC] transition-all font-body"
+                        data-testid={`platform-${p.name}`}
+                      >
+                        <ExternalLink size={11} />
                         {PLATFORM_ICONS[p.name] || p.name}
                       </a>
                     ))}
                   </div>
                 )}
-                <Link to="/games" className="inline-block border-2 border-white/20 text-white/70 hover:border-white hover:text-white px-6 py-3 text-sm font-bold tracking-[0.15em] uppercase transition-all" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  View All Games
+
+                <Link to="/games" className="az-btn-primary inline-flex items-center gap-2">
+                  View all games <ArrowRight size={14} />
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="text-center">
-              <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>OUR GAMES</h3>
-              <p className="text-lg text-white/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>Something big is coming. Stay tuned.</p>
-              <Link to="/games" className="inline-block border-2 border-white/20 text-white/70 hover:border-white hover:text-white px-8 py-3 text-sm font-bold tracking-[0.15em] uppercase transition-all" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Explore Games
+            <div className="text-center py-20">
+              <div className="w-16 h-16 bg-[#EFF6FC] border border-[#C7E0F4] rounded-sm flex items-center justify-center mx-auto mb-6">
+                <Gamepad2 size={28} className="text-[#0078D4]" />
+              </div>
+              <h3 className="font-display font-black text-4xl mb-3 text-[#201F1E]">OUR GAMES</h3>
+              <p className="text-[#605E5C] text-base mb-8 font-body">Something big is in development. Stay tuned.</p>
+              <Link to="/games" className="az-btn-primary inline-flex items-center gap-2">
+                Explore games <ArrowRight size={14} />
               </Link>
             </div>
           )}
         </div>
       </section>
 
-      {/* Contact */}
-      <section id="contact" className="relative py-24 overflow-hidden" data-testid="contact-section"
-        style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #111118 100%)' }}>
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>GET IN TOUCH</h3>
-          <p className="text-base sm:text-lg text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-            Interested in working with us or have a question? We'd love to hear from you.
-          </p>
-          <a href="mailto:vakargames@gmail.com"
-            className="inline-block border-2 border-white text-white px-10 py-4 text-sm font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-[#0a0a0f] transition-all duration-300"
-            style={{ fontFamily: "'Inter', sans-serif" }} data-testid="contact-email-button">
-            CONTACT US
-          </a>
+      {/* ── CONTACT ── */}
+      <section id="contact" className="relative py-24 overflow-hidden bg-[#201F1E]" data-testid="contact-section">
+        {/* Subtle dark grid */}
+        <div className="absolute inset-0 az-line-grid opacity-30" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0078D4] via-[#40A9FF] to-transparent opacity-60" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-8 h-px bg-[#0078D4]" />
+              <span className="text-xs font-semibold tracking-widest uppercase text-[#40A9FF] font-body">Contact</span>
+            </div>
+            <h2 className="font-display font-black text-5xl md:text-6xl leading-none tracking-tight text-white mb-6">
+              GET IN<br />TOUCH
+            </h2>
+            <p className="text-[#A19F9D] text-base leading-relaxed font-body">
+              Interested in working with us, pitching a collaboration, or just want to say hello? We'd love to hear from you.
+            </p>
+          </div>
+
+          <div>
+            <a
+              href="mailto:vakargames@gmail.com"
+              className="group block az-panel p-8 bg-white border border-[#D7E3F5] hover:bg-[#F6FAFF] shadow-[0_18px_45px_rgba(0,120,212,0.16)] transition-all"
+              data-testid="contact-email-button"
+              style={{ border: '1px solid rgba(0,120,212,0.18)' }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-[#0078D4] mb-2 font-body tracking-widest uppercase font-semibold">Email us</p>
+                  <p className="text-xl font-semibold text-[#111827] font-display">vakargames@gmail.com</p>
+                </div>
+                <div className="w-10 h-10 rounded-sm bg-[#0078D4] flex items-center justify-center transition-transform group-hover:translate-x-1">
+                  <ArrowRight size={18} className="text-white" />
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#0a0a0f]" data-testid="landing-footer">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-8">
-              <span className="text-lg font-black tracking-[0.2em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
-              <div className="hidden md:flex items-center gap-6">
-                <Link to="/games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
-                <Link to="/blog" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
-              </div>
+      {/* ── FOOTER ── */}
+      <footer className="bg-[#1B1A19] border-t border-white/5" data-testid="landing-footer">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-8">
+            <span className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</span>
+            <div className="flex items-center gap-5">
+              <Link to="/games" className="text-xs text-[#605E5C] hover:text-white transition-colors font-body uppercase tracking-wider">Games</Link>
+              <Link to="/blog" className="text-xs text-[#605E5C] hover:text-white transition-colors font-body uppercase tracking-wider">Blog</Link>
             </div>
-            <p className="text-xs text-[#8A8A9A]" style={{ fontFamily: "'Inter', sans-serif" }}>&copy; VAKAR GAMES {new Date().getFullYear()}</p>
           </div>
+          <p className="text-xs text-[#605E5C] font-body">&copy; {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
         </div>
       </footer>
     </div>

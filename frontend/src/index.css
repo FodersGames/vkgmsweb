@@ -1,39 +1,220 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@300;400;500;600;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+#emergent-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
 @layer base {
   :root {
-    --background: 30 33% 97%;
-    --foreground: 240 20% 14%;
-    --card: 30 33% 99%;
-    --card-foreground: 240 20% 14%;
+    /* Azure Pro Palette */
+    --az-blue:        #0078D4;
+    --az-blue-hover:  #106EBE;
+    --az-blue-light:  #EFF6FC;
+    --az-blue-mid:    #C7E0F4;
+
+    --az-bg:          #FFFFFF;
+    --az-surface:     #F8F8F8;
+    --az-surface-2:   #F3F2F1;
+    --az-border:      #E1DFDD;
+    --az-border-dark: #C8C6C4;
+
+    --az-text:        #201F1E;
+    --az-text-2:      #605E5C;
+    --az-text-3:      #A19F9D;
+
+    --az-success:     #107C10;
+    --az-success-bg:  #DFF6DD;
+    --az-warning:     #D83B01;
+    --az-warning-bg:  #FDE7E9;
+    --az-error:       #A4262C;
+    --az-error-bg:    #FDE7E9;
+
+    --az-term-bg:     #1E1E1E;
+    --az-term-text:   #D4D4D4;
+
+    --radius: 0.125rem;
+
+    /* Shadcn tokens mapped to Azure */
+    --background: 0 0% 100%;
+    --foreground: 20 14% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 20% 14%;
-    --primary: 24 85% 55%;
+    --popover-foreground: 20 14% 12%;
+    --primary: 207 90% 42%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 20% 95%;
-    --secondary-foreground: 240 20% 14%;
-    --muted: 30 15% 93%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 30 20% 93%;
-    --accent-foreground: 24 85% 55%;
-    --destructive: 4 90% 55%;
+    --secondary: 30 6% 95%;
+    --secondary-foreground: 20 14% 12%;
+    --muted: 30 6% 95%;
+    --muted-foreground: 25 5% 38%;
+    --accent: 207 85% 96%;
+    --accent-foreground: 207 90% 42%;
+    --destructive: 355 78% 39%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 15% 90%;
-    --input: 30 15% 90%;
-    --ring: 24 85% 55%;
-    --radius: 0.375rem;
+    --border: 30 5% 88%;
+    --input: 30 5% 88%;
+    --ring: 207 90% 42%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
-    @apply bg-background text-foreground;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: var(--az-bg);
+    color: var(--az-text);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Chivo', system-ui, sans-serif;
   }
 }
+
+/* ── Azure Utility Classes ── */
+@layer utilities {
+  .font-display { font-family: 'Chivo', system-ui, sans-serif; }
+  .font-body    { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+  .font-mono    { font-family: 'IBM Plex Mono', monospace; }
+
+  /* 3D Card tilt effect */
+  .card-3d {
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .card-3d:hover {
+    transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
+    box-shadow: 0 20px 60px rgba(0,120,212,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  }
+
+  /* Floating panel depth */
+  .az-panel {
+    background: #fff;
+    border: 1px solid var(--az-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  /* Azure blue gradient accent bar */
+  .az-accent-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0078D4 0%, #40A9FF 60%, #B3D8FF 100%);
+  }
+
+  /* Grid dot pattern */
+  .az-dot-grid {
+    background-image: radial-gradient(circle, #C7E0F4 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Blueprint line grid */
+  .az-line-grid {
+    background-image:
+      linear-gradient(rgba(0,120,212,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,120,212,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Isometric cube pseudo-3D  */
+  .iso-cube {
+    transform-style: preserve-3d;
+    animation: iso-float 6s ease-in-out infinite;
+  }
+  @keyframes iso-float {
+    0%, 100% { transform: translateY(0px) rotateX(15deg) rotateY(-20deg); }
+    50%       { transform: translateY(-12px) rotateX(15deg) rotateY(-20deg); }
+  }
+
+  /* Scan line animation for hero */
+  @keyframes scanline {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    10%  { opacity: 0.6; }
+    90%  { opacity: 0.6; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+  .scanline {
+    animation: scanline 3s linear infinite;
+  }
+
+  /* Fade-up entrance */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .fade-up-1 { animation-delay: 0.1s; }
+  .fade-up-2 { animation-delay: 0.2s; }
+  .fade-up-3 { animation-delay: 0.3s; }
+  .fade-up-4 { animation-delay: 0.45s; }
+
+  /* Azure button */
+  .az-btn-primary {
+    background: var(--az-blue);
+    color: #fff;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.5rem 1.25rem;
+    border-radius: 2px;
+    border: 1px solid var(--az-blue);
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+  }
+  .az-btn-primary:hover  { background: var(--az-blue-hover); border-color: var(--az-blue-hover); box-shadow: 0 0 0 2px rgba(0,120,212,0.15); }
+  .az-btn-primary:focus  { outline: none; box-shadow: 0 0 0 3px rgba(0,120,212,0.3); }
+
+  .az-btn-ghost {
+    background: transparent;
+    color: var(--az-blue);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.5rem 1.25rem;
+    border-radius: 2px;
+    border: 1px solid var(--az-border-dark);
+    transition: background 0.15s, border-color 0.15s;
+    cursor: pointer;
+  }
+  .az-btn-ghost:hover { background: var(--az-blue-light); border-color: var(--az-blue); }
+
+  /* Sidebar active indicator */
+  .sidebar-active {
+    background: var(--az-blue-light);
+    color: var(--az-blue);
+    border-left: 2px solid var(--az-blue);
+    font-weight: 500;
+  }
+
+  /* Monospace terminal */
+  .az-terminal {
+    background: var(--az-term-bg);
+    color: var(--az-term-text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    border-radius: 2px;
+    border: 1px solid #3C3C3C;
+    padding: 1rem;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--az-surface); }
+::-webkit-scrollbar-thumb { background: var(--az-border-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #999; }
