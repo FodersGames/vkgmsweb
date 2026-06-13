@@ -17,6 +17,7 @@ const Home = () => {
   const [featuredGame, setFeaturedGame] = useState(null);
 
   useEffect(() => {
+    document.title = 'Vakar Games — Legends Are Born';
     axios.get(`${API_URL}/api/website/games/featured`).then(r => {
       if (r.data.game) setFeaturedGame(r.data.game);
     }).catch(() => {});

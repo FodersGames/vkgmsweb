@@ -11,6 +11,7 @@ export const BlogList = () => {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
+    document.title = 'Blog — Vakar Games';
     axios.get(`${API_URL}/api/website/blog/public`).then(r => { setPosts(r.data.posts); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
@@ -101,6 +102,7 @@ export const BlogPost = () => {
   useEffect(() => {
     axios.get(`${API_URL}/api/website/blog/${slug}`).then(r => {
       setPost(r.data.post);
+      document.title = `${r.data.post.title} — Vakar Games`;
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [slug]);

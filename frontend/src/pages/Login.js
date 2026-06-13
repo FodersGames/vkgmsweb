@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Shield, Copy, Check, AlertTriangle } from 'lucide-react';
@@ -10,6 +10,8 @@ export const Login = () => {
   const [firstLogin, setFirstLogin] = useState(null); // { newKey }
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Login — Vakar Games'; }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -20,6 +20,7 @@ const GamesPage = () => {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
+    document.title = 'Games — Vakar Games';
     axios.get(`${API_URL}/api/website/games/public`).then(r => { setGames(r.data.games); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
