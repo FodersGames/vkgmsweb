@@ -167,7 +167,7 @@ const Home = () => {
           <p className="text-base sm:text-lg text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
             Interested in working with us or have a question? We'd love to hear from you.
           </p>
-          <a href="mailto:vakargames@gmail.com"
+          <a href="mailto:support@vakargames.com"
             className="inline-block border-2 border-white text-white px-10 py-4 text-sm font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-[#0a0a0f] transition-all duration-300"
             style={{ fontFamily: "'Inter', sans-serif" }} data-testid="contact-email-button">
             CONTACT US
