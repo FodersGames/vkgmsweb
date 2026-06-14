@@ -32,44 +32,49 @@ const PLATFORM_ICONS = {
   },
 };
 
-/* Shared navbar for public pages */
 const PublicNav = ({ active }) => {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
+    const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 bg-white ${scrolled ? 'border-b border-[#E1DFDD] shadow-sm' : 'border-b border-[#E1DFDD]'}`}>
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'glass border-b border-white/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.8)]' : 'bg-transparent'}`}>
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-10">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-6 h-6 relative" style={{ perspective: '60px' }}>
-              <div style={{ width:'100%',height:'100%',background:'linear-gradient(135deg,#0078D4 0%,#40A9FF 100%)',borderRadius:'2px',transform:'rotateX(10deg) rotateY(-12deg)',boxShadow:'2px 3px 0px #005A9E,0 1px 6px rgba(0,120,212,0.3)'}} />
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="relative w-8 h-8" style={{ perspective: '120px' }}>
+              <div style={{
+                width:'100%',height:'100%',
+                background:'linear-gradient(135deg,#FFFFFF 0%,#A0A0A8 100%)',
+                borderRadius:'6px',
+                transform:'rotateX(12deg) rotateY(-16deg)',
+                boxShadow:'3px 5px 0px rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.08)',
+                transition:'transform 0.4s ease',
+              }} className="group-hover:[transform:rotateX(18deg)_rotateY(-24deg)]" />
             </div>
-            <span className="text-sm font-bold tracking-tight text-[#201F1E] font-display">VAKAR GAMES</span>
+            <span className="text-sm font-bold tracking-tight text-white font-display">VAKAR GAMES</span>
           </Link>
           <div className="hidden md:flex items-center gap-1">
-            {[{ to:'/', label:'Home' },{ to:'/games', label:'Games' },{ to:'/blog', label:'Blog' }].map(({ to, label }) => (
+            {[{to:'/',label:'Home'},{to:'/games',label:'Games'},{to:'/blog',label:'Blog'}].map(({to,label}) => (
               <Link key={label} to={to}
-                className={`px-3 py-1.5 text-[0.8125rem] font-medium rounded-sm transition-colors font-body ${
-                  active === label ? 'text-[#0078D4] bg-[#EFF6FC]' : 'text-[#605E5C] hover:text-[#201F1E] hover:bg-[#F3F2F1]'
-                }`}>
+                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 font-body
+                  ${active===label?'text-white bg-white/10 border border-white/15':'text-[#A1A1A6] hover:text-white hover:bg-white/06'}`}>
                 {label}
               </Link>
             ))}
           </div>
         </div>
-        <button className="md:hidden p-2 text-[#605E5C]" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
-          {mobileMenu ? <X size={20}/> : <Menu size={20}/>}
+        <button className="md:hidden btn-icon" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
+          {mobileMenu ? <X size={16} className="text-white"/> : <Menu size={16} className="text-white"/>}
         </button>
       </div>
       {mobileMenu && (
-        <div className="md:hidden bg-white border-t border-[#E1DFDD] px-6 py-3 space-y-1" data-testid="mobile-menu">
-          {[{ to:'/', label:'Home' },{ to:'/games', label:'Games' },{ to:'/blog', label:'Blog' }].map(({ to, label }) => (
-            <Link key={label} to={to} className="block px-3 py-2 text-sm text-[#605E5C] hover:bg-[#F3F2F1] rounded-sm" onClick={() => setMobileMenu(false)}>{label}</Link>
+        <div className="md:hidden glass border-t border-white/08 px-6 py-4 space-y-1" data-testid="mobile-menu">
+          {[{to:'/',label:'Home'},{to:'/games',label:'Games'},{to:'/blog',label:'Blog'}].map(({to,label}) => (
+            <Link key={label} to={to} className="block px-4 py-3 text-sm text-[#A1A1A6] hover:text-white hover:bg-white/06 rounded-xl transition-all" onClick={() => setMobileMenu(false)}>{label}</Link>
           ))}
         </div>
       )}
@@ -77,10 +82,17 @@ const PublicNav = ({ active }) => {
   );
 };
 
-const GridWires = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <svg width="100%" height="100%"><defs><pattern id="az-grid-g" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(0,120,212,0.06)" strokeWidth="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#az-grid-g)"/></svg>
-  </div>
+const Footer = () => (
+  <footer style={{ borderTop:'1px solid rgba(255,255,255,0.06)', background:'#040404' }}>
+    <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="flex items-center gap-8">
+        <Link to="/" className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</Link>
+        <Link to="/games" className="text-xs text-[#6E6E73] hover:text-white transition-colors uppercase tracking-wider font-body">Games</Link>
+        <Link to="/blog" className="text-xs text-[#6E6E73] hover:text-white transition-colors uppercase tracking-wider font-body">Blog</Link>
+      </div>
+      <p className="text-xs text-[#3A3A3C] font-body">&copy; {new Date().getFullYear()} Vakar Games</p>
+    </div>
+  </footer>
 );
 
 const GamesPage = () => {
@@ -95,122 +107,144 @@ const GamesPage = () => {
   }, []);
 
   return (
-    <div className="bg-white text-[#201F1E] min-h-screen font-body">
+    <div style={{ background:'#080808', color:'#F5F5F7', minHeight:'100vh' }} className="font-body">
       <PublicNav active="Games" />
 
-      {/* Page header */}
-      <div className="relative pt-14 overflow-hidden" style={{ background: 'linear-gradient(160deg, #FAFAFA 0%, #EFF6FC 100%)' }}>
-        <GridWires />
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0078D4] to-transparent" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
+      {/* Hero */}
+      <section className="relative pt-32 pb-20 overflow-hidden">
+        <div className="dot-grid absolute inset-0 opacity-60 pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-8 h-px bg-[#0078D4]" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#0078D4]">Our Portfolio</span>
+            <div className="w-6 h-px bg-white/30" />
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#6E6E73]">Our Catalog</span>
           </div>
-          <h1 className="font-display font-black text-5xl md:text-7xl leading-none tracking-tight text-[#201F1E] mb-4">
-            OUR<br /><span style={{ WebkitTextStroke: '2px #0078D4', color: 'transparent' }}>GAMES</span>
+          <h1 className="font-display font-bold gradient-text-bright mb-4"
+            style={{ fontSize:'clamp(3rem,7vw,5.5rem)', letterSpacing:'-0.03em', lineHeight:0.92 }}>
+            GAMES
           </h1>
-          <p className="text-base text-[#605E5C] max-w-xl mt-4">Discover the worlds we've built — from concept to launch, each title crafted with precision and passion.</p>
+          <p className="text-[#6E6E73] text-lg max-w-xl" style={{ fontWeight:300 }}>
+            Every title crafted with passion, from concept to launch.
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Game list */}
-      <div className="max-w-7xl mx-auto px-6 py-20">
-        {loading ? (
-          <div className="flex items-center justify-center py-32 gap-3">
-            <div className="w-5 h-5 border-2 border-[#0078D4] border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-[#605E5C] font-body">Loading games...</span>
-          </div>
-        ) : games.length === 0 ? (
-          <div className="text-center py-32">
-            <div className="w-16 h-16 bg-[#EFF6FC] border border-[#C7E0F4] rounded-sm flex items-center justify-center mx-auto mb-6">
-              <Gamepad2 size={28} className="text-[#0078D4]" />
+      <div className="section-divider" />
+
+      {/* Games grid */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1,2,3].map(i => (
+                <div key={i} className="glass rounded-2xl overflow-hidden animate-pulse">
+                  <div className="aspect-video" style={{ background:'rgba(255,255,255,0.04)' }} />
+                  <div className="p-6 space-y-3">
+                    <div className="h-4 rounded-full bg-white/06 w-3/4" />
+                    <div className="h-3 rounded-full bg-white/04 w-full" />
+                    <div className="h-3 rounded-full bg-white/04 w-2/3" />
+                  </div>
+                </div>
+              ))}
             </div>
-            <h3 className="font-display font-black text-3xl text-[#201F1E] mb-3">COMING SOON</h3>
-            <p className="text-[#605E5C] font-body">New games are in development. Check back soon.</p>
-          </div>
-        ) : (
-          <div className="space-y-0 divide-y divide-[#E1DFDD]">
-            {games.map((game, idx) => (
-              <div
-                key={game.slug}
-                className={`py-20 flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-16 items-center group`}
-                data-testid={`game-card-${game.slug}`}
-              >
-                {/* Image */}
-                <div className="lg:w-1/2">
-                  <div className="card-3d az-panel rounded-sm overflow-hidden">
+          ) : games.length === 0 ? (
+            <div className="text-center py-28">
+              <div className="w-20 h-20 glass glass-strong rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Gamepad2 size={36} className="text-[#3A3A3C]" />
+              </div>
+              <h3 className="font-display font-bold text-3xl mb-3 gradient-text-bright" style={{ letterSpacing:'-0.02em' }}>
+                Coming Soon
+              </h3>
+              <p className="text-[#6E6E73] max-w-md mx-auto" style={{ fontWeight:300 }}>
+                We're hard at work on something amazing. Check back soon.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {games.map((game, idx) => (
+                <article
+                  key={game.id || idx}
+                  className="card-3d glass glass-hover rounded-2xl overflow-hidden flex flex-col"
+                  style={{ position:'relative' }}
+                >
+                  {/* Top shimmer */}
+                  <div style={{
+                    position:'absolute', top:0, left:'15%', right:'15%', height:'1px', zIndex:1,
+                    background:'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)',
+                  }} />
+
+                  {/* Image */}
+                  <div className="relative overflow-hidden" style={{ aspectRatio:'16/9' }}>
                     {game.logo_url ? (
-                      <img src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
-                        alt={game.name} className="w-full object-cover" />
-                    ) : game.screenshots?.length > 0 ? (
-                      <img src={game.screenshots[0].startsWith('/') ? `${API_URL}${game.screenshots[0]}` : game.screenshots[0]}
-                        alt={game.name} className="w-full aspect-video object-cover" />
+                      <img
+                        src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
+                        alt={game.name}
+                        className="w-full h-full object-cover"
+                        style={{ transition:'transform 0.5s ease' }}
+                        onMouseEnter={e => e.currentTarget.style.transform='scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
+                      />
                     ) : (
-                      <div className="aspect-video bg-[#F3F2F1] flex items-center justify-center">
-                        <Gamepad2 size={40} className="text-[#C8C6C4]" />
+                      <div className="w-full h-full flex items-center justify-center" style={{ background:'rgba(255,255,255,0.03)' }}>
+                        <Gamepad2 size={40} className="text-[#3A3A3C]" />
+                      </div>
+                    )}
+                    {game.is_featured && (
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 glass-strong rounded-full border border-white/15 text-xs font-semibold text-white">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#30D158]" style={{ animation:'orb-pulse 2s ease-in-out infinite' }} />
+                        Featured
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Content */}
-                <div className="lg:w-1/2 space-y-5">
-                  {/* Index label */}
-                  <span className="text-[10px] font-mono text-[#A19F9D] tracking-widest">
-                    {String(idx + 1).padStart(2, '0')} / {String(games.length).padStart(2, '0')}
-                  </span>
-                  <h2 className="font-display font-black text-4xl md:text-5xl leading-none tracking-tight text-[#201F1E]">{game.name}</h2>
-                  <p className="text-base text-[#605E5C] leading-relaxed font-body">{game.description}</p>
-
-                  {/* Screenshots strip */}
-                  {game.screenshots?.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {game.screenshots.slice(1, 4).map((s, i) => (
-                        <img key={i}
-                          src={s.startsWith('/') ? `${API_URL}${s}` : s}
-                          alt=""
-                          className="h-16 w-28 object-cover border border-[#E1DFDD] rounded-sm flex-shrink-0"
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Platform links */}
-                  {game.platforms?.length > 0 && (
-                    <div className="flex gap-2 flex-wrap pt-2">
-                      {game.platforms.map((p, i) => {
-                        const pl = PLATFORM_ICONS[p.name];
-                        return pl ? (
-                          <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 border border-[#E1DFDD] rounded-sm text-xs font-medium text-[#605E5C] hover:border-[#0078D4] hover:text-[#0078D4] hover:bg-[#EFF6FC] transition-all font-body"
-                            data-testid={`platform-${p.name}`}>
-                            <span className="text-current">{pl.svg}</span>
-                            {pl.label}
-                            <ExternalLink size={10} className="opacity-50" />
-                          </a>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-[#1B1A19] border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</Link>
-            <Link to="/games" className="text-xs text-[#605E5C] hover:text-white transition-colors uppercase tracking-wider font-body">Games</Link>
-            <Link to="/blog" className="text-xs text-[#605E5C] hover:text-white transition-colors uppercase tracking-wider font-body">Blog</Link>
-          </div>
-          <p className="text-xs text-[#605E5C] font-body">&copy; {new Date().getFullYear()} Vakar Games</p>
+                  {/* Content */}
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-display font-bold text-lg text-white mb-2" style={{ letterSpacing:'-0.01em' }}>{game.name}</h3>
+                    {game.description && (
+                      <p className="text-sm text-[#6E6E73] leading-relaxed mb-4 flex-1" style={{ fontWeight:300 }}>
+                        {game.description.length > 120 ? game.description.slice(0, 120) + '…' : game.description}
+                      </p>
+                    )}
+                    {game.platforms?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-auto pt-4" style={{ borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+                        {game.platforms.map((p, i) => {
+                          const info = PLATFORM_ICONS[p.name];
+                          return (
+                            <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 px-2.5 py-1 glass rounded-full text-xs text-[#A1A1A6] hover:text-white transition-all"
+                              data-testid={`platform-${p.name}`}
+                            >
+                              {info ? <>{info.svg}{info.label}</> : <>{p.name}</>}
+                              <ExternalLink size={10} />
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
-      </footer>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20">
+        <div className="section-divider mb-20" />
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h2 className="font-display font-bold text-3xl gradient-text-bright mb-4" style={{ letterSpacing:'-0.02em' }}>
+            Stay in the loop
+          </h2>
+          <p className="text-[#6E6E73] mb-8 max-w-md mx-auto" style={{ fontWeight:300 }}>
+            Follow our blog for dev updates, release news, and behind-the-scenes content.
+          </p>
+          <Link to="/blog" className="btn-primary">
+            Read our blog <ArrowRight size={14} />
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 };

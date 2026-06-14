@@ -36,204 +36,189 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex font-body" style={{ background: 'linear-gradient(160deg, #F8F8F8 0%, #EFF6FC 60%, #F3F2F1 100%)' }}>
-
+    <div className="min-h-screen flex font-body" style={{ background: '#080808' }}>
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden bg-[#1E1E1E] flex-col">
-        {/* Grid wires */}
-        <div className="absolute inset-0">
-          <svg width="100%" height="100%">
-            <defs>
-              <pattern id="lp-grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(0,120,212,0.12)" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#lp-grid)"/>
-          </svg>
-        </div>
-        {/* Blue left border */}
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0078D4] via-[#40A9FF] to-transparent" />
-
-        {/* 3D floating cubes */}
-        <div className="absolute top-[20%] right-[15%] iso-cube opacity-50">
-          <svg width="120" height="108" viewBox="0 0 120 108" style={{filter:'drop-shadow(0 12px 32px rgba(0,120,212,0.3))'}}>
-            <polygon points="60,0 120,30 60,60 0,30" fill="#0078D4" opacity="0.9"/>
-            <polygon points="0,30 60,60 60,104 0,74" fill="#0078D4" opacity="0.5"/>
-            <polygon points="60,60 120,30 120,74 60,104" fill="#0078D4" opacity="0.3"/>
-          </svg>
-        </div>
-        <div className="absolute bottom-[30%] left-[10%] opacity-30" style={{ animation: 'iso-float 9s ease-in-out infinite', animationDelay: '-4s' }}>
-          <svg width="60" height="54" viewBox="0 0 120 108">
-            <polygon points="60,0 120,30 60,60 0,30" fill="#40A9FF" opacity="0.9"/>
-            <polygon points="0,30 60,60 60,104 0,74" fill="#40A9FF" opacity="0.5"/>
-            <polygon points="60,60 120,30 120,74 60,104" fill="#40A9FF" opacity="0.3"/>
-          </svg>
-        </div>
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col"
+        style={{ background: 'linear-gradient(160deg, #0d0d0d 0%, #080808 100%)' }}>
+        {/* Dot grid */}
+        <div className="dot-grid absolute inset-0 opacity-60 pointer-events-none" />
+        {/* Radial glow */}
+        <div style={{
+          position:'absolute', inset:0,
+          background:'radial-gradient(ellipse 80% 60% at 30% 40%, rgba(255,255,255,0.03) 0%, transparent 70%)',
+        }} />
+        {/* 3D sphere decoration */}
+        <div style={{
+          position:'absolute', top:'20%', right:'10%',
+          width:220, height:220, borderRadius:'50%',
+          background:'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.04) 30%, rgba(0,0,0,0.9) 100%)',
+          boxShadow:'inset -20px -20px 40px rgba(0,0,0,0.8), inset 10px 10px 30px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.9)',
+          border:'1px solid rgba(255,255,255,0.08)',
+          animation:'float 8s ease-in-out infinite',
+        }} />
+        <div style={{
+          position:'absolute', bottom:'25%', left:'8%',
+          width:80, height:80, borderRadius:'50%',
+          background:'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.8) 100%)',
+          border:'1px solid rgba(255,255,255,0.06)',
+          animation:'float 6s ease-in-out infinite',
+          animationDelay:'-3s',
+        }} />
 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8" style={{perspective:'80px'}}>
-              <div style={{width:'100%',height:'100%',background:'linear-gradient(135deg,#0078D4 0%,#40A9FF 100%)',borderRadius:'3px',transform:'rotateX(10deg) rotateY(-12deg)',boxShadow:'3px 4px 0px #005A9E'}}/>
+            <div className="w-8 h-8" style={{ perspective:'80px' }}>
+              <div style={{ width:'100%',height:'100%',background:'linear-gradient(135deg,#FFFFFF 0%,#A0A0A8 100%)',borderRadius:'6px',transform:'rotateX(12deg) rotateY(-16deg)',boxShadow:'3px 5px 0px rgba(255,255,255,0.2)' }} />
             </div>
             <span className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</span>
           </div>
 
-          <div className="flex-1 flex flex-col justify-center">
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#40A9FF] mb-4">Admin Portal</span>
-            <h1 className="font-display font-black text-5xl leading-none tracking-tight text-white mb-6">
-              STUDIO<br />DASHBOARD
-            </h1>
-            <p className="text-[#6E6E6E] text-base leading-relaxed max-w-sm">
-              Manage your games, blog, users, and website settings from a single control panel.
+          <div className="mt-auto mb-auto flex flex-col">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-6 h-px bg-white/20" />
+              <span className="text-xs text-[#6E6E73] tracking-widest uppercase">Admin Access</span>
+            </div>
+            <h2 className="font-display font-bold gradient-text-bright mb-4"
+              style={{ fontSize:'3.5rem', letterSpacing:'-0.03em', lineHeight:0.92 }}>
+              STUDIO<br />CONTROL
+            </h2>
+            <p className="text-[#6E6E73] text-base leading-relaxed max-w-xs" style={{ fontWeight:300 }}>
+              Secure access to manage projects, users, games, blog content, and server settings.
             </p>
 
-            {/* Feature list */}
+            {/* Features list */}
             <div className="mt-10 space-y-3">
               {[
-                'Game & blog content management',
-                'User & permission system',
-                'Server status monitoring',
-                'Variable & log management',
-              ].map((f, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#0078D4] flex-shrink-0" />
-                  <span className="text-sm text-[#8A8A8A]">{f}</span>
+                { icon: Shield, text: 'End-to-end encrypted session' },
+                { icon: Lock, text: 'Role-based permissions' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3">
+                  <div className="w-7 h-7 glass rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon size={13} className="text-[#A1A1A6]" />
+                  </div>
+                  <span className="text-sm text-[#6E6E73]">{text}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="text-xs text-[#3C3C3C]">Secured with JWT authentication & AES key encryption</p>
+          <p className="text-xs text-[#3A3A3C]">&copy; {new Date().getFullYear()} Vakar Games</p>
         </div>
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center p-8 relative">
+        <div className="dot-grid absolute inset-0 opacity-30 pointer-events-none" />
+        <div className="relative z-10 w-full max-w-sm">
+
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <div className="w-7 h-7" style={{perspective:'60px'}}>
-              <div style={{width:'100%',height:'100%',background:'linear-gradient(135deg,#0078D4 0%,#40A9FF 100%)',borderRadius:'2px',transform:'rotateX(10deg) rotateY(-12deg)',boxShadow:'2px 3px 0px #005A9E'}}/>
+          <div className="lg:hidden flex items-center gap-3 mb-12">
+            <div className="w-8 h-8" style={{ perspective:'80px' }}>
+              <div style={{ width:'100%',height:'100%',background:'linear-gradient(135deg,#FFFFFF 0%,#A0A0A8 100%)',borderRadius:'6px',transform:'rotateX(12deg) rotateY(-16deg)' }} />
             </div>
-            <span className="text-sm font-bold tracking-tight text-[#201F1E] font-display">VAKAR GAMES</span>
+            <span className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</span>
           </div>
 
-          <div className="mb-8">
-            <h2 className="font-display font-black text-3xl text-[#201F1E] mb-2">Sign in</h2>
-            <p className="text-sm text-[#605E5C]">Enter your access key to continue</p>
-          </div>
+          {firstLogin ? (
+            /* First login — show new key */
+            <div className="scale-in">
+              <div className="w-12 h-12 glass glass-strong rounded-2xl flex items-center justify-center mb-6"
+                style={{ boxShadow:'0 0 30px rgba(48,209,88,0.15)' }}>
+                <Check size={22} className="text-[#30D158]" />
+              </div>
+              <h1 className="font-display font-bold text-2xl text-white mb-2" style={{ letterSpacing:'-0.02em' }}>
+                Welcome aboard
+              </h1>
+              <p className="text-sm text-[#6E6E73] mb-8" style={{ fontWeight:300 }}>
+                A new access key has been generated for you. Save it somewhere safe — it won't be shown again.
+              </p>
 
-          {/* First login modal */}
-          {firstLogin && (
-            <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6" data-testid="first-login-modal">
-              <div className="bg-white border border-[#E1DFDD] rounded-sm max-w-lg w-full shadow-2xl">
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-[#E1DFDD] flex items-center gap-3">
-                  <div className="w-9 h-9 bg-[#EFF6FC] border border-[#C7E0F4] rounded-sm flex items-center justify-center">
-                    <Shield size={18} className="text-[#0078D4]" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-[#201F1E] font-display">First Connection</h3>
-                    <p className="text-xs text-[#605E5C]">Your access key has been rotated</p>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-sm text-[#605E5C] mb-5">
-                    A new secure access key has been generated for your Super Admin account. The initial setup key has been permanently invalidated.
-                  </p>
-
-                  <div className="mb-5">
-                    <p className="text-xs font-semibold text-[#0078D4] uppercase tracking-wider mb-2">Your New Super Admin Key</p>
-                    <div className="flex gap-2">
-                      <code className="flex-1 p-3 bg-[#F8F8F8] border border-[#E1DFDD] text-[#201F1E] text-xs rounded-sm break-all font-mono select-all" data-testid="new-key-display">
-                        {firstLogin.newKey}
-                      </code>
-                      <button
-                        onClick={copyKey}
-                        className={`px-3 rounded-sm border transition-all text-sm ${copied ? 'bg-[#DFF6DD] border-[#107C10] text-[#107C10]' : 'bg-white border-[#E1DFDD] text-[#605E5C] hover:border-[#0078D4] hover:text-[#0078D4]'}`}
-                        data-testid="copy-new-key"
-                      >
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 bg-[#FDE7E9] border border-[#A4262C]/20 rounded-sm mb-5">
-                    <AlertTriangle size={16} className="text-[#A4262C] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-semibold text-[#A4262C] mb-0.5">Save this key now</p>
-                      <p className="text-xs text-[#A4262C]/80">This key will never be shown again. If you lose it, you will not be able to access the Super Admin account.</p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="az-btn-primary w-full"
-                    data-testid="continue-to-dashboard"
-                  >
-                    I've saved my key — Continue
+              <div className="glass rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[#6E6E73] uppercase tracking-widest">Your New Key</span>
+                  <button onClick={copyKey} className="flex items-center gap-1.5 text-xs text-[#A1A1A6] hover:text-white transition-colors">
+                    {copied ? <><Check size={12} className="text-[#30D158]" />Copied!</> : <><Copy size={12} />Copy</>}
                   </button>
                 </div>
+                <code className="text-sm text-white font-mono break-all block">
+                  {showKey ? firstLogin.newKey : '•'.repeat(Math.min(firstLogin.newKey.length, 32))}
+                </code>
+                <button onClick={() => setShowKey(!showKey)} className="mt-2 text-xs text-[#6E6E73] hover:text-white transition-colors flex items-center gap-1">
+                  {showKey ? <><EyeOff size={11} />Hide</> : <><Eye size={11} />Show key</>}
+                </button>
+              </div>
+
+              <div className="flex items-start gap-3 glass rounded-xl p-4 mb-6" style={{ borderColor:'rgba(255,159,10,0.2)', borderWidth:'1px' }}>
+                <AlertTriangle size={16} className="text-[#FF9F0A] flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-[#A1A1A6] leading-relaxed" style={{ fontWeight:300 }}>
+                  This key grants full access to your dashboard. Store it securely — treat it like a password.
+                </p>
+              </div>
+
+              <button onClick={() => navigate('/dashboard')} className="btn-primary w-full justify-center">
+                Continue to Dashboard
+              </button>
+            </div>
+          ) : (
+            /* Login form */
+            <div className="fade-up">
+              <h1 className="font-display font-bold text-2xl text-white mb-2" style={{ letterSpacing:'-0.02em' }}>
+                Sign in
+              </h1>
+              <p className="text-sm text-[#6E6E73] mb-10" style={{ fontWeight:300 }}>
+                Enter your access key to continue.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs text-[#6E6E73] uppercase tracking-widest mb-2 block">Access Key</label>
+                  <div className="relative">
+                    <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
+                    <input
+                      type={showKey ? 'text' : 'password'}
+                      value={key}
+                      onChange={e => setKey(e.target.value)}
+                      placeholder="Enter your key..."
+                      className="w-full pl-11 pr-11 py-3 glass rounded-xl text-sm text-white placeholder-[#3A3A3C] outline-none transition-all"
+                      style={{ fontFamily:'JetBrains Mono, monospace', border:'1px solid rgba(255,255,255,0.08)' }}
+                      onFocus={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'}
+                      onBlur={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}
+                      data-testid="api-key-input"
+                      autoFocus
+                    />
+                    <button type="button" onClick={() => setShowKey(!showKey)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6E6E73] hover:text-white transition-colors">
+                      {showKey ? <EyeOff size={15}/> : <Eye size={15}/>}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-3 glass rounded-xl p-3" style={{ borderColor:'rgba(255,69,58,0.3)', borderWidth:'1px' }}>
+                    <AlertTriangle size={15} className="text-[#FF453A] flex-shrink-0" />
+                    <p className="text-xs text-[#FF453A]">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !key}
+                  className="btn-primary w-full justify-center"
+                  style={{ opacity: loading || !key ? 0.5 : 1 }}
+                  data-testid="login-button"
+                >
+                  {loading ? (
+                    <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />Signing in...</>
+                  ) : 'Sign in'}
+                </button>
+              </form>
+
+              <div className="mt-6 flex items-center gap-3 glass rounded-xl p-4">
+                <Shield size={15} className="text-[#6E6E73] flex-shrink-0" />
+                <p className="text-xs text-[#3A3A3C]">Access is restricted to authorized studio members only.</p>
               </div>
             </div>
           )}
-
-          {/* Login form */}
-          <form onSubmit={handleSubmit} data-testid="login-form" className="space-y-5">
-            <div>
-              <label htmlFor="access-key" className="block text-xs font-semibold text-[#605E5C] mb-1.5 uppercase tracking-wider">
-                Access Key
-              </label>
-              <div className="relative">
-                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A19F9D]" />
-                <input
-                  id="access-key"
-                  type={showKey ? 'text' : 'password'}
-                  value={key}
-                  onChange={e => setKey(e.target.value)}
-                  className="w-full pl-9 pr-10 py-2.5 border border-[#E1DFDD] bg-white text-[#201F1E] text-sm rounded-sm
-                    focus:outline-none focus:ring-2 focus:ring-[#0078D4]/30 focus:border-[#0078D4] transition-all font-mono"
-                  placeholder="Enter your access key"
-                  required
-                  data-testid="access-key-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A19F9D] hover:text-[#605E5C] transition-colors"
-                >
-                  {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-[#FDE7E9] border border-[#A4262C]/20 rounded-sm" data-testid="login-error">
-                <AlertTriangle size={14} className="text-[#A4262C] shrink-0" />
-                <span className="text-xs text-[#A4262C]">{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="az-btn-primary w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              data-testid="login-submit-button"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          <p className="mt-8 text-center text-xs text-[#A19F9D]">
-            Vakar Games Admin Portal — v1.3.0
-          </p>
         </div>
       </div>
     </div>
