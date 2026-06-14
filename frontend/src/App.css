@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 * {
   margin: 0;
@@ -7,19 +7,19 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #080808;
-  color: #F5F5F7;
+  background-color: #FBF9F7;
+  color: #1A1A2E;
 }
 
 code, pre {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-family: 'Outfit', 'DM Sans', sans-serif;
   font-weight: 600;
 }
 
@@ -27,7 +27,137 @@ h1, h2, h3, h4, h5, h6 {
   min-height: 100vh;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F0EB;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C4B5A5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A89888;
+}
+
+/* Vakar visual polish */
+html {
+  scroll-behavior: smooth;
+}
+
+img {
+  content-visibility: auto;
+}
+
+.vakar-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+}
+
+.vakar-card-hover {
+  transform: translateZ(0);
+  will-change: transform, border-color, background;
+}
+
+.vakar-card-hover:hover {
+  transform: translateY(-6px);
+}
+
+.vakar-gradient-title {
+  background: linear-gradient(90deg, #ffffff, #baf7f3 45%, #ffffff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.vakar-soft-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.admin-shell {
+  --admin-surface: #111118;
+  --admin-surface-2: #1c1c2e;
+  --admin-border: #2a2a3c;
+  --admin-text: #e4e4e7;
+  --admin-muted: #8A8A9A;
+}
+
+.admin-shell main, .admin-shell aside, .admin-shell header {
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.admin-shell input,
+.admin-shell textarea,
+.admin-shell select {
+  border-radius: 14px !important;
+}
+
+.admin-shell button,
+.admin-shell a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-light {
+  background: #f6f7fb !important;
+  color: #172033 !important;
+}
+
+.admin-light [class*="bg-[#0d0d14]"],
+.admin-light [class*="bg-[#111118]"] {
+  background-color: rgba(255,255,255,0.86) !important;
+}
+
+.admin-light [class*="bg-[#1c1c2e]"],
+.admin-light [class*="bg-[#151520]"],
+.admin-light [class*="bg-[#171724]"] {
+  background-color: #ffffff !important;
+}
+
+.admin-light [class*="border-[#2a2a3c]"] {
+  border-color: #e4e7ef !important;
+}
+
+.admin-light [class*="text-[#e4e4e7]"],
+.admin-light [class*="text-white"] {
+  color: #172033 !important;
+}
+
+.admin-light [class*="text-[#71717a]"],
+.admin-light [class*="text-[#8A8A9A]"],
+.admin-light [class*="text-[#52525b]"] {
+  color: #687386 !important;
+}
+
+.admin-light [class*="bg-white/"] {
+  background-color: rgba(23,32,51,0.045) !important;
+}
+
+.admin-light .admin-sidebar {
+  box-shadow: 18px 0 50px rgba(23,32,51,0.08);
+}
+
+.admin-light .admin-empty-state {
+  background: rgba(255,255,255,0.78) !important;
+  border-color: #e4e7ef !important;
+}
+
+@media (max-width: 640px) {
+  .vakar-mobile-tight {
+    letter-spacing: 0.08em !important;
+  }
+
+  .admin-shell table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

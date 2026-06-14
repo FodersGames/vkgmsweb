@@ -1,440 +1,193 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Gamepad2, Code, Users, Zap, Menu, X, ArrowRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, Gamepad2, Code, Users, Zap, Menu, X } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const HERO_BG = 'https://images.unsplash.com/photo-1680003935289-0c8d65e1ae30?auto=format&fit=crop&w=1920&q=80';
+const ABOUT_BG = 'https://images.unsplash.com/photo-1756737864755-3a4f37485ce4?auto=format&fit=crop&w=1920&q=80';
 
 const PLATFORM_ICONS = {
-  steam: 'Steam', google_play: 'Google Play', apple: 'App Store',
-  pc: 'PC', web: 'Web', android: 'Android'
+  steam: 'Steam', google_play: 'Google Play', apple: 'App Store', pc: 'PC', web: 'Web', android: 'Android'
 };
-
-/* ── Shared Nav ── */
-const Navbar = ({ activePath }) => {
-  const [mobileMenu, setMobileMenu] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'glass border-b border-white/[0.08] shadow-[0_0_60px_rgba(0,0,0,0.8)]'
-          : 'bg-transparent border-b border-transparent'
-      }`}
-      data-testid="landing-navbar"
-    >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-10">
-          <Link to="/" className="flex items-center gap-3 group" data-testid="landing-logo">
-            {/* 3D Logo mark */}
-            <div className="relative w-8 h-8" style={{ perspective: '120px', transformStyle: 'preserve-3d' }}>
-              <div style={{
-                width: '100%', height: '100%',
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #A0A0A8 100%)',
-                borderRadius: '6px',
-                transform: 'rotateX(12deg) rotateY(-16deg)',
-                boxShadow: '3px 5px 0px rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.08)',
-                transition: 'transform 0.4s ease, box-shadow 0.4s ease',
-              }}
-              className="group-hover:[transform:rotateX(18deg)_rotateY(-24deg)_scale(1.05)]"
-              />
-            </div>
-            <span className="text-sm font-bold tracking-tight text-white font-display">VAKAR GAMES</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-1">
-            {[
-              { to: '/#about', label: 'About' },
-              { to: '/games', label: 'Games' },
-              { to: '/blog', label: 'Blog' },
-            ].map(({ to, label }) => (
-              <Link
-                key={label}
-                to={to}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 font-body
-                  ${activePath === to
-                    ? 'text-white bg-white/10 border border-white/15'
-                    : 'text-[#A1A1A6] hover:text-white hover:bg-white/06'}`}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-        </div>
-        <button className="md:hidden btn-icon" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
-          {mobileMenu ? <X size={16} className="text-white" /> : <Menu size={16} className="text-white" />}
-        </button>
-      </div>
-      {mobileMenu && (
-        <div className="md:hidden glass border-t border-white/08 px-6 py-4 space-y-1" data-testid="mobile-menu">
-          <Link to="/" className="block px-4 py-3 text-sm text-[#A1A1A6] hover:text-white hover:bg-white/06 rounded-xl transition-all" onClick={() => setMobileMenu(false)}>Home</Link>
-          <Link to="/games" className="block px-4 py-3 text-sm text-[#A1A1A6] hover:text-white hover:bg-white/06 rounded-xl transition-all" onClick={() => setMobileMenu(false)}>Games</Link>
-          <Link to="/blog" className="block px-4 py-3 text-sm text-[#A1A1A6] hover:text-white hover:bg-white/06 rounded-xl transition-all" onClick={() => setMobileMenu(false)}>Blog</Link>
-        </div>
-      )}
-    </nav>
-  );
-};
-
-/* ── Animated 3D Sphere (CSS only) ── */
-const HeroSphere = () => (
-  <div className="relative float-anim" style={{ width: 380, height: 380 }}>
-    {/* Outer glow */}
-    <div style={{
-      position: 'absolute', inset: '-20px',
-      background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
-      animation: 'orb-pulse 4s ease-in-out infinite',
-      borderRadius: '50%',
-    }} />
-    {/* Main sphere */}
-    <div style={{
-      width: '100%', height: '100%',
-      borderRadius: '50%',
-      background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 30%, rgba(0,0,0,0.8) 80%, #000 100%)',
-      boxShadow: 'inset -30px -30px 60px rgba(0,0,0,0.6), inset 20px 20px 40px rgba(255,255,255,0.08), 0 30px 100px rgba(0,0,0,0.8), 0 0 80px rgba(255,255,255,0.05)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Specular highlight */}
-      <div style={{
-        position: 'absolute', top: '12%', left: '22%',
-        width: '35%', height: '25%',
-        background: 'radial-gradient(ellipse, rgba(255,255,255,0.22) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(8px)',
-      }} />
-      {/* Rotating ring 1 */}
-      <div style={{
-        position: 'absolute', inset: '8%',
-        borderRadius: '50%',
-        border: '1px solid rgba(255,255,255,0.08)',
-        animation: 'rotate-slow 12s linear infinite',
-        transform: 'rotateX(70deg)',
-      }} />
-      {/* Rotating ring 2 */}
-      <div style={{
-        position: 'absolute', inset: '20%',
-        borderRadius: '50%',
-        border: '1px solid rgba(255,255,255,0.05)',
-        animation: 'rotate-slow 18s linear infinite reverse',
-        transform: 'rotateY(60deg)',
-      }} />
-      {/* Inner glow */}
-      <div style={{
-        position: 'absolute', bottom: '15%', right: '15%',
-        width: '30%', height: '30%',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(12px)',
-      }} />
-    </div>
-    {/* Reflection shadow */}
-    <div style={{
-      position: 'absolute', bottom: '-40px', left: '50%',
-      transform: 'translateX(-50%)',
-      width: '60%', height: '20px',
-      background: 'radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 70%)',
-      filter: 'blur(12px)',
-    }} />
-  </div>
-);
-
-/* ── Particle dots background ── */
-const ParticlesBg = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <div className="dot-grid absolute inset-0 opacity-100" />
-    {/* Radial gradient overlay */}
-    <div style={{
-      position: 'absolute', inset: 0,
-      background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 100%)',
-    }} />
-  </div>
-);
 
 const Home = () => {
   const aboutRef = useRef(null);
+  const [mobileMenu, setMobileMenu] = useState(false);
   const [featuredGame, setFeaturedGame] = useState(null);
 
   useEffect(() => {
-    document.title = 'Vakar Games — Studio';
+    document.title = 'Vakar Games — Legends Are Born';
     axios.get(`${API_URL}/api/website/games/featured`).then(r => {
       if (r.data.game) setFeaturedGame(r.data.game);
     }).catch(() => {});
   }, []);
 
-  const scrollToAbout = () => aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToAbout = () => { aboutRef.current?.scrollIntoView({ behavior: 'smooth' }); setMobileMenu(false); };
 
   return (
-    <div style={{ background: '#080808', color: '#F5F5F7' }} className="font-body min-h-screen">
-      <Navbar activePath="/" />
-
-      {/* ── HERO ── */}
-      <section
-        className="relative min-h-screen flex items-center overflow-hidden pt-16"
-        data-testid="hero-section"
-        style={{ background: 'linear-gradient(180deg, #0a0a0a 0%, #080808 100%)' }}
-      >
-        <ParticlesBg />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-28 lg:py-36 w-full grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left: text */}
-          <div>
-            <div className="fade-up">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 glass rounded-full border border-white/10 mb-8">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#30D158]" style={{ animation: 'orb-pulse 2s ease-in-out infinite' }} />
-                <span className="text-xs font-medium text-[#A1A1A6] tracking-wide uppercase">Independent Studio</span>
-              </div>
-            </div>
-
-            <h1 className="fade-up delay-1 font-display font-bold leading-[0.92] tracking-tight mb-6"
-              style={{ fontSize: 'clamp(3.5rem, 8vw, 6.5rem)', letterSpacing: '-0.03em' }}>
-              <span className="gradient-text-bright block">VAKAR</span>
-              <span className="text-[#3A3A3C] block">GAMES</span>
+    <div className="bg-[#0a0a0f] text-white" style={{ fontFamily: "'Bebas Neue', 'Oswald', sans-serif" }}>
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10 shadow-2xl shadow-black/20" data-testid="landing-navbar">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <h1 className="text-xl font-black tracking-[0.15em] text-white cursor-pointer"
+              style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.2em' }}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} data-testid="landing-logo">
+              VAKAR GAMES
             </h1>
+            <div className="hidden md:flex items-center gap-6">
+              <button onClick={scrollToAbout} className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>About</button>
+              <Link to="/games" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
+              <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
+            </div>
+          </div>
+          {/* Mobile burger */}
+          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
+            {mobileMenu ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+        {/* Mobile dropdown */}
+        {mobileMenu && (
+          <div className="md:hidden bg-[#111118] border-t border-white/5 px-6 py-4 space-y-3" data-testid="mobile-menu">
+            <button onClick={scrollToAbout} className="block w-full text-left text-sm text-[#8A8A9A] hover:text-white py-2">About</button>
+            <Link to="/games" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Games</Link>
+            <Link to="/blog" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Blog</Link>
+          </div>
+        )}
+      </nav>
 
-            <p className="fade-up delay-2 text-lg text-[#A1A1A6] leading-relaxed mb-10 max-w-lg font-body" style={{ fontWeight: 300 }}>
-              We build games that players remember. Immersive worlds, unforgettable characters, experiences engineered to push boundaries.
+      {/* Hero */}
+      <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden vakar-soft-grid" data-testid="hero-section">
+        <div className="absolute inset-0">
+          <img src={HERO_BG} alt="" className="w-full h-full object-cover scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-[#0a0a0f]/30 to-[#0a0a0f]"></div>
+        </div>
+        <div className="relative z-10 text-center px-4 sm:px-6 max-w-6xl mx-auto">
+          <h2 className="vakar-gradient-title text-[5.7rem] xs:text-[6.5rem] sm:text-[10rem] md:text-[12rem] lg:text-[16rem] font-black leading-[0.85] tracking-tight text-white vakar-mobile-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif", textShadow: '0 4px 60px rgba(0,0,0,0.5)' }}>
+            VAKAR
+          </h2>
+          <p className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.22em] sm:tracking-[0.3em] text-white/80 mt-3" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            LEGENDS ARE BORN
+          </p>
+          <button onClick={scrollToAbout} className="mt-12 animate-bounce" data-testid="scroll-down-button">
+            <ChevronDown size={36} className="text-white/50" />
+          </button>
+        </div>
+      </section>
+
+      {/* About */}
+      <section ref={aboutRef} className="relative min-h-screen flex items-center overflow-hidden vakar-soft-grid" data-testid="about-section"
+        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}>
+        <div className="absolute inset-0 opacity-10"><img src={ABOUT_BG} alt="" className="w-full h-full object-cover" /></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-24 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div>
+            <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6 vakar-gradient-title" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>WHO WE ARE</h3>
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+              Vakar Games is a French video game development studio driven by passion and creativity. We build immersive worlds, unforgettable characters, and experiences that push boundaries.
             </p>
-
-            <div className="fade-up delay-3 flex flex-wrap gap-3">
-              <button onClick={scrollToAbout} className="btn-primary">
-                Discover our work <ArrowRight size={14} />
-              </button>
-              <Link to="/games" className="btn-ghost">
-                Browse games <ChevronRight size={14} />
-              </Link>
-            </div>
-
-            {/* Stat strip */}
-            <div className="fade-up delay-4 mt-14 flex gap-8 pt-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              {[
-                { value: '100%', label: 'Indie & Passionate' },
-                { value: 'FR', label: 'French Studio' },
-                { value: '∞', label: 'Creative drive' },
-              ].map(({ value, label }) => (
-                <div key={label}>
-                  <p className="text-2xl font-bold font-display text-white">{value}</p>
-                  <p className="text-xs text-[#6E6E73] mt-0.5 font-body">{label}</p>
-                </div>
-              ))}
-            </div>
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+              Our mission is simple: create games that players remember forever. From concept to launch, every detail matters.
+            </p>
           </div>
-
-          {/* Right: 3D sphere */}
-          <div className="hidden lg:flex items-center justify-center fade-up delay-2">
-            <HeroSphere />
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2" style={{ opacity: 0.3 }}>
-          <span className="text-[10px] tracking-widest uppercase font-body text-[#6E6E73]">Scroll</span>
-          <div className="w-px h-10" style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.4), transparent)' }} />
-        </div>
-      </section>
-
-      {/* ── ABOUT ── */}
-      <section ref={aboutRef} className="relative py-32 overflow-hidden" data-testid="about-section">
-        <div className="section-divider mb-0" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32">
-          {/* Label */}
-          <div className="flex items-center gap-4 mb-16">
-            <div className="w-6 h-px bg-white/30" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#6E6E73]">About the Studio</span>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-24 items-center">
-            <div>
-              <h2 className="font-display font-bold leading-none tracking-tight mb-8 gradient-text-bright"
-                style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', letterSpacing: '-0.03em' }}>
-                WHO<br />WE ARE
-              </h2>
-              <p className="text-base text-[#A1A1A6] leading-relaxed mb-5 font-body" style={{ fontWeight: 300 }}>
-                Vakar Games is a French video game development studio driven by passion and creativity. We build immersive worlds, unforgettable characters, and experiences that push boundaries.
-              </p>
-              <p className="text-base text-[#A1A1A6] leading-relaxed mb-10 font-body" style={{ fontWeight: 300 }}>
-                From concept to launch, every pixel, every line of code, every mechanic is crafted with intent. Our mission is simple: create games players remember forever.
-              </p>
-              <Link to="/games" className="btn-primary">
-                See our games <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            {/* Capability cards */}
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Gamepad2, title: 'Game Development', desc: 'Building worlds from concept to launch across multiple platforms' },
-                { icon: Code, title: 'Technology', desc: 'Cutting-edge engines and tools for seamless player experiences' },
-                { icon: Users, title: 'Community', desc: 'Players at the center of every design decision we make' },
-                { icon: Zap, title: 'Innovation', desc: 'Pushing the limits of what interactive experiences can be' },
-              ].map(({ icon: Icon, title, desc }, i) => (
-                <div
-                  key={i}
-                  className="card-3d glass glass-hover rounded-2xl p-5 relative overflow-hidden cursor-default"
-                >
-                  {/* Top shimmer line */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: '20%', right: '20%', height: '1px',
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                  }} />
-                  <div className="mt-2">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <Icon size={18} className="text-white" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-white mb-2 font-display">{title}</h4>
-                    <p className="text-xs text-[#6E6E73] leading-relaxed font-body">{desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURED GAME ── */}
-      <section className="relative py-32 overflow-hidden" data-testid="games-section">
-        <div className="section-divider" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32">
-          <div className="flex items-center gap-4 mb-16">
-            <div className="w-6 h-px bg-white/30" />
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#6E6E73]">Featured Game</span>
-          </div>
-
-          {featuredGame ? (
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="card-3d">
-                <div className="glass rounded-2xl overflow-hidden" style={{ boxShadow: '0 30px 100px rgba(0,0,0,0.6), 0 0 60px rgba(255,255,255,0.03)' }}>
-                  {featuredGame.logo_url ? (
-                    <img
-                      src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
-                      alt={featuredGame.name}
-                      className="w-full object-cover"
-                    />
-                  ) : featuredGame.screenshots?.length > 0 ? (
-                    <img
-                      src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
-                      alt={featuredGame.name}
-                      className="w-full object-cover aspect-video"
-                    />
-                  ) : (
-                    <div className="aspect-video flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                      <Gamepad2 size={48} className="text-[#3A3A3C]" />
-                    </div>
-                  )}
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { icon: Gamepad2, title: 'Game Dev', desc: 'Building worlds from scratch' },
+              { icon: Code, title: 'Technology', desc: 'Cutting-edge game engines' },
+              { icon: Users, title: 'Community', desc: 'Players at the center' },
+              { icon: Zap, title: 'Innovation', desc: 'Pushing the limits' }
+            ].map((item, i) => (
+              <div key={i} className="vakar-glass vakar-card-hover backdrop-blur-sm rounded-2xl p-5 sm:p-6 transition-all duration-300">
+                <item.icon size={24} className="text-[#4ECDC4] mb-3" />
+                <h4 className="text-base sm:text-lg font-bold mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>{item.title}</h4>
+                <p className="text-xs sm:text-sm text-white/50" style={{ fontFamily: "'Inter', sans-serif" }}>{item.desc}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 glass-strong border border-white/10 rounded-full text-xs font-semibold text-[#30D158] mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] inline-block" style={{ animation: 'orb-pulse 2s ease-in-out infinite' }} /> Available Now
-                </span>
-                <h3 className="font-display font-bold leading-none tracking-tight mb-5 gradient-text-bright"
-                  style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', letterSpacing: '-0.03em' }}>
-                  {featuredGame.name}
-                </h3>
-                <p className="text-base text-[#A1A1A6] leading-relaxed mb-8 font-body" style={{ fontWeight: 300 }}>
-                  {featuredGame.description}
-                </p>
-
+      {/* Featured Game Section */}
+      <section id="games" className="relative min-h-[60vh] flex items-center overflow-hidden vakar-soft-grid" data-testid="games-section"
+        style={{ background: 'linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%)' }}>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-24 w-full">
+          {featuredGame ? (
+            <div className="vakar-glass rounded-[2rem] p-5 sm:p-8 lg:p-10 flex flex-col lg:flex-row gap-10 items-center">
+              <div className="lg:w-1/2">
+                {featuredGame.logo_url ? (
+                  <img src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
+                    alt={featuredGame.name} className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl shadow-black/50 object-cover" />
+                ) : featuredGame.screenshots?.length > 0 ? (
+                  <img src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
+                    alt={featuredGame.name} className="w-full rounded-2xl shadow-2xl shadow-black/50 object-cover" />
+                ) : (
+                  <div className="w-full aspect-video bg-white/5 rounded-2xl flex items-center justify-center">
+                    <span className="text-white/20 text-3xl font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{featuredGame.name}</span>
+                  </div>
+                )}
+              </div>
+              <div className="lg:w-1/2 space-y-6">
+                <div className="text-xs font-bold tracking-[0.2em] text-[#4ECDC4] uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Featured Game</div>
+                <h3 className="text-4xl sm:text-5xl md:text-6xl font-black vakar-gradient-title" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{featuredGame.name}</h3>
+                <p className="text-base sm:text-lg text-white/60 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{featuredGame.description}</p>
                 {featuredGame.platforms?.length > 0 && (
-                  <div className="flex gap-2 flex-wrap mb-8">
+                  <div className="flex gap-3 flex-wrap">
                     {featuredGame.platforms.map((p, i) => (
-                      <a
-                        key={i} href={p.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 glass glass-hover rounded-full text-xs font-medium text-[#A1A1A6] hover:text-white transition-all"
-                        data-testid={`platform-${p.name}`}
-                      >
-                        <ExternalLink size={11} />
+                      <a key={i} href={p.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-[#4ECDC4]/30 transition-all text-sm font-medium text-white/70 hover:text-white"
+                        style={{ fontFamily: "'Inter', sans-serif" }}>
                         {PLATFORM_ICONS[p.name] || p.name}
                       </a>
                     ))}
                   </div>
                 )}
-
-                <Link to="/games" className="btn-primary">
-                  View all games <ArrowRight size={14} />
+                <Link to="/games" className="inline-block rounded-xl border-2 border-white/20 text-white/80 hover:border-[#4ECDC4] hover:text-white hover:bg-[#4ECDC4]/10 px-6 py-3 text-sm font-bold tracking-[0.15em] uppercase transition-all" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  View All Games
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 glass glass-strong rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Gamepad2 size={28} className="text-[#6E6E73]" />
-              </div>
-              <h3 className="font-display font-bold text-4xl mb-3 gradient-text-bright" style={{ letterSpacing: '-0.02em' }}>OUR GAMES</h3>
-              <p className="text-[#6E6E73] text-base mb-8 font-body">Something big is in development. Stay tuned.</p>
-              <Link to="/games" className="btn-primary">
-                Explore games <ArrowRight size={14} />
+            <div className="text-center">
+              <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6 vakar-gradient-title" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>OUR GAMES</h3>
+              <p className="text-lg text-white/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>Something big is coming. Stay tuned.</p>
+              <Link to="/games" className="inline-block border-2 border-white/20 text-white/70 hover:border-white hover:text-white px-8 py-3 text-sm font-bold tracking-[0.15em] uppercase transition-all" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Explore Games
               </Link>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── CONTACT ── */}
-      <section className="relative py-28 overflow-hidden" data-testid="contact-section">
-        <div className="section-divider" />
-        <div className="dot-grid absolute inset-0 opacity-60" />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pt-28 grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-6 h-px bg-white/30" />
-              <span className="text-xs font-semibold tracking-widest uppercase text-[#6E6E73]">Contact</span>
-            </div>
-            <h2 className="font-display font-bold leading-none tracking-tight mb-6 gradient-text-bright"
-              style={{ fontSize: 'clamp(3rem, 6vw, 5rem)', letterSpacing: '-0.03em' }}>
-              GET IN<br />TOUCH
-            </h2>
-            <p className="text-[#6E6E73] text-base leading-relaxed font-body" style={{ fontWeight: 300 }}>
-              Interested in working with us, pitching a collaboration, or just want to say hello? We'd love to hear from you.
-            </p>
-          </div>
-
-          <div>
-            <a
-              href="mailto:vakargames@gmail.com"
-              className="group card-3d glass glass-hover rounded-2xl p-8 block relative overflow-hidden"
-              data-testid="contact-email-button"
-            >
-              <div style={{
-                position: 'absolute', top: 0, left: '20%', right: '20%', height: '1px',
-                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
-              }} />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-[#6E6E73] mb-2 font-body tracking-widest uppercase">Email us</p>
-                  <p className="text-xl font-semibold text-white font-display">vakargames@gmail.com</p>
-                </div>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:translate-x-1"
-                  style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <ArrowRight size={16} className="text-white" />
-                </div>
-              </div>
-            </a>
-          </div>
+      {/* Contact */}
+      <section id="contact" className="relative py-24 overflow-hidden" data-testid="contact-section"
+        style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #111118 100%)' }}>
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6 vakar-gradient-title" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>GET IN TOUCH</h3>
+          <p className="text-base sm:text-lg text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+            Interested in working with us or have a question? We'd love to hear from you.
+          </p>
+          <a href="mailto:support@vakargames.com"
+            className="inline-block border-2 border-white text-white px-10 py-4 text-sm font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-[#0a0a0f] transition-all duration-300"
+            style={{ fontFamily: "'Inter', sans-serif" }} data-testid="contact-email-button">
+            CONTACT US
+          </a>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: '#040404' }} data-testid="landing-footer">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-8">
-            <span className="text-sm font-bold text-white tracking-tight font-display">VAKAR GAMES</span>
-            <div className="flex items-center gap-5">
-              <Link to="/games" className="text-xs text-[#6E6E73] hover:text-white transition-colors font-body uppercase tracking-wider">Games</Link>
-              <Link to="/blog" className="text-xs text-[#6E6E73] hover:text-white transition-colors font-body uppercase tracking-wider">Blog</Link>
+      {/* Footer */}
+      <footer className="border-t border-white/10 bg-[#0a0a0f]" data-testid="landing-footer">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-8">
+              <span className="text-lg font-black tracking-[0.2em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
+              <div className="hidden md:flex items-center gap-6">
+                <Link to="/games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
+                <Link to="/blog" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
+              </div>
             </div>
+            <p className="text-xs text-[#8A8A9A]" style={{ fontFamily: "'Inter', sans-serif" }}>&copy; VAKAR GAMES {new Date().getFullYear()}</p>
           </div>
-          <p className="text-xs text-[#3A3A3C] font-body">&copy; {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
         </div>
       </footer>
     </div>
