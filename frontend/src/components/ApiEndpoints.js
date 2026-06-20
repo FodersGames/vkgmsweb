@@ -73,17 +73,17 @@ export const ApiEndpoints = () => {
           path: `/api/projects/{project_slug}/chat`,
           description: "Post a message to this game's chat (requires chat API key header, see Chat tab)",
           example: `${API_URL}/api/projects/${slug}/chat`,
-          body: `{\n  "username": "PlayerOne",\n  "message": "Hello!"\n}`,
-          response: `{\n  "success": true,\n  "message_data": {\n    "id": "...",\n    "game_slug": "${slug}",\n    "username": "PlayerOne",\n    "message": "Hello!",\n    "timestamp": "2026-..."\n  }\n}`,
-          note: 'Header required: X-Chat-Api-Key: <your_game_chat_key>. Rate-limited to 1 request / 3 seconds per IP. Messages are auto-censored against the global banned words list.'
+          body: `{\n  "username": "PlayerOne",\n  "message": "Hello!",\n  "level": 42\n}`,
+          response: `{\n  "success": true,\n  "message_data": {\n    "id": "...",\n    "project_slug": "${slug}",\n    "username": "PlayerOne",\n    "level": 42,\n    "message": "Hello!",\n    "timestamp": "2026-..."\n  }\n}`,
+          note: 'Header required: X-Chat-Api-Key: <your_game_chat_key>. Rate-limited to 1 request / 3 seconds per IP. "level" is optional (integer 1–9999). Messages are auto-censored against the global banned words list. Auto-purge keeps the last 100 messages per project.'
         },
         {
           method: 'GET',
           path: `/api/projects/{project_slug}/chat`,
           description: 'Get the latest chat messages for this game (use for polling)',
           example: `${API_URL}/api/projects/${slug}/chat?limit=50`,
-          response: `{\n  "messages": [\n    {"id": "...", "username": "PlayerOne", "message": "Hello!", "timestamp": "2026-..."}\n  ]\n}`,
-          note: 'No authentication required. "limit" query param defaults to 50, max 200.'
+          response: `{\n  "messages": [\n    {\n      "id": "...",\n      "username": "PlayerOne",\n      "level": 42,\n      "message": "Hello!",\n      "timestamp": "2026-..."\n    }\n  ]\n}`,
+          note: 'No authentication required. "limit" query param: 1–100, defaults to 50. Messages returned oldest-first. "level" is null if the player did not send one.'
         }
       ]
     },
