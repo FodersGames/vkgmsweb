@@ -65,6 +65,7 @@ secrets.json
 *.key
 *.pem
 *.crt
+memory/test_credentials.md
 -e 
 # Environment and credential files
 .env
