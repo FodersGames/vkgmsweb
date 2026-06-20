@@ -74,6 +74,7 @@ const PERMISSION_GROUPS = [
       { id: 'create_blog', label: 'Create Blog' },
       { id: 'edit_blog', label: 'Edit Blog' },
       { id: 'delete_blog', label: 'Delete Blog' },
+      { id: 'manage_chat', label: 'Manage Game Chat' },
     ]
   }
 ];

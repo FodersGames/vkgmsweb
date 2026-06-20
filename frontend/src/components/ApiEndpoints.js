@@ -67,6 +67,23 @@ export const ApiEndpoints = () => {
           description: 'Get variable values by name (flat JSON format)',
           example: `${API_URL}/api/projects/${slug}/variable/max_players`,
           response: `{\n  "variable_name": "max_players",\n  "value_0": "100",\n  "value_1": "200",\n  "count": 2\n}`
+        },
+        {
+          method: 'POST',
+          path: `/api/projects/{project_slug}/chat`,
+          description: "Post a message to this game's chat (requires chat API key header, see Chat tab)",
+          example: `${API_URL}/api/projects/${slug}/chat`,
+          body: `{\n  "username": "PlayerOne",\n  "message": "Hello!"\n}`,
+          response: `{\n  "success": true,\n  "message_data": {\n    "id": "...",\n    "game_slug": "${slug}",\n    "username": "PlayerOne",\n    "message": "Hello!",\n    "timestamp": "2026-..."\n  }\n}`,
+          note: 'Header required: X-Chat-Api-Key: <your_game_chat_key>. Rate-limited to 1 request / 3 seconds per IP. Messages are auto-censored against the global banned words list.'
+        },
+        {
+          method: 'GET',
+          path: `/api/projects/{project_slug}/chat`,
+          description: 'Get the latest chat messages for this game (use for polling)',
+          example: `${API_URL}/api/projects/${slug}/chat?limit=50`,
+          response: `{\n  "messages": [\n    {"id": "...", "username": "PlayerOne", "message": "Hello!", "timestamp": "2026-..."}\n  ]\n}`,
+          note: 'No authentication required. "limit" query param defaults to 50, max 200.'
         }
       ]
     },

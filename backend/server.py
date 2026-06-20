@@ -65,6 +65,7 @@ ALL_PERMISSIONS = [
     "manage_website",
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
+    "manage_chat",
 ]
 
 PERMISSION_LITERAL = Literal[
@@ -77,6 +78,7 @@ PERMISSION_LITERAL = Literal[
     "manage_website",
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
+    "manage_chat",
 ]
 
 # ============== MODELS ==============
@@ -155,6 +157,13 @@ class BlogUpdateRequest(BaseModel):
 class WebsiteSettingsRequest(BaseModel):
     maintenance_mode: bool
 
+class ChatMessageRequest(BaseModel):
+    username: str
+    message: str
+
+class BannedWordsUpdateRequest(BaseModel):
+    words: List[str]
+
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
     text = text.lower().strip()
@@ -223,6 +232,35 @@ async def log_action(log_type, message, project_slug=None, user=None, uid=None, 
     await db.logs.insert_one({"type": log_type, "project_slug": project_slug, "user": user, "uid": uid,
                               "variable": variable, "amount": amount, "timestamp": datetime.now(timezone.utc), "message": message})
     logger.info(f"[{log_type}] {message}")
+
+async def get_banned_words():
+    doc = await db.chat_settings.find_one({"key": "banned_words"})
+    if not doc:
+        return []
+    return doc.get("words", [])
+
+def censor_message(text: str, banned_words: List[str]) -> str:
+    """Replace each banned word (whole-word, case-insensitive) with asterisks matching its length."""
+    if not banned_words:
+        return text
+    for word in banned_words:
+        word = word.strip()
+        if not word:
+            continue
+        pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+        text = pattern.sub(lambda m: '*' * len(m.group(0)), text)
+    return text
+
+async def verify_chat_api_key(game_slug: str, request: Request):
+    api_key = request.headers.get("X-Chat-Api-Key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Missing chat API key")
+    game = await db.website_games.find_one({"slug": game_slug})
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if game.get("chat_api_key") != api_key:
+        raise HTTPException(status_code=401, detail="Invalid chat API key")
+    return game
 
 # ============== AUTH ==============
 @api_router.get("/version")
@@ -494,6 +532,7 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
         await db.website_games.update_many({}, {"$set": {"featured": False}})
     doc = {"name": req.name, "slug": slug, "description": req.description, "logo_url": req.logo_url,
            "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status, "featured": req.featured,
+           "chat_api_key": secrets.token_urlsafe(24),
            "created_at": datetime.now(timezone.utc), "created_by": user["username"],
            "updated_at": datetime.now(timezone.utc)}
     await db.website_games.insert_one(doc)
@@ -606,6 +645,75 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
     await log_action("website", f"Maintenance mode {'enabled' if req.maintenance_mode else 'disabled'}", user=user["username"])
     return {"success": True, "maintenance_mode": req.maintenance_mode}
 
+# ============== CHAT (per-game, public POST/GET + admin moderation) ==============
+@api_router.post("/projects/{game_slug}/chat")
+@limiter.limit("1/3seconds")
+async def post_chat_message(request: Request, game_slug: str):
+    game = await verify_chat_api_key(game_slug, request)
+    body = await request.json()
+    try:
+        req = ChatMessageRequest(**body)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid request body")
+
+    username = req.username.strip()[:32]
+    message = req.message.strip()[:200]
+
+    if not username or not message:
+        raise HTTPException(status_code=400, detail="Username and message are required")
+
+    banned_words = await get_banned_words()
+    clean_message = censor_message(message, banned_words)
+
+    doc = {"game_slug": game_slug, "username": username, "message": clean_message,
+           "timestamp": datetime.now(timezone.utc)}
+    result = await db.chat_messages.insert_one(doc)
+    doc["_id"] = result.inserted_id
+
+    # Keep only the last 500 messages per game to avoid unbounded growth
+    count = await db.chat_messages.count_documents({"game_slug": game_slug})
+    if count > 500:
+        oldest = await db.chat_messages.find({"game_slug": game_slug}).sort("timestamp", 1).limit(count - 500).to_list(count - 500)
+        await db.chat_messages.delete_many({"_id": {"$in": [o["_id"] for o in oldest]}})
+
+    return {"success": True, "message_data": serialize_doc(doc)}
+
+@api_router.get("/projects/{game_slug}/chat")
+async def get_chat_messages(game_slug: str, limit: int = 50):
+    limit = min(max(limit, 1), 200)
+    messages = await db.chat_messages.find({"game_slug": game_slug}).sort("timestamp", -1).limit(limit).to_list(limit)
+    messages.reverse()
+    return {"messages": [serialize_doc(m) for m in messages]}
+
+@api_router.delete("/projects/{game_slug}/chat/{message_id}")
+async def delete_chat_message(game_slug: str, message_id: str, user=Depends(require_permission("manage_chat"))):
+    r = await db.chat_messages.delete_one({"_id": ObjectId(message_id), "game_slug": game_slug})
+    if r.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Message not found")
+    await log_action("chat", f"Chat message deleted in '{game_slug}'", user=user["username"])
+    return {"success": True}
+
+@api_router.post("/website/games/{game_slug}/chat/regenerate-key")
+async def regenerate_chat_key(game_slug: str, user=Depends(require_permission("manage_chat"))):
+    game = await db.website_games.find_one({"slug": game_slug})
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    new_key = secrets.token_urlsafe(24)
+    await db.website_games.update_one({"slug": game_slug}, {"$set": {"chat_api_key": new_key}})
+    await log_action("chat", f"Chat API key regenerated for '{game_slug}'", user=user["username"])
+    return {"success": True, "chat_api_key": new_key}
+
+@api_router.get("/website/chat/banned-words")
+async def list_banned_words(user=Depends(require_permission("manage_chat"))):
+    return {"words": await get_banned_words()}
+
+@api_router.put("/website/chat/banned-words")
+async def update_banned_words(req: BannedWordsUpdateRequest, user=Depends(require_permission("manage_chat"))):
+    words = [w.strip() for w in req.words if w.strip()]
+    await db.chat_settings.update_one({"key": "banned_words"}, {"$set": {"words": words}}, upsert=True)
+    await log_action("chat", "Banned words list updated", user=user["username"])
+    return {"success": True, "words": words}
+
 # ============== SETUP ==============
 app.include_router(api_router)
 
@@ -624,6 +732,7 @@ async def startup_event():
         await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True)
         await db.website_games.create_index("slug", unique=True)
         await db.blog_posts.create_index("slug", unique=True)
+        await db.chat_messages.create_index([("game_slug", 1), ("timestamp", 1)])
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
