@@ -33,11 +33,11 @@ export const ServerStatus = () => {
 
   return (
     <div className="max-w-2xl">
-      <div className="bg-[#151520] rounded-xl border border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#2a2a3c]">
+      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#4ECDC4] to-[#2CB5AC] flex items-center justify-center"><Activity size={16} className="text-white" /></div>
-            <div><h3 className="text-base font-semibold text-[#e4e4e7]">Server Status</h3><p className="text-xs text-[#71717a]">Control your server state</p></div>
+            <div><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Server Status</h3><p className="text-xs text-[#71717a]">Control your server state</p></div>
           </div>
         </div>
         <div className="p-6 space-y-6">
@@ -53,7 +53,7 @@ export const ServerStatus = () => {
             <div className="grid grid-cols-3 gap-3">
               {Object.entries(cfg).map(([s, c]) => (
                 <button key={s} onClick={() => changeStatus(s)} disabled={loading || currentStatus === s}
-                  className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 ${currentStatus === s ? 'text-white shadow-lg' : 'bg-[#1c1c2e] border border-[#2a2a3c] hover:border-[#4ECDC4]/20'}`}
+                  className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 ${currentStatus === s ? 'text-white shadow-lg' : 'bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20'}`}
                   style={currentStatus === s ? { background: `linear-gradient(135deg, ${c.color}, ${c.color}cc)` } : { color: c.color }}
                   data-testid={`status-${s}-button`}>{c.label}</button>
               ))}
