@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
-import { Users, Package, Activity, FileText, Database, LogOut, Code, Gamepad2, ChevronDown, Check, Globe, Settings, PenTool } from 'lucide-react';
+import { Users, Package, Activity, FileText, Database, LogOut, Code, Gamepad2, ChevronDown, Check, Globe, Settings, PenTool, MessageSquare } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
 import { ServerStatus } from '../components/ServerStatus';
@@ -11,6 +11,7 @@ import { ApiEndpoints } from '../components/ApiEndpoints';
 import { ProjectManagement } from '../components/ProjectManagement';
 import { GamesManagement } from '../components/GamesManagement';
 import { BlogManagement } from '../components/BlogManagement';
+import { ChatManagement } from '../components/ChatManagement';
 import { WebsiteSettings } from '../components/WebsiteSettings';
 
 const tabConfig = {
@@ -23,6 +24,7 @@ const tabConfig = {
   'api': { gradient: 'from-[#71717a] to-[#52525b]', text: '#71717a' },
   'website-games': { gradient: 'from-[#4ECDC4] to-[#2CB5AC]', text: '#4ECDC4' },
   'website-blog': { gradient: 'from-[#F2994A] to-[#EB5757]', text: '#F2994A' },
+  'website-chat': { gradient: 'from-[#9B51E0] to-[#BB6BD9]', text: '#9B51E0' },
   'website-settings': { gradient: 'from-[#71717a] to-[#52525b]', text: '#71717a' },
 };
 
@@ -58,6 +60,7 @@ const DashboardContent = () => {
   const websiteItems = [
     { id: 'website-games', label: 'Games', icon: Gamepad2, permission: 'create_games' },
     { id: 'website-blog', label: 'Blog', icon: PenTool, permission: 'create_blog' },
+    { id: 'website-chat', label: 'Chat', icon: MessageSquare, permission: 'manage_chat' },
     { id: 'website-settings', label: 'Settings', icon: Settings, permission: 'manage_website' },
   ];
 
@@ -202,6 +205,7 @@ const DashboardContent = () => {
 
           {activeTab === 'website-games' && <GamesManagement />}
           {activeTab === 'website-blog' && <BlogManagement />}
+          {activeTab === 'website-chat' && hasPermission('manage_chat') && <ChatManagement />}
           {activeTab === 'website-settings' && <WebsiteSettings />}
         </div>
       </main>
