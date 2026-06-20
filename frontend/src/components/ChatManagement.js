@@ -15,12 +15,13 @@ export const ChatManagement = () => {
   const [bannedWords, setBannedWords] = useState([]);
   const [newWord, setNewWord] = useState('');
   const [showBannedWords, setShowBannedWords] = useState(false);
+  const [messageLimit, setMessageLimit] = useState(50);
   const canManage = hasPermission('manage_chat');
 
-  const fetchMessages = useCallback(async (slug) => {
+  const fetchMessages = useCallback(async (slug, limit) => {
     if (!slug) return;
     try {
-      const r = await axios.get(`${API_URL}/api/projects/${slug}/chat?limit=100`);
+      const r = await axios.get(`${API_URL}/api/projects/${slug}/chat?limit=${limit}`);
       setMessages(r.data.messages);
     } catch (e) { console.error(e); }
   }, []);
@@ -35,13 +36,13 @@ export const ChatManagement = () => {
   }, [token, canManage]);
 
   useEffect(() => { fetchBannedWords(); /* eslint-disable-next-line */ }, []);
-  useEffect(() => { if (selectedProject) fetchMessages(selectedProject.slug); }, [selectedProject, fetchMessages]);
+  useEffect(() => { if (selectedProject) fetchMessages(selectedProject.slug, messageLimit); }, [selectedProject, messageLimit, fetchMessages]);
 
   useEffect(() => {
     if (!selectedProject) return;
-    const interval = setInterval(() => fetchMessages(selectedProject.slug), 5000);
+    const interval = setInterval(() => fetchMessages(selectedProject.slug, messageLimit), 5000);
     return () => clearInterval(interval);
-  }, [selectedProject, fetchMessages]);
+  }, [selectedProject, messageLimit, fetchMessages]);
 
   const handleDeleteMessage = async (messageId) => {
     if (!selectedProject) return;
@@ -132,7 +133,21 @@ export const ChatManagement = () => {
 
             {/* Messages */}
             <div className="p-6">
-              <div className="text-xs font-semibold text-[#71717a] mb-4 uppercase tracking-wider">Messages ({messages.length})</div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Messages ({messages.length})</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#71717a]">Show last</span>
+                  <select
+                    value={messageLimit}
+                    onChange={e => setMessageLimit(Number(e.target.value))}
+                    className="bg-[#0d0d14] border border-[#2a2a3c] text-[#e4e4e7] rounded-lg text-xs px-2 py-1.5 focus:border-[#4ECDC4] focus:outline-none"
+                    data-testid="message-limit-select"
+                  >
+                    {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span className="text-xs text-[#71717a]">/ 100 max</span>
+                </div>
+              </div>
               {messages.length === 0 ? (
                 <div className="text-center py-12 text-[#71717a]">No messages yet.</div>
               ) : (
@@ -140,8 +155,11 @@ export const ChatManagement = () => {
                   {messages.map(m => (
                     <div key={m.id} className="bg-[#1c1c2e] border border-[#2a2a3c] rounded-lg px-4 py-2.5 flex items-start justify-between gap-3 group">
                       <div className="min-w-0">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
+                          {m.level != null && (
+                            <span className="text-[10px] font-semibold bg-[#9B51E0]/15 text-[#BB6BD9] border border-[#9B51E0]/30 rounded px-1.5 py-0.5">Lv.{m.level}</span>
+                          )}
                           <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
                         </div>
                         <p className="text-sm text-[#e4e4e7] break-words">{m.message}</p>
