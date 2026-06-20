@@ -20,11 +20,11 @@ const tabConfig = {
   'status': { gradient: 'from-[#4ECDC4] to-[#2CB5AC]', text: '#4ECDC4' },
   'variables': { gradient: 'from-[#2F80ED] to-[#2D9CDB]', text: '#2F80ED' },
   'logs': { gradient: 'from-[#9B51E0] to-[#BB6BD9]', text: '#9B51E0' },
+  'chat': { gradient: 'from-[#9B51E0] to-[#BB6BD9]', text: '#9B51E0' },
   'users': { gradient: 'from-[#F2994A] to-[#F2C94C]', text: '#F2C94C' },
   'api': { gradient: 'from-[#71717a] to-[#52525b]', text: '#71717a' },
   'website-games': { gradient: 'from-[#4ECDC4] to-[#2CB5AC]', text: '#4ECDC4' },
   'website-blog': { gradient: 'from-[#F2994A] to-[#EB5757]', text: '#F2994A' },
-  'website-chat': { gradient: 'from-[#9B51E0] to-[#BB6BD9]', text: '#9B51E0' },
   'website-settings': { gradient: 'from-[#71717a] to-[#52525b]', text: '#71717a' },
 };
 
@@ -41,7 +41,7 @@ const DashboardContent = () => {
     // eslint-disable-next-line
   }, [user]);
 
-  const projectTabs = ['send-items', 'status', 'variables', 'logs'];
+  const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat'];
   const needsProject = projectTabs.includes(activeTab);
 
   const generalItems = [
@@ -55,12 +55,12 @@ const DashboardContent = () => {
     { id: 'status', label: 'Server Status', icon: Activity, permission: 'change_status' },
     { id: 'variables', label: 'Variables', icon: Database, permission: 'view_variables' },
     { id: 'logs', label: 'Logs', icon: FileText, permission: 'view_logs' },
+    { id: 'chat', label: 'Chat', icon: MessageSquare, permission: 'manage_chat' },
   ];
 
   const websiteItems = [
     { id: 'website-games', label: 'Games', icon: Gamepad2, permission: 'create_games' },
     { id: 'website-blog', label: 'Blog', icon: PenTool, permission: 'create_blog' },
-    { id: 'website-chat', label: 'Chat', icon: MessageSquare, permission: 'manage_chat' },
     { id: 'website-settings', label: 'Settings', icon: Settings, permission: 'manage_website' },
   ];
 
@@ -202,10 +202,10 @@ const DashboardContent = () => {
           {activeTab === 'status' && selectedProject && hasPermission('change_status') && <ServerStatus />}
           {activeTab === 'variables' && selectedProject && hasPermission('view_variables') && <VariablesManagement />}
           {activeTab === 'logs' && selectedProject && hasPermission('view_logs') && <LogsViewer />}
+          {activeTab === 'chat' && selectedProject && hasPermission('manage_chat') && <ChatManagement />}
 
           {activeTab === 'website-games' && <GamesManagement />}
           {activeTab === 'website-blog' && <BlogManagement />}
-          {activeTab === 'website-chat' && hasPermission('manage_chat') && <ChatManagement />}
           {activeTab === 'website-settings' && <WebsiteSettings />}
         </div>
       </main>

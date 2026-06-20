@@ -251,16 +251,16 @@ def censor_message(text: str, banned_words: List[str]) -> str:
         text = pattern.sub(lambda m: '*' * len(m.group(0)), text)
     return text
 
-async def verify_chat_api_key(game_slug: str, request: Request):
+async def verify_chat_api_key(project_slug: str, request: Request):
     api_key = request.headers.get("X-Chat-Api-Key")
     if not api_key:
         raise HTTPException(status_code=401, detail="Missing chat API key")
-    game = await db.website_games.find_one({"slug": game_slug})
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
-    if game.get("chat_api_key") != api_key:
+    project = await db.projects.find_one({"slug": project_slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.get("chat_api_key") != api_key:
         raise HTTPException(status_code=401, detail="Invalid chat API key")
-    return game
+    return project
 
 # ============== AUTH ==============
 @api_router.get("/version")
@@ -344,7 +344,8 @@ async def create_project(req: CreateProjectRequest, user=Depends(require_permiss
         raise HTTPException(status_code=400, detail="Invalid project name")
     if await db.projects.find_one({"slug": slug}):
         raise HTTPException(status_code=400, detail="Project already exists")
-    doc = {"name": req.name, "slug": slug, "created_at": datetime.now(timezone.utc), "created_by": user["username"]}
+    doc = {"name": req.name, "slug": slug, "created_at": datetime.now(timezone.utc), "created_by": user["username"],
+           "chat_api_key": secrets.token_urlsafe(24)}
     await db.projects.insert_one(doc)
     await db.server_status.update_one({"project_slug": slug}, {"$set": {"status": "open", "updated_at": datetime.now(timezone.utc), "updated_by": "system"}}, upsert=True)
     await log_action("project", f"Project '{req.name}' created", project_slug=slug, user=user["username"])
@@ -532,7 +533,6 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
         await db.website_games.update_many({}, {"$set": {"featured": False}})
     doc = {"name": req.name, "slug": slug, "description": req.description, "logo_url": req.logo_url,
            "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status, "featured": req.featured,
-           "chat_api_key": secrets.token_urlsafe(24),
            "created_at": datetime.now(timezone.utc), "created_by": user["username"],
            "updated_at": datetime.now(timezone.utc)}
     await db.website_games.insert_one(doc)
@@ -645,11 +645,11 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
     await log_action("website", f"Maintenance mode {'enabled' if req.maintenance_mode else 'disabled'}", user=user["username"])
     return {"success": True, "maintenance_mode": req.maintenance_mode}
 
-# ============== CHAT (per-game, public POST/GET + admin moderation) ==============
-@api_router.post("/projects/{game_slug}/chat")
+# ============== CHAT (per-project, public POST/GET + admin moderation) ==============
+@api_router.post("/projects/{project_slug}/chat")
 @limiter.limit("1/3seconds")
-async def post_chat_message(request: Request, game_slug: str):
-    game = await verify_chat_api_key(game_slug, request)
+async def post_chat_message(request: Request, project_slug: str):
+    await verify_chat_api_key(project_slug, request)
     body = await request.json()
     try:
         req = ChatMessageRequest(**body)
@@ -665,42 +665,42 @@ async def post_chat_message(request: Request, game_slug: str):
     banned_words = await get_banned_words()
     clean_message = censor_message(message, banned_words)
 
-    doc = {"game_slug": game_slug, "username": username, "message": clean_message,
+    doc = {"project_slug": project_slug, "username": username, "message": clean_message,
            "timestamp": datetime.now(timezone.utc)}
     result = await db.chat_messages.insert_one(doc)
     doc["_id"] = result.inserted_id
 
-    # Keep only the last 500 messages per game to avoid unbounded growth
-    count = await db.chat_messages.count_documents({"game_slug": game_slug})
+    # Keep only the last 500 messages per project to avoid unbounded growth
+    count = await db.chat_messages.count_documents({"project_slug": project_slug})
     if count > 500:
-        oldest = await db.chat_messages.find({"game_slug": game_slug}).sort("timestamp", 1).limit(count - 500).to_list(count - 500)
+        oldest = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", 1).limit(count - 500).to_list(count - 500)
         await db.chat_messages.delete_many({"_id": {"$in": [o["_id"] for o in oldest]}})
 
     return {"success": True, "message_data": serialize_doc(doc)}
 
-@api_router.get("/projects/{game_slug}/chat")
-async def get_chat_messages(game_slug: str, limit: int = 50):
+@api_router.get("/projects/{project_slug}/chat")
+async def get_chat_messages(project_slug: str, limit: int = 50):
     limit = min(max(limit, 1), 200)
-    messages = await db.chat_messages.find({"game_slug": game_slug}).sort("timestamp", -1).limit(limit).to_list(limit)
+    messages = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", -1).limit(limit).to_list(limit)
     messages.reverse()
     return {"messages": [serialize_doc(m) for m in messages]}
 
-@api_router.delete("/projects/{game_slug}/chat/{message_id}")
-async def delete_chat_message(game_slug: str, message_id: str, user=Depends(require_permission("manage_chat"))):
-    r = await db.chat_messages.delete_one({"_id": ObjectId(message_id), "game_slug": game_slug})
+@api_router.delete("/projects/{project_slug}/chat/{message_id}")
+async def delete_chat_message(project_slug: str, message_id: str, user=Depends(require_permission("manage_chat"))):
+    r = await db.chat_messages.delete_one({"_id": ObjectId(message_id), "project_slug": project_slug})
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Message not found")
-    await log_action("chat", f"Chat message deleted in '{game_slug}'", user=user["username"])
+    await log_action("chat", f"Chat message deleted in '{project_slug}'", project_slug=project_slug, user=user["username"])
     return {"success": True}
 
-@api_router.post("/website/games/{game_slug}/chat/regenerate-key")
-async def regenerate_chat_key(game_slug: str, user=Depends(require_permission("manage_chat"))):
-    game = await db.website_games.find_one({"slug": game_slug})
-    if not game:
-        raise HTTPException(status_code=404, detail="Game not found")
+@api_router.post("/projects/{project_slug}/chat/regenerate-key")
+async def regenerate_chat_key(project_slug: str, user=Depends(require_permission("manage_chat"))):
+    project = await db.projects.find_one({"slug": project_slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     new_key = secrets.token_urlsafe(24)
-    await db.website_games.update_one({"slug": game_slug}, {"$set": {"chat_api_key": new_key}})
-    await log_action("chat", f"Chat API key regenerated for '{game_slug}'", user=user["username"])
+    await db.projects.update_one({"slug": project_slug}, {"$set": {"chat_api_key": new_key}})
+    await log_action("chat", f"Chat API key regenerated for '{project_slug}'", project_slug=project_slug, user=user["username"])
     return {"success": True, "chat_api_key": new_key}
 
 @api_router.get("/website/chat/banned-words")
@@ -732,7 +732,7 @@ async def startup_event():
         await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True)
         await db.website_games.create_index("slug", unique=True)
         await db.blog_posts.create_index("slug", unique=True)
-        await db.chat_messages.create_index([("game_slug", 1), ("timestamp", 1)])
+        await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
