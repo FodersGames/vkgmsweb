@@ -84,7 +84,7 @@ const TermsOfService = () => {
 
           <Section title="10. Contact">
             <p>If you have questions about these Terms of Service, please contact us at:</p>
-            <a href="mailto:vakargames@gmail.com" className="text-[#9B51E0] hover:text-white transition-colors font-medium">vakargames@gmail.com</a>
+            <a href="mailto:support@vakargames.com" className="text-[#9B51E0] hover:text-white transition-colors font-medium">support@vakargames.com</a>
           </Section>
         </div>
       </div>

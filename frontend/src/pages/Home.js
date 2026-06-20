@@ -170,7 +170,7 @@ const Home = () => {
           <p className="text-base sm:text-lg text-white/50 mb-12 max-w-xl mx-auto" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
             Interested in working with us or have a question? We'd love to hear from you.
           </p>
-          <a href="mailto:vakargames@gmail.com"
+          <a href="mailto:support@vakargames.com"
             className="inline-block border-2 border-white text-white px-10 py-4 text-sm font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-[#0a0a0f] transition-all duration-300"
             style={{ fontFamily: "'Inter', sans-serif" }} data-testid="contact-email-button">
             CONTACT US
@@ -187,8 +187,8 @@ const Home = () => {
               <p className="mt-4 text-sm text-white/40 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
                 Independent game studio based in France.<br />We build worlds you'll never forget.
               </p>
-              <a href="mailto:vakargames@gmail.com" className="inline-block mt-5 text-xs text-[#4ECDC4] hover:text-[#45b8b0] transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
-                vakargames@gmail.com
+              <a href="mailto:support@vakargames.com" className="inline-block mt-5 text-xs text-[#4ECDC4] hover:text-[#45b8b0] transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
+                support@vakargames.com
               </a>
             </div>
             <div>
@@ -197,7 +197,7 @@ const Home = () => {
                 <li><button onClick={scrollToAbout} className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>About</button></li>
                 <li><Link to="/games" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link></li>
                 <li><Link to="/blog" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link></li>
-                <li><a href="mailto:vakargames@gmail.com" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Contact</a></li>
+                <li><a href="mailto:support@vakargames.com" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Contact</a></li>
               </ul>
             </div>
             <div>
