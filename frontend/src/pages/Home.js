@@ -84,24 +84,27 @@ const Home = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
           <div>
             <h3 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight mb-6" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>WHO WE ARE</h3>
-            <p className="text-base sm:text-lg text-white/70 leading-relaxed mb-8" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-              Vakar Games is a French video game development studio driven by passion and creativity. We build immersive worlds, unforgettable characters, and experiences that push boundaries.
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed mb-6" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+              Vakar Games is a French independent video game studio driven by passion and creativity. We build immersive worlds, memorable characters, and experiences that push the limits of what indie games can be.
             </p>
-            <p className="text-base sm:text-lg text-white/70 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
-              Our mission is simple: create games that players remember forever. From concept to launch, every detail matters.
+            <p className="text-base sm:text-lg text-white/70 leading-relaxed mb-6" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+              Our mission is simple: create games that players remember forever. From concept to launch, every mechanic, every pixel, and every line of dialogue matters.
+            </p>
+            <p className="text-base sm:text-lg text-white/50 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>
+              Whether you're a longtime fan or just finding us today — welcome. You're part of the story now.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { icon: Gamepad2, title: 'Game Dev', desc: 'Building worlds from scratch' },
-              { icon: Code, title: 'Technology', desc: 'Cutting-edge game engines' },
-              { icon: Users, title: 'Community', desc: 'Players at the center' },
-              { icon: Zap, title: 'Innovation', desc: 'Pushing the limits' }
+              { icon: Gamepad2, title: 'Game Dev', desc: 'We craft every mechanic and world with care — from first concept to final polish.' },
+              { icon: Code, title: 'Technology', desc: 'From TurboWarp to custom web stacks, we master our tools for seamless, reliable experiences.' },
+              { icon: Users, title: 'Community', desc: 'Our players are co-creators. Their feedback and passion shape every decision we make.' },
+              { icon: Zap, title: 'Innovation', desc: "We don't follow the playbook — we rewrite it. Every title pushes what indie games can be." }
             ].map((item, i) => (
               <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 sm:p-6 hover:bg-white/10 transition-all duration-300">
                 <item.icon size={24} className="text-[#4ECDC4] mb-3" />
-                <h4 className="text-base sm:text-lg font-bold mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>{item.title}</h4>
-                <p className="text-xs sm:text-sm text-white/50" style={{ fontFamily: "'Inter', sans-serif" }}>{item.desc}</p>
+                <h4 className="text-base sm:text-lg font-bold mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>{item.title}</h4>
+                <p className="text-xs sm:text-sm text-white/50 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{item.desc}</p>
               </div>
             ))}
           </div>
@@ -177,16 +180,37 @@ const Home = () => {
 
       {/* Footer */}
       <footer className="border-t border-white/10 bg-[#0a0a0f]" data-testid="landing-footer">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-8">
-              <span className="text-lg font-black tracking-[0.2em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
-              <div className="hidden md:flex items-center gap-6">
-                <Link to="/games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
-                <Link to="/blog" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
-              </div>
+        <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-12 mb-14">
+            <div>
+              <span className="text-xl font-black tracking-[0.2em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
+              <p className="mt-4 text-sm text-white/40 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Independent game studio based in France.<br />We build worlds you'll never forget.
+              </p>
+              <a href="mailto:vakargames@gmail.com" className="inline-block mt-5 text-xs text-[#4ECDC4] hover:text-[#45b8b0] transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
+                vakargames@gmail.com
+              </a>
             </div>
-            <p className="text-xs text-[#8A8A9A]" style={{ fontFamily: "'Inter', sans-serif" }}>&copy; VAKAR GAMES {new Date().getFullYear()}</p>
+            <div>
+              <h4 className="text-xs font-bold tracking-[0.2em] text-white/30 uppercase mb-5" style={{ fontFamily: "'Inter', sans-serif" }}>Explore</h4>
+              <ul className="space-y-3">
+                <li><button onClick={scrollToAbout} className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>About</button></li>
+                <li><Link to="/games" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link></li>
+                <li><Link to="/blog" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link></li>
+                <li><a href="mailto:vakargames@gmail.com" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-bold tracking-[0.2em] text-white/30 uppercase mb-5" style={{ fontFamily: "'Inter', sans-serif" }}>Legal</h4>
+              <ul className="space-y-3">
+                <li><Link to="/privacy" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-white/20" style={{ fontFamily: "'Inter', sans-serif" }}>&copy; {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
+            <p className="text-xs text-white/20" style={{ fontFamily: "'Inter', sans-serif" }}>Made with passion in France</p>
           </div>
         </div>
       </footer>
