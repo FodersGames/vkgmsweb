@@ -83,7 +83,7 @@ const PrivacyPolicy = () => {
 
           <Section title="10. Contact">
             <p>For any privacy-related questions or data requests, please contact us at:</p>
-            <a href="mailto:vakargames@gmail.com" className="text-[#4ECDC4] hover:text-white transition-colors font-medium">vakargames@gmail.com</a>
+            <a href="mailto:support@vakargames.com" className="text-[#4ECDC4] hover:text-white transition-colors font-medium">support@vakargames.com</a>
           </Section>
         </div>
       </div>
