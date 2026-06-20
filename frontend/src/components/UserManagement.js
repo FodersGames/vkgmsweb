@@ -167,8 +167,8 @@ export const UserManagement = () => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
-          <div key={group.label} className="border border-[#2a2a3c] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#1c1c2e] border-b border-[#2a2a3c]">
+          <div key={group.label} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
               <Icon size={14} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1"></div>
@@ -182,7 +182,7 @@ export const UserManagement = () => {
                     if (!selectedPerms.includes(p.id)) onToggle(p.id);
                   });
                 }
-              }} className="text-[10px] font-semibold text-[#71717a] hover:text-[#e4e4e7] uppercase">
+              }} className="text-[10px] font-semibold text-[#71717a] hover:text-zinc-900 dark:text-[#e4e4e7] uppercase">
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
             </div>
@@ -191,7 +191,7 @@ export const UserManagement = () => {
                 <label key={perm.id} className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
                   selectedPerms.includes(perm.id)
                     ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                    : 'border-[#2a2a3c] bg-[#0d0d14] text-[#71717a] hover:bg-[#1c1c2e]'
+                    : 'border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#0d0d14] text-[#71717a] hover:bg-slate-100 dark:hover:bg-[#1c1c2e]'
                 }`}>
                   <input type="checkbox" checked={selectedPerms.includes(perm.id)} onChange={() => onToggle(perm.id)}
                     className="w-3.5 h-3.5 rounded" />
@@ -215,14 +215,14 @@ export const UserManagement = () => {
 
   return (
     <div className="max-w-6xl">
-      <div className="bg-[#151520] rounded-xl border border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#2a2a3c] flex justify-between items-center">
+      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#F2C94C] flex items-center justify-center">
               <Users size={16} className="text-white" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#e4e4e7]">User Management</h3>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">User Management</h3>
               <p className="text-xs text-[#71717a]">Create and manage user accounts with granular permissions</p>
             </div>
           </div>
@@ -235,13 +235,13 @@ export const UserManagement = () => {
         </div>
 
         {showCreateForm && (
-          <div className="p-6 bg-[#1c1c2e] border-b border-[#2a2a3c]">
+          <div className="p-6 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <form onSubmit={handleCreateUser} data-testid="create-user-form">
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#71717a] mb-2 uppercase tracking-wider">Username</label>
                   <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full bg-[#0d0d14] border border-[#2a2a3c] text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
+                    className="w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
                     required data-testid="username-input" />
                 </div>
                 <div>
@@ -269,12 +269,12 @@ export const UserManagement = () => {
           <div className="mx-6 mt-6 p-4 border border-[#4ECDC4]/30 bg-[#4ECDC4]/5 rounded-xl" data-testid="created-user-info">
             <div className="text-sm font-medium text-[#4ECDC4] mb-3">User created successfully</div>
             <div className="space-y-2 text-sm">
-              <div><span className="text-xs font-semibold text-[#71717a]">USERNAME:</span><span className="ml-2 text-[#e4e4e7]">{createdUser.username}</span></div>
+              <div><span className="text-xs font-semibold text-[#71717a]">USERNAME:</span><span className="ml-2 text-zinc-900 dark:text-[#e4e4e7]">{createdUser.username}</span></div>
               <div>
                 <span className="text-xs font-semibold text-[#71717a]">ACCESS KEY:</span>
                 <div className="flex items-center gap-2 mt-1">
-                  <code className="flex-1 p-2 bg-[#0d0d14] border border-[#4ECDC4]/30 text-[#e4e4e7] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
-                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#4ECDC4]/30 bg-[#1c1c2e] hover:bg-[#4ECDC4]/10 rounded-lg" data-testid="copy-access-key"><Copy size={16} className="text-[#4ECDC4]" /></button>
+                  <code className="flex-1 p-2 bg-slate-100 dark:bg-[#0d0d14] border border-[#4ECDC4]/30 text-zinc-900 dark:text-[#e4e4e7] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
+                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#4ECDC4]/30 bg-slate-50 dark:bg-[#1c1c2e] hover:bg-[#4ECDC4]/10 rounded-lg" data-testid="copy-access-key"><Copy size={16} className="text-[#4ECDC4]" /></button>
                 </div>
               </div>
               <div className="text-xs text-[#71717a] mt-2">Save this key now. It will not be shown again.</div>
@@ -291,7 +291,7 @@ export const UserManagement = () => {
             {users.map((user) => {
               const isEditing = editingUser?.username === user.username;
               return (
-                <div key={user.username} className="bg-[#1c1c2e] border border-[#2a2a3c] rounded-xl hover:border-[#4ECDC4]/20 transition-all">
+                <div key={user.username} className="bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#4ECDC4]/20 transition-all">
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3 flex-1">
@@ -299,17 +299,17 @@ export const UserManagement = () => {
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-[#e4e4e7]">{user.username}</div>
+                          <div className="font-medium text-zinc-900 dark:text-[#e4e4e7]">{user.username}</div>
                           <div className="text-xs text-[#71717a]">Created by {user.created_by} &bull; {user.permissions?.length || 0} permission(s)</div>
                         </div>
                       </div>
                       {!isEditing && (
                         <div className="flex gap-2">
                           <button onClick={() => setEditingUser({ ...user })}
-                            className="p-2 border border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all"
+                            className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all"
                             data-testid={`edit-user-${user.username}`}><Edit2 size={14} /></button>
                           <button onClick={() => handleDeleteUser(user.username)}
-                            className="p-2 border border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all"
+                            className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all"
                             data-testid={`delete-user-${user.username}`}><Trash2 size={14} /></button>
                         </div>
                       )}

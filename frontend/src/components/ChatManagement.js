@@ -101,11 +101,11 @@ export const ChatManagement = () => {
 
   return (
     <div className="max-w-5xl space-y-4">
-      <div className="bg-[#151520] rounded-xl border border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#2a2a3c] flex justify-between items-center flex-wrap gap-3">
+      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
+        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#9B51E0] to-[#BB6BD9] flex items-center justify-center"><MessageSquare size={16} className="text-white" /></div>
-            <div><h3 className="text-base font-semibold text-[#e4e4e7]">Game Chat</h3><p className="text-xs text-[#71717a]">In-game global chat for {selectedProject?.name || 'this project'}</p></div>
+            <div><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Game Chat</h3><p className="text-xs text-[#71717a]">In-game global chat for {selectedProject?.name || 'this project'}</p></div>
           </div>
         </div>
 
@@ -115,17 +115,17 @@ export const ChatManagement = () => {
           <>
             {/* API key panel */}
             {canManage && (
-              <div className="p-6 border-b border-[#2a2a3c] bg-[#1c1c2e]">
+              <div className="p-6 border-b border-zinc-200 dark:border-[#2a2a3c] bg-slate-50 dark:bg-[#1c1c2e]">
                 <div className="flex items-center gap-2 mb-2">
                   <Key size={13} className="text-[#9B51E0]" />
                   <span className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Chat API Key — {selectedProject.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-[#0d0d14] border border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-[#e4e4e7] font-mono truncate">
+                  <code className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
-                  <button onClick={copyKey} disabled={!selectedProject.chat_api_key} className="p-2.5 border border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all disabled:opacity-30" data-testid="copy-chat-key"><Copy size={14} /></button>
-                  <button onClick={handleRegenerateKey} disabled={loading} className="p-2.5 border border-[#2a2a3c] hover:border-[#F2994A]/30 rounded-lg text-[#71717a] hover:text-[#F2994A] transition-all" data-testid="regenerate-chat-key"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /></button>
+                  <button onClick={copyKey} disabled={!selectedProject.chat_api_key} className="p-2.5 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all disabled:opacity-30" data-testid="copy-chat-key"><Copy size={14} /></button>
+                  <button onClick={handleRegenerateKey} disabled={loading} className="p-2.5 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#F2994A]/30 rounded-lg text-[#71717a] hover:text-[#F2994A] transition-all" data-testid="regenerate-chat-key"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /></button>
                 </div>
                 <p className="text-[11px] text-[#71717a] mt-2">Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.</p>
               </div>
@@ -140,7 +140,7 @@ export const ChatManagement = () => {
                   <select
                     value={messageLimit}
                     onChange={e => setMessageLimit(Number(e.target.value))}
-                    className="bg-[#0d0d14] border border-[#2a2a3c] text-[#e4e4e7] rounded-lg text-xs px-2 py-1.5 focus:border-[#4ECDC4] focus:outline-none"
+                    className="bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-xs px-2 py-1.5 focus:border-[#4ECDC4] focus:outline-none"
                     data-testid="message-limit-select"
                   >
                     {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
@@ -153,7 +153,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="bg-[#1c1c2e] border border-[#2a2a3c] rounded-lg px-4 py-2.5 flex items-start justify-between gap-3 group">
+                    <div key={m.id} className="bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-4 py-2.5 flex items-start justify-between gap-3 group">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
@@ -162,7 +162,7 @@ export const ChatManagement = () => {
                           )}
                           <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-[#e4e4e7] break-words">{m.message}</p>
+                        <p className="text-sm text-zinc-900 dark:text-[#e4e4e7] break-words">{m.message}</p>
                       </div>
                       {canManage && (
                         <button onClick={() => handleDeleteMessage(m.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-[#71717a] hover:text-red-400 transition-all shrink-0" data-testid={`delete-message-${m.id}`}>
@@ -180,21 +180,21 @@ export const ChatManagement = () => {
 
       {/* Banned words (global) */}
       {canManage && (
-        <div className="bg-[#151520] rounded-xl border border-[#2a2a3c] overflow-hidden">
-          <button onClick={() => setShowBannedWords(!showBannedWords)} className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#1c1c2e]/50 transition-all" data-testid="toggle-banned-words">
+        <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
+          <button onClick={() => setShowBannedWords(!showBannedWords)} className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-100/50 dark:hover:bg-[#1c1c2e]/50 transition-all" data-testid="toggle-banned-words">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#EB5757] to-[#F2994A] flex items-center justify-center"><ShieldAlert size={16} className="text-white" /></div>
-              <div className="text-left"><h3 className="text-base font-semibold text-[#e4e4e7]">Banned Words</h3><p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p></div>
+              <div className="text-left"><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Banned Words</h3><p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p></div>
             </div>
             <span className="text-xs text-[#71717a]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
           </button>
 
           {showBannedWords && (
-            <div className="p-6 border-t border-[#2a2a3c]">
+            <div className="p-6 border-t border-zinc-200 dark:border-[#2a2a3c]">
               <div className="flex gap-2 mb-4">
                 <input type="text" value={newWord} onChange={e => setNewWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && addBannedWord()}
                   placeholder="Add a banned word..."
-                  className="flex-1 bg-[#0d0d14] border border-[#2a2a3c] text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
+                  className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
                   data-testid="banned-word-input" />
                 <button onClick={addBannedWord} className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center gap-2" data-testid="add-banned-word"><Plus size={14} /> Add</button>
               </div>
@@ -203,7 +203,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="banned-words-list">
                   {bannedWords.map(w => (
-                    <span key={w} className="inline-flex items-center gap-1.5 bg-[#0d0d14] border border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-[#e4e4e7]">
+                    <span key={w} className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-zinc-900 dark:text-[#e4e4e7]">
                       {w}
                       <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-all"><X size={11} /></button>
                     </span>
