@@ -7,6 +7,8 @@ import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
 import GamesPage from './pages/Games';
 import { BlogList, BlogPost } from './pages/Blog';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
@@ -17,7 +19,7 @@ const AppRoutes = () => {
 
   if (!checked) return null;
 
-  const adminPaths = ['/login', '/dashboard'];
+  const adminPaths = ['/login', '/dashboard', '/privacy', '/terms'];
   const isAdmin = adminPaths.some(p => location.pathname.startsWith(p));
 
   if (maintenance && !isAdmin) {
@@ -30,6 +32,8 @@ const AppRoutes = () => {
       <Route path="/games" element={<GamesPage />} />
       <Route path="/blog" element={<BlogList />} />
       <Route path="/blog/:slug" element={<BlogPost />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
