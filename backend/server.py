@@ -160,6 +160,7 @@ class WebsiteSettingsRequest(BaseModel):
 class ChatMessageRequest(BaseModel):
     username: str
     message: str
+    level: Optional[int] = None
 
 class BannedWordsUpdateRequest(BaseModel):
     words: List[str]
@@ -658,6 +659,7 @@ async def post_chat_message(request: Request, project_slug: str):
 
     username = req.username.strip()[:32]
     message = req.message.strip()[:200]
+    level = max(1, min(int(req.level), 9999)) if req.level is not None else None
 
     if not username or not message:
         raise HTTPException(status_code=400, detail="Username and message are required")
@@ -665,22 +667,22 @@ async def post_chat_message(request: Request, project_slug: str):
     banned_words = await get_banned_words()
     clean_message = censor_message(message, banned_words)
 
-    doc = {"project_slug": project_slug, "username": username, "message": clean_message,
-           "timestamp": datetime.now(timezone.utc)}
+    doc = {"project_slug": project_slug, "username": username, "level": level,
+           "message": clean_message, "timestamp": datetime.now(timezone.utc)}
     result = await db.chat_messages.insert_one(doc)
     doc["_id"] = result.inserted_id
 
-    # Keep only the last 500 messages per project to avoid unbounded growth
+    # Keep only the last 100 messages per project
     count = await db.chat_messages.count_documents({"project_slug": project_slug})
-    if count > 500:
-        oldest = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", 1).limit(count - 500).to_list(count - 500)
+    if count > 100:
+        oldest = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", 1).limit(count - 100).to_list(count - 100)
         await db.chat_messages.delete_many({"_id": {"$in": [o["_id"] for o in oldest]}})
 
     return {"success": True, "message_data": serialize_doc(doc)}
 
 @api_router.get("/projects/{project_slug}/chat")
 async def get_chat_messages(project_slug: str, limit: int = 50):
-    limit = min(max(limit, 1), 200)
+    limit = min(max(limit, 1), 100)
     messages = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", -1).limit(limit).to_list(limit)
     messages.reverse()
     return {"messages": [serialize_doc(m) for m in messages]}
