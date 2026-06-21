@@ -996,13 +996,16 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
     tomorrow = today_start + timedelta(days=1)
     date_key = today_start.date().isoformat()  # e.g. "2025-06-21"
 
-    # First check (fast path for normal cases)
-    if await db.website_shop_daily_claims.find_one({"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key}):
-        seconds_left = int((tomorrow - now).total_seconds())
+    seconds_left = int((tomorrow - now).total_seconds())
+
+    # Pre-check: covers both old records (no date_key) and new ones
+    if await db.website_shop_daily_claims.find_one({
+        "game_slug": game_slug, "player_uid": player_uid,
+        "claimed_at": {"$gte": today_start}
+    }):
         raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
 
-    # Atomic insert: the unique index on (game_slug, player_uid, date_key) makes
-    # concurrent double-claims physically impossible at the database level.
+    # Atomic insert with unique index as race-condition guard
     try:
         await db.website_shop_daily_claims.insert_one({
             "game_slug": game_slug,
@@ -1011,7 +1014,6 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
             "claimed_at": now,
         })
     except DuplicateKeyError:
-        seconds_left = int((tomorrow - now).total_seconds())
         raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
 
     project = await db.projects.find_one({"slug": gift["project_slug"]})
