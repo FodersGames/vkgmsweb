@@ -37,7 +37,7 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 # Initial setup key — only works ONCE to bootstrap the Super Admin
-SETUP_KEY = os.environ.get('MASTER_KEY', '#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd')
+SETUP_KEY = os.environ.get('MASTER_KEY', '')
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -410,10 +410,13 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(get_cur
     ext = Path(file.filename).suffix.lower()
     if ext not in [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]:
         raise HTTPException(status_code=400, detail="Only image files allowed")
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large. Maximum 5 MB.")
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = UPLOADS_DIR / filename
     with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        f.write(content)
     return {"url": f"/api/uploads/{filename}", "filename": filename}
 
 # ============== PROJECTS ==============
@@ -1001,10 +1004,12 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
     if not project:
         raise HTTPException(status_code=500, detail="Daily gift project configuration error")
     await db.items.insert_one({
-        "project_id": str(project["_id"]), "player_uid": player_uid,
-        "variable": gift["variable"], "amount": gift["amount"],
-        "source": "daily_gift", "shop_game_slug": game_slug,
-        "claimed": False, "created_at": now,
+        "project_slug": gift["project_slug"],
+        "uid": player_uid,
+        "variable": gift["variable"],
+        "amount": gift["amount"],
+        "created_at": now,
+        "created_by": "daily_gift",
     })
     await db.website_shop_daily_claims.insert_one({
         "game_slug": game_slug, "player_uid": player_uid, "claimed_at": now,
