@@ -7,7 +7,7 @@
     'use strict';
 
     if (!Scratch.extensions.unsandboxed) {
-        throw new Error('Vakar Games extension must run unsandboxed.');
+        console.warn('[VakarGames] Running sandboxed — fetch blocks will not work. Reload with unsandboxed mode.');
     }
 
     const API_URL = 'https://vakargames.com';
