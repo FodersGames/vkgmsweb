@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
-  MessageSquare, Sun, Moon, Menu, X, ShoppingBag,
+  MessageSquare, Sun, Moon, Menu, X, ShoppingBag, ClipboardList,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -19,6 +19,7 @@ import { BlogManagement } from '../components/BlogManagement';
 import { ChatManagement } from '../components/ChatManagement';
 import { WebsiteSettings } from '../components/WebsiteSettings';
 import { ShopManagement } from '../components/ShopManagement';
+import { MissionsManagement } from '../components/MissionsManagement';
 
 const tabConfig = {
   'projects':        { gradient: 'from-[#6C5CE7] to-[#A29BFE]', text: '#A29BFE' },
@@ -27,6 +28,7 @@ const tabConfig = {
   'variables':       { gradient: 'from-[#2F80ED] to-[#2D9CDB]',  text: '#2F80ED' },
   'logs':            { gradient: 'from-[#9B51E0] to-[#BB6BD9]',  text: '#9B51E0' },
   'chat':            { gradient: 'from-[#9B51E0] to-[#BB6BD9]',  text: '#9B51E0' },
+  'missions':        { gradient: 'from-[#6C5CE7] to-[#A29BFE]',  text: '#6C5CE7' },
   'users':           { gradient: 'from-[#F2994A] to-[#F2C94C]',  text: '#F2C94C' },
   'api':             { gradient: 'from-[#71717a] to-[#52525b]',   text: '#71717a' },
   'website-games':   { gradient: 'from-[#4ECDC4] to-[#2CB5AC]',  text: '#4ECDC4' },
@@ -50,7 +52,7 @@ const DashboardContent = () => {
     // eslint-disable-next-line
   }, [user]);
 
-  const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat'];
+  const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions'];
   const needsProject = projectTabs.includes(activeTab);
 
   const generalItems = [
@@ -60,11 +62,12 @@ const DashboardContent = () => {
   ];
 
   const projectItems = [
-    { id: 'send-items', label: 'Send Items',    icon: Package,      permission: 'send_items' },
-    { id: 'status',     label: 'Server Status', icon: Activity,     permission: 'change_status' },
-    { id: 'variables',  label: 'Variables',     icon: Database,     permission: 'view_variables' },
-    { id: 'logs',       label: 'Logs',          icon: FileText,     permission: 'view_logs' },
-    { id: 'chat',       label: 'Chat',          icon: MessageSquare,permission: 'manage_chat' },
+    { id: 'send-items', label: 'Send Items',    icon: Package,       permission: 'send_items' },
+    { id: 'status',     label: 'Server Status', icon: Activity,      permission: 'change_status' },
+    { id: 'variables',  label: 'Variables',     icon: Database,      permission: 'view_variables' },
+    { id: 'logs',       label: 'Logs',          icon: FileText,      permission: 'view_logs' },
+    { id: 'chat',       label: 'Chat',          icon: MessageSquare, permission: 'manage_chat' },
+    { id: 'missions',   label: 'Missions',      icon: ClipboardList, permission: 'claim_missions' },
   ];
 
   const websiteItems = [
@@ -299,6 +302,7 @@ const DashboardContent = () => {
           {activeTab === 'variables' && selectedProject && hasPermission('view_variables') && <VariablesManagement />}
           {activeTab === 'logs' && selectedProject && hasPermission('view_logs') && <LogsViewer />}
           {activeTab === 'chat' && selectedProject && hasPermission('manage_chat') && <ChatManagement />}
+          {activeTab === 'missions' && selectedProject && (hasPermission('claim_missions') || hasPermission('create_missions')) && <MissionsManagement />}
 
           {activeTab === 'website-games' && <GamesManagement />}
           {activeTab === 'website-blog' && <BlogManagement />}

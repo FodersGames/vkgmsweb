@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield, Globe } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield, Globe, ShoppingBag, ClipboardList, MessageSquare } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -76,7 +76,25 @@ const PERMISSION_GROUPS = [
       { id: 'delete_blog', label: 'Delete Blog' },
       { id: 'manage_chat', label: 'Manage Game Chat' },
     ]
-  }
+  },
+  {
+    label: 'Shop',
+    icon: ShoppingBag,
+    color: '#6C5CE7',
+    permissions: [
+      { id: 'manage_shop', label: 'Manage Shop' },
+    ]
+  },
+  {
+    label: 'Missions',
+    icon: ClipboardList,
+    color: '#A29BFE',
+    permissions: [
+      { id: 'create_missions', label: 'Post Mission Requests', desc: 'Can create new mission requests for the team' },
+      { id: 'claim_missions',  label: 'Claim Missions',        desc: 'Can take on missions and mark them complete' },
+      { id: 'manage_missions', label: 'Manage All Missions',   desc: 'Can edit, delete or reassign any mission (admin-level)' },
+    ]
+  },
 ];
 
 const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.id));
@@ -195,7 +213,7 @@ export const UserManagement = () => {
                 }`}>
                   <input type="checkbox" checked={selectedPerms.includes(perm.id)} onChange={() => onToggle(perm.id)}
                     className="w-3.5 h-3.5 rounded" />
-                  <span>{perm.label}</span>
+                  <span title={perm.desc || undefined}>{perm.label}</span>
                 </label>
               ))}
             </div>
