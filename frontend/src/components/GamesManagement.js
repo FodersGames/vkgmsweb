@@ -141,6 +141,7 @@ export const GamesManagement = () => {
                       data-testid="game-status-select">
                       <option value="draft">Draft</option>
                       <option value="published">Published</option>
+                      <option value="coming_soon">Coming Soon</option>
                     </select>
                   </div>
                 </div>
@@ -233,7 +234,11 @@ export const GamesManagement = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-zinc-900 dark:text-[#e4e4e7]">{g.name}</h4>
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${g.status === 'published' ? 'bg-[#4ECDC4]/15 text-[#4ECDC4]' : 'bg-[#71717a]/15 text-[#71717a]'}`}>{g.status}</span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
+                          g.status === 'published'   ? 'bg-[#4ECDC4]/15 text-[#4ECDC4]' :
+                          g.status === 'coming_soon' ? 'bg-[#6C5CE7]/15 text-[#6C5CE7]' :
+                                                       'bg-[#71717a]/15 text-[#71717a]'
+                        }`}>{g.status === 'coming_soon' ? 'Coming Soon' : g.status}</span>
                         {g.featured && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-[#F2994A]/15 text-[#F2994A]">Featured</span>}
                       </div>
                       <p className="text-xs text-[#71717a] truncate">{g.description}</p>
