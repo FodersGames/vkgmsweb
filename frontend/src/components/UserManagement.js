@@ -6,17 +6,8 @@ import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity,
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const PERMISSION_GROUPS = [
-  {
-    label: 'Projects',
-    icon: Gamepad2,
-    color: '#6C5CE7',
-    permissions: [
-      { id: 'view_projects', label: 'View Projects' },
-      { id: 'create_projects', label: 'Create Projects' },
-      { id: 'delete_projects', label: 'Delete Projects' },
-    ]
-  },
+// Static groups (everything except Projects which is built dynamically)
+const STATIC_GROUPS = [
   {
     label: 'Items',
     icon: Package,
@@ -97,24 +88,54 @@ const PERMISSION_GROUPS = [
   },
 ];
 
-const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.id));
+// Build full permission groups with dynamic per-project entries
+const buildPermissionGroups = (projects = []) => [
+  {
+    label: 'Projects',
+    icon: Gamepad2,
+    color: '#6C5CE7',
+    permissions: [
+      { id: 'view_all_projects', label: 'All Projects', desc: 'Access to every project (current and future)' },
+      ...projects.map(p => ({ id: `project:${p.slug}`, label: p.name, desc: `Access to ${p.name} only` })),
+      { id: 'create_projects', label: 'Create Projects' },
+      { id: 'delete_projects', label: 'Delete Projects' },
+    ]
+  },
+  ...STATIC_GROUPS,
+];
 
 export const UserManagement = () => {
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
+  const [projectsList, setProjectsList] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ username: '', permissions: [] });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { fetchUsers(); /* eslint-disable-next-line */ }, []);
+  // Derived: permission groups with dynamic per-project entries
+  const permissionGroups = buildPermissionGroups(projectsList);
+  const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
+
+  useEffect(() => {
+    fetchUsers();
+    fetchProjectsList();
+    // eslint-disable-next-line
+  }, []);
 
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/users`, { headers: { Authorization: `Bearer ${token}` } });
       setUsers(response.data.users);
     } catch (error) { console.error('Failed to fetch users'); }
+  };
+
+  const fetchProjectsList = async () => {
+    try {
+      const r = await axios.get(`${API_URL}/api/projects`, { headers: { Authorization: `Bearer ${token}` } });
+      setProjectsList(r.data.projects || []);
+    } catch { /* non-blocking */ }
   };
 
   const togglePermission = (permId) => {
@@ -181,7 +202,7 @@ export const UserManagement = () => {
 
   const renderPermissionGrid = (selectedPerms, onToggle) => (
     <div className="space-y-4">
-      {PERMISSION_GROUPS.map((group) => {
+      {permissionGroups.map((group) => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
@@ -224,7 +245,12 @@ export const UserManagement = () => {
   );
 
   const getPermLabel = (permId) => {
-    for (const group of PERMISSION_GROUPS) {
+    if (permId.startsWith('project:')) {
+      const slug = permId.split(':')[1];
+      const proj = projectsList.find(p => p.slug === slug);
+      return { label: proj ? proj.name : slug, color: '#6C5CE7' };
+    }
+    for (const group of permissionGroups) {
       const p = group.permissions.find(pp => pp.id === permId);
       if (p) return { label: p.label, color: group.color };
     }
