@@ -62,20 +62,32 @@ const GamesPage = () => {
             <div className="space-y-24">
               {games.map((game, idx) => (
                 <div key={game.slug} className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 items-center`} data-testid={`game-card-${game.slug}`}>
-                  <div className="lg:w-1/2">
-                    {game.logo_url ? <img src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url} alt={game.name} className="w-full max-w-md mx-auto rounded-xl shadow-2xl shadow-black/50" /> :
-                     game.screenshots?.length > 0 ? <img src={game.screenshots[0].startsWith('/') ? `${API_URL}${game.screenshots[0]}` : game.screenshots[0]} alt={game.name} className="w-full rounded-xl shadow-2xl shadow-black/50" /> :
+                  <div className="lg:w-1/2 relative">
+                    {game.logo_url ? <img src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url} alt={game.name} className={`w-full max-w-md mx-auto rounded-xl shadow-2xl shadow-black/50 ${game.status === 'coming_soon' ? 'opacity-60' : ''}`} /> :
+                     game.screenshots?.length > 0 ? <img src={game.screenshots[0].startsWith('/') ? `${API_URL}${game.screenshots[0]}` : game.screenshots[0]} alt={game.name} className={`w-full rounded-xl shadow-2xl shadow-black/50 ${game.status === 'coming_soon' ? 'opacity-60' : ''}`} /> :
                      <div className="w-full aspect-video bg-white/5 rounded-xl flex items-center justify-center"><span className="text-white/20 text-2xl font-bold" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{game.name}</span></div>}
+                    {game.status === 'coming_soon' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="px-4 py-2 rounded-lg text-sm font-black tracking-widest uppercase text-white" style={{ background: 'linear-gradient(135deg, #6C5CE7, #A29BFE)', boxShadow: '0 0 30px rgba(108,92,231,0.5)' }}>
+                          COMING SOON
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="lg:w-1/2 space-y-6">
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{game.name}</h2>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h2 className="text-3xl sm:text-4xl md:text-5xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{game.name}</h2>
+                      {game.status === 'coming_soon' && (
+                        <span className="px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full text-white" style={{ background: 'linear-gradient(135deg, #6C5CE7, #A29BFE)' }}>COMING SOON</span>
+                      )}
+                    </div>
                     <p className="text-white/60 leading-relaxed text-base sm:text-lg">{game.description}</p>
                     {game.screenshots?.length > 1 && (
                       <div className="flex gap-3 overflow-x-auto pb-2">
                         {game.screenshots.slice(1, 4).map((s, i) => <img key={i} src={s.startsWith('/') ? `${API_URL}${s}` : s} alt="" className="h-20 sm:h-24 rounded-lg object-cover flex-shrink-0 border border-white/10" />)}
                       </div>
                     )}
-                    {game.platforms?.length > 0 && (
+                    {game.platforms?.length > 0 && game.status !== 'coming_soon' && (
                       <div className="flex gap-3 flex-wrap">
                         {game.platforms.map((p, i) => {
                           const pl = PLATFORM_ICONS[p.name];

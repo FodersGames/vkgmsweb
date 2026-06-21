@@ -137,7 +137,7 @@ class GameCreateRequest(BaseModel):
     logo_url: Optional[str] = ""
     screenshots: List[str] = []
     platforms: List[dict] = []  # [{name, url}]
-    status: Literal["published", "draft"] = "draft"
+    status: Literal["published", "draft", "coming_soon"] = "draft"
     featured: bool = False
 
 class GameUpdateRequest(BaseModel):
@@ -146,7 +146,7 @@ class GameUpdateRequest(BaseModel):
     logo_url: Optional[str] = None
     screenshots: Optional[List[str]] = None
     platforms: Optional[List[dict]] = None
-    status: Optional[Literal["published", "draft"]] = None
+    status: Optional[Literal["published", "draft", "coming_soon"]] = None
     featured: Optional[bool] = None
 
 class BlogCreateRequest(BaseModel):
@@ -591,7 +591,7 @@ async def list_games_admin(user=Depends(get_current_user)):
 
 @api_router.get("/website/games/public")
 async def list_games_public():
-    games = await db.website_games.find({"status": "published"}).sort("created_at", -1).to_list(1000)
+    games = await db.website_games.find({"status": {"$in": ["published", "coming_soon"]}}).sort("created_at", -1).to_list(1000)
     return {"games": [serialize_doc(g) for g in games]}
 
 @api_router.get("/website/games/featured")
