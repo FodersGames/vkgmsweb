@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { ShoppingBag, Plus, Edit2, Trash2, Save, X, Settings, Package, Eye, EyeOff, Tag } from 'lucide-react';
+import { ShoppingBag, Plus, Edit2, Trash2, Save, X, Settings, Package, Eye, EyeOff, Tag, Link2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -325,6 +325,12 @@ export const ShopManagement = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => {
+                              const url = `${window.location.origin}/shop/${selectedGame.slug}?product=${p.id}`;
+                              navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
+                            }} title="Copy product link" className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/30 rounded-lg text-[#71717a] hover:text-[#6C5CE7] transition-all">
+                              <Link2 size={14} />
+                            </button>
                             <button onClick={() => toggleActive(p)} title={p.active ? 'Hide' : 'Show'} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/30 rounded-lg text-[#71717a] hover:text-[#6C5CE7] transition-all">
                               {p.active ? <Eye size={14} /> : <EyeOff size={14} />}
                             </button>

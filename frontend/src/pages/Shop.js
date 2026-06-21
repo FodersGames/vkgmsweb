@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { ShoppingCart, X, Loader2, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
+import { ShoppingCart, X, Loader2, ArrowLeft, Link2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,6 +16,7 @@ const BADGE_COLORS = {
 
 const Shop = () => {
   const { gameSlug } = useParams();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,21 @@ const Shop = () => {
     };
     load();
   }, [gameSlug]);
+
+  // Auto-open modal if ?product= param is in URL
+  useEffect(() => {
+    if (products.length === 0) return;
+    const productId = searchParams.get('product');
+    if (productId) {
+      const found = products.find(p => p.id === productId);
+      if (found) { setBuyingProduct(found); setUid(''); setError(''); }
+    }
+  }, [products, searchParams]);
+
+  const copyProductLink = (p) => {
+    const url = `${window.location.origin}/shop/${gameSlug}?product=${p.id}`;
+    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
+  };
 
   const handleBuy = async () => {
     if (!uid.trim()) { setError('Please enter your in-game Player ID.'); return; }
@@ -134,13 +151,22 @@ const Shop = () => {
                       <span className="text-xl font-black" style={{ color: primary }}>
                         €{(p.price / 100).toFixed(2)}
                       </span>
-                      <button
-                        onClick={() => { setBuyingProduct(p); setUid(''); setError(''); }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-opacity hover:opacity-90"
-                        style={{ backgroundColor: primary, borderRadius: isRounded ? '0.5rem' : '0.2rem' }}
-                      >
-                        <ShoppingCart size={14} />Buy
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => copyProductLink(p)}
+                          title="Copy product link"
+                          className="p-2 rounded-lg border border-zinc-200 dark:border-[#2a2a3c] text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:border-zinc-300 dark:hover:border-[#3a3a4c] transition-all"
+                        >
+                          <Link2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => { setBuyingProduct(p); setUid(''); setError(''); }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg transition-opacity hover:opacity-90"
+                          style={{ backgroundColor: primary, borderRadius: isRounded ? '0.5rem' : '0.2rem' }}
+                        >
+                          <ShoppingCart size={14} />Buy
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
