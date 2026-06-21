@@ -10,7 +10,7 @@ import re
 import uuid
 import shutil
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Literal
 import secrets
 import bcrypt
@@ -61,8 +61,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # ============== PERMISSIONS ==============
+# Static permissions (project:slug permissions are dynamic, not listed here)
 ALL_PERMISSIONS = [
-    "view_projects", "create_projects", "delete_projects",
+    "view_all_projects", "create_projects", "delete_projects",
     "send_items", "delete_items",
     "change_status",
     "view_variables", "create_variables", "edit_variables", "delete_variables",
@@ -76,20 +77,8 @@ ALL_PERMISSIONS = [
     "create_missions", "claim_missions", "manage_missions",
 ]
 
-PERMISSION_LITERAL = Literal[
-    "view_projects", "create_projects", "delete_projects",
-    "send_items", "delete_items",
-    "change_status",
-    "view_variables", "create_variables", "edit_variables", "delete_variables",
-    "view_logs", "view_api_docs",
-    "manage_users",
-    "manage_website",
-    "create_games", "edit_games", "delete_games",
-    "create_blog", "edit_blog", "delete_blog",
-    "manage_chat",
-    "manage_shop",
-    "create_missions", "claim_missions", "manage_missions",
-]
+def is_valid_permission(p: str) -> bool:
+    return p in ALL_PERMISSIONS or bool(re.match(r'^project:[a-z0-9_-]+$', p))
 
 # ============== MODELS ==============
 class LoginRequest(BaseModel):
@@ -103,7 +92,15 @@ class LoginResponse(BaseModel):
 
 class CreateUserRequest(BaseModel):
     username: str
-    permissions: List[PERMISSION_LITERAL]
+    permissions: List[str]
+
+    @field_validator('permissions', mode='before')
+    @classmethod
+    def validate_permissions(cls, perms):
+        for p in perms:
+            if not is_valid_permission(p):
+                raise ValueError(f"Invalid permission: {p}")
+        return perms
 
 class CreateUserResponse(BaseModel):
     username: str
@@ -122,7 +119,15 @@ class ServerStatusResponse(BaseModel):
     status: str
 
 class UpdateUserPermissionsRequest(BaseModel):
-    permissions: List[PERMISSION_LITERAL]
+    permissions: List[str]
+
+    @field_validator('permissions', mode='before')
+    @classmethod
+    def validate_permissions(cls, perms):
+        for p in perms:
+            if not is_valid_permission(p):
+                raise ValueError(f"Invalid permission: {p}")
+        return perms
 
 class VariableCreateRequest(BaseModel):
     variable_name: str
@@ -261,6 +266,13 @@ class MissionUpdateRequest(BaseModel):
     reference_images: Optional[List[str]] = None
     priority: Optional[Literal["low", "medium", "high", "urgent"]] = None
     status: Optional[Literal["open", "in_progress", "completed", "cancelled"]] = None
+
+class MissionCompleteRequest(BaseModel):
+    delivery_files: List[dict] = []  # [{url, filename, size}]
+
+class MissionReopenRequest(BaseModel):
+    feedback: str = ""
+    keep_assigned: bool = True
 
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
@@ -437,6 +449,23 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(get_cur
         f.write(content)
     return {"url": f"/api/uploads/{filename}", "filename": filename}
 
+@api_router.post("/upload-delivery")
+async def upload_delivery_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    ALLOWED = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif',
+               '.zip', '.rar', '.7z', '.psd', '.ai', '.pdf', '.mp4', '.mov', '.xcf', '.blend'}
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED:
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {ext}")
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large. Maximum 50 MB.")
+    safe_stem = re.sub(r'[^a-zA-Z0-9_-]', '_', Path(file.filename).stem)[:40]
+    filename = f"{uuid.uuid4().hex}_{safe_stem}{ext}"
+    filepath = UPLOADS_DIR / filename
+    with open(filepath, "wb") as f:
+        f.write(content)
+    return {"url": f"/api/uploads/{filename}", "filename": file.filename, "size": len(content)}
+
 # ============== PROJECTS ==============
 @api_router.post("/projects")
 async def create_project(req: CreateProjectRequest, user=Depends(require_permission("create_projects"))):
@@ -453,8 +482,14 @@ async def create_project(req: CreateProjectRequest, user=Depends(require_permiss
     return {"success": True, "name": req.name, "slug": slug, "created_at": doc["created_at"].isoformat(), "created_by": user["username"]}
 
 @api_router.get("/projects")
-async def list_projects(user=Depends(require_permission("view_projects"))):
-    projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
+async def list_projects(user=Depends(get_current_user)):
+    if user["is_super_admin"] or "view_all_projects" in user["permissions"]:
+        projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
+    else:
+        allowed = [p.split(":", 1)[1] for p in user["permissions"] if p.startswith("project:")]
+        if not allowed:
+            return {"projects": []}
+        projects = await db.projects.find({"slug": {"$in": allowed}}, {"_id": 0}).to_list(1000)
     for p in projects:
         if isinstance(p.get("created_at"), datetime):
             p["created_at"] = p["created_at"].isoformat()
@@ -1214,8 +1249,10 @@ async def unclaim_mission(slug: str, mission_id: str, user=Depends(get_current_u
     return {"success": True}
 
 @api_router.post("/projects/{slug}/missions/{mission_id}/complete")
-async def complete_mission(slug: str, mission_id: str, user=Depends(get_current_user)):
+async def complete_mission(slug: str, mission_id: str, req: MissionCompleteRequest = None, user=Depends(get_current_user)):
     from bson import ObjectId
+    if req is None:
+        req = MissionCompleteRequest()
     mission = await db.missions.find_one({"_id": ObjectId(mission_id), "project_slug": slug})
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
@@ -1223,11 +1260,63 @@ async def complete_mission(slug: str, mission_id: str, user=Depends(get_current_
     is_claimant = mission.get("claimed_by") == user["username"]
     if not is_admin and not is_claimant:
         raise HTTPException(status_code=403, detail="Only the assigned member or an admin can complete this mission")
+    now = datetime.now(timezone.utc)
+    round_num = len(mission.get("revisions", [])) + 1
+    revision = {
+        "round": round_num,
+        "delivery_files": req.delivery_files,
+        "delivered_by": user["username"],
+        "delivered_at": now.isoformat(),
+        "feedback": None,
+        "feedback_by": None,
+        "feedback_at": None,
+    }
     await db.missions.update_one(
         {"_id": ObjectId(mission_id)},
-        {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc)}}
+        {
+            "$set": {
+                "status": "completed",
+                "completed_at": now,
+                "delivery_files": req.delivery_files,
+            },
+            "$push": {"revisions": revision},
+        }
     )
-    await log_action("missions", f"Mission completed: {mission['title']}", user=user["username"], project_slug=slug)
+    await log_action("missions", f"Mission completed (round {round_num}): {mission['title']}", user=user["username"], project_slug=slug)
+    return {"success": True}
+
+@api_router.post("/projects/{slug}/missions/{mission_id}/reopen")
+async def reopen_mission(slug: str, mission_id: str, req: MissionReopenRequest, user=Depends(get_current_user)):
+    from bson import ObjectId
+    mission = await db.missions.find_one({"_id": ObjectId(mission_id), "project_slug": slug})
+    if not mission:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    is_admin = user["is_super_admin"] or "manage_missions" in user["permissions"]
+    is_creator = mission["created_by"] == user["username"]
+    if not is_admin and not is_creator:
+        raise HTTPException(status_code=403, detail="Only the mission creator or an admin can reopen a mission")
+    if mission["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Only completed missions can be reopened")
+    now = datetime.now(timezone.utc)
+    revisions = mission.get("revisions", [])
+    last_idx = len(revisions) - 1
+    new_status = "in_progress" if req.keep_assigned else "open"
+    update: dict = {
+        "$set": {
+            "status": new_status,
+            "completed_at": None,
+            "delivery_files": [],
+        }
+    }
+    if last_idx >= 0:
+        update["$set"][f"revisions.{last_idx}.feedback"] = req.feedback
+        update["$set"][f"revisions.{last_idx}.feedback_by"] = user["username"]
+        update["$set"][f"revisions.{last_idx}.feedback_at"] = now.isoformat()
+    if not req.keep_assigned:
+        update["$set"]["claimed_by"] = None
+        update["$set"]["claimed_at"] = None
+    await db.missions.update_one({"_id": ObjectId(mission_id)}, update)
+    await log_action("missions", f"Mission reopened: {mission['title']}", user=user["username"], project_slug=slug)
     return {"success": True}
 
 # ============== SETUP ==============

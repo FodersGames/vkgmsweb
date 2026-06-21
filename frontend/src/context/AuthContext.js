@@ -58,7 +58,11 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.is_super_admin) return true;
-    return user.permissions?.includes(permission);
+    // 'view_projects' is a meta-check: true if user can see at least one project
+    if (permission === 'view_projects') {
+      return user.permissions?.some(p => p === 'view_all_projects' || p.startsWith('project:')) ?? false;
+    }
+    return user.permissions?.includes(permission) ?? false;
   };
 
   return (
