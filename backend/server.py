@@ -20,6 +20,8 @@ from bson import ObjectId
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import stripe
+import asyncio
 
 VERSION = "1.3.0"
 
@@ -39,6 +41,9 @@ SETUP_KEY = os.environ.get('MASTER_KEY', '#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
+
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -66,6 +71,7 @@ ALL_PERMISSIONS = [
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
     "manage_chat",
+    "manage_shop",
 ]
 
 PERMISSION_LITERAL = Literal[
@@ -79,6 +85,7 @@ PERMISSION_LITERAL = Literal[
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
     "manage_chat",
+    "manage_shop",
 ]
 
 # ============== MODELS ==============
@@ -164,6 +171,43 @@ class ChatMessageRequest(BaseModel):
 
 class BannedWordsUpdateRequest(BaseModel):
     words: List[str]
+
+class ShopProductCreateRequest(BaseModel):
+    name: str
+    description: str = ""
+    price: int  # in cents (e.g. 999 = €9.99)
+    image_url: str = ""
+    badge: Optional[str] = None  # "NEW", "SALE", "LIMITED", etc.
+    discount_pct: Optional[int] = None
+    project_slug: str  # backend project slug for item delivery
+    variable: str
+    amount: str
+    active: bool = True
+
+class ShopProductUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[int] = None
+    image_url: Optional[str] = None
+    badge: Optional[str] = None
+    discount_pct: Optional[int] = None
+    project_slug: Optional[str] = None
+    variable: Optional[str] = None
+    amount: Optional[str] = None
+    active: Optional[bool] = None
+
+class ShopCheckoutRequest(BaseModel):
+    product_id: str
+    player_uid: str
+
+class ShopSettingsRequest(BaseModel):
+    shop_title: str = ""
+    primary_color: str = "#6C5CE7"
+    accent_color: str = "#A29BFE"
+    banner_url: str = ""
+    banner_title: str = ""
+    banner_subtitle: str = ""
+    card_style: str = "rounded"
 
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
@@ -716,6 +760,182 @@ async def update_banned_words(req: BannedWordsUpdateRequest, user=Depends(requir
     await log_action("chat", "Banned words list updated", user=user["username"])
     return {"success": True, "words": words}
 
+# ============== SHOP ==============
+@api_router.get("/shop/{game_slug}/products")
+async def list_shop_products_public(game_slug: str):
+    products = await db.website_shop_products.find({"game_slug": game_slug, "active": True}).sort("created_at", 1).to_list(200)
+    return {"products": [serialize_doc(p) for p in products]}
+
+@api_router.get("/shop/{game_slug}/products/admin")
+async def list_shop_products_admin(game_slug: str, user=Depends(require_permission("manage_shop"))):
+    products = await db.website_shop_products.find({"game_slug": game_slug}).sort("created_at", 1).to_list(200)
+    return {"products": [serialize_doc(p) for p in products]}
+
+@api_router.post("/shop/{game_slug}/products")
+async def create_shop_product(game_slug: str, req: ShopProductCreateRequest, user=Depends(require_permission("manage_shop"))):
+    if not await db.projects.find_one({"slug": req.project_slug}):
+        raise HTTPException(status_code=404, detail="Project not found")
+    doc = {
+        "game_slug": game_slug,
+        "name": req.name,
+        "description": req.description,
+        "price": req.price,
+        "image_url": req.image_url,
+        "badge": req.badge,
+        "discount_pct": req.discount_pct,
+        "project_slug": req.project_slug,
+        "variable": req.variable,
+        "amount": req.amount,
+        "active": req.active,
+        "created_at": datetime.now(timezone.utc),
+        "created_by": user["username"],
+    }
+    result = await db.website_shop_products.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    await log_action("website", f"Shop product '{req.name}' created for game '{game_slug}'", user=user["username"])
+    return {"success": True, "product": serialize_doc(doc)}
+
+@api_router.put("/shop/{game_slug}/products/{product_id}")
+async def update_shop_product(game_slug: str, product_id: str, req: ShopProductUpdateRequest, user=Depends(require_permission("manage_shop"))):
+    try:
+        oid = ObjectId(product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    product = await db.website_shop_products.find_one({"_id": oid, "game_slug": game_slug})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    updates = {k: v for k, v in req.dict().items() if v is not None}
+    if "project_slug" in updates and not await db.projects.find_one({"slug": updates["project_slug"]}):
+        raise HTTPException(status_code=404, detail="Project not found")
+    updates["updated_at"] = datetime.now(timezone.utc)
+    await db.website_shop_products.update_one({"_id": oid}, {"$set": updates})
+    updated = await db.website_shop_products.find_one({"_id": oid})
+    await log_action("website", f"Shop product '{product_id}' updated for '{game_slug}'", user=user["username"])
+    return {"success": True, "product": serialize_doc(updated)}
+
+@api_router.delete("/shop/{game_slug}/products/{product_id}")
+async def delete_shop_product(game_slug: str, product_id: str, user=Depends(require_permission("manage_shop"))):
+    try:
+        oid = ObjectId(product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    r = await db.website_shop_products.delete_one({"_id": oid, "game_slug": game_slug})
+    if r.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
+    await log_action("website", f"Shop product '{product_id}' deleted from '{game_slug}'", user=user["username"])
+    return {"success": True}
+
+@api_router.get("/shop/{game_slug}/settings")
+async def get_shop_settings(game_slug: str):
+    doc = await db.website_shop_settings.find_one({"game_slug": game_slug})
+    if not doc:
+        return {"game_slug": game_slug, "shop_title": "", "primary_color": "#6C5CE7", "accent_color": "#A29BFE",
+                "banner_url": "", "banner_title": "", "banner_subtitle": "", "card_style": "rounded"}
+    return serialize_doc(doc)
+
+@api_router.put("/shop/{game_slug}/settings")
+async def update_shop_settings(game_slug: str, req: ShopSettingsRequest, user=Depends(require_permission("manage_shop"))):
+    updates = req.dict()
+    updates["game_slug"] = game_slug
+    updates["updated_at"] = datetime.now(timezone.utc)
+    updates["updated_by"] = user["username"]
+    await db.website_shop_settings.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
+    await log_action("website", f"Shop settings updated for '{game_slug}'", user=user["username"])
+    result = await db.website_shop_settings.find_one({"game_slug": game_slug})
+    return serialize_doc(result)
+
+@api_router.post("/shop/{game_slug}/checkout")
+@limiter.limit("10/minute")
+async def create_checkout_session(request: Request, game_slug: str, req: ShopCheckoutRequest):
+    if not req.player_uid.strip():
+        raise HTTPException(status_code=400, detail="Player UID required")
+    try:
+        oid = ObjectId(req.product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    product = await db.website_shop_products.find_one({"_id": oid, "game_slug": game_slug, "active": True})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    origin = request.headers.get("origin") or os.environ.get("FRONTEND_URL", "")
+    images = [product["image_url"]] if product.get("image_url") else []
+
+    def _create():
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": product["name"],
+                        "description": product.get("description") or "",
+                        "images": images,
+                    },
+                    "unit_amount": product["price"],
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{origin}/shop/{game_slug}/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin}/shop/{game_slug}",
+            metadata={
+                "player_uid": req.player_uid.strip(),
+                "product_id": str(product["_id"]),
+                "game_slug": game_slug,
+            },
+        )
+
+    try:
+        session = await asyncio.to_thread(_create)
+    except Exception as e:
+        logger.error(f"Stripe checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service unavailable")
+
+    return {"checkout_url": session.url}
+
+@api_router.post("/shop/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    def _construct():
+        return stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+
+    try:
+        event = await asyncio.to_thread(_construct)
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        meta = session.get("metadata", {})
+        uid = meta.get("player_uid", "").strip()
+        product_id = meta.get("product_id", "")
+        game_slug = meta.get("game_slug", "")
+
+        if uid and product_id and game_slug:
+            try:
+                product = await db.website_shop_products.find_one({"_id": ObjectId(product_id), "game_slug": game_slug})
+                if product:
+                    await db.items.insert_one({
+                        "project_slug": product["project_slug"],
+                        "uid": uid,
+                        "variable": product["variable"],
+                        "amount": product["amount"],
+                        "created_at": datetime.now(timezone.utc),
+                        "created_by": "stripe_shop",
+                    })
+                    await log_action("send",
+                        f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe payment)",
+                        project_slug=product["project_slug"], user="stripe_shop",
+                        uid=uid, variable=product["variable"], amount=product["amount"])
+                    logger.info(f"Shop delivery OK: {product['amount']}x {product['variable']} to {uid}")
+            except Exception as e:
+                logger.error(f"Shop webhook delivery error: {e}")
+
+    return {"received": True}
+
 # ============== SETUP ==============
 app.include_router(api_router)
 
@@ -735,6 +955,8 @@ async def startup_event():
         await db.website_games.create_index("slug", unique=True)
         await db.blog_posts.create_index("slug", unique=True)
         await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
+        await db.website_shop_products.create_index([("game_slug", 1), ("active", 1)])
+        await db.website_shop_settings.create_index("game_slug", unique=True)
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
