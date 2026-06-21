@@ -175,14 +175,16 @@ class BannedWordsUpdateRequest(BaseModel):
 class ShopProductCreateRequest(BaseModel):
     name: str
     description: str = ""
-    price: int  # in cents (e.g. 999 = €9.99)
+    price: int
     image_url: str = ""
-    badge: Optional[str] = None  # "NEW", "SALE", "LIMITED", etc.
+    badge: Optional[str] = None
     discount_pct: Optional[int] = None
-    project_slug: str  # backend project slug for item delivery
+    project_slug: str
     variable: str
     amount: str
     active: bool = True
+    category: Optional[str] = None
+    featured: bool = False
 
 class ShopProductUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -195,6 +197,20 @@ class ShopProductUpdateRequest(BaseModel):
     variable: Optional[str] = None
     amount: Optional[str] = None
     active: Optional[bool] = None
+    category: Optional[str] = None
+    featured: Optional[bool] = None
+
+class DailyGiftConfigRequest(BaseModel):
+    active: bool = True
+    title: str = "Daily Gift"
+    description: str = ""
+    image_url: str = ""
+    project_slug: str = ""
+    variable: str = ""
+    amount: str = ""
+
+class DailyGiftClaimRequest(BaseModel):
+    player_uid: str
 
 class ShopCheckoutRequest(BaseModel):
     product_id: str
@@ -206,23 +222,27 @@ class ShopSettingsRequest(BaseModel):
     banner_url: str = ""
     banner_title: str = ""
     banner_subtitle: str = ""
-    banner_height: str = "md"         # sm | md | lg
+    banner_height: str = "md"
     banner_overlay: str = "rgba(0,0,0,0.55)"
     # Colors
     primary_color: str = "#6C5CE7"
     accent_color: str = "#A29BFE"
-    background_color: str = ""        # page bg (vide = défaut CSS)
-    surface_color: str = ""           # card bg
-    border_color: str = ""            # card border
-    text_color: str = ""              # primary text
-    text_muted_color: str = ""        # secondary text
-    price_color: str = ""             # vide = primary_color
+    background_color: str = ""
+    surface_color: str = ""
+    border_color: str = ""
+    text_color: str = ""
+    text_muted_color: str = ""
+    price_color: str = ""
     # Background texture
     bg_texture_url: str = ""
     bg_texture_opacity: float = 0.05
     # Cards
-    card_style: str = "rounded"       # rounded | sharp
-    card_shadow: str = "sm"           # none | sm | md | glow
+    card_style: str = "rounded"
+    card_shadow: str = "sm"
+    # Layout & sections
+    featured_section_title: str = "Featured Offers"
+    footer_text: str = ""
+    categories: List[dict] = []
 
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
@@ -802,6 +822,8 @@ async def create_shop_product(game_slug: str, req: ShopProductCreateRequest, use
         "variable": req.variable,
         "amount": req.amount,
         "active": req.active,
+        "category": req.category,
+        "featured": req.featured,
         "created_at": datetime.now(timezone.utc),
         "created_by": user["username"],
     }
@@ -850,7 +872,8 @@ async def get_shop_settings(game_slug: str):
                 "background_color": "", "surface_color": "", "border_color": "",
                 "text_color": "", "text_muted_color": "", "price_color": "",
                 "bg_texture_url": "", "bg_texture_opacity": 0.05,
-                "card_style": "rounded", "card_shadow": "sm"}
+                "card_style": "rounded", "card_shadow": "sm",
+                "featured_section_title": "Featured Offers", "footer_text": "", "categories": []}
     return serialize_doc(doc)
 
 @api_router.put("/shop/{game_slug}/settings")
@@ -932,6 +955,80 @@ async def get_session_status(request: Request, session_id: str):
     except Exception:
         raise HTTPException(status_code=404, detail="Session not found")
 
+# ── Daily Gift ──────────────────────────────────────────────────────────────
+@api_router.get("/shop/{game_slug}/daily-gift")
+@limiter.limit("60/minute")
+async def get_daily_gift(request: Request, game_slug: str, player_uid: Optional[str] = None):
+    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug})
+    if not gift or not gift.get("active"):
+        return {"active": False}
+    result = serialize_doc(gift)
+    now = datetime.now(timezone.utc)
+    tomorrow = datetime(now.year, now.month, now.day, tzinfo=timezone.utc) + timedelta(days=1)
+    result["resets_at"] = tomorrow.isoformat()
+    result["seconds_until_reset"] = int((tomorrow - now).total_seconds())
+    if player_uid:
+        today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+        existing = await db.website_shop_daily_claims.find_one({
+            "game_slug": game_slug, "player_uid": player_uid.strip(),
+            "claimed_at": {"$gte": today_start}
+        })
+        result["claimed"] = existing is not None
+    else:
+        result["claimed"] = None
+    return result
+
+@api_router.post("/shop/{game_slug}/daily-gift/claim")
+@limiter.limit("10/minute")
+async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaimRequest):
+    player_uid = req.player_uid.strip()
+    if not player_uid:
+        raise HTTPException(status_code=400, detail="Player UID required")
+    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug, "active": True})
+    if not gift:
+        raise HTTPException(status_code=404, detail="No active daily gift")
+    now = datetime.now(timezone.utc)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    tomorrow = today_start + timedelta(days=1)
+    existing = await db.website_shop_daily_claims.find_one({
+        "game_slug": game_slug, "player_uid": player_uid,
+        "claimed_at": {"$gte": today_start}
+    })
+    if existing:
+        seconds_left = int((tomorrow - now).total_seconds())
+        raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
+    project = await db.projects.find_one({"slug": gift["project_slug"]})
+    if not project:
+        raise HTTPException(status_code=500, detail="Daily gift project configuration error")
+    await db.items.insert_one({
+        "project_id": str(project["_id"]), "player_uid": player_uid,
+        "variable": gift["variable"], "amount": gift["amount"],
+        "source": "daily_gift", "shop_game_slug": game_slug,
+        "claimed": False, "created_at": now,
+    })
+    await db.website_shop_daily_claims.insert_one({
+        "game_slug": game_slug, "player_uid": player_uid, "claimed_at": now,
+    })
+    return {"success": True, "item": gift["variable"], "amount": gift["amount"]}
+
+@api_router.get("/shop/{game_slug}/daily-gift/admin")
+async def get_daily_gift_admin(game_slug: str, user=Depends(require_permission("manage_shop"))):
+    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug})
+    if not gift:
+        return {"game_slug": game_slug, "active": False, "title": "Daily Gift",
+                "description": "", "image_url": "", "project_slug": "", "variable": "", "amount": ""}
+    return serialize_doc(gift)
+
+@api_router.put("/shop/{game_slug}/daily-gift")
+async def update_daily_gift(game_slug: str, req: DailyGiftConfigRequest, user=Depends(require_permission("manage_shop"))):
+    updates = req.dict()
+    updates["game_slug"] = game_slug
+    updates["updated_at"] = datetime.now(timezone.utc)
+    updates["updated_by"] = user["username"]
+    await db.website_shop_daily_gifts.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
+    await log_action("website", f"Daily gift updated for '{game_slug}'", user=user["username"])
+    return serialize_doc(await db.website_shop_daily_gifts.find_one({"game_slug": game_slug}))
+
 @api_router.post("/shop/webhook")
 async def stripe_webhook(request: Request):
     payload = await request.body()
@@ -996,6 +1093,8 @@ async def startup_event():
         await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
         await db.website_shop_products.create_index([("game_slug", 1), ("active", 1)])
         await db.website_shop_settings.create_index("game_slug", unique=True)
+        await db.website_shop_daily_claims.create_index([("game_slug", 1), ("player_uid", 1), ("claimed_at", 1)])
+        await db.website_shop_daily_gifts.create_index("game_slug", unique=True)
         logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
