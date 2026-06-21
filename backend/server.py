@@ -17,6 +17,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
+from pymongo.errors import DuplicateKeyError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -971,10 +972,10 @@ async def get_daily_gift(request: Request, game_slug: str, player_uid: Optional[
     result["resets_at"] = tomorrow.isoformat()
     result["seconds_until_reset"] = int((tomorrow - now).total_seconds())
     if player_uid:
-        today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+        date_key = now.date().isoformat()
         existing = await db.website_shop_daily_claims.find_one({
             "game_slug": game_slug, "player_uid": player_uid.strip(),
-            "claimed_at": {"$gte": today_start}
+            "date_key": date_key,
         })
         result["claimed"] = existing is not None
     else:
@@ -993,13 +994,26 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
     now = datetime.now(timezone.utc)
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     tomorrow = today_start + timedelta(days=1)
-    existing = await db.website_shop_daily_claims.find_one({
-        "game_slug": game_slug, "player_uid": player_uid,
-        "claimed_at": {"$gte": today_start}
-    })
-    if existing:
+    date_key = today_start.date().isoformat()  # e.g. "2025-06-21"
+
+    # First check (fast path for normal cases)
+    if await db.website_shop_daily_claims.find_one({"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key}):
         seconds_left = int((tomorrow - now).total_seconds())
         raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
+
+    # Atomic insert: the unique index on (game_slug, player_uid, date_key) makes
+    # concurrent double-claims physically impossible at the database level.
+    try:
+        await db.website_shop_daily_claims.insert_one({
+            "game_slug": game_slug,
+            "player_uid": player_uid,
+            "date_key": date_key,
+            "claimed_at": now,
+        })
+    except DuplicateKeyError:
+        seconds_left = int((tomorrow - now).total_seconds())
+        raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
+
     project = await db.projects.find_one({"slug": gift["project_slug"]})
     if not project:
         raise HTTPException(status_code=500, detail="Daily gift project configuration error")
@@ -1010,9 +1024,6 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
         "amount": gift["amount"],
         "created_at": now,
         "created_by": "daily_gift",
-    })
-    await db.website_shop_daily_claims.insert_one({
-        "game_slug": game_slug, "player_uid": player_uid, "claimed_at": now,
     })
     return {"success": True, "item": gift["variable"], "amount": gift["amount"]}
 
@@ -1098,7 +1109,9 @@ async def startup_event():
         await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
         await db.website_shop_products.create_index([("game_slug", 1), ("active", 1)])
         await db.website_shop_settings.create_index("game_slug", unique=True)
-        await db.website_shop_daily_claims.create_index([("game_slug", 1), ("player_uid", 1), ("claimed_at", 1)])
+        await db.website_shop_daily_claims.create_index(
+            [("game_slug", 1), ("player_uid", 1), ("date_key", 1)], unique=True
+        )
         await db.website_shop_daily_gifts.create_index("game_slug", unique=True)
         logger.info("Database initialized successfully")
     except Exception as e:
