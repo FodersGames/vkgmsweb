@@ -857,8 +857,16 @@ async def create_checkout_session(request: Request, game_slug: str, req: ShopChe
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    origin = request.headers.get("origin") or os.environ.get("FRONTEND_URL", "")
-    images = [product["image_url"]] if product.get("image_url") else []
+    origin = request.headers.get("origin") or ""
+    if not origin:
+        referer = request.headers.get("referer", "")
+        if referer:
+            parts = referer.split("/")
+            if len(parts) >= 3:
+                origin = "/".join(parts[:3])
+    if not origin:
+        origin = os.environ.get("FRONTEND_URL", "")
+    images = [product["image_url"]] if (product.get("image_url") and product["image_url"].startswith("http")) else []
 
     def _create():
         return stripe.checkout.Session.create(
