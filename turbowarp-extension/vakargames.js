@@ -1,15 +1,30 @@
 (function (Scratch) {
     'use strict';
 
-    if (!Scratch.extensions.unsandboxed) {
-        console.warn('[VakarGames] Reload with unsandboxed mode for full functionality.');
+    const API_URL = 'https://vakargames.com';
+
+    // Détecte le mode : sandboxed (Scratch.fetch) ou unsandboxed (fetch natif)
+    function _fetch(url, opts) {
+        if (typeof Scratch !== 'undefined' && Scratch.fetch) {
+            return Scratch.fetch(url, opts);
+        }
+        return fetch(url, opts);
     }
 
-    const API_URL = 'https://vakargames.com';
+    // Ouvre une URL : Scratch.openWindow (sandbox) ou window.open (unsandboxed)
+    function _openWindow(url) {
+        if (typeof Scratch !== 'undefined' && Scratch.openWindow) {
+            Scratch.openWindow(url, 'stripe_checkout');
+            return null; // pas de référence popup en sandbox
+        }
+        if (typeof window !== 'undefined' && window.open) {
+            return window.open(url, 'stripe_checkout', 'width=520,height=720,scrollbars=yes,resizable=yes');
+        }
+        return null;
+    }
 
     class VakarGames {
         constructor() {
-            // Chat
             this._chatSlug     = '';
             this._chatApiKey   = '';
             this._chatMessages = [];
@@ -120,10 +135,10 @@
         }
 
         // ══════════════════════════════════════════
-        //  SHOP — bloc rond, retourne true / false
+        //  SHOP
         // ══════════════════════════════════════════
         async buyProduct({ URL: urlStr, UID }) {
-            // Parse game slug + product ID depuis le lien
+            // 1 — Parser le lien produit
             let gameSlug, productId;
             try {
                 const parsed = new URL(urlStr);
@@ -134,10 +149,10 @@
 
             if (!gameSlug || !productId || !String(UID).trim()) return false;
 
-            // Créer la session Stripe
+            // 2 — Créer la session Stripe via le backend
             let sessionId, checkoutUrl;
             try {
-                const res = await fetch(
+                const res = await _fetch(
                     `${API_URL}/api/shop/${encodeURIComponent(gameSlug)}/checkout`,
                     {
                         method:  'POST',
@@ -151,39 +166,49 @@
                 sessionId   = data.session_id;
             } catch { return false; }
 
-            // Ouvrir Stripe dans un popup
-            const popup = window.open(
-                checkoutUrl,
-                'stripe_checkout',
-                'width=520,height=720,scrollbars=yes,resizable=yes'
-            );
-            if (!popup) return false;
+            // 3 — Ouvrir Stripe (sandbox → Scratch.openWindow, unsandboxed → window.open)
+            const popupRef = _openWindow(checkoutUrl);
 
-            // Attendre le résultat : polling toutes les 3 s
+            // 4 — Poller le statut toutes les 3 s
             return await new Promise((resolve) => {
-                let closedAt = null;
+                let elapsed  = 0;
+                const maxMs  = 600000; // 10 min max
+                const pollMs = 3000;
 
                 const interval = setInterval(async () => {
-                    if (popup.closed && closedAt === null) closedAt = Date.now();
+                    elapsed += pollMs;
 
-                    // 6 s après fermeture sans succès → false
-                    if (closedAt !== null && Date.now() - closedAt > 6000) {
+                    // En mode unsandboxed : détecter la fermeture du popup
+                    if (popupRef && popupRef.closed) {
+                        clearInterval(interval);
+                        // Laisser 6 s au webhook pour arriver
+                        await new Promise(r => setTimeout(r, 6000));
+                        try {
+                            const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
+                            const d = await r.json();
+                            resolve(d.status === 'complete');
+                        } catch { resolve(false); }
+                        return;
+                    }
+
+                    // Timeout global
+                    if (elapsed >= maxMs) {
                         clearInterval(interval);
                         resolve(false);
                         return;
                     }
 
-                    // Vérifier le statut côté backend
+                    // Vérifier le statut de la session
                     try {
-                        const r    = await fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
-                        const data = await r.json();
-                        if (data.status === 'complete') {
+                        const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
+                        const d = await r.json();
+                        if (d.status === 'complete') {
                             clearInterval(interval);
-                            if (!popup.closed) popup.close();
+                            if (popupRef && !popupRef.closed) popupRef.close();
                             resolve(true);
                         }
-                    } catch { /* continuer à poller */ }
-                }, 3000);
+                    } catch { /* continuer */ }
+                }, pollMs);
             });
         }
 
@@ -198,7 +223,7 @@
         async sendMessage({ MSG, USERNAME, LEVEL }) {
             if (!this._chatSlug || !this._chatApiKey) return;
             try {
-                await fetch(`${API_URL}/api/projects/${encodeURIComponent(this._chatSlug)}/chat`, {
+                await _fetch(`${API_URL}/api/projects/${encodeURIComponent(this._chatSlug)}/chat`, {
                     method:  'POST',
                     headers: {
                         'Content-Type':   'application/json',
@@ -213,43 +238,54 @@
             } catch {}
         }
 
-        // Bloc rond — fetch ET retourne JSON, met aussi à jour l'état interne
         async getMessages({ LIMIT }) {
             if (!this._chatSlug) return '[]';
             const limit = Math.min(100, Math.max(1, parseInt(LIMIT) || 50));
             try {
-                const r    = await fetch(`${API_URL}/api/projects/${encodeURIComponent(this._chatSlug)}/chat?limit=${limit}`);
+                const r    = await _fetch(`${API_URL}/api/projects/${encodeURIComponent(this._chatSlug)}/chat?limit=${limit}`);
                 const data = await r.json();
                 const msgs = data.messages || [];
-                this._newMsg       = msgs.length > this._prevCount ||
+
+                this._newMsg = msgs.length > this._prevCount ||
                     (msgs.length > 0 && this._chatMessages.length > 0 &&
-                     msgs[msgs.length - 1]?.id !== this._chatMessages[this._chatMessages.length - 1]?.id);
+                     msgs[msgs.length - 1]?.timestamp !== this._chatMessages[this._chatMessages.length - 1]?.timestamp);
                 this._prevCount    = msgs.length;
-                this._chatMessages = msgs;
-                return JSON.stringify(msgs);
+                this._chatMessages = msgs; // oldest → newest en interne
+
+                // Retourner newest-first avec position (1 = le plus récent)
+                const output = [...msgs].reverse().map((msg, i) => ({
+                    position: i + 1,
+                    username: msg.username,
+                    message:  msg.message,
+                    level:    msg.level ?? 0,
+                    timestamp: msg.timestamp,
+                }));
+
+                return JSON.stringify(output);
             } catch { return '[]'; }
         }
 
         newMessages() {
             const v = this._newMsg;
-            this._newMsg = false; // auto-reset
+            this._newMsg = false;
             return v;
         }
 
-        messageCount()             { return this._chatMessages.length; }
-        messageText({ INDEX })     { return this._chatMessages[parseInt(INDEX)]?.message  ?? ''; }
-        messageUsername({ INDEX }) { return this._chatMessages[parseInt(INDEX)]?.username ?? ''; }
-        messageLevel({ INDEX })    { return this._chatMessages[parseInt(INDEX)]?.level    ?? 0;  }
+        messageCount() { return this._chatMessages.length; }
 
-        lastMessageText() {
-            return this._chatMessages[this._chatMessages.length - 1]?.message  ?? '';
+        // INDEX 1-basé, 1 = message le plus récent
+        _msgAt(index) {
+            const i = parseInt(index);
+            if (i < 1 || i > this._chatMessages.length) return undefined;
+            return this._chatMessages[this._chatMessages.length - i];
         }
-        lastMessageUsername() {
-            return this._chatMessages[this._chatMessages.length - 1]?.username ?? '';
-        }
-        lastMessageLevel() {
-            return this._chatMessages[this._chatMessages.length - 1]?.level    ?? 0;
-        }
+
+        messageText({ INDEX })     { return this._msgAt(INDEX)?.message  ?? ''; }
+        messageUsername({ INDEX }) { return this._msgAt(INDEX)?.username ?? ''; }
+        messageLevel({ INDEX })    { return this._msgAt(INDEX)?.level    ?? 0;  }
+        lastMessageText()          { return this._msgAt(1)?.message  ?? ''; }
+        lastMessageUsername()      { return this._msgAt(1)?.username ?? ''; }
+        lastMessageLevel()         { return this._msgAt(1)?.level    ?? 0;  }
     }
 
     Scratch.extensions.register(new VakarGames());
