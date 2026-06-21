@@ -899,7 +899,18 @@ async def create_checkout_session(request: Request, game_slug: str, req: ShopChe
         logger.error(f"Stripe checkout error: {e}")
         raise HTTPException(status_code=500, detail="Payment service unavailable")
 
-    return {"checkout_url": session.url}
+    return {"checkout_url": session.url, "session_id": session.id}
+
+@api_router.get("/shop/session/{session_id}/status")
+@limiter.limit("60/minute")
+async def get_session_status(request: Request, session_id: str):
+    def _retrieve():
+        return stripe.checkout.Session.retrieve(session_id)
+    try:
+        session = await asyncio.to_thread(_retrieve)
+        return {"status": session.status, "payment_status": session.payment_status}
+    except Exception:
+        raise HTTPException(status_code=404, detail="Session not found")
 
 @api_router.post("/shop/webhook")
 async def stripe_webhook(request: Request):
