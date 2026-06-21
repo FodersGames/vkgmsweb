@@ -7,7 +7,7 @@ import {
   ClipboardList, Plus, Edit2, Trash2, X, Save, Upload, CheckCircle,
   UserCheck, Undo2, ChevronDown, Image as ImageIcon,
   Flame, ArrowUp, Minus, Zap, Download, FileText, RotateCcw,
-  MessageSquare, AlertCircle, History,
+  MessageSquare, AlertCircle, History, ZoomIn,
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -31,6 +31,30 @@ const STATUS = {
 
 const FILTERS = ['all', 'open', 'in_progress', 'completed'];
 const emptyForm = { title: '', description: '', style_description: '', reference_images: [], priority: 'medium' };
+
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'tif']);
+const isImageExt = (name = '') => IMAGE_EXTS.has(name.split('.').pop()?.toLowerCase());
+
+const resolveUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
+
+// Downloads a file via fetch→blob so the browser saves it in its original format
+// regardless of cross-origin restrictions or browser "open in tab" behaviour for SVG/PDF.
+const downloadFile = async (url, filename) => {
+  try {
+    const fullUrl = resolveUrl(url);
+    const resp = await fetch(fullUrl);
+    if (!resp.ok) throw new Error('Network error');
+    const blob = await resp.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename || fullUrl.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objUrl);
+  } catch { toast.error('Download failed'); }
+};
 
 const PriorityBadge = ({ p }) => {
   const { label, color, bg, Icon } = PRIORITY[p] || PRIORITY.medium;
@@ -67,22 +91,90 @@ const fmtSize = (bytes) => {
   return `${(bytes/1048576).toFixed(1)} MB`;
 };
 
-const FileIcon = ({ name = '' }) => {
-  const ext = name.split('.').pop()?.toLowerCase();
-  const isImg = ['png','jpg','jpeg','gif','webp','svg','bmp','tiff'].includes(ext);
-  return isImg ? <ImageIcon size={13} /> : <FileText size={13} />;
+// ── Reference image card: preview + download in original format ──────────────
+const RefImageCard = ({ url, onZoom }) => {
+  const src = resolveUrl(url);
+  const filename = url.split('/').pop();
+  const ext = filename.split('.').pop()?.toUpperCase();
+  return (
+    <div className="relative group rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e] flex-shrink-0">
+      <img src={src} alt="" className="h-28 w-auto max-w-[140px] object-contain block" />
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+        <button onClick={() => onZoom(src)}
+          className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title="Zoom">
+          <ZoomIn size={14} />
+        </button>
+        <button onClick={() => downloadFile(url, filename)}
+          className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title={`Download .${ext}`}>
+          <Download size={14} />
+        </button>
+      </div>
+      {/* Extension badge */}
+      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/50 text-white/90 backdrop-blur-sm">
+        {ext}
+      </div>
+    </div>
+  );
 };
 
-const DeliveryFileRow = ({ file }) => {
-  const url = file.url?.startsWith('/') ? `${API_URL}${file.url}` : file.url;
+// ── Delivery files: images as a preview grid, others as downloadable rows ────
+const DeliveryFilesDisplay = ({ files, onZoom }) => {
+  const images = files.filter(f => isImageExt(f.filename || f.url || ''));
+  const others  = files.filter(f => !isImageExt(f.filename || f.url || ''));
   return (
-    <a href={url} download={file.filename} target="_blank" rel="noopener noreferrer"
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all">
-      <span className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0"><FileIcon name={file.filename} /></span>
-      <span className="text-xs font-medium text-zinc-700 dark:text-[#e4e4e7] flex-1 truncate">{file.filename || file.url?.split('/').pop()}</span>
-      {file.size && <span className="text-[10px] text-[#71717a] shrink-0">{fmtSize(file.size)}</span>}
-      <Download size={12} className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0" />
-    </a>
+    <div className="space-y-2">
+      {/* Image previews grid */}
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {images.map((f, i) => {
+            const src = resolveUrl(f.url);
+            const filename = f.filename || f.url.split('/').pop();
+            const ext = filename.split('.').pop()?.toUpperCase();
+            return (
+              <div key={i} className="relative group rounded-xl overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e] aspect-square">
+                <img src={src} alt={filename} className="w-full h-full object-contain" />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <div className="flex gap-2">
+                    <button onClick={() => onZoom(src)}
+                      className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title="Zoom">
+                      <ZoomIn size={16} />
+                    </button>
+                    <button onClick={() => downloadFile(f.url, filename)}
+                      className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title={`Download .${ext}`}>
+                      <Download size={16} />
+                    </button>
+                  </div>
+                </div>
+                {/* Bottom label */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="text-[10px] text-white/90 truncate font-medium">{filename}</p>
+                  <p className="text-[9px] text-white/60">{ext}{f.size ? ` · ${fmtSize(f.size)}` : ''}</p>
+                </div>
+                {/* Extension badge */}
+                <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/50 text-white/90 backdrop-blur-sm">
+                  {ext}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* Non-image file rows */}
+      {others.map((f, i) => {
+        const filename = f.filename || f.url?.split('/').pop() || 'file';
+        return (
+          <button key={i} onClick={() => downloadFile(f.url, filename)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
+            <FileText size={13} className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0" />
+            <span className="text-xs font-medium text-zinc-700 dark:text-[#e4e4e7] flex-1 truncate">{filename}</span>
+            {f.size && <span className="text-[10px] text-[#71717a] shrink-0">{fmtSize(f.size)}</span>}
+            <Download size={12} className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0" />
+          </button>
+        );
+      })}
+    </div>
   );
 };
 
@@ -90,29 +182,29 @@ export const MissionsManagement = () => {
   const { token, user, hasPermission } = useAuth();
   const { selectedProject } = useProject();
 
-  const [missions, setMissions]             = useState([]);
-  const [loading, setLoading]               = useState(false);
-  const [filter, setFilter]                 = useState('all');
-  const [showForm, setShowForm]             = useState(false);
-  const [editingMission, setEditingMission] = useState(null);
-  const [form, setForm]                     = useState(emptyForm);
-  const [uploadingRef, setUploadingRef]     = useState(false);
-  const [expandedImg, setExpandedImg]       = useState(null);
-  const [expandedMission, setExpandedMission] = useState(null);
+  const [missions, setMissions]                   = useState([]);
+  const [loading, setLoading]                     = useState(false);
+  const [filter, setFilter]                       = useState('all');
+  const [showForm, setShowForm]                   = useState(false);
+  const [editingMission, setEditingMission]       = useState(null);
+  const [form, setForm]                           = useState(emptyForm);
+  const [uploadingRef, setUploadingRef]           = useState(false);
+  const [expandedImg, setExpandedImg]             = useState(null);
+  const [expandedMission, setExpandedMission]     = useState(null);
 
   // Completion flow
-  const [completingId, setCompletingId]       = useState(null); // mission id
-  const [pendingFiles, setPendingFiles]       = useState([]);   // [{url, filename, size}]
+  const [completingId, setCompletingId]           = useState(null);
+  const [pendingFiles, setPendingFiles]           = useState([]);
   const [uploadingDelivery, setUploadingDelivery] = useState(false);
 
   // Reopen flow
-  const [reopeningId, setReopeningId]   = useState(null);
+  const [reopeningId, setReopeningId]     = useState(null);
   const [reopenFeedback, setReopenFeedback] = useState('');
-  const [keepAssigned, setKeepAssigned] = useState(true);
+  const [keepAssigned, setKeepAssigned]   = useState(true);
 
-  const canCreate  = user?.is_super_admin || hasPermission('create_missions');
-  const canClaim   = user?.is_super_admin || hasPermission('claim_missions');
-  const canManage  = user?.is_super_admin || hasPermission('manage_missions');
+  const canCreate = user?.is_super_admin || hasPermission('create_missions');
+  const canClaim  = user?.is_super_admin || hasPermission('claim_missions');
+  const canManage = user?.is_super_admin || hasPermission('manage_missions');
 
   const fetchMissions = useCallback(async () => {
     if (!selectedProject) return;
@@ -128,11 +220,10 @@ export const MissionsManagement = () => {
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
-  // Reset delivery/reopen state when switching missions
   const resetCompletionForm = () => { setCompletingId(null); setPendingFiles([]); };
-  const resetReopenForm = () => { setReopeningId(null); setReopenFeedback(''); setKeepAssigned(true); };
+  const resetReopenForm     = () => { setReopeningId(null); setReopenFeedback(''); setKeepAssigned(true); };
 
-  // ── Reference image upload (for mission creation) ──
+  // ── Ref image upload ──
   const uploadRefImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -149,12 +240,12 @@ export const MissionsManagement = () => {
     finally { setUploadingRef(false); }
   };
 
-  // ── Delivery file upload (for completing a mission) ──
+  // ── Delivery upload ──
   const uploadDelivery = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     setUploadingDelivery(true);
-    let uploaded = 0;
+    let ok = 0;
     for (const file of files) {
       const fd = new FormData();
       fd.append('file', file);
@@ -163,15 +254,13 @@ export const MissionsManagement = () => {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
         });
         setPendingFiles(prev => [...prev, { url: r.data.url, filename: r.data.filename, size: r.data.size }]);
-        uploaded++;
-      } catch (err) { toast.error(`Failed to upload ${file.name}: ${err.response?.data?.detail || 'error'}`); }
+        ok++;
+      } catch (err) { toast.error(`Failed: ${file.name}`); }
     }
-    if (uploaded > 0) toast.success(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded`);
+    if (ok > 0) toast.success(`${ok} file${ok > 1 ? 's' : ''} ready`);
     setUploadingDelivery(false);
     e.target.value = '';
   };
-
-  const removeDeliveryFile = (idx) => setPendingFiles(prev => prev.filter((_, i) => i !== idx));
 
   // ── Mission CRUD ──
   const openCreate = () => { setEditingMission(null); setForm(emptyForm); setShowForm(true); };
@@ -277,7 +366,7 @@ export const MissionsManagement = () => {
   return (
     <div className="max-w-4xl space-y-4">
 
-      {/* ── HEADER ── */}
+      {/* ── FILTERS + NEW ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {FILTERS.map(f => (
@@ -343,11 +432,11 @@ export const MissionsManagement = () => {
                 placeholder="Pixel art 16×16, dark grey palette, fits existing stone theme…" />
             </div>
             <div>
-              <label className={labelClass}>Reference Images</label>
+              <label className={labelClass}>Reference Files <span className="text-[#71717a] normal-case font-normal">(images, SVG…)</span></label>
               <div className="flex flex-wrap gap-2">
                 {form.reference_images.map((url, idx) => (
-                  <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c]">
-                    <img src={url.startsWith('/') ? `${API_URL}${url}` : url} alt="" className="w-full h-full object-cover" />
+                  <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e]">
+                    <img src={resolveUrl(url)} alt="" className="w-full h-full object-contain" />
                     <button onClick={() => setForm(f => ({ ...f, reference_images: f.reference_images.filter((_, i) => i !== idx) }))}
                       className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <X size={10} />
@@ -357,7 +446,7 @@ export const MissionsManagement = () => {
                 <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-zinc-400 dark:text-[#71717a] ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-zinc-300 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
                   <Upload size={16} />
                   <span className="text-[10px] mt-1">{uploadingRef ? '…' : 'Add'}</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={uploadRefImage} disabled={uploadingRef} />
+                  <input type="file" accept="image/*,.svg" className="hidden" onChange={uploadRefImage} disabled={uploadingRef} />
                 </label>
               </div>
             </div>
@@ -393,23 +482,23 @@ export const MissionsManagement = () => {
       ) : (
         <div className="space-y-3">
           {displayed.map(m => {
-            const myName = user?.username;
-            const isClaimedByMe  = m.claimed_by === myName;
-            const isCreatedByMe  = m.created_by === myName;
-            const canEditThis    = canManage || isCreatedByMe;
-            const canDeleteThis  = canManage || isCreatedByMe;
-            const canReopenThis  = canManage || isCreatedByMe;
-            const isExpanded     = expandedMission === m.id;
-            const isCompleting   = completingId === m.id;
-            const isReopening    = reopeningId === m.id;
-            const hasDetails     = m.style_description || m.reference_images?.length > 0
-                                || m.delivery_files?.length > 0 || m.revisions?.length > 0;
+            const myName        = user?.username;
+            const isClaimedByMe = m.claimed_by === myName;
+            const isCreatedByMe = m.created_by === myName;
+            const canEditThis   = canManage || isCreatedByMe;
+            const canDeleteThis = canManage || isCreatedByMe;
+            const canReopenThis = canManage || isCreatedByMe;
+            const isExpanded    = expandedMission === m.id;
+            const isCompleting  = completingId === m.id;
+            const isReopening   = reopeningId === m.id;
+            const hasDetails    = m.style_description || m.reference_images?.length > 0
+                               || m.delivery_files?.length > 0 || m.revisions?.length > 0;
 
             return (
               <div key={m.id}
                 className={`bg-white dark:bg-[#151520] rounded-xl border transition-all overflow-hidden ${
-                  m.status === 'completed' ? 'border-[#27AE60]/30' :
-                  m.status === 'cancelled' ? 'border-zinc-200 dark:border-[#2a2a3c] opacity-60' :
+                  m.status === 'completed'   ? 'border-[#27AE60]/30' :
+                  m.status === 'cancelled'   ? 'border-zinc-200 dark:border-[#2a2a3c] opacity-60' :
                   m.status === 'in_progress' ? 'border-[#F2994A]/40' :
                   'border-zinc-200 dark:border-[#2a2a3c]'
                 }`}>
@@ -442,7 +531,6 @@ export const MissionsManagement = () => {
 
                     {/* ── Actions ── */}
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                      {/* Expand */}
                       {hasDetails && (
                         <button onClick={() => { setExpandedMission(isExpanded ? null : m.id); resetCompletionForm(); resetReopenForm(); }}
                           className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-[#1c1c2e] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white transition-all">
@@ -451,14 +539,12 @@ export const MissionsManagement = () => {
                           <ChevronDown size={10} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </button>
                       )}
-                      {/* Claim */}
                       {m.status === 'open' && canClaim && (
                         <button onClick={() => claimMission(m.id)}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] border border-[#4ECDC4]/30 transition-all">
                           <UserCheck size={12} />Claim
                         </button>
                       )}
-                      {/* Done (opens form) / Unclaim */}
                       {m.status === 'in_progress' && (isClaimedByMe || canManage) && (
                         <>
                           {!isCompleting && (
@@ -473,21 +559,18 @@ export const MissionsManagement = () => {
                           </button>
                         </>
                       )}
-                      {/* Reopen */}
                       {m.status === 'completed' && canReopenThis && !isReopening && (
                         <button onClick={() => { setReopeningId(m.id); setReopenFeedback(''); setKeepAssigned(true); resetCompletionForm(); setExpandedMission(m.id); }}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[#EB5757]/10 hover:bg-[#EB5757]/20 text-[#EB5757] border border-[#EB5757]/30 transition-all">
                           <RotateCcw size={12} />Reopen
                         </button>
                       )}
-                      {/* Edit */}
                       {canEditThis && m.status !== 'completed' && m.status !== 'cancelled' && (
                         <button onClick={() => openEdit(m)}
                           className="p-1.5 rounded-lg text-zinc-400 dark:text-[#71717a] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
                           <Edit2 size={13} />
                         </button>
                       )}
-                      {/* Delete */}
                       {canDeleteThis && (
                         <button onClick={() => deleteMission(m)}
                           className="p-1.5 rounded-lg text-zinc-400 dark:text-[#71717a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
@@ -506,28 +589,30 @@ export const MissionsManagement = () => {
                     {isCompleting && (
                       <div className="px-4 py-4 border-b border-zinc-200 dark:border-[#1c1c2e] bg-[#27AE60]/5">
                         <p className="text-xs font-semibold text-[#27AE60] mb-3 flex items-center gap-1.5">
-                          <CheckCircle size={13} />Submit your work
+                          <CheckCircle size={13} />Submit your work files
                         </p>
-                        {/* Drop zone */}
                         <label className={`flex flex-col items-center justify-center gap-2 w-full py-5 rounded-xl border-2 border-dashed cursor-pointer transition-all ${uploadingDelivery ? 'opacity-50 cursor-wait border-[#27AE60]/30' : 'border-zinc-300 dark:border-[#2a2a3c] hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5'}`}>
                           <Upload size={20} className="text-zinc-400 dark:text-[#71717a]" />
                           <div className="text-center">
                             <p className="text-xs font-semibold text-zinc-700 dark:text-[#e4e4e7]">{uploadingDelivery ? 'Uploading…' : 'Click to add files'}</p>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">PNG, PSD, ZIP, PDF… up to 50 MB per file</p>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">PNG, SVG, PSD, ZIP, PDF… up to 50 MB per file · Multiple allowed</p>
                           </div>
                           <input type="file" multiple className="hidden" onChange={uploadDelivery} disabled={uploadingDelivery} />
                         </label>
-                        {/* Pending file list */}
+                        {/* Preview of pending delivery files */}
                         {pendingFiles.length > 0 && (
-                          <div className="mt-2 space-y-1.5">
-                            {pendingFiles.map((f, i) => (
-                              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-[#27AE60]/30">
-                                <FileIcon name={f.filename} />
-                                <span className="text-xs text-zinc-700 dark:text-[#e4e4e7] flex-1 truncate">{f.filename}</span>
-                                <span className="text-[10px] text-[#71717a]">{fmtSize(f.size)}</span>
-                                <button onClick={() => removeDeliveryFile(i)} className="text-[#71717a] hover:text-red-400 transition-colors"><X size={12} /></button>
-                              </div>
-                            ))}
+                          <div className="mt-3">
+                            <DeliveryFilesDisplay files={pendingFiles} onZoom={setExpandedImg} />
+                            <div className="mt-2 space-y-0">
+                              {/* Per-file remove buttons */}
+                              {pendingFiles.map((f, i) => (
+                                <div key={i} className="flex items-center justify-between text-[11px] text-[#71717a] py-0.5">
+                                  <span className="truncate">{f.filename}</span>
+                                  <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
+                                    className="ml-2 text-red-400 hover:text-red-500 shrink-0"><X size={11} /></button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         <div className="flex gap-2 mt-3">
@@ -547,17 +632,15 @@ export const MissionsManagement = () => {
                     {isReopening && (
                       <div className="px-4 py-4 border-b border-zinc-200 dark:border-[#1c1c2e] bg-[#EB5757]/5">
                         <p className="text-xs font-semibold text-[#EB5757] mb-3 flex items-center gap-1.5">
-                          <AlertCircle size={13} />Reopen mission — describe what needs to be corrected
+                          <AlertCircle size={13} />Reopen — describe what needs to be corrected
                         </p>
                         <textarea value={reopenFeedback} onChange={e => setReopenFeedback(e.target.value)}
                           className={`${inputClass} resize-none`} rows={3}
-                          placeholder="The stone texture is too smooth. Please add more detail on the shading…" />
-                        <div className="flex items-center gap-3 mt-2.5">
-                          <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-700 dark:text-[#e4e4e7] select-none">
-                            <input type="checkbox" checked={keepAssigned} onChange={e => setKeepAssigned(e.target.checked)} className="w-3.5 h-3.5 rounded" />
-                            Keep assigned to <span className="font-semibold text-[#F2994A]">{m.claimed_by}</span>
-                          </label>
-                        </div>
+                          placeholder="The stone texture is too smooth. Please add more shading detail…" />
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-700 dark:text-[#e4e4e7] select-none mt-2.5">
+                          <input type="checkbox" checked={keepAssigned} onChange={e => setKeepAssigned(e.target.checked)} className="w-3.5 h-3.5 rounded" />
+                          Keep assigned to <span className="font-semibold text-[#F2994A]">{m.claimed_by}</span>
+                        </label>
                         <div className="flex gap-2 mt-3">
                           <button onClick={submitReopen} disabled={!reopenFeedback.trim()}
                             className="flex items-center gap-1.5 px-4 py-2 bg-[#EB5757] hover:bg-[#d44] disabled:opacity-40 text-white rounded-lg text-sm font-semibold transition-all">
@@ -571,7 +654,7 @@ export const MissionsManagement = () => {
                       </div>
                     )}
 
-                    {/* Details: style + reference images */}
+                    {/* Style notes + reference files */}
                     {(m.style_description || m.reference_images?.length > 0) && (
                       <div className="px-4 py-3 space-y-3 border-b border-zinc-100 dark:border-[#1c1c2e]">
                         {m.style_description && (
@@ -582,16 +665,13 @@ export const MissionsManagement = () => {
                         )}
                         {m.reference_images?.length > 0 && (
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a] mb-2">Reference Images</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a] mb-2">
+                              Reference Files <span className="normal-case font-normal">(hover to download in original format)</span>
+                            </p>
                             <div className="flex flex-wrap gap-2">
-                              {m.reference_images.map((url, i) => {
-                                const src = url.startsWith('/') ? `${API_URL}${url}` : url;
-                                return (
-                                  <img key={i} src={src} alt=""
-                                    className="h-24 w-auto rounded-lg object-cover border border-zinc-200 dark:border-[#2a2a3c] cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => setExpandedImg(src)} />
-                                );
-                              })}
+                              {m.reference_images.map((url, i) => (
+                                <RefImageCard key={i} url={url} onZoom={setExpandedImg} />
+                              ))}
                             </div>
                           </div>
                         )}
@@ -602,11 +682,9 @@ export const MissionsManagement = () => {
                     {m.delivery_files?.length > 0 && (
                       <div className="px-4 py-3 border-b border-zinc-100 dark:border-[#1c1c2e]">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[#27AE60] mb-2 flex items-center gap-1.5">
-                          <Download size={10} />Delivered Files
+                          <Download size={10} />Delivered Work
                         </p>
-                        <div className="space-y-1.5">
-                          {m.delivery_files.map((f, i) => <DeliveryFileRow key={i} file={f} />)}
-                        </div>
+                        <DeliveryFilesDisplay files={m.delivery_files} onZoom={setExpandedImg} />
                       </div>
                     )}
 
@@ -619,7 +697,6 @@ export const MissionsManagement = () => {
                         <div className="space-y-2">
                           {[...m.revisions].reverse().map((rev, i) => (
                             <div key={i} className={`rounded-lg border overflow-hidden text-xs ${rev.feedback ? 'border-[#EB5757]/20' : 'border-[#27AE60]/20'}`}>
-                              {/* Delivery row */}
                               <div className="px-3 py-2 bg-[#27AE60]/5 flex items-center justify-between gap-2">
                                 <span className="flex items-center gap-1.5 font-semibold text-[#27AE60]">
                                   <CheckCircle size={11} />Round {rev.round} — {rev.delivered_by}
@@ -627,11 +704,10 @@ export const MissionsManagement = () => {
                                 <span className="text-[#71717a] text-[10px]">{timeAgo(rev.delivered_at)}</span>
                               </div>
                               {rev.delivery_files?.length > 0 && (
-                                <div className="px-3 py-2 space-y-1 border-t border-[#27AE60]/10">
-                                  {rev.delivery_files.map((f, j) => <DeliveryFileRow key={j} file={f} />)}
+                                <div className="px-3 py-2 border-t border-[#27AE60]/10">
+                                  <DeliveryFilesDisplay files={rev.delivery_files} onZoom={setExpandedImg} />
                                 </div>
                               )}
-                              {/* Feedback row */}
                               {rev.feedback && (
                                 <div className="px-3 py-2 bg-[#EB5757]/5 border-t border-[#EB5757]/20">
                                   <div className="flex items-center justify-between mb-1">
@@ -658,11 +734,18 @@ export const MissionsManagement = () => {
 
       {/* ── LIGHTBOX ── */}
       {expandedImg && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setExpandedImg(null)}>
+        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={() => setExpandedImg(null)}>
           <img src={expandedImg} alt="" className="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl" />
-          <button className="absolute top-4 right-4 w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors" onClick={() => setExpandedImg(null)}>
-            <X size={18} />
-          </button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button onClick={e => { e.stopPropagation(); downloadFile(expandedImg, expandedImg.split('/').pop()); }}
+              className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors" title="Download">
+              <Download size={16} />
+            </button>
+            <button onClick={() => setExpandedImg(null)}
+              className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">
+              <X size={18} />
+            </button>
+          </div>
         </div>
       )}
     </div>
