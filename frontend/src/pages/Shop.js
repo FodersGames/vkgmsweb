@@ -2,7 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { ShoppingCart, X, Loader2, ArrowLeft, Link2, Gift, Star, Clock } from 'lucide-react';
+import { ShoppingCart, X, Loader2, ArrowLeft, Link2, Gift, Star, Clock, Package,
+  Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
+  Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
+  Award, Map, Cpu, Music, Moon, Sun, Tag } from 'lucide-react';
+
+const CATEGORY_ICONS = {
+  package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
+  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
+  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
+  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
+  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun,
+  gift: Gift, tag: Tag, star: Star,
+};
+const CatIcon = ({ name, size = 13 }) => {
+  const Comp = CATEGORY_ICONS[name] || Package;
+  return <Comp size={size} />;
+};
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -229,7 +245,7 @@ const Shop = () => {
                 style={activeCategory === c.id
                   ? { backgroundColor: primary, color: '#fff', borderColor: primary }
                   : { backgroundColor: 'transparent', color: textColor || undefined, borderColor: borderColor || undefined }}>
-                {c.emoji && <span>{c.emoji}</span>}{c.label}
+                {c.icon ? <CatIcon name={c.icon} size={13} /> : c.emoji ? <span>{c.emoji}</span> : null}{c.label}
               </button>
             ))}
           </div>

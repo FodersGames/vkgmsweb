@@ -994,26 +994,34 @@ async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaim
     now = datetime.now(timezone.utc)
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     tomorrow = today_start + timedelta(days=1)
-    date_key = today_start.date().isoformat()  # e.g. "2025-06-21"
-
+    date_key = today_start.date().isoformat()
     seconds_left = int((tomorrow - now).total_seconds())
 
-    # Pre-check: covers both old records (no date_key) and new ones
-    if await db.website_shop_daily_claims.find_one({
-        "game_slug": game_slug, "player_uid": player_uid,
-        "claimed_at": {"$gte": today_start}
-    }):
+    # Atomic claim slot reservation using find_one_and_update + upsert.
+    # MongoDB guarantees only one concurrent request can perform the insert —
+    # all others will find the document already exists and get it returned.
+    # return_document=False → returns the PRE-UPDATE doc (None if newly inserted).
+    existing = await db.website_shop_daily_claims.find_one_and_update(
+        {"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key},
+        {"$setOnInsert": {"claimed_at": now}},
+        upsert=True,
+        return_document=False,
+    )
+    if existing is not None:
+        # Document existed before → already claimed today
         raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
 
-    # Atomic insert with unique index as race-condition guard
-    try:
-        await db.website_shop_daily_claims.insert_one({
-            "game_slug": game_slug,
-            "player_uid": player_uid,
-            "date_key": date_key,
-            "claimed_at": now,
-        })
-    except DuplicateKeyError:
+    # Also block old-format claims (records without date_key, from before this fix)
+    old_claim = await db.website_shop_daily_claims.find_one({
+        "game_slug": game_slug, "player_uid": player_uid,
+        "date_key": {"$exists": False},
+        "claimed_at": {"$gte": today_start},
+    })
+    if old_claim:
+        # Rollback the slot we just reserved, then reject
+        await db.website_shop_daily_claims.delete_one(
+            {"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key}
+        )
         raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
 
     project = await db.projects.find_one({"slug": gift["project_slug"]})

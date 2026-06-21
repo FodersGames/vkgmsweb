@@ -5,11 +5,60 @@ import { toast } from 'sonner';
 import {
   ShoppingBag, Plus, Edit2, Trash2, Save, X, Settings, Package,
   Eye, EyeOff, Link2, Upload, Download, Palette, Gift, Tag, Star,
+  Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
+  Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
+  Award, Map, Cpu, Music, Moon, Sun, ChevronDown,
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const BADGE_OPTIONS = ['', 'NEW', 'SALE', 'LIMITED', 'HOT', 'POPULAR'];
+
+const CATEGORY_ICONS = {
+  package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
+  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
+  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
+  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
+  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun,
+  gift: Gift, tag: Tag, star: Star,
+};
+
+const CategoryIcon = ({ name, size = 14, className = '' }) => {
+  const Comp = CATEGORY_ICONS[name] || Package;
+  return <Comp size={size} className={className} />;
+};
+
+const IconPicker = ({ value, onChange }) => {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const Comp = CATEGORY_ICONS[value] || Package;
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-sm text-zinc-700 dark:text-[#e4e4e7] hover:border-[#6C5CE7]/40 transition-all w-full">
+        <Comp size={15} className="text-[#6C5CE7] shrink-0" />
+        <span className="flex-1 text-left capitalize">{value || 'Choose icon…'}</span>
+        <ChevronDown size={12} className="text-[#71717a] shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 p-2 bg-white dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl shadow-xl z-30 grid grid-cols-7 gap-1 min-w-[240px]">
+          {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
+            <button key={name} type="button" title={name}
+              onClick={() => { onChange(name); setOpen(false); }}
+              className={`p-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-[#2a2a3c] transition-all ${value === name ? 'bg-[#6C5CE7]/15 text-[#6C5CE7]' : 'text-zinc-500 dark:text-[#71717a]'}`}>
+              <IC size={16} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const defaultForm = {
   name: '', description: '', price: '', image_url: '',
@@ -109,9 +158,8 @@ export const ShopManagement = () => {
   const [importJson, setImportJson] = useState('');
 
   // Category editor
-  const [newCatId, setNewCatId]     = useState('');
   const [newCatLabel, setNewCatLabel] = useState('');
-  const [newCatEmoji, setNewCatEmoji] = useState('');
+  const [newCatIcon, setNewCatIcon]   = useState('package');
 
   useEffect(() => { fetchGames(); fetchProjects(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { if (selectedGame) { fetchProducts(); fetchSettings(); fetchGift(); } /* eslint-disable-next-line */ }, [selectedGame]);
@@ -248,16 +296,28 @@ export const ShopManagement = () => {
     toast.success(`"${preset.label}" preset applied — save to apply.`);
   };
 
-  const addCategory = () => {
-    const id = newCatId.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!id || !newCatLabel.trim()) return;
-    if (settings.categories.some(c => c.id === id)) { toast.error('Category ID already exists'); return; }
-    setSettings(s => ({ ...s, categories: [...s.categories, { id, label: newCatLabel.trim(), emoji: newCatEmoji.trim() || '📦' }] }));
-    setNewCatId(''); setNewCatLabel(''); setNewCatEmoji('');
+  const addCategory = async () => {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (settings.categories.some(c => c.id === id)) { toast.error('Category already exists'); return; }
+    const newCat = { id, label, icon: newCatIcon };
+    const updated = { ...settings, categories: [...settings.categories, newCat] };
+    setSettings(updated);
+    setNewCatLabel(''); setNewCatIcon('package');
+    try {
+      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/settings`, updated, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success('Category added');
+    } catch (e) { toast.error('Added locally — click Save Theme to persist'); }
   };
 
-  const removeCategory = (id) => {
-    setSettings(s => ({ ...s, categories: s.categories.filter(c => c.id !== id) }));
+  const removeCategory = async (id) => {
+    const updated = { ...settings, categories: settings.categories.filter(c => c.id !== id) };
+    setSettings(updated);
+    try {
+      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/settings`, updated, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success('Category removed');
+    } catch (e) { toast.error('Removed locally — click Save Theme to persist'); }
   };
 
   const set = (key, value) => setSettings(s => ({ ...s, [key]: value }));
@@ -363,7 +423,7 @@ export const ShopManagement = () => {
                           <label className={labelClass}>Category</label>
                           <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputClass}>
                             <option value="">— No category —</option>
-                            {settings.categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                            {settings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                           </select>
                         </div>
                         <div>
@@ -427,7 +487,10 @@ export const ShopManagement = () => {
                               <span className="font-semibold text-sm text-zinc-900 dark:text-[#e4e4e7]">{p.name}</span>
                               {p.featured && <Star size={11} className="text-yellow-400 fill-yellow-400" />}
                               {p.badge && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#6C5CE7]/20 text-[#A29BFE] uppercase">{p.badge}</span>}
-                              {p.category && <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-slate-200 dark:bg-[#2a2a3c] text-[#71717a]">{settings.categories.find(c => c.id === p.category)?.emoji} {p.category}</span>}
+                              {p.category && (() => { const cat = settings.categories.find(c => c.id === p.category); return cat ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-slate-200 dark:bg-[#2a2a3c] text-[#71717a]">
+                                  <CategoryIcon name={cat.icon} size={10} />{cat.label}
+                                </span>) : null; })()}
                               {!p.active && <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-zinc-200 dark:bg-[#2a2a3c] text-[#71717a]">HIDDEN</span>}
                             </div>
                             <div className="flex items-center gap-3 mt-0.5 flex-wrap">
@@ -576,25 +639,33 @@ export const ShopManagement = () => {
 
                   <SectionDivider label="Categories" />
 
-                  <div className="md:col-span-2">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {settings.categories.length === 0 && <p className="text-xs text-[#71717a]">No categories yet. Add one below.</p>}
-                      {settings.categories.map(c => (
-                        <div key={c.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-full text-sm">
-                          <span>{c.emoji}</span><span className="font-medium text-zinc-700 dark:text-[#e4e4e7]">{c.label}</span>
-                          <span className="text-[#71717a] text-xs">({c.id})</span>
-                          <button onClick={() => removeCategory(c.id)} className="text-[#71717a] hover:text-red-400 transition-colors ml-0.5"><X size={12} /></button>
+                  <div className="md:col-span-2 space-y-3">
+                    {/* Existing categories */}
+                    {settings.categories.length === 0
+                      ? <p className="text-xs text-[#71717a]">No categories yet. Add one below.</p>
+                      : <div className="flex flex-wrap gap-2">
+                          {settings.categories.map(c => (
+                            <div key={c.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-full text-sm">
+                              <CategoryIcon name={c.icon} size={13} className="text-[#6C5CE7]" />
+                              <span className="font-medium text-zinc-700 dark:text-[#e4e4e7]">{c.label}</span>
+                              <span className="text-[#71717a] text-xs opacity-60">#{c.id}</span>
+                              <button onClick={() => removeCategory(c.id)} className="text-[#71717a] hover:text-red-400 transition-colors ml-0.5"><X size={12} /></button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                    }
+                    {/* Add new category */}
+                    <div className="flex gap-2 items-start">
+                      <div className="w-44 shrink-0">
+                        <IconPicker value={newCatIcon} onChange={setNewCatIcon} />
+                      </div>
+                      <input type="text" value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                        className={`${inputClass} flex-1`} placeholder="Category name (e.g. Weapons)" />
+                      <button onClick={addCategory} className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-sm font-semibold transition-all">
+                        <Plus size={13} />Add
+                      </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <input type="text" value={newCatEmoji} onChange={e => setNewCatEmoji(e.target.value)} className={inputClass} placeholder="🗡️ emoji" />
-                      <input type="text" value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)} className={inputClass} placeholder="Label (e.g. Weapons)" />
-                      <input type="text" value={newCatId} onChange={e => setNewCatId(e.target.value)} className={inputClass} placeholder="ID (e.g. weapons)" />
-                    </div>
-                    <button onClick={addCategory} className="mt-2 flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/40 rounded-lg text-sm font-medium text-zinc-600 dark:text-[#71717a] transition-all">
-                      <Plus size={13} />Add Category
-                    </button>
                   </div>
 
                   {/* Live preview */}
