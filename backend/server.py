@@ -201,13 +201,28 @@ class ShopCheckoutRequest(BaseModel):
     player_uid: str
 
 class ShopSettingsRequest(BaseModel):
+    # Banner
     shop_title: str = ""
-    primary_color: str = "#6C5CE7"
-    accent_color: str = "#A29BFE"
     banner_url: str = ""
     banner_title: str = ""
     banner_subtitle: str = ""
-    card_style: str = "rounded"
+    banner_height: str = "md"         # sm | md | lg
+    banner_overlay: str = "rgba(0,0,0,0.55)"
+    # Colors
+    primary_color: str = "#6C5CE7"
+    accent_color: str = "#A29BFE"
+    background_color: str = ""        # page bg (vide = défaut CSS)
+    surface_color: str = ""           # card bg
+    border_color: str = ""            # card border
+    text_color: str = ""              # primary text
+    text_muted_color: str = ""        # secondary text
+    price_color: str = ""             # vide = primary_color
+    # Background texture
+    bg_texture_url: str = ""
+    bg_texture_opacity: float = 0.05
+    # Cards
+    card_style: str = "rounded"       # rounded | sharp
+    card_shadow: str = "sm"           # none | sm | md | glow
 
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
@@ -829,8 +844,13 @@ async def delete_shop_product(game_slug: str, product_id: str, user=Depends(requ
 async def get_shop_settings(game_slug: str):
     doc = await db.website_shop_settings.find_one({"game_slug": game_slug})
     if not doc:
-        return {"game_slug": game_slug, "shop_title": "", "primary_color": "#6C5CE7", "accent_color": "#A29BFE",
-                "banner_url": "", "banner_title": "", "banner_subtitle": "", "card_style": "rounded"}
+        return {"game_slug": game_slug, "shop_title": "", "banner_url": "", "banner_title": "", "banner_subtitle": "",
+                "banner_height": "md", "banner_overlay": "rgba(0,0,0,0.55)",
+                "primary_color": "#6C5CE7", "accent_color": "#A29BFE",
+                "background_color": "", "surface_color": "", "border_color": "",
+                "text_color": "", "text_muted_color": "", "price_color": "",
+                "bg_texture_url": "", "bg_texture_opacity": 0.05,
+                "card_style": "rounded", "card_shadow": "sm"}
     return serialize_doc(doc)
 
 @api_router.put("/shop/{game_slug}/settings")
