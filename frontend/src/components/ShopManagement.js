@@ -346,6 +346,7 @@ export const ShopManagement = () => {
   ];
 
   return (
+    <>
     <div className="max-w-5xl space-y-4">
       {/* Game selector */}
       <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] p-4">
@@ -828,5 +829,6 @@ export const ShopManagement = () => {
       loading={confirmLoading}
       variant="destructive"
     />
+    </>
   );
 };
