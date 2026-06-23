@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield, Globe, ShoppingBag, ClipboardList, MessageSquare } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 // Static groups (everything except Projects which is built dynamically)
 const STATIC_GROUPS = [
@@ -113,6 +112,17 @@ export const UserManagement = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({ username: '', permissions: [] });
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   // Derived: permission groups with dynamic per-project entries
   const permissionGroups = buildPermissionGroups(projectsList);
@@ -126,14 +136,14 @@ export const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/users`, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await api.get(`/api/users`);
       setUsers(response.data.users);
-    } catch (error) { console.error('Failed to fetch users'); }
+    } catch (error) {}
   };
 
   const fetchProjectsList = async () => {
     try {
-      const r = await axios.get(`${API_URL}/api/projects`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/projects`);
       setProjectsList(r.data.projects || []);
     } catch { /* non-blocking */ }
   };
@@ -168,7 +178,7 @@ export const UserManagement = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/users`, formData, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await api.post(`/api/users`, formData);
       setCreatedUser(response.data);
       toast.success(`User ${formData.username} created`);
       setFormData({ username: '', permissions: [] });
@@ -181,7 +191,7 @@ export const UserManagement = () => {
   const handleUpdatePermissions = async (username) => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/api/users/${username}/permissions`, { permissions: editingUser.permissions }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/users/${username}/permissions`, { permissions: editingUser.permissions });
       toast.success('Permissions updated');
       setEditingUser(null);
       fetchUsers();
@@ -189,13 +199,16 @@ export const UserManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDeleteUser = async (username) => {
-    if (!window.confirm(`Delete user "${username}"?`)) return;
-    try {
-      await axios.delete(`${API_URL}/api/users/${username}`, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success('User deleted');
-      fetchUsers();
-    } catch (error) { toast.error(error.response?.data?.detail || 'Failed to delete'); }
+  const handleDeleteUser = (username) => {
+    showConfirm({
+      title: 'Delete user',
+      description: `"${username}" will be permanently deleted and lose access to the dashboard.`,
+      onConfirm: async () => {
+        await api.delete(`/api/users/${username}`);
+        toast.success('User deleted');
+        fetchUsers();
+      },
+    });
   };
 
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text); toast.success('Copied to clipboard'); };
@@ -392,5 +405,16 @@ export const UserManagement = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete user"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { useTheme } from '../context/ThemeContext';
@@ -6,6 +6,7 @@ import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
   MessageSquare, Sun, Moon, Menu, X, ShoppingBag, ClipboardList,
+  LayoutDashboard,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -13,6 +14,7 @@ import { ServerStatus } from '../components/ServerStatus';
 import { LogsViewer } from '../components/LogsViewer';
 import { VariablesManagement } from '../components/VariablesManagement';
 import { ApiEndpoints } from '../components/ApiEndpoints';
+import { DashboardOverview } from '../components/DashboardOverview';
 import { ProjectManagement } from '../components/ProjectManagement';
 import { GamesManagement } from '../components/GamesManagement';
 import { BlogManagement } from '../components/BlogManagement';
@@ -22,6 +24,7 @@ import { ShopManagement } from '../components/ShopManagement';
 import { MissionsManagement } from '../components/MissionsManagement';
 
 const tabConfig = {
+  'overview':        { gradient: 'from-[#4ECDC4] to-[#2CB5AC]', text: '#4ECDC4' },
   'projects':        { gradient: 'from-[#6C5CE7] to-[#A29BFE]', text: '#A29BFE' },
   'send-items':      { gradient: 'from-[#F2994A] to-[#EB5757]',  text: '#F2994A' },
   'status':          { gradient: 'from-[#4ECDC4] to-[#2CB5AC]',  text: '#4ECDC4' },
@@ -41,24 +44,18 @@ const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
   const { projects, selectedProject, selectProject } = useProject();
   const { isDark, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState('projects');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (hasPermission('view_projects')) setActiveTab('projects');
-    else if (hasPermission('send_items')) setActiveTab('send-items');
-    else if (hasPermission('manage_users')) setActiveTab('users');
-    // eslint-disable-next-line
-  }, [user]);
 
   const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions'];
   const needsProject = projectTabs.includes(activeTab);
 
   const generalItems = [
-    { id: 'projects',  label: 'Projects',  icon: Gamepad2,      permission: 'view_projects' },
-    { id: 'users',     label: 'Users',     icon: Users,          permission: 'manage_users' },
-    { id: 'api',       label: 'API Docs',  icon: Code,           permission: 'view_api_docs' },
+    { id: 'overview',  label: 'Overview',  icon: LayoutDashboard, permission: null },
+    { id: 'projects',  label: 'Projects',  icon: Gamepad2,        permission: 'view_projects' },
+    { id: 'users',     label: 'Users',     icon: Users,            permission: 'manage_users' },
+    { id: 'api',       label: 'API Docs',  icon: Code,             permission: 'view_api_docs' },
   ];
 
   const projectItems = [
@@ -83,7 +80,8 @@ const DashboardContent = () => {
     const Icon = item.icon;
     const isActive = activeTab === item.id;
     const colors = tabConfig[item.id] || tabConfig['projects'];
-    if (!hasPermission(item.permission)) return null;
+    // permission: null = accessible to every authenticated user
+    if (item.permission !== null && !hasPermission(item.permission)) return null;
     return (
       <button
         key={item.id}
@@ -276,6 +274,7 @@ const DashboardContent = () => {
 
         {/* Page content */}
         <div className="p-4 md:p-6 flex-1">
+          {activeTab === 'overview' && <DashboardOverview setActiveTab={setActiveTab} />}
           {activeTab === 'projects' && <ProjectManagement />}
           {activeTab === 'users' && hasPermission('manage_users') && <UserManagement />}
           {activeTab === 'api' && hasPermission('view_api_docs') && <ApiEndpoints />}

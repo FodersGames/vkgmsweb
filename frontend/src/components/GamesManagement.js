@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Gamepad2, Plus, Trash2, Edit2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api, { API_URL } from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const PLATFORMS = [
   { id: 'steam', label: 'Steam' },
@@ -23,14 +22,25 @@ export const GamesManagement = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false });
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   useEffect(() => { fetchGames(); /* eslint-disable-next-line */ }, []);
 
   const fetchGames = async () => {
     try {
-      const r = await axios.get(`${API_URL}/api/website/games`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/website/games`);
       setGames(r.data.games);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   };
 
   const uploadFile = async (file) => {
@@ -38,7 +48,7 @@ export const GamesManagement = () => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await axios.post(`${API_URL}/api/upload`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+      const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       return r.data.url;
     } catch (e) { toast.error('Upload failed'); return null; }
     finally { setUploading(false); }
@@ -88,10 +98,10 @@ export const GamesManagement = () => {
     setLoading(true);
     try {
       if (editing) {
-        await axios.put(`${API_URL}/api/website/games/${editing}`, form, { headers: { Authorization: `Bearer ${token}` } });
+        await api.put(`/api/website/games/${editing}`, form);
         toast.success('Game updated');
       } else {
-        await axios.post(`${API_URL}/api/website/games`, form, { headers: { Authorization: `Bearer ${token}` } });
+        await api.post(`/api/website/games`, form);
         toast.success('Game created');
       }
       resetForm();
@@ -100,13 +110,16 @@ export const GamesManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (slug) => {
-    if (!window.confirm('Delete this game?')) return;
-    try {
-      await axios.delete(`${API_URL}/api/website/games/${slug}`, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success('Game deleted');
-      fetchGames();
-    } catch (e) { toast.error('Failed to delete'); }
+  const handleDelete = (slug, name) => {
+    showConfirm({
+      title: 'Delete game',
+      description: `"${name}" will be permanently removed from the website.`,
+      onConfirm: async () => {
+        await api.delete(`/api/website/games/${slug}`);
+        toast.success('Game deleted');
+        fetchGames();
+      },
+    });
   };
 
   return (
@@ -246,7 +259,7 @@ export const GamesManagement = () => {
                     </div>
                     <div className="flex gap-2">
                       {hasPermission('edit_games') && <button onClick={() => startEdit(g)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all" data-testid={`edit-game-${g.slug}`}><Edit2 size={14} /></button>}
-                      {hasPermission('delete_games') && <button onClick={() => handleDelete(g.slug)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all" data-testid={`delete-game-${g.slug}`}><Trash2 size={14} /></button>}
+                      {hasPermission('delete_games') && <button onClick={() => handleDelete(g.slug, g.name)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all" data-testid={`delete-game-${g.slug}`}><Trash2 size={14} /></button>}
                     </div>
                   </div>
                 </div>
@@ -256,5 +269,16 @@ export const GamesManagement = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

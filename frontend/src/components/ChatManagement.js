@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
 import { MessageSquare, Trash2, RefreshCw, Key, Copy, ShieldAlert, Plus, X } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api, { API_URL } from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export const ChatManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -16,24 +15,35 @@ export const ChatManagement = () => {
   const [newWord, setNewWord] = useState('');
   const [showBannedWords, setShowBannedWords] = useState(false);
   const [messageLimit, setMessageLimit] = useState(50);
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const canManage = hasPermission('manage_chat');
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   const fetchMessages = useCallback(async (slug, limit) => {
     if (!slug) return;
     try {
-      const r = await axios.get(`${API_URL}/api/projects/${slug}/chat?limit=${limit}`);
+      const r = await api.get(`/api/projects/${slug}/chat?limit=${limit}`);
       setMessages(r.data.messages);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   }, []);
 
   const fetchBannedWords = useCallback(async () => {
     if (!canManage) return;
     try {
-      const r = await axios.get(`${API_URL}/api/website/chat/banned-words`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/website/chat/banned-words`);
       setBannedWords(r.data.words);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
     // eslint-disable-next-line
-  }, [token, canManage]);
+  }, [canManage]);
 
   useEffect(() => { fetchBannedWords(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { if (selectedProject) fetchMessages(selectedProject.slug, messageLimit); }, [selectedProject, messageLimit, fetchMessages]);
@@ -47,25 +57,29 @@ export const ChatManagement = () => {
   const handleDeleteMessage = async (messageId) => {
     if (!selectedProject) return;
     try {
-      await axios.delete(`${API_URL}/api/projects/${selectedProject.slug}/chat/${messageId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`/api/projects/${selectedProject.slug}/chat/${messageId}`);
       setMessages(p => p.filter(m => m.id !== messageId));
       toast.success('Message deleted');
     } catch (e) { toast.error('Failed to delete message'); }
   };
 
-  const handleRegenerateKey = async () => {
+  const handleRegenerateKey = () => {
     if (!selectedProject) return;
-    if (!window.confirm('Regenerate the chat API key? The old key will stop working immediately — update it in your TurboWarp project.')) return;
-    setLoading(true);
-    try {
-      const r = await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/chat/regenerate-key`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success('Chat API key regenerated');
-      await fetchProjects();
-      // Update local key copy without waiting on context refresh timing
-      selectedProject.chat_api_key = r.data.chat_api_key;
-      setMessages(m => [...m]); // force re-render
-    } catch (e) { toast.error('Failed to regenerate key'); }
-    finally { setLoading(false); }
+    showConfirm({
+      title: 'Regenerate chat API key',
+      description: 'The old key will stop working immediately. You will need to update it in your TurboWarp project.',
+      confirmLabel: 'Regenerate',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const r = await api.post(`/api/projects/${selectedProject.slug}/chat/regenerate-key`, {});
+          toast.success('Chat API key regenerated');
+          await fetchProjects();
+          selectedProject.chat_api_key = r.data.chat_api_key;
+          setMessages(m => [...m]);
+        } finally { setLoading(false); }
+      },
+    });
   };
 
   const copyKey = () => {
@@ -79,7 +93,7 @@ export const ChatManagement = () => {
     if (!word) return;
     const updated = [...bannedWords, word];
     try {
-      await axios.put(`${API_URL}/api/website/chat/banned-words`, { words: updated }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/website/chat/banned-words`, { words: updated });
       setBannedWords(updated);
       setNewWord('');
       toast.success('Word added');
@@ -89,7 +103,7 @@ export const ChatManagement = () => {
   const removeBannedWord = async (word) => {
     const updated = bannedWords.filter(w => w !== word);
     try {
-      await axios.put(`${API_URL}/api/website/chat/banned-words`, { words: updated }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/website/chat/banned-words`, { words: updated });
       setBannedWords(updated);
     } catch (e) { toast.error('Failed to update list'); }
   };
@@ -216,5 +230,16 @@ export const ChatManagement = () => {
         </div>
       )}
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel={dialog.confirmLabel || 'Confirm'}
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

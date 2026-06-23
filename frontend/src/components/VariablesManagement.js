@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
 import { Database, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export const VariablesManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -15,17 +14,31 @@ export const VariablesManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingVar, setEditingVar] = useState(null);
   const [form, setForm] = useState({ variable_name: '', values: [''] });
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => { if (selectedProject) fetchVars(); /* eslint-disable-next-line */ }, [selectedProject]);
 
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
+
   const fetchVars = async () => {
-    try { const r = await axios.get(`${API_URL}/api/projects/${selectedProject.slug}/variables`, { headers: { Authorization: `Bearer ${token}` } }); setVariables(r.data.variables); } catch (e) {}
+    try {
+      const r = await api.get(`/api/projects/${selectedProject.slug}/variables`);
+      setVariables(r.data.variables);
+    } catch (e) {}
   };
 
   const handleCreate = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/variables`, { variable_name: form.variable_name, values: form.values.filter(v => v.trim()) }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.post(`/api/projects/${selectedProject.slug}/variables`, { variable_name: form.variable_name, values: form.values.filter(v => v.trim()) });
       toast.success('Variable created'); setForm({ variable_name: '', values: [''] }); setShowForm(false); fetchVars();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); } finally { setLoading(false); }
   };
@@ -33,14 +46,21 @@ export const VariablesManagement = () => {
   const handleUpdate = async (name) => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/api/projects/${selectedProject.slug}/variables/${name}`, { values: editingVar.values.filter(v => v.trim()) }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/projects/${selectedProject.slug}/variables/${name}`, { values: editingVar.values.filter(v => v.trim()) });
       toast.success('Updated'); setEditingVar(null); fetchVars();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); } finally { setLoading(false); }
   };
 
-  const handleDelete = async (name) => {
-    if (!window.confirm(`Delete "${name}"?`)) return;
-    try { await axios.delete(`${API_URL}/api/projects/${selectedProject.slug}/variables/${name}`, { headers: { Authorization: `Bearer ${token}` } }); toast.success('Deleted'); fetchVars(); } catch (e) { toast.error('Failed'); }
+  const handleDelete = (name) => {
+    showConfirm({
+      title: 'Delete variable',
+      description: `"${name}" and all its values will be permanently deleted.`,
+      onConfirm: async () => {
+        await api.delete(`/api/projects/${selectedProject.slug}/variables/${name}`);
+        toast.success('Deleted');
+        fetchVars();
+      },
+    });
   };
 
   return (
@@ -122,5 +142,16 @@ export const VariablesManagement = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

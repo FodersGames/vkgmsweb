@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -9,8 +8,8 @@ import {
   Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
   Award, Map, Cpu, Music, Moon, Sun, ChevronDown,
 } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api, { API_URL } from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const BADGE_OPTIONS = ['', 'NEW', 'SALE', 'LIMITED', 'HOT', 'POPULAR'];
 
@@ -153,6 +152,17 @@ export const ShopManagement = () => {
   const [form, setForm]             = useState(defaultForm);
   const [loading, setLoading]       = useState(false);
   const [uploading, setUploading]   = useState(false);
+  const [dialog, setDialog]         = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState('');
@@ -166,35 +176,35 @@ export const ShopManagement = () => {
 
   const fetchGames = async () => {
     try {
-      const r = await axios.get(`${API_URL}/api/website/games`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/website/games`);
       setGames(r.data.games || []);
       if (r.data.games?.length > 0 && !selectedGame) setSelectedGame(r.data.games[0]);
     } catch (e) {}
   };
   const fetchProjects = async () => {
     try {
-      const r = await axios.get(`${API_URL}/api/projects`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/projects`);
       setProjects(r.data.projects || []);
     } catch (e) {}
   };
   const fetchProducts = async () => {
     if (!selectedGame) return;
     try {
-      const r = await axios.get(`${API_URL}/api/shop/${selectedGame.slug}/products/admin`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/shop/${selectedGame.slug}/products/admin`);
       setProducts(r.data.products || []);
     } catch (e) {}
   };
   const fetchSettings = async () => {
     if (!selectedGame) return;
     try {
-      const r = await axios.get(`${API_URL}/api/shop/${selectedGame.slug}/settings`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/shop/${selectedGame.slug}/settings`);
       setSettings({ ...defaultSettings, ...r.data });
     } catch (e) {}
   };
   const fetchGift = async () => {
     if (!selectedGame) return;
     try {
-      const r = await axios.get(`${API_URL}/api/shop/${selectedGame.slug}/daily-gift/admin`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/shop/${selectedGame.slug}/daily-gift/admin`);
       setGift({ ...defaultGift, ...r.data });
     } catch (e) {}
   };
@@ -206,7 +216,7 @@ export const ShopManagement = () => {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const r = await axios.post(`${API_URL}/api/upload`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+      const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setter(r.data.url);
       toast.success('Image uploaded');
     } catch (e) { toast.error('Upload failed'); }
@@ -231,10 +241,10 @@ export const ShopManagement = () => {
                       badge: form.badge || null, category: form.category || null };
     try {
       if (editingProduct) {
-        await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/products/${editingProduct.id}`, payload, { headers: { Authorization: `Bearer ${token}` } });
+        await api.put(`/api/shop/${selectedGame.slug}/products/${editingProduct.id}`, payload);
         toast.success('Product updated');
       } else {
-        await axios.post(`${API_URL}/api/shop/${selectedGame.slug}/products`, payload, { headers: { Authorization: `Bearer ${token}` } });
+        await api.post(`/api/shop/${selectedGame.slug}/products`, payload);
         toast.success('Product created');
       }
       setShowForm(false); fetchProducts();
@@ -242,17 +252,21 @@ export const ShopManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (p) => {
-    if (!window.confirm(`Delete "${p.name}"?`)) return;
-    try {
-      await axios.delete(`${API_URL}/api/shop/${selectedGame.slug}/products/${p.id}`, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success('Deleted'); fetchProducts();
-    } catch (e) { toast.error('Failed to delete'); }
+  const handleDelete = (p) => {
+    showConfirm({
+      title: 'Delete product',
+      description: `"${p.name}" will be permanently removed from the shop.`,
+      onConfirm: async () => {
+        await api.delete(`/api/shop/${selectedGame.slug}/products/${p.id}`);
+        toast.success('Deleted');
+        fetchProducts();
+      },
+    });
   };
 
   const toggleActive = async (p) => {
     try {
-      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/products/${p.id}`, { active: !p.active }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/shop/${selectedGame.slug}/products/${p.id}`, { active: !p.active });
       fetchProducts();
     } catch (e) { toast.error('Failed'); }
   };
@@ -260,7 +274,7 @@ export const ShopManagement = () => {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/settings`, settings, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/shop/${selectedGame.slug}/settings`, settings);
       toast.success('Theme saved');
     } catch (e) { toast.error('Failed to save'); }
     finally { setLoading(false); }
@@ -269,7 +283,7 @@ export const ShopManagement = () => {
   const saveGift = async () => {
     setLoading(true);
     try {
-      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/daily-gift`, gift, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/shop/${selectedGame.slug}/daily-gift`, gift);
       toast.success('Daily gift saved');
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to save'); }
     finally { setLoading(false); }
@@ -306,7 +320,7 @@ export const ShopManagement = () => {
     setSettings(updated);
     setNewCatLabel(''); setNewCatIcon('package');
     try {
-      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/settings`, updated, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/shop/${selectedGame.slug}/settings`, updated);
       toast.success('Category added');
     } catch (e) { toast.error('Added locally — click Save Theme to persist'); }
   };
@@ -315,7 +329,7 @@ export const ShopManagement = () => {
     const updated = { ...settings, categories: settings.categories.filter(c => c.id !== id) };
     setSettings(updated);
     try {
-      await axios.put(`${API_URL}/api/shop/${selectedGame.slug}/settings`, updated, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/shop/${selectedGame.slug}/settings`, updated);
       toast.success('Category removed');
     } catch (e) { toast.error('Removed locally — click Save Theme to persist'); }
   };
@@ -803,5 +817,16 @@ export const ShopManagement = () => {
         </div>
       )}
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

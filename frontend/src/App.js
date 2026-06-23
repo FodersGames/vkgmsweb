@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
@@ -15,6 +16,19 @@ import ShopSuccess from './pages/ShopSuccess';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
+
+const NotFound = () => (
+  <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 text-center">
+    <div>
+      <p className="text-8xl font-black text-[#4ECDC4] mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>404</p>
+      <h1 className="text-2xl font-bold text-white mb-2">Page not found</h1>
+      <p className="text-[#71717a] mb-8">This page doesn't exist or has been moved.</p>
+      <a href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-[#4ECDC4] text-[#0a0a0f] rounded-xl font-semibold hover:bg-[#45b8b0] transition-all">
+        Back to homepage
+      </a>
+    </div>
+  </div>
+);
 
 const AppRoutes = () => {
   const { maintenance, checked } = useMaintenanceCheck();
@@ -41,21 +55,23 @@ const AppRoutes = () => {
       <Route path="/shop/:gameSlug/success" element={<ShopSuccess />} />
       <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-        <Toaster position="top-right" />
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
