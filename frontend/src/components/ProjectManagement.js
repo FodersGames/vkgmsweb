@@ -3,6 +3,7 @@ import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Gamepad2, Plus, Trash2, X } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export const ProjectManagement = () => {
   const { user, hasPermission } = useAuth();
@@ -10,6 +11,17 @@ export const ProjectManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -20,9 +32,15 @@ export const ProjectManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (slug, n) => {
-    if (!window.confirm(`Delete "${n}" and ALL its data?`)) return;
-    try { await deleteProject(slug); toast.success(`"${n}" deleted`); } catch (e) { toast.error('Failed'); }
+  const handleDelete = (slug, n) => {
+    showConfirm({
+      title: 'Delete project',
+      description: `"${n}" and ALL its data (items, logs, variables, missions, chat) will be permanently deleted. This cannot be undone.`,
+      onConfirm: async () => {
+        await deleteProject(slug);
+        toast.success(`"${n}" deleted`);
+      },
+    });
   };
 
   return (
@@ -83,5 +101,16 @@ export const ProjectManagement = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete project"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { FileText, Plus, Trash2, Edit2, Save, X, Upload, Eye, EyeOff } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api, { API_URL } from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export const BlogManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -14,14 +13,25 @@ export const BlogManagement = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({ title: '', content: '', image_url: '', published: false });
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => { fetchPosts(); /* eslint-disable-next-line */ }, []);
 
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
+
   const fetchPosts = async () => {
     try {
-      const r = await axios.get(`${API_URL}/api/website/blog`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get(`/api/website/blog`);
       setPosts(r.data.posts);
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   };
 
   const handleImageUpload = async (e) => {
@@ -31,7 +41,7 @@ export const BlogManagement = () => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const r = await axios.post(`${API_URL}/api/upload`, fd, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+      const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setForm(p => ({ ...p, image_url: r.data.url }));
     } catch (e) { toast.error('Upload failed'); }
     finally { setUploading(false); }
@@ -50,10 +60,10 @@ export const BlogManagement = () => {
     setLoading(true);
     try {
       if (editing) {
-        await axios.put(`${API_URL}/api/website/blog/${editing}`, form, { headers: { Authorization: `Bearer ${token}` } });
+        await api.put(`/api/website/blog/${editing}`, form);
         toast.success('Post updated');
       } else {
-        await axios.post(`${API_URL}/api/website/blog`, form, { headers: { Authorization: `Bearer ${token}` } });
+        await api.post(`/api/website/blog`, form);
         toast.success('Post created');
       }
       resetForm();
@@ -62,13 +72,16 @@ export const BlogManagement = () => {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (slug) => {
-    if (!window.confirm('Delete this blog post?')) return;
-    try {
-      await axios.delete(`${API_URL}/api/website/blog/${slug}`, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success('Post deleted');
-      fetchPosts();
-    } catch (e) { toast.error('Failed'); }
+  const handleDelete = (slug, title) => {
+    showConfirm({
+      title: 'Delete blog post',
+      description: `"${title}" will be permanently deleted. This action cannot be undone.`,
+      onConfirm: async () => {
+        await api.delete(`/api/website/blog/${slug}`);
+        toast.success('Post deleted');
+        fetchPosts();
+      },
+    });
   };
 
   return (
@@ -144,7 +157,7 @@ export const BlogManagement = () => {
                     </div>
                     <div className="flex gap-2">
                       {hasPermission('edit_blog') && <button onClick={() => startEdit(p)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all" data-testid={`edit-blog-${p.slug}`}><Edit2 size={14} /></button>}
-                      {hasPermission('delete_blog') && <button onClick={() => handleDelete(p.slug)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all" data-testid={`delete-blog-${p.slug}`}><Trash2 size={14} /></button>}
+                      {hasPermission('delete_blog') && <button onClick={() => handleDelete(p.slug, p.title)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all" data-testid={`delete-blog-${p.slug}`}><Trash2 size={14} /></button>}
                     </div>
                   </div>
                 </div>
@@ -154,5 +167,16 @@ export const BlogManagement = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };

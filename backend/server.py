@@ -1,8 +1,8 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -23,6 +23,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import stripe
 import asyncio
+import math
 
 VERSION = "1.3.0"
 
@@ -52,13 +53,247 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Serve uploaded files
-app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+# Extensions served inline in the browser (images); everything else forces a download.
+_INLINE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif"}
+
+@app.get("/api/uploads/{filename}")
+async def serve_upload(filename: str):
+    # Path(filename).name strips any directory components → prevents path traversal
+    safe_name = Path(filename).name
+    filepath = (UPLOADS_DIR / safe_name).resolve()
+    # Defence-in-depth: ensure resolved path stays inside UPLOADS_DIR
+    if not str(filepath).startswith(str(UPLOADS_DIR.resolve())):
+        raise HTTPException(status_code=400, detail="Invalid path")
+    if not filepath.exists() or not filepath.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    ext = filepath.suffix.lower()
+    if ext in _INLINE_EXTS:
+        return FileResponse(filepath)
+    # Binary deliverables (ZIP, PSD, PDF, video…): force download, never execute in browser
+    return FileResponse(
+        filepath,
+        headers={"Content-Disposition": f'attachment; filename="{filepath.name}"'},
+    )
 
 api_router = APIRouter(prefix="/api")
 
+# ── Security headers middleware ──────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # CSP: allow Stripe, Google Fonts, and same-origin resources
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self' https://api.stripe.com; "
+            "frame-src https://js.stripe.com https://hooks.stripe.com; "
+            "object-src 'none'; "
+            "base-uri 'self';"
+        )
+        return response
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ── MIME validation ──────────────────────────────────────────────────────────
+try:
+    import magic as _magic
+    _MAGIC_AVAILABLE = True
+except ImportError:
+    _MAGIC_AVAILABLE = False
+    logger.error(
+        "python-magic not installed — MIME content validation disabled. "
+        "Install: pip install python-magic && apt-get install libmagic1"
+    )
+
+# Allowed real MIME types per extension for /api/upload (images only)
+_IMAGE_MIMES: dict = {
+    ".jpg":  {"image/jpeg"},
+    ".jpeg": {"image/jpeg"},
+    ".png":  {"image/png"},
+    ".gif":  {"image/gif"},
+    ".webp": {"image/webp"},
+    ".bmp":  {"image/bmp", "image/x-bmp", "image/x-ms-bmp"},
+    ".tiff": {"image/tiff"},
+    ".tif":  {"image/tiff"},
+    # .svg handled separately by _sanitize_svg
+}
+
+# Allowed real MIME types per extension for /api/upload-delivery
+_DELIVERY_MIMES: dict = {
+    **_IMAGE_MIMES,
+    ".pdf":   {"application/pdf"},
+    ".zip":   {"application/zip", "application/x-zip-compressed", "application/x-zip"},
+    ".rar":   {"application/x-rar-compressed", "application/vnd.rar", "application/x-rar"},
+    ".7z":    {"application/x-7z-compressed"},
+    ".psd":   {"image/vnd.adobe.photoshop", "application/x-photoshop"},
+    ".ai":    {"application/postscript", "application/pdf"},
+    ".mp4":   {"video/mp4", "video/x-m4v"},
+    ".mov":   {"video/quicktime", "video/x-quicktime"},
+    ".xcf":   {"image/x-xcf", "application/x-xcf"},
+    ".blend": {"application/x-blender"},
+    # .svg handled separately by _sanitize_svg
+}
+
+# Raw magic-byte signatures for formats libmagic sometimes misidentifies
+_FORMAT_MAGIC_BYTES: dict = {
+    ".psd":   b"8BPS",
+    ".blend": b"BLENDER",
+}
+
+
+def _detect_mime(content: bytes) -> str | None:
+    if not _MAGIC_AVAILABLE:
+        return None
+    try:
+        return _magic.from_buffer(content, mime=True)
+    except Exception as exc:
+        logger.warning("MIME detection error: %s", exc)
+        return None
+
+
+def _check_magic_bytes(content: bytes, ext: str) -> bool:
+    """Check raw magic bytes for formats where libmagic is unreliable."""
+    expected = _FORMAT_MAGIC_BYTES.get(ext)
+    if expected is None:
+        return True
+    return content[: len(expected)] == expected
+
+
+def _sanitize_svg(content: bytes) -> bytes:
+    """
+    Sanitize SVG content before storage. Applies in order:
+      1. Reject CDATA, DOCTYPE and non-xml processing instructions (can hide code pre-parse).
+      2. Strip dangerous block elements: script, foreignObject, iframe, object, embed.
+      3. Strip all on* event handlers (double-quoted, single-quoted, unquoted).
+      4. Strip javascript: and data: protocols from href/src/action/xlink:href.
+      5. Strip protocol-relative and external http(s) URLs from href/src/xlink:href.
+      6. Strip style attributes that embed url() or javascript expressions.
+      7. Final XML well-formedness check — rejects encoding tricks that survive regex.
+    Raises ValueError on anything that cannot be safely cleaned.
+    """
+    try:
+        text = content.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        raise ValueError("SVG must be valid UTF-8")
+
+    if not re.search(r"<svg[\s>/]|<svg$", text, re.IGNORECASE):
+        raise ValueError("File does not appear to be a valid SVG")
+
+    # Step 1 — reject constructs that can hide payloads before sanitization
+    if re.search(r"<!\[CDATA\[", text, re.IGNORECASE):
+        raise ValueError("SVG with CDATA sections is not allowed")
+    if re.search(r"<!DOCTYPE", text, re.IGNORECASE):
+        raise ValueError("SVG with DOCTYPE declarations is not allowed")
+    if re.search(r"<\?(?!xml[\s?])", text, re.IGNORECASE):
+        raise ValueError("SVG with non-XML processing instructions is not allowed")
+
+    # Step 2 — strip dangerous block elements (paired + self-closing)
+    for _tag in ("script", "foreignObject", "iframe", "object", "embed"):
+        text = re.sub(rf"<{_tag}[\s\S]*?</{_tag}\s*>", "", text, flags=re.IGNORECASE)
+        text = re.sub(rf"<{_tag}\b[^>]*/?>", "", text, flags=re.IGNORECASE)
+
+    # Step 3 — strip all on* event handlers
+    text = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+on\w+\s*=\s*'[^']*'", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+on\w+\s*=[^\s>\"']*", "", text, flags=re.IGNORECASE)  # unquoted
+
+    # Step 4 — strip javascript: and data: protocols from link/src attributes
+    for _attr in ("href", "xlink:href", "src", "action"):
+        text = re.sub(
+            rf'{_attr}\s*=\s*"(?:javascript|data):[^"]*"', "", text, flags=re.IGNORECASE
+        )
+        text = re.sub(
+            rf"{_attr}\s*=\s*'(?:javascript|data):[^']*'", "", text, flags=re.IGNORECASE
+        )
+
+    # Step 5 — strip external URLs (http/https and protocol-relative) from link attributes
+    for _attr in ("href", "xlink:href", "src"):
+        text = re.sub(rf'{_attr}\s*=\s*"(?:https?:)?//[^"]*"', "", text, flags=re.IGNORECASE)
+        text = re.sub(rf"{_attr}\s*=\s*'(?:https?:)?//[^']*'", "", text, flags=re.IGNORECASE)
+
+    # Step 6 — strip style attributes that embed url() or javascript expressions
+    text = re.sub(
+        r'style\s*=\s*"[^"]*(?:url\s*\(|javascript\s*:)[^"]*"', "", text, flags=re.IGNORECASE
+    )
+    text = re.sub(
+        r"style\s*=\s*'[^']*(?:url\s*\(|javascript\s*:)[^']*'", "", text, flags=re.IGNORECASE
+    )
+
+    # Step 7 — XML well-formedness check (catches encoding tricks that survive regex)
+    try:
+        import xml.etree.ElementTree as _ET
+        _ET.fromstring(text)
+    except Exception as exc:
+        raise ValueError(f"SVG failed XML well-formedness validation: {exc}")
+
+    return text.encode("utf-8")
+
+
+def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
+    """
+    Full upload validation pipeline:
+    1. SVG → sanitize (see _sanitize_svg) and return cleaned bytes.
+    2. PSD/Blend → verify raw magic bytes (libmagic is unreliable for these).
+    3. All other formats → verify real MIME type via libmagic.
+       Fail closed: if libmagic is unavailable and no magic-byte fallback exists,
+       the upload is rejected with HTTP 503 rather than silently bypassing validation.
+    Returns (possibly sanitized) content bytes.
+    Raises HTTPException on rejection.
+    """
+    if ext == ".svg":
+        try:
+            return _sanitize_svg(content)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # Magic-byte check for formats with unreliable libmagic detection
+    has_magic_check = ext in _FORMAT_MAGIC_BYTES
+    if has_magic_check and not _check_magic_bytes(content, ext):
+        raise HTTPException(
+            status_code=400,
+            detail="Le contenu du fichier ne correspond pas au type de fichier autorisé.",
+        )
+
+    if _MAGIC_AVAILABLE:
+        detected = _detect_mime(content)
+        if detected is not None:
+            allowed = mime_table.get(ext, set())
+            # Files that passed magic-byte check allow octet-stream as well
+            # (libmagic may return generic binary for some PSD/Blend versions)
+            if has_magic_check:
+                allowed = allowed | {"application/octet-stream"}
+            if detected not in allowed:
+                logger.warning(
+                    "MIME mismatch — ext=%s detected=%s allowed=%s", ext, detected, allowed
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail="Le contenu du fichier ne correspond pas au type de fichier autorisé.",
+                )
+    elif not has_magic_check:
+        # Fail closed: python-magic unavailable and no magic-byte fallback for this format.
+        # Refusing is safer than silently accepting based on extension alone.
+        logger.error(
+            "Upload rejected — python-magic unavailable for ext=%s. "
+            "Install: pip install python-magic && apt-get install libmagic1",
+            ext,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="La validation du fichier est temporairement indisponible. Veuillez réessayer.",
+        )
+    # else: has_magic_check passed above, magic-byte verified — accept even without libmagic
+
+    return content
 
 # ============== PERMISSIONS ==============
 # Static permissions (project:slug permissions are dynamic, not listed here)
@@ -437,12 +672,14 @@ async def verify(user=Depends(get_current_user)):
 # ============== FILE UPLOAD ==============
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
+    ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif"}
     ext = Path(file.filename).suffix.lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"]:
+    if ext not in ALLOWED_IMAGE_EXTS:
         raise HTTPException(status_code=400, detail="Only image files allowed")
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large. Maximum 5 MB.")
+    content = _validate_file(content, ext, _IMAGE_MIMES)
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = UPLOADS_DIR / filename
     with open(filepath, "wb") as f:
@@ -451,15 +688,16 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(get_cur
 
 @api_router.post("/upload-delivery")
 async def upload_delivery_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
-    ALLOWED = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif',
-               '.zip', '.rar', '.7z', '.psd', '.ai', '.pdf', '.mp4', '.mov', '.xcf', '.blend'}
+    ALLOWED = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif",
+               ".zip", ".rar", ".7z", ".psd", ".ai", ".pdf", ".mp4", ".mov", ".xcf", ".blend"}
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type not allowed: {ext}")
     content = await file.read()
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large. Maximum 50 MB.")
-    safe_stem = re.sub(r'[^a-zA-Z0-9_-]', '_', Path(file.filename).stem)[:40]
+    content = _validate_file(content, ext, _DELIVERY_MIMES)
+    safe_stem = re.sub(r"[^a-zA-Z0-9_-]", "_", Path(file.filename).stem)[:40]
     filename = f"{uuid.uuid4().hex}_{safe_stem}{ext}"
     filepath = UPLOADS_DIR / filename
     with open(filepath, "wb") as f:
@@ -522,12 +760,15 @@ async def create_user(req: CreateUserRequest, user=Depends(require_permission("m
     return CreateUserResponse(username=req.username, access_key=key, permissions=req.permissions)
 
 @api_router.get("/users")
-async def list_users(user=Depends(require_permission("manage_users"))):
-    users = await db.users.find({}, {"_id": 0, "access_key_hash": 0}).to_list(1000)
+async def list_users(page: int = 1, limit: int = 100, user=Depends(require_permission("manage_users"))):
+    skip = (page - 1) * limit
+    total = await db.users.count_documents({})
+    users = await db.users.find({}, {"_id": 0, "access_key_hash": 0}).skip(skip).limit(limit).to_list(limit)
     for u in users:
         if isinstance(u.get("created_at"), datetime):
             u["created_at"] = u["created_at"].isoformat()
-    return {"users": users}
+
+    return {"users": users, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 @api_router.delete("/users/{username}")
 async def delete_user(username: str, user=Depends(require_permission("manage_users"))):
@@ -594,17 +835,21 @@ async def get_status(slug: str):
 # ============== PROJECT-SCOPED: LOGS ==============
 @api_router.get("/projects/{slug}/logs")
 async def get_logs(slug: str, log_type: Optional[str] = None, user_filter: Optional[str] = None,
-                   uid: Optional[str] = None, limit: int = 100, user=Depends(require_permission("view_logs"))):
+                   uid: Optional[str] = None, limit: int = 100, page: int = 1,
+                   user=Depends(require_permission("view_logs"))):
     await get_project_or_404(slug)
     q = {"project_slug": slug}
     if log_type: q["type"] = log_type
     if user_filter: q["user"] = user_filter
     if uid: q["uid"] = uid
-    logs = await db.logs.find(q, {"_id": 0}).sort("timestamp", -1).limit(limit).to_list(limit)
+
+    skip = (page - 1) * limit
+    total = await db.logs.count_documents(q)
+    logs = await db.logs.find(q, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
     for l in logs:
         if isinstance(l.get("timestamp"), datetime):
             l["timestamp"] = l["timestamp"].isoformat()
-    return {"logs": logs, "count": len(logs)}
+    return {"logs": logs, "count": len(logs), "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 # ============== PROJECT-SCOPED: VARIABLES ==============
 @api_router.post("/projects/{slug}/variables")
@@ -619,14 +864,17 @@ async def create_variable(slug: str, req: VariableCreateRequest, user=Depends(re
     return {"success": True, "variable_name": req.variable_name, "values": req.values}
 
 @api_router.get("/projects/{slug}/variables")
-async def list_variables(slug: str, user=Depends(require_permission("view_variables"))):
+async def list_variables(slug: str, page: int = 1, limit: int = 200, user=Depends(require_permission("view_variables"))):
     await get_project_or_404(slug)
-    vs = await db.variables.find({"project_slug": slug}, {"_id": 0, "project_slug": 0}).to_list(1000)
+
+    skip = (page - 1) * limit
+    total = await db.variables.count_documents({"project_slug": slug})
+    vs = await db.variables.find({"project_slug": slug}, {"_id": 0, "project_slug": 0}).skip(skip).limit(limit).to_list(limit)
     for v in vs:
         for k in ["created_at", "updated_at"]:
             if isinstance(v.get(k), datetime):
                 v[k] = v[k].isoformat()
-    return {"variables": vs}
+    return {"variables": vs, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 @api_router.get("/projects/{slug}/variable/{name}")
 async def get_variable(slug: str, name: str):
@@ -1152,14 +1400,17 @@ async def stripe_webhook(request: Request):
 
 # ============== MISSIONS ==============
 @api_router.get("/projects/{slug}/missions")
-async def list_missions(slug: str, status: str = None, user=Depends(get_current_user)):
+async def list_missions(slug: str, status: str = None, page: int = 1, limit: int = 50, user=Depends(get_current_user)):
+
     query = {"project_slug": slug}
     if status:
         query["status"] = status
-    missions = await db.missions.find(query).sort("created_at", -1).to_list(500)
+    skip = (page - 1) * limit
+    total = await db.missions.count_documents(query)
+    missions = await db.missions.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     for m in missions:
         m["id"] = str(m.pop("_id"))
-    return {"missions": missions}
+    return {"missions": missions, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 @api_router.post("/projects/{slug}/missions")
 async def create_mission(slug: str, req: MissionCreateRequest, user=Depends(require_permission("create_missions"))):
@@ -1322,9 +1573,26 @@ async def reopen_mission(slug: str, mission_id: str, req: MissionReopenRequest, 
 # ============== SETUP ==============
 app.include_router(api_router)
 
-app.add_middleware(CORSMiddleware, allow_credentials=True,
-                   allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-                   allow_methods=["*"], allow_headers=["*"])
+# CORS — reads CORS_ORIGINS from env; falls back to localhost only (never wildcard in prod)
+_cors_raw = os.environ.get('CORS_ORIGINS', '').strip()
+if _cors_raw:
+    _cors_origins = [o.strip() for o in _cors_raw.split(',') if o.strip()]
+else:
+    logger.warning(
+        "CORS_ORIGINS not set — allowing localhost:3000 only. "
+        "Set CORS_ORIGINS=https://yourdomain.com in production."
+    )
+    _cors_origins = ['http://localhost:3000']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Chat-Api-Key"],
+)
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 @app.on_event("startup")
 async def startup_event():

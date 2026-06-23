@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
@@ -9,8 +8,8 @@ import {
   Flame, ArrowUp, Minus, Zap, Download, FileText, RotateCcw,
   MessageSquare, AlertCircle, History, ZoomIn,
 } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import api, { API_URL } from '../utils/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const inputClass = 'w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-all';
 const labelClass = 'block text-xs font-semibold text-[#71717a] mb-1.5 uppercase tracking-wider';
@@ -191,6 +190,17 @@ export const MissionsManagement = () => {
   const [uploadingRef, setUploadingRef]           = useState(false);
   const [expandedImg, setExpandedImg]             = useState(null);
   const [expandedMission, setExpandedMission]     = useState(null);
+  const [dialog, setDialog]                       = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [confirmLoading, setConfirmLoading]       = useState(false);
+
+  const showConfirm = (config) => setDialog({ ...config, open: true });
+  const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
+  const handleConfirm = async () => {
+    if (!dialog.onConfirm) return;
+    setConfirmLoading(true);
+    try { await dialog.onConfirm(); setDialog(d => ({ ...d, open: false })); }
+    finally { setConfirmLoading(false); }
+  };
 
   // Completion flow
   const [completingId, setCompletingId]           = useState(null);
@@ -210,13 +220,11 @@ export const MissionsManagement = () => {
     if (!selectedProject) return;
     setLoading(true);
     try {
-      const r = await axios.get(`${API_URL}/api/projects/${selectedProject.slug}/missions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const r = await api.get(`/api/projects/${selectedProject.slug}/missions`);
       setMissions(r.data.missions);
     } catch { toast.error('Failed to load missions'); }
     finally { setLoading(false); }
-  }, [selectedProject?.slug, token]);
+  }, [selectedProject?.slug]);
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
@@ -231,9 +239,7 @@ export const MissionsManagement = () => {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const r = await axios.post(`${API_URL}/api/upload`, fd, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-      });
+      const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setForm(f => ({ ...f, reference_images: [...f.reference_images, r.data.url] }));
       toast.success('Image added');
     } catch { toast.error('Upload failed'); }
@@ -250,9 +256,7 @@ export const MissionsManagement = () => {
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const r = await axios.post(`${API_URL}/api/upload-delivery`, fd, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-        });
+        const r = await api.post(`/api/upload-delivery`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         setPendingFiles(prev => [...prev, { url: r.data.url, filename: r.data.filename, size: r.data.size }]);
         ok++;
       } catch (err) { toast.error(`Failed: ${file.name}`); }
@@ -274,14 +278,10 @@ export const MissionsManagement = () => {
     if (!form.title.trim()) { toast.error('Title is required'); return; }
     try {
       if (editingMission) {
-        await axios.put(`${API_URL}/api/projects/${selectedProject.slug}/missions/${editingMission.id}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.put(`/api/projects/${selectedProject.slug}/missions/${editingMission.id}`, form);
         toast.success('Mission updated');
       } else {
-        await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/missions`, form, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.post(`/api/projects/${selectedProject.slug}/missions`, form);
         toast.success('Mission posted');
       }
       setShowForm(false);
@@ -291,9 +291,7 @@ export const MissionsManagement = () => {
 
   const claimMission = async (id) => {
     try {
-      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/missions/${id}/claim`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/api/projects/${selectedProject.slug}/missions/${id}/claim`, {});
       toast.success('Mission claimed!');
       fetchMissions();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
@@ -301,9 +299,7 @@ export const MissionsManagement = () => {
 
   const unclaimMission = async (id) => {
     try {
-      await axios.post(`${API_URL}/api/projects/${selectedProject.slug}/missions/${id}/unclaim`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/api/projects/${selectedProject.slug}/missions/${id}/unclaim`, {});
       toast.success('Mission unclaimed');
       fetchMissions();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
@@ -312,11 +308,7 @@ export const MissionsManagement = () => {
   const submitCompletion = async () => {
     if (!completingId) return;
     try {
-      await axios.post(
-        `${API_URL}/api/projects/${selectedProject.slug}/missions/${completingId}/complete`,
-        { delivery_files: pendingFiles },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/api/projects/${selectedProject.slug}/missions/${completingId}/complete`, { delivery_files: pendingFiles });
       toast.success('Work submitted!');
       resetCompletionForm();
       fetchMissions();
@@ -326,26 +318,23 @@ export const MissionsManagement = () => {
   const submitReopen = async () => {
     if (!reopeningId) return;
     try {
-      await axios.post(
-        `${API_URL}/api/projects/${selectedProject.slug}/missions/${reopeningId}/reopen`,
-        { feedback: reopenFeedback, keep_assigned: keepAssigned },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/api/projects/${selectedProject.slug}/missions/${reopeningId}/reopen`, { feedback: reopenFeedback, keep_assigned: keepAssigned });
       toast.success('Mission reopened');
       resetReopenForm();
       fetchMissions();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
   };
 
-  const deleteMission = async (m) => {
-    if (!window.confirm(`Delete mission "${m.title}"?`)) return;
-    try {
-      await axios.delete(`${API_URL}/api/projects/${selectedProject.slug}/missions/${m.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success('Deleted');
-      fetchMissions();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
+  const deleteMission = (m) => {
+    showConfirm({
+      title: 'Delete mission',
+      description: `"${m.title}" will be permanently deleted including all delivery files and revision history.`,
+      onConfirm: async () => {
+        await api.delete(`/api/projects/${selectedProject.slug}/missions/${m.id}`);
+        toast.success('Deleted');
+        fetchMissions();
+      },
+    });
   };
 
   if (!selectedProject) {
@@ -749,5 +738,16 @@ export const MissionsManagement = () => {
         </div>
       )}
     </div>
+
+    <ConfirmDialog
+      isOpen={dialog.open}
+      onClose={closeConfirm}
+      onConfirm={handleConfirm}
+      title={dialog.title}
+      description={dialog.description}
+      confirmLabel="Delete"
+      loading={confirmLoading}
+      variant="destructive"
+    />
   );
 };
