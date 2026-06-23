@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Gamepad2, Code, Users, Zap, Menu, X } from 'lucide-react';
+import { ChevronDown, Gamepad2, Code, Users, Zap } from 'lucide-react';
 import axios from 'axios';
+import { PublicNav } from '../components/PublicNav';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const HERO_BG = 'https://images.unsplash.com/photo-1680003935289-0c8d65e1ae30?auto=format&fit=crop&w=1920&q=80';
@@ -13,7 +14,6 @@ const PLATFORM_ICONS = {
 
 const Home = () => {
   const aboutRef = useRef(null);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [featuredGame, setFeaturedGame] = useState(null);
 
   useEffect(() => {
@@ -23,39 +23,12 @@ const Home = () => {
     }).catch(() => {});
   }, []);
 
-  const scrollToAbout = () => { aboutRef.current?.scrollIntoView({ behavior: 'smooth' }); setMobileMenu(false); };
+  const scrollToAbout = () => aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="bg-[#0a0a0f] text-white" style={{ fontFamily: "'Bebas Neue', 'Oswald', sans-serif" }}>
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-md border-b border-white/5" data-testid="landing-navbar">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-xl font-black tracking-[0.15em] text-white cursor-pointer"
-              style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.2em' }}
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} data-testid="landing-logo">
-              VAKAR GAMES
-            </h1>
-            <div className="hidden md:flex items-center gap-6">
-              <button onClick={scrollToAbout} className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>About</button>
-              <Link to="/games" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Games</Link>
-              <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>Blog</Link>
-            </div>
-          </div>
-          {/* Mobile burger */}
-          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenu(!mobileMenu)} data-testid="mobile-menu-toggle">
-            {mobileMenu ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-        {/* Mobile dropdown */}
-        {mobileMenu && (
-          <div className="md:hidden bg-[#111118] border-t border-white/5 px-6 py-4 space-y-3" data-testid="mobile-menu">
-            <button onClick={scrollToAbout} className="block w-full text-left text-sm text-[#8A8A9A] hover:text-white py-2">About</button>
-            <Link to="/games" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Games</Link>
-            <Link to="/blog" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Blog</Link>
-          </div>
-        )}
-      </nav>
+      <PublicNav onAbout={scrollToAbout} data-testid="landing-navbar" />
 
       {/* Hero */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden" data-testid="hero-section">
