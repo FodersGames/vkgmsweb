@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Users, Plus, Edit2, Trash2, Save, X, Copy, Gamepad2, Package, Activity, Database, FileText, Code, Shield, Globe, ShoppingBag, ClipboardList, MessageSquare } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button, Card, CardHeader, CardBody, EmptyState, Input } from '../ui';
 
 // Static groups (everything except Projects which is built dynamically)
 const STATIC_GROUPS = [
@@ -220,7 +221,7 @@ export const UserManagement = () => {
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
           <div key={group.label} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
+            <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
               <Icon size={14} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1"></div>
@@ -273,51 +274,49 @@ export const UserManagement = () => {
   return (
     <>
     <div className="max-w-6xl">
-      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center">
+      <Card className="overflow-hidden">
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#F2994A] to-[#F2C94C] flex items-center justify-center">
-              <Users size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+              <Users size={16} style={{ color: '#F2994A' }} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">User Management</h3>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">User Management</h3>
               <p className="text-xs text-[#71717a]">Create and manage user accounts with granular permissions</p>
             </div>
           </div>
-          <button onClick={() => { setShowCreateForm(!showCreateForm); setCreatedUser(null); }}
-            className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2"
-            data-testid="create-user-button">
-            {showCreateForm ? <X size={16} /> : <Plus size={16} />}
+          <Button icon={showCreateForm ? X : Plus} onClick={() => { setShowCreateForm(!showCreateForm); setCreatedUser(null); }} data-testid="create-user-button">
             {showCreateForm ? 'Cancel' : 'Create User'}
-          </button>
-        </div>
+          </Button>
+        </CardHeader>
 
         {showCreateForm && (
-          <div className="p-6 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <form onSubmit={handleCreateUser} data-testid="create-user-form">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#71717a] mb-2 uppercase tracking-wider">Username</label>
-                  <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
-                    required data-testid="username-input" />
-                </div>
+                <Input
+                  label="Username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                  data-testid="username-input"
+                />
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Permissions ({formData.permissions.length}/{ALL_PERMISSIONS.length})</div>
+                    <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                      Permissions ({formData.permissions.length}/{ALL_PERMISSIONS.length})
+                    </p>
                     <div className="flex gap-2">
                       <button type="button" onClick={selectAllPermissions} className="text-xs text-[#4ECDC4] hover:underline">Select All</button>
-                      <span className="text-[#2a2a3c]">|</span>
+                      <span className="text-zinc-300 dark:text-[#2a2a3c]">|</span>
                       <button type="button" onClick={clearAllPermissions} className="text-xs text-red-400 hover:underline">Clear All</button>
                     </div>
                   </div>
                   {renderPermissionGrid(formData.permissions, togglePermission)}
                 </div>
-                <button type="submit" disabled={loading || formData.permissions.length === 0}
-                  className="w-full bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
-                  data-testid="create-user-submit">
-                  {loading ? 'Creating...' : 'Create User'}
-                </button>
+                <Button type="submit" loading={loading} disabled={formData.permissions.length === 0} className="w-full justify-center" data-testid="create-user-submit">
+                  Create User
+                </Button>
               </div>
             </form>
           </div>
@@ -331,8 +330,8 @@ export const UserManagement = () => {
               <div>
                 <span className="text-xs font-semibold text-[#71717a]">ACCESS KEY:</span>
                 <div className="flex items-center gap-2 mt-1">
-                  <code className="flex-1 p-2 bg-slate-100 dark:bg-[#0d0d14] border border-[#4ECDC4]/30 text-zinc-900 dark:text-[#e4e4e7] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
-                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#4ECDC4]/30 bg-slate-50 dark:bg-[#1c1c2e] hover:bg-[#4ECDC4]/10 rounded-lg" data-testid="copy-access-key"><Copy size={16} className="text-[#4ECDC4]" /></button>
+                  <code className="flex-1 p-2 bg-zinc-100 dark:bg-[#0d0d14] border border-[#4ECDC4]/30 text-zinc-900 dark:text-[#e4e4e7] text-xs rounded-lg break-all font-mono">{createdUser.access_key}</code>
+                  <button onClick={() => copyToClipboard(createdUser.access_key)} className="p-2 border border-[#4ECDC4]/30 bg-zinc-50 dark:bg-[#111118] hover:bg-[#4ECDC4]/10 rounded-lg" data-testid="copy-access-key"><Copy size={16} className="text-[#4ECDC4]" /></button>
                 </div>
               </div>
               <div className="text-xs text-[#71717a] mt-2">Save this key now. It will not be shown again.</div>
@@ -340,16 +339,18 @@ export const UserManagement = () => {
           </div>
         )}
 
-        <div className="p-6">
-          <div className="text-xs font-semibold text-[#71717a] mb-4 uppercase tracking-wider">Users ({users.length})</div>
+        <CardBody>
+          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+            Users ({users.length})
+          </p>
           <div className="space-y-3" data-testid="users-list">
             {users.length === 0 && (
-              <div className="text-center py-12 text-[#71717a]">No users yet. Create one to get started.</div>
+              <EmptyState icon={Users} title="No users yet" description="Create an account to grant access to the dashboard." />
             )}
             {users.map((user) => {
               const isEditing = editingUser?.username === user.username;
               return (
-                <div key={user.username} className="bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#4ECDC4]/20 transition-all">
+                <div key={user.username} className="bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#4ECDC4]/20 transition-all">
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3 flex-1">
@@ -362,27 +363,21 @@ export const UserManagement = () => {
                         </div>
                       </div>
                       {!isEditing && (
-                        <div className="flex gap-2">
-                          <button onClick={() => setEditingUser({ ...user })}
-                            className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all"
-                            data-testid={`edit-user-${user.username}`}><Edit2 size={14} /></button>
-                          <button onClick={() => handleDeleteUser(user.username)}
-                            className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400 transition-all"
-                            data-testid={`delete-user-${user.username}`}><Trash2 size={14} /></button>
+                        <div className="flex gap-1.5">
+                          <Button variant="secondary" size="sm" icon={Edit2} onClick={() => setEditingUser({ ...user })} data-testid={`edit-user-${user.username}`} />
+                          <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDeleteUser(user.username)} data-testid={`delete-user-${user.username}`} />
                         </div>
                       )}
                     </div>
                     {isEditing ? (
                       <div>
-                        <div className="text-xs font-semibold text-[#8A8A9A] mb-3 uppercase tracking-wider">Edit Permissions</div>
+                        <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-3">
+                          Edit Permissions
+                        </p>
                         {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}
                         <div className="flex gap-2 mt-4">
-                          <button onClick={() => handleUpdatePermissions(user.username)} disabled={loading}
-                            className="bg-gradient-to-r from-[#F2994A] to-[#EB5757] text-white rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2 shadow-sm">
-                            <Save size={14} />Save</button>
-                          <button onClick={() => setEditingUser(null)}
-                            className="bg-white text-[#1A1A2E] border border-[#EDE5DB] hover:bg-[#FBF9F7] rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2">
-                            <X size={14} />Cancel</button>
+                          <Button icon={Save} loading={loading} onClick={() => handleUpdatePermissions(user.username)}>Save</Button>
+                          <Button variant="secondary" icon={X} onClick={() => setEditingUser(null)}>Cancel</Button>
                         </div>
                       </div>
                     ) : (
@@ -403,8 +398,8 @@ export const UserManagement = () => {
               );
             })}
           </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
     </div>
 
     <ConfirmDialog

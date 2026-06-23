@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button, Card, CardBody, EmptyState } from '../ui';
 
 const BADGE_OPTIONS = ['', 'NEW', 'SALE', 'LIMITED', 'HOT', 'POPULAR'];
 
@@ -124,7 +125,7 @@ const ColorRow = ({ label, value, onChange, placeholder }) => (
       <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)}
         className="w-10 h-10 rounded cursor-pointer border border-zinc-200 dark:border-[#2a2a3c] bg-transparent shrink-0" />
       <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-all" />
+        className="w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-[#52525b]" />
     </div>
   </div>
 );
@@ -336,8 +337,8 @@ export const ShopManagement = () => {
 
   const set = (key, value) => setSettings(s => ({ ...s, [key]: value }));
 
-  const inputClass = 'w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-all';
-  const labelClass = 'block text-xs font-semibold text-[#71717a] mb-1.5 uppercase tracking-wider';
+  const inputClass = 'w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-[#52525b]';
+  const labelClass = 'block text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] mb-1.5 uppercase tracking-widest';
 
   const TABS = [
     { id: 'products',  label: 'Products',    icon: Package },
@@ -349,24 +350,24 @@ export const ShopManagement = () => {
     <>
     <div className="max-w-5xl space-y-4">
       {/* Game selector */}
-      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] p-4">
+      <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-semibold text-[#71717a] uppercase tracking-wider shrink-0">Game Shop:</label>
+          <label className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest shrink-0">Game Shop:</label>
           <div className="flex flex-wrap gap-2">
             {games.map(g => (
               <button key={g.slug} onClick={() => setSelectedGame(g)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedGame?.slug === g.slug ? 'bg-[#6C5CE7] text-white' : 'bg-slate-100 dark:bg-[#1c1c2e] text-zinc-600 dark:text-[#71717a] hover:bg-slate-200 dark:hover:bg-[#2a2a3c]'}`}>
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${selectedGame?.slug === g.slug ? 'bg-[#6C5CE7] text-white' : 'bg-zinc-100 dark:bg-[#1c1c2e] text-zinc-600 dark:text-[#71717a] hover:bg-zinc-200 dark:hover:bg-[#2a2a3c]'}`}>
                 {g.name}
               </button>
             ))}
             {games.length === 0 && <span className="text-sm text-[#71717a]">No games found — create a game first.</span>}
           </div>
         </div>
-      </div>
+      </Card>
 
       {selectedGame && (
         <>
-          <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
+          <Card className="overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-zinc-200 dark:border-[#2a2a3c]">
               {TABS.map(t => (
@@ -389,14 +390,12 @@ export const ShopManagement = () => {
                       {selectedGame.name} — {products.length} product(s)
                     </span>
                   </div>
-                  <button onClick={openCreate} className="bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2 transition-all">
-                    <Plus size={14} />Add Product
-                  </button>
+                  <Button variant="purple" icon={Plus} onClick={openCreate}>Add Product</Button>
                 </div>
 
                 {/* Product form */}
                 {showForm && (
-                  <div className="p-5 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
+                  <div className="p-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -415,7 +414,7 @@ export const ShopManagement = () => {
                           <label className={labelClass}>Product Image</label>
                           <div className="flex gap-2">
                             <input type="text" value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} className={inputClass} placeholder="https://... or upload" />
-                            <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-slate-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-slate-300 dark:hover:bg-[#3a3a4c] transition-all">
+                            <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-zinc-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-zinc-300 dark:hover:bg-[#3a3a4c] transition-all">
                               {uploading ? '...' : 'Upload'}
                               <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setForm(f => ({ ...f, image_url: url })))} />
                             </label>
@@ -474,12 +473,10 @@ export const ShopManagement = () => {
                         </div>
                       </div>
                       <div className="flex gap-3 pt-2">
-                        <button type="submit" disabled={loading} className="bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2">
-                          <Save size={14} />{loading ? 'Saving...' : editingProduct ? 'Save Changes' : 'Create Product'}
-                        </button>
-                        <button type="button" onClick={() => setShowForm(false)} className="bg-slate-100 dark:bg-[#0d0d14] text-zinc-600 dark:text-[#71717a] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-5 py-2.5 text-sm font-semibold flex items-center gap-2">
-                          <X size={14} />Cancel
-                        </button>
+                        <Button variant="purple" type="submit" loading={loading} icon={Save}>
+                          {loading ? 'Saving...' : editingProduct ? 'Save Changes' : 'Create Product'}
+                        </Button>
+                        <Button variant="secondary" type="button" icon={X} onClick={() => setShowForm(false)}>Cancel</Button>
                       </div>
                     </form>
                   </div>
@@ -488,14 +485,11 @@ export const ShopManagement = () => {
                 {/* Product list */}
                 <div className="p-5">
                   {products.length === 0 ? (
-                    <div className="text-center py-12 text-[#71717a]">
-                      <ShoppingBag size={32} className="mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">No products yet for {selectedGame.name}.</p>
-                    </div>
+                    <EmptyState icon={ShoppingBag} title={`No products yet for ${selectedGame.name}`} description="Add a product to start selling." />
                   ) : (
                     <div className="space-y-2">
                       {products.map(p => (
-                        <div key={p.id} className={`bg-slate-50 dark:bg-[#1c1c2e] border rounded-xl p-3 flex items-center gap-3 transition-all ${p.active ? 'border-zinc-200 dark:border-[#2a2a3c]' : 'border-zinc-200/40 dark:border-[#2a2a3c]/40 opacity-60'}`}>
+                        <div key={p.id} className={`bg-zinc-50 dark:bg-[#111118] border rounded-xl p-3 flex items-center gap-3 transition-all ${p.active ? 'border-zinc-200 dark:border-[#2a2a3c]' : 'border-zinc-200/40 dark:border-[#2a2a3c]/40 opacity-60'}`}>
                           {p.image_url && <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded-lg shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
@@ -503,7 +497,7 @@ export const ShopManagement = () => {
                               {p.featured && <Star size={11} className="text-yellow-400 fill-yellow-400" />}
                               {p.badge && <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-[#6C5CE7]/20 text-[#A29BFE] uppercase">{p.badge}</span>}
                               {p.category && (() => { const cat = settings.categories.find(c => c.id === p.category); return cat ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-slate-200 dark:bg-[#2a2a3c] text-[#71717a]">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-zinc-200 dark:bg-[#2a2a3c] text-[#71717a]">
                                   <CategoryIcon name={cat.icon} size={10} />{cat.label}
                                 </span>) : null; })()}
                               {!p.active && <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-zinc-200 dark:bg-[#2a2a3c] text-[#71717a]">HIDDEN</span>}
@@ -543,7 +537,7 @@ export const ShopManagement = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {PRESETS.map(p => (
                       <button key={p.id} onClick={() => applyPreset(p)}
-                        className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-[#1c1c2e] hover:bg-slate-200 dark:hover:bg-[#2a2a3c] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/40 rounded-xl text-sm font-medium text-zinc-700 dark:text-[#e4e4e7] transition-all text-left">
+                        className="flex items-center gap-2 px-3 py-2.5 bg-zinc-100 dark:bg-[#1c1c2e] hover:bg-slate-200 dark:hover:bg-[#2a2a3c] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/40 rounded-xl text-sm font-medium text-zinc-700 dark:text-[#e4e4e7] transition-all text-left">
                         <span className="text-base">{p.emoji}</span>
                         <span className="truncate text-xs">{p.label}</span>
                       </button>
@@ -552,11 +546,11 @@ export const ShopManagement = () => {
                 </div>
 
                 {/* Import / Export */}
-                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-[#1c1c2e] rounded-xl border border-zinc-200 dark:border-[#2a2a3c]">
+                <div className="flex items-center gap-2 p-3 bg-zinc-50 dark:bg-[#111118] rounded-xl border border-zinc-200 dark:border-[#2a2a3c]">
                   <Settings size={13} className="text-[#71717a] shrink-0" />
                   <span className="text-xs text-[#71717a] flex-1">Import a JSON theme code or export the current theme.</span>
                   <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-xs font-semibold transition-all"><Upload size={11} />Import</button>
-                  <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 dark:bg-[#2a2a3c] hover:bg-slate-300 dark:hover:bg-[#3a3a4c] text-zinc-700 dark:text-[#e4e4e7] rounded-lg text-xs font-semibold transition-all"><Download size={11} />Export</button>
+                  <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-200 dark:bg-[#2a2a3c] hover:bg-zinc-300 dark:hover:bg-[#3a3a4c] text-zinc-700 dark:text-[#e4e4e7] rounded-lg text-xs font-semibold transition-all"><Download size={11} />Export</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -576,7 +570,7 @@ export const ShopManagement = () => {
                     <div className="flex gap-2">
                       {[['sm','Small'],['md','Medium'],['lg','Large']].map(([v,l]) => (
                         <button key={v} type="button" onClick={() => set('banner_height', v)}
-                          className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${settings.banner_height === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-slate-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
+                          className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${settings.banner_height === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-zinc-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -584,7 +578,7 @@ export const ShopManagement = () => {
                     <label className={labelClass}>Banner Image</label>
                     <div className="flex gap-2">
                       <input type="text" value={settings.banner_url} onChange={e => set('banner_url', e.target.value)} className={inputClass} placeholder="https://... or upload" />
-                      <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-slate-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-slate-300 dark:hover:bg-[#3a3a4c] transition-all">
+                      <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-zinc-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-zinc-300 dark:hover:bg-[#3a3a4c] transition-all">
                         {uploading ? '...' : 'Upload'}
                         <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => set('banner_url', url))} />
                       </label>
@@ -614,7 +608,7 @@ export const ShopManagement = () => {
                     <div className="flex gap-2">
                       {[['rounded','Rounded'],['sharp','Sharp']].map(([v,l]) => (
                         <button key={v} type="button" onClick={() => set('card_style', v)}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-semibold border transition-all ${settings.card_style === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-slate-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-semibold border transition-all ${settings.card_style === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-zinc-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -623,7 +617,7 @@ export const ShopManagement = () => {
                     <div className="flex gap-2 flex-wrap">
                       {[['none','None'],['sm','Light'],['md','Medium'],['glow','Glow']].map(([v,l]) => (
                         <button key={v} type="button" onClick={() => set('card_shadow', v)}
-                          className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${settings.card_shadow === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-slate-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all ${settings.card_shadow === v ? 'bg-[#6C5CE7] text-white border-[#6C5CE7]' : 'bg-zinc-100 dark:bg-[#1c1c2e] border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a]'}`}>{l}</button>
                       ))}
                     </div>
                   </div>
@@ -660,7 +654,7 @@ export const ShopManagement = () => {
                       ? <p className="text-xs text-[#71717a]">No categories yet. Add one below.</p>
                       : <div className="flex flex-wrap gap-2">
                           {settings.categories.map(c => (
-                            <div key={c.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-full text-sm">
+                            <div key={c.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-full text-sm">
                               <CategoryIcon name={c.icon} size={13} className="text-[#6C5CE7]" />
                               <span className="font-medium text-zinc-700 dark:text-[#e4e4e7]">{c.label}</span>
                               <span className="text-[#71717a] text-xs opacity-60">#{c.id}</span>
@@ -677,9 +671,7 @@ export const ShopManagement = () => {
                       <input type="text" value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCategory())}
                         className={`${inputClass} flex-1`} placeholder="Category name (e.g. Weapons)" />
-                      <button onClick={addCategory} className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-sm font-semibold transition-all">
-                        <Plus size={13} />Add
-                      </button>
+                      <Button variant="purple" icon={Plus} onClick={addCategory} className="shrink-0">Add</Button>
                     </div>
                   </div>
 
@@ -703,9 +695,9 @@ export const ShopManagement = () => {
                   </div>
                 </div>
 
-                <button onClick={saveSettings} disabled={loading} className="bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg px-6 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2 transition-all">
-                  <Save size={14} />{loading ? 'Saving...' : 'Save Theme'}
-                </button>
+                <Button variant="purple" loading={loading} icon={Save} onClick={saveSettings}>
+                  {loading ? 'Saving...' : 'Save Theme'}
+                </Button>
               </div>
             )}
 
@@ -714,13 +706,13 @@ export const ShopManagement = () => {
             ══════════════════════════════════════════════════════ */}
             {subTab === 'daily' && (
               <div className="p-5 space-y-5">
-                <div className="p-4 bg-slate-50 dark:bg-[#1c1c2e] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] text-sm text-[#71717a]">
+                <div className="p-4 bg-zinc-50 dark:bg-[#111118] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] text-sm text-[#71717a]">
                   <p className="font-semibold text-zinc-700 dark:text-[#e4e4e7] mb-1">How it works</p>
                   <p>Each player can claim the gift once per day. The reset happens at midnight UTC (server-side — cannot be bypassed). Once claimed, the item is automatically delivered to the player's account.</p>
                 </div>
 
                 {/* Active toggle */}
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#1c1c2e] rounded-xl border border-zinc-200 dark:border-[#2a2a3c]">
+                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-[#111118] rounded-xl border border-zinc-200 dark:border-[#2a2a3c]">
                   <div>
                     <p className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Daily Gift Active</p>
                     <p className="text-xs text-[#71717a]">Show the daily gift banner on the shop page</p>
@@ -744,7 +736,7 @@ export const ShopManagement = () => {
                     <label className={labelClass}>Gift Image</label>
                     <div className="flex gap-2">
                       <input type="text" value={gift.image_url} onChange={e => setGift(g => ({ ...g, image_url: e.target.value }))} className={inputClass} placeholder="https://... or upload" />
-                      <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-slate-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-slate-300 dark:hover:bg-[#3a3a4c] transition-all">
+                      <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-zinc-200 dark:bg-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm hover:bg-zinc-300 dark:hover:bg-[#3a3a4c] transition-all">
                         {uploading ? '...' : 'Upload'}
                         <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setGift(g => ({ ...g, image_url: url })))} />
                       </label>
@@ -768,24 +760,24 @@ export const ShopManagement = () => {
                   </div>
                 </div>
 
-                <button onClick={saveGift} disabled={loading} className="bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg px-6 py-2.5 text-sm font-semibold disabled:opacity-50 flex items-center gap-2 transition-all">
-                  <Gift size={14} />{loading ? 'Saving...' : 'Save Daily Gift'}
-                </button>
+                <Button variant="purple" loading={loading} icon={Gift} onClick={saveGift}>
+                  {loading ? 'Saving...' : 'Save Daily Gift'}
+                </Button>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Public link */}
-          <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] px-5 py-4 flex items-center justify-between gap-4">
+          <Card className="px-5 py-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-0.5">Public Shop URL</p>
+              <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-0.5">Public Shop URL</p>
               <code className="text-sm text-[#6C5CE7] font-mono">/shop/{selectedGame.slug}</code>
             </div>
             <a href={`/shop/${selectedGame.slug}`} target="_blank" rel="noreferrer"
-              className="px-4 py-2 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-700 dark:text-[#e4e4e7] rounded-lg text-sm font-medium hover:border-[#6C5CE7]/40 transition-all">
+              className="px-4 py-2 bg-zinc-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-700 dark:text-[#e4e4e7] rounded-lg text-sm font-medium hover:border-[#6C5CE7]/40 transition-all">
               Open Shop ↗
             </a>
-          </div>
+          </Card>
         </>
       )}
 
@@ -811,7 +803,7 @@ export const ShopManagement = () => {
                 <button onClick={handleImport} className="flex-1 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg py-2.5 text-sm font-semibold flex items-center justify-center gap-2">
                   <Upload size={14} />Apply Theme
                 </button>
-                <button onClick={() => { setShowImport(false); setImportJson(''); }} className="px-5 py-2.5 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold">Cancel</button>
+                <button onClick={() => { setShowImport(false); setImportJson(''); }} className="px-5 py-2.5 bg-zinc-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold">Cancel</button>
               </div>
             </div>
           </div>

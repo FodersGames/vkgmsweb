@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, CheckCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProject } from '../context/ProjectContext';
+import { Card, CardHeader, CardBody } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -233,20 +234,20 @@ export const ApiEndpoints = () => {
 
   return (
     <div className="max-w-7xl">
-      <div className="bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl">
-        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c]">
+      <Card className="overflow-hidden">
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#71717a] to-[#52525b] flex items-center justify-center">
-              <FileText size={16} className="text-white" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#71717a18' }}>
+              <FileText size={16} style={{ color: '#71717a' }} />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-zinc-900 dark:text-[#e4e4e7]">API Documentation</h3>
-              <p className="text-xs text-[#71717a] mt-1">All endpoints scoped per project</p>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">API Documentation</h3>
+              <p className="text-xs text-[#71717a]">All endpoints scoped per project</p>
             </div>
           </div>
-        </div>
+        </CardHeader>
 
-        <div className="p-6 space-y-8">
+        <CardBody className="space-y-8">
           {endpoints.map((section, sectionIdx) => (
             <div key={sectionIdx}>
               <div className="flex items-center gap-2 mb-4">
@@ -261,7 +262,7 @@ export const ApiEndpoints = () => {
                   const methodStyle = methodColors[endpoint.method];
 
                   return (
-                    <div key={endpointIdx} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg bg-slate-50 dark:bg-[#1c1c2e]">
+                    <div key={endpointIdx} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg bg-zinc-50 dark:bg-[#111118]">
                       <div className="p-4 border-b border-zinc-200 dark:border-[#2a2a3c] bg-white dark:bg-[#151520]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1">
@@ -291,7 +292,7 @@ export const ApiEndpoints = () => {
                       <div className="p-4 space-y-4">
                         <div>
                           <div className="text-xs font-semibold text-[#71717a] mb-2">ENDPOINT URL</div>
-                          <code className="block p-2 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg break-all">
+                          <code className="block p-2 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg break-all">
                             {endpoint.example}
                           </code>
                         </div>
@@ -300,7 +301,7 @@ export const ApiEndpoints = () => {
                           <div>
                             <div className="text-xs font-semibold text-[#71717a] mb-2">REQUEST BODY</div>
                             <div className="flex items-start gap-2">
-                              <pre className="flex-1 p-3 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
+                              <pre className="flex-1 p-3 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
                                 {endpoint.body}
                               </pre>
                               <button onClick={() => copyToClipboard(endpoint.body, `body-${uniqueId}`)}
@@ -314,7 +315,7 @@ export const ApiEndpoints = () => {
                         {endpoint.auth && (
                           <div>
                             <div className="text-xs font-semibold text-[#71717a] mb-2">AUTHORIZATION</div>
-                            <code className="block p-2 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg">
+                            <code className="block p-2 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg">
                               Authorization: Bearer YOUR_JWT_TOKEN
                             </code>
                           </div>
@@ -323,7 +324,7 @@ export const ApiEndpoints = () => {
                         <div>
                           <div className="text-xs font-semibold text-[#71717a] mb-2">RESPONSE</div>
                           <div className="flex items-start gap-2">
-                            <pre className="flex-1 p-3 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
+                            <pre className="flex-1 p-3 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
                               {endpoint.response}
                             </pre>
                             <button onClick={() => copyToClipboard(endpoint.response, `resp-${uniqueId}`)}
@@ -339,16 +340,18 @@ export const ApiEndpoints = () => {
               </div>
             </div>
           ))}
-        </div>
+        </CardBody>
 
-        <div className="mx-6 mb-6 p-4 border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 rounded-lg">
-          <div className="text-sm font-medium text-[#6C5CE7] mb-2">Multi-Project Architecture</div>
-          <p className="text-sm text-zinc-900 dark:text-[#e4e4e7]/70">
-            All game data (items, status, variables, logs) is isolated per project. Each project has its own set of endpoints prefixed with <code className="text-xs bg-slate-100 dark:bg-[#0d0d14] px-1.5 py-0.5 rounded border border-zinc-200 dark:border-[#2a2a3c] text-[#4ECDC4]">/api/projects/{'{'}&lt;slug&gt;{'}'}</code>.
-            Users and authentication are shared globally across all projects.
-          </p>
+        <div className="px-6 pb-6">
+          <div className="p-4 border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 rounded-lg">
+            <div className="text-sm font-medium text-[#6C5CE7] mb-2">Multi-Project Architecture</div>
+            <p className="text-sm text-zinc-900 dark:text-[#e4e4e7]/70">
+              All game data (items, status, variables, logs) is isolated per project. Each project has its own set of endpoints prefixed with <code className="text-xs bg-zinc-100 dark:bg-[#0d0d14] px-1.5 py-0.5 rounded border border-zinc-200 dark:border-[#2a2a3c] text-[#4ECDC4]">/api/projects/{'{'}&lt;slug&gt;{'}'}</code>.
+              Users and authentication are shared globally across all projects.
+            </p>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

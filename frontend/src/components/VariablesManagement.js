@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import { Database, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button, Card, CardHeader, CardBody, EmptyState, Input } from '../ui';
 
 export const VariablesManagement = () => {
-  const { token, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const { selectedProject } = useProject();
   const [variables, setVariables] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -66,53 +67,87 @@ export const VariablesManagement = () => {
   return (
     <>
     <div className="max-w-5xl">
-      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center">
+      <Card className="overflow-hidden">
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2F80ED] to-[#2D9CDB] flex items-center justify-center"><Database size={16} className="text-white" /></div>
-            <div><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Variables</h3><p className="text-xs text-[#71717a]">Manage project variables</p></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+              <Database size={16} style={{ color: '#4ECDC4' }} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Variables</h3>
+              <p className="text-xs text-[#71717a]">Manage project variables</p>
+            </div>
           </div>
-          {hasPermission('create_variables') && <button onClick={() => setShowForm(!showForm)} className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2" data-testid="create-variable-button">{showForm ? <X size={16} /> : <Plus size={16} />}{showForm ? 'Cancel' : 'New Variable'}</button>}
-        </div>
+          {hasPermission('create_variables') && (
+            <Button icon={showForm ? X : Plus} onClick={() => setShowForm(!showForm)} data-testid="create-variable-button">
+              {showForm ? 'Cancel' : 'New Variable'}
+            </Button>
+          )}
+        </CardHeader>
 
         {showForm && (
-          <div className="p-6 bg-slate-50 dark:bg-[#1c1c2e] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <form onSubmit={handleCreate} data-testid="create-variable-form">
               <div className="space-y-4">
+                <Input
+                  label="Name"
+                  value={form.variable_name}
+                  onChange={e => setForm({ ...form, variable_name: e.target.value })}
+                  required
+                  data-testid="variable-name-input"
+                />
                 <div>
-                  <label className="block text-xs font-semibold text-[#71717a] mb-2 uppercase tracking-wider">Name</label>
-                  <input type="text" value={form.variable_name} onChange={e => setForm({ ...form, variable_name: e.target.value })} className="w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none" required data-testid="variable-name-input" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#71717a] mb-2 uppercase tracking-wider">Values</label>
+                  <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Values</p>
                   {form.values.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
-                      <input type="text" value={v} onChange={e => setForm(p => ({ ...p, values: p.values.map((x, j) => j === i ? e.target.value : x) }))} className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none" data-testid={`value-input-${i}`} />
-                      {form.values.length > 1 && <button type="button" onClick={() => setForm(p => ({ ...p, values: p.values.filter((_, j) => j !== i) }))} className="px-3 py-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-red-400"><Trash2 size={14} /></button>}
+                      <Input
+                        value={v}
+                        onChange={e => setForm(p => ({ ...p, values: p.values.map((x, j) => j === i ? e.target.value : x) }))}
+                        wrapperClassName="flex-1"
+                        data-testid={`value-input-${i}`}
+                      />
+                      {form.values.length > 1 && (
+                        <Button variant="danger" size="sm" icon={Trash2} onClick={() => setForm(p => ({ ...p, values: p.values.filter((_, j) => j !== i) }))} />
+                      )}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-[#4ECDC4] flex items-center gap-1 mt-1"><Plus size={14} />Add value</button>
+                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-[#4ECDC4] flex items-center gap-1.5 mt-1 hover:text-[#45b8b0] transition-colors">
+                    <Plus size={13} />Add value
+                  </button>
                 </div>
-                <button type="submit" disabled={loading} className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" data-testid="submit-variable-button">{loading ? 'Creating...' : 'Create Variable'}</button>
+                <Button type="submit" loading={loading} data-testid="submit-variable-button">
+                  Create Variable
+                </Button>
               </div>
             </form>
           </div>
         )}
 
-        <div className="p-6">
-          <div className="text-xs font-semibold text-[#71717a] mb-4 uppercase tracking-wider">Variables ({variables.length})</div>
-          {variables.length === 0 ? <div className="text-center py-12 text-[#71717a]">No variables yet.</div> : (
+        <CardBody>
+          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+            Variables ({variables.length})
+          </p>
+          {variables.length === 0 ? (
+            <EmptyState icon={Database} title="No variables yet" description="Create your first variable to manage project data." />
+          ) : (
             <div className="space-y-3" data-testid="variables-list">
               {variables.map(v => {
                 const isEditing = editingVar?.variable_name === v.variable_name;
                 return (
-                  <div key={v.variable_name} className="bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl p-4 hover:border-[#4ECDC4]/20 transition-all">
+                  <div key={v.variable_name} className="bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl p-4 hover:border-[#4ECDC4]/20 transition-colors">
                     <div className="flex justify-between items-start mb-3">
-                      <div><code className="text-sm font-semibold text-[#2F80ED] font-mono">{v.variable_name}</code><p className="text-xs text-[#71717a] mt-1">{v.values.length} value(s)</p></div>
+                      <div>
+                        <code className="text-sm font-semibold text-[#2F80ED] font-mono">{v.variable_name}</code>
+                        <p className="text-xs text-[#71717a] mt-0.5">{v.values.length} value(s)</p>
+                      </div>
                       {!isEditing && (
-                        <div className="flex gap-2">
-                          {hasPermission('edit_variables') && <button onClick={() => setEditingVar({...v})} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4]" data-testid={`edit-variable-${v.variable_name}`}><Edit2 size={14} /></button>}
-                          {hasPermission('delete_variables') && <button onClick={() => handleDelete(v.variable_name)} className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-red-500/30 rounded-lg text-[#71717a] hover:text-red-400" data-testid={`delete-variable-${v.variable_name}`}><Trash2 size={14} /></button>}
+                        <div className="flex gap-1.5">
+                          {hasPermission('edit_variables') && (
+                            <Button variant="secondary" size="sm" icon={Edit2} onClick={() => setEditingVar({...v})} data-testid={`edit-variable-${v.variable_name}`} />
+                          )}
+                          {hasPermission('delete_variables') && (
+                            <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDelete(v.variable_name)} data-testid={`delete-variable-${v.variable_name}`} />
+                          )}
                         </div>
                       )}
                     </div>
@@ -120,19 +155,31 @@ export const VariablesManagement = () => {
                       <div className="space-y-2">
                         {editingVar.values.map((val, i) => (
                           <div key={i} className="flex gap-2">
-                            <input type="text" value={val} onChange={e => setEditingVar(p => ({...p, values: p.values.map((x, j) => j === i ? e.target.value : x)}))} className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2 focus:border-[#4ECDC4] focus:outline-none" />
-                            {editingVar.values.length > 1 && <button onClick={() => setEditingVar(p => ({...p, values: p.values.filter((_, j) => j !== i)}))} className="px-3 py-2 border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-red-400"><Trash2 size={14} /></button>}
+                            <Input
+                              value={val}
+                              onChange={e => setEditingVar(p => ({...p, values: p.values.map((x, j) => j === i ? e.target.value : x)}))}
+                              wrapperClassName="flex-1"
+                            />
+                            {editingVar.values.length > 1 && (
+                              <Button variant="danger" size="sm" icon={Trash2} onClick={() => setEditingVar(p => ({...p, values: p.values.filter((_, j) => j !== i)}))} />
+                            )}
                           </div>
                         ))}
-                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-[#4ECDC4] flex items-center gap-1"><Plus size={14} />Add</button>
+                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-[#4ECDC4] flex items-center gap-1.5 hover:text-[#45b8b0] transition-colors">
+                          <Plus size={13} />Add
+                        </button>
                         <div className="flex gap-2 mt-3">
-                          <button onClick={() => handleUpdate(v.variable_name)} disabled={loading} className="bg-[#4ECDC4] text-[#0a0a0f] rounded-lg px-4 py-2 text-sm font-semibold flex items-center gap-2"><Save size={14} />Save</button>
-                          <button onClick={() => setEditingVar(null)} className="bg-slate-50 dark:bg-[#1c1c2e] text-zinc-900 dark:text-[#e4e4e7] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-4 py-2 text-sm flex items-center gap-2"><X size={14} />Cancel</button>
+                          <Button icon={Save} loading={loading} onClick={() => handleUpdate(v.variable_name)}>Save</Button>
+                          <Button variant="secondary" icon={X} onClick={() => setEditingVar(null)}>Cancel</Button>
                         </div>
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {v.values.map((val, i) => <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-sm text-zinc-900 dark:text-[#e4e4e7] font-mono">{val}</span>)}
+                        {v.values.map((val, i) => (
+                          <span key={i} className="px-3 py-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono">
+                            {val}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -140,8 +187,8 @@ export const VariablesManagement = () => {
               })}
             </div>
           )}
-        </div>
-      </div>
+        </CardBody>
+      </Card>
     </div>
 
     <ConfirmDialog

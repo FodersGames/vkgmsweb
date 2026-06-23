@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
-import { MessageSquare, Trash2, RefreshCw, Key, Copy, ShieldAlert, Plus, X } from 'lucide-react';
+import { MessageSquare, Trash2, RefreshCw, Key, Copy, ShieldAlert, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button, Card, CardHeader, CardBody, EmptyState, Input, Select } from '../ui';
 
 export const ChatManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -15,7 +16,7 @@ export const ChatManagement = () => {
   const [newWord, setNewWord] = useState('');
   const [showBannedWords, setShowBannedWords] = useState(false);
   const [messageLimit, setMessageLimit] = useState(50);
-  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
+  const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null, confirmLabel: 'Confirm' });
   const [confirmLoading, setConfirmLoading] = useState(false);
   const canManage = hasPermission('manage_chat');
 
@@ -47,7 +48,6 @@ export const ChatManagement = () => {
 
   useEffect(() => { fetchBannedWords(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { if (selectedProject) fetchMessages(selectedProject.slug, messageLimit); }, [selectedProject, messageLimit, fetchMessages]);
-
   useEffect(() => {
     if (!selectedProject) return;
     const interval = setInterval(() => fetchMessages(selectedProject.slug, messageLimit), 5000);
@@ -92,88 +92,90 @@ export const ChatManagement = () => {
     const word = newWord.trim();
     if (!word) return;
     const updated = [...bannedWords, word];
-    try {
-      await api.put(`/api/website/chat/banned-words`, { words: updated });
-      setBannedWords(updated);
-      setNewWord('');
-      toast.success('Word added');
-    } catch (e) { toast.error('Failed to update list'); }
+    try { await api.put(`/api/website/chat/banned-words`, { words: updated }); setBannedWords(updated); setNewWord(''); toast.success('Word added'); }
+    catch (e) { toast.error('Failed to update list'); }
   };
 
   const removeBannedWord = async (word) => {
     const updated = bannedWords.filter(w => w !== word);
-    try {
-      await api.put(`/api/website/chat/banned-words`, { words: updated });
-      setBannedWords(updated);
-    } catch (e) { toast.error('Failed to update list'); }
+    try { await api.put(`/api/website/chat/banned-words`, { words: updated }); setBannedWords(updated); }
+    catch (e) { toast.error('Failed to update list'); }
   };
 
-  const formatTime = (iso) => {
-    const d = new Date(iso);
-    return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
+  const formatTime = (iso) => new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   return (
     <>
     <div className="max-w-5xl space-y-4">
-      <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center flex-wrap gap-3">
+      <Card className="overflow-hidden">
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#9B51E0] to-[#BB6BD9] flex items-center justify-center"><MessageSquare size={16} className="text-white" /></div>
-            <div><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Game Chat</h3><p className="text-xs text-[#71717a]">In-game global chat for {selectedProject?.name || 'this project'}</p></div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
+              <MessageSquare size={16} style={{ color: '#9B51E0' }} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Game Chat</h3>
+              <p className="text-xs text-[#71717a]">In-game chat for {selectedProject?.name || 'this project'}</p>
+            </div>
           </div>
-        </div>
+        </CardHeader>
 
         {!selectedProject ? (
-          <div className="text-center py-12 text-[#71717a]">Select a project to manage its chat.</div>
+          <CardBody>
+            <EmptyState icon={MessageSquare} title="No project selected" description="Select a project to manage its chat." />
+          </CardBody>
         ) : (
           <>
-            {/* API key panel */}
             {canManage && (
-              <div className="p-6 border-b border-zinc-200 dark:border-[#2a2a3c] bg-slate-50 dark:bg-[#1c1c2e]">
+              <div className="px-6 py-4 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
                 <div className="flex items-center gap-2 mb-2">
-                  <Key size={13} className="text-[#9B51E0]" />
-                  <span className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Chat API Key — {selectedProject.name}</span>
+                  <Key size={12} style={{ color: '#9B51E0' }} />
+                  <span className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                    Chat API Key — {selectedProject.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono truncate">
+                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
-                  <button onClick={copyKey} disabled={!selectedProject.chat_api_key} className="p-2.5 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg text-[#71717a] hover:text-[#4ECDC4] transition-all disabled:opacity-30" data-testid="copy-chat-key"><Copy size={14} /></button>
-                  <button onClick={handleRegenerateKey} disabled={loading} className="p-2.5 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#F2994A]/30 rounded-lg text-[#71717a] hover:text-[#F2994A] transition-all" data-testid="regenerate-chat-key"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} /></button>
+                  <Button variant="secondary" size="sm" icon={Copy} onClick={copyKey} disabled={!selectedProject.chat_api_key} data-testid="copy-chat-key" />
+                  <Button variant="secondary" size="sm" icon={RefreshCw} onClick={handleRegenerateKey} loading={loading} data-testid="regenerate-chat-key" />
                 </div>
-                <p className="text-[11px] text-[#71717a] mt-2">Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.</p>
+                <p className="text-[11px] text-[#71717a] mt-2">
+                  Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.
+                </p>
               </div>
             )}
 
-            {/* Messages */}
-            <div className="p-6">
+            <CardBody>
               <div className="flex items-center justify-between mb-4">
-                <div className="text-xs font-semibold text-[#71717a] uppercase tracking-wider">Messages ({messages.length})</div>
+                <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                  Messages ({messages.length})
+                </p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[#71717a]">Show last</span>
-                  <select
+                  <Select
                     value={messageLimit}
                     onChange={e => setMessageLimit(Number(e.target.value))}
-                    className="bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-xs px-2 py-1.5 focus:border-[#4ECDC4] focus:outline-none"
+                    className="w-auto"
                     data-testid="message-limit-select"
                   >
                     {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <span className="text-xs text-[#71717a]">/ 100 max</span>
+                  </Select>
                 </div>
               </div>
+
               {messages.length === 0 ? (
-                <div className="text-center py-12 text-[#71717a]">No messages yet.</div>
+                <EmptyState icon={MessageSquare} title="No messages yet" description="Messages will appear here as players chat in-game." />
               ) : (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
+                <div className="space-y-1.5 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="bg-slate-50 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-4 py-2.5 flex items-start justify-between gap-3 group">
+                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg group hover:border-zinc-300 dark:hover:border-[#3a3a50] transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
                           {m.level != null && (
-                            <span className="text-[10px] font-semibold bg-[#9B51E0]/15 text-[#BB6BD9] border border-[#9B51E0]/30 rounded px-1.5 py-0.5">Lv.{m.level}</span>
+                            <span className="text-[10px] font-semibold bg-[#9B51E0]/10 text-[#BB6BD9] border border-[#9B51E0]/20 rounded px-1.5 py-0.5">Lv.{m.level}</span>
                           )}
                           <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
                         </div>
@@ -188,47 +190,64 @@ export const ChatManagement = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </CardBody>
           </>
         )}
-      </div>
+      </Card>
 
-      {/* Banned words (global) */}
       {canManage && (
-        <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
-          <button onClick={() => setShowBannedWords(!showBannedWords)} className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-100/50 dark:hover:bg-[#1c1c2e]/50 transition-all" data-testid="toggle-banned-words">
+        <Card className="overflow-hidden">
+          <button
+            onClick={() => setShowBannedWords(!showBannedWords)}
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#111118] transition-colors"
+            data-testid="toggle-banned-words"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#EB5757] to-[#F2994A] flex items-center justify-center"><ShieldAlert size={16} className="text-white" /></div>
-              <div className="text-left"><h3 className="text-base font-semibold text-zinc-900 dark:text-[#e4e4e7]">Banned Words</h3><p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p></div>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
+                <ShieldAlert size={16} style={{ color: '#EB5757' }} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Banned Words</h3>
+                <p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p>
+              </div>
             </div>
-            <span className="text-xs text-[#71717a]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#71717a]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
+              {showBannedWords ? <ChevronUp size={14} className="text-[#71717a]" /> : <ChevronDown size={14} className="text-[#71717a]" />}
+            </div>
           </button>
 
           {showBannedWords && (
-            <div className="p-6 border-t border-zinc-200 dark:border-[#2a2a3c]">
+            <CardBody className="border-t border-zinc-200 dark:border-[#2a2a3c]">
               <div className="flex gap-2 mb-4">
-                <input type="text" value={newWord} onChange={e => setNewWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && addBannedWord()}
-                  placeholder="Add a banned word..."
-                  className="flex-1 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#4ECDC4] focus:outline-none"
-                  data-testid="banned-word-input" />
-                <button onClick={addBannedWord} className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center gap-2" data-testid="add-banned-word"><Plus size={14} /> Add</button>
+                <Input
+                  value={newWord}
+                  onChange={e => setNewWord(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addBannedWord()}
+                  placeholder="Add a banned word…"
+                  wrapperClassName="flex-1"
+                  data-testid="banned-word-input"
+                />
+                <Button icon={Plus} onClick={addBannedWord} data-testid="add-banned-word">Add</Button>
               </div>
               {bannedWords.length === 0 ? (
                 <p className="text-sm text-[#71717a]">No banned words yet.</p>
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="banned-words-list">
                   {bannedWords.map(w => (
-                    <span key={w} className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-zinc-900 dark:text-[#e4e4e7]">
+                    <span key={w} className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-zinc-900 dark:text-[#e4e4e7]">
                       {w}
-                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-all"><X size={11} /></button>
+                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-colors"><X size={11} /></button>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-[#71717a] mt-3">Matching is case-insensitive and whole-word. A detected word is replaced with asterisks matching its length (e.g. <code className="text-[#9B51E0]">con</code> → <code className="text-[#9B51E0]">***</code>).</p>
-            </div>
+              <p className="text-[11px] text-[#71717a] mt-3 leading-relaxed">
+                Matching is case-insensitive and whole-word. A detected word is replaced with asterisks (e.g. <code className="text-[#9B51E0]">con</code> → <code className="text-[#9B51E0]">***</code>).
+              </p>
+            </CardBody>
           )}
-        </div>
+        </Card>
       )}
     </div>
 

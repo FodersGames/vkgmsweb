@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Button, Card, CardHeader, CardBody, EmptyState } from '../ui';
 
-const inputClass = 'w-full bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-all';
-const labelClass = 'block text-xs font-semibold text-[#71717a] mb-1.5 uppercase tracking-wider';
+const inputClass = 'w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-[#52525b]';
+const labelClass = 'block text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] mb-1.5 uppercase tracking-widest';
 
 const PRIORITY = {
   low:    { label: 'Low',    color: '#71717a', bg: 'bg-zinc-100 dark:bg-[#1c1c2e]', Icon: Minus },
@@ -96,7 +97,7 @@ const RefImageCard = ({ url, onZoom }) => {
   const filename = url.split('/').pop();
   const ext = filename.split('.').pop()?.toUpperCase();
   return (
-    <div className="relative group rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e] flex-shrink-0">
+    <div className="relative group rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] flex-shrink-0">
       <img src={src} alt="" className="h-28 w-auto max-w-[140px] object-contain block" />
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -131,7 +132,7 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
             const filename = f.filename || f.url.split('/').pop();
             const ext = filename.split('.').pop()?.toUpperCase();
             return (
-              <div key={i} className="relative group rounded-xl overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e] aspect-square">
+              <div key={i} className="relative group rounded-xl overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] aspect-square">
                 <img src={src} alt={filename} className="w-full h-full object-contain" />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -340,10 +341,9 @@ export const MissionsManagement = () => {
   if (!selectedProject) {
     return (
       <div className="max-w-4xl">
-        <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] p-8 text-center">
-          <ClipboardList size={32} className="mx-auto mb-3 text-zinc-300 dark:text-[#71717a]" />
-          <p className="text-sm text-[#71717a]">Select a project to view missions.</p>
-        </div>
+        <Card>
+          <EmptyState icon={ClipboardList} title="No project selected" description="Select a project to view its missions." />
+        </Card>
       </div>
     );
   }
@@ -367,35 +367,34 @@ export const MissionsManagement = () => {
                   : 'bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] hover:border-[#6C5CE7]/40'
               }`}>
               {f === 'all' ? 'All' : STATUS[f]?.label}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-[#2a2a3c] text-[#71717a]'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-[#2a2a3c] text-[#71717a]'}`}>
                 {counts[f] ?? 0}
               </span>
             </button>
           ))}
         </div>
         {canCreate && (
-          <button onClick={openCreate}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-sm font-semibold transition-all">
-            <Plus size={14} />New Mission
-          </button>
+          <Button variant="purple" icon={Plus} onClick={openCreate}>
+            New Mission
+          </Button>
         )}
       </div>
 
       {/* ── CREATE / EDIT FORM ── */}
       {showForm && (
-        <div className="bg-white dark:bg-[#151520] rounded-xl border border-[#6C5CE7]/40 shadow-lg overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-zinc-200 dark:border-[#2a2a3c] flex items-center justify-between">
+        <Card className="overflow-hidden border-[#6C5CE7]/30">
+          <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#6C5CE7] to-[#A29BFE] flex items-center justify-center">
-                <ClipboardList size={13} className="text-white" />
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+                <ClipboardList size={13} style={{ color: '#6C5CE7' }} />
               </div>
               <span className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">
                 {editingMission ? 'Edit Mission' : 'New Mission Request'}
               </span>
             </div>
-            <button onClick={() => setShowForm(false)} className="text-[#71717a] hover:text-zinc-900 dark:hover:text-white transition-colors"><X size={16} /></button>
-          </div>
-          <div className="p-5 space-y-4">
+            <Button variant="ghost" size="sm" icon={X} onClick={() => setShowForm(false)} />
+          </CardHeader>
+          <CardBody className="space-y-4">
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className={labelClass}>Title *</label>
@@ -425,7 +424,7 @@ export const MissionsManagement = () => {
               <label className={labelClass}>Reference Files <span className="text-[#71717a] normal-case font-normal">(images, SVG…)</span></label>
               <div className="flex flex-wrap gap-2">
                 {form.reference_images.map((url, idx) => (
-                  <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#1c1c2e]">
+                  <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14]">
                     <img src={resolveUrl(url)} alt="" className="w-full h-full object-contain" />
                     <button onClick={() => setForm(f => ({ ...f, reference_images: f.reference_images.filter((_, i) => i !== idx) }))}
                       className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -441,34 +440,27 @@ export const MissionsManagement = () => {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button onClick={submitForm}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-sm font-semibold transition-all">
-                <Save size={13} />{editingMission ? 'Save Changes' : 'Post Mission'}
-              </button>
-              <button onClick={() => setShowForm(false)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
-                <X size={13} />Cancel
-              </button>
+              <Button variant="purple" icon={Save} onClick={submitForm}>
+                {editingMission ? 'Save Changes' : 'Post Mission'}
+              </Button>
+              <Button variant="secondary" icon={X} onClick={() => setShowForm(false)}>Cancel</Button>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       )}
 
       {/* ── MISSIONS LIST ── */}
       {loading ? (
         <div className="py-12 text-center text-[#71717a] text-sm">Loading…</div>
       ) : displayed.length === 0 ? (
-        <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] p-10 text-center">
-          <ClipboardList size={28} className="mx-auto mb-3 text-zinc-300 dark:text-[#2a2a3c]" />
-          <p className="text-sm text-[#71717a]">
-            {filter === 'all' ? 'No missions yet.' : `No ${STATUS[filter]?.label.toLowerCase()} missions.`}
-          </p>
-          {canCreate && filter === 'all' && (
-            <button onClick={openCreate} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg text-sm font-semibold transition-all">
-              <Plus size={13} />Post first mission
-            </button>
-          )}
-        </div>
+        <Card>
+          <EmptyState
+            icon={ClipboardList}
+            title={filter === 'all' ? 'No missions yet' : `No ${STATUS[filter]?.label.toLowerCase()} missions`}
+            description={filter === 'all' ? 'Create a mission to request assets or tasks from your team.' : undefined}
+            action={canCreate && filter === 'all' ? <Button variant="purple" icon={Plus} onClick={openCreate}>Post first mission</Button> : undefined}
+          />
+        </Card>
       ) : (
         <div className="space-y-3">
           {displayed.map(m => {
@@ -523,7 +515,7 @@ export const MissionsManagement = () => {
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                       {hasDetails && (
                         <button onClick={() => { setExpandedMission(isExpanded ? null : m.id); resetCompletionForm(); resetReopenForm(); }}
-                          className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-[#1c1c2e] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white transition-all">
+                          className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-zinc-100 dark:bg-[#1c1c2e] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white transition-all">
                           <ImageIcon size={11} />
                           {m.reference_images?.length > 0 && m.reference_images.length}
                           <ChevronDown size={10} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -544,7 +536,7 @@ export const MissionsManagement = () => {
                             </button>
                           )}
                           <button onClick={() => unclaimMission(m.id)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-[#1c1c2e] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white border border-zinc-200 dark:border-[#2a2a3c] transition-all">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-[#111118] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white border border-zinc-200 dark:border-[#2a2a3c] transition-all">
                             <Undo2 size={12} />Unclaim
                           </button>
                         </>
@@ -573,7 +565,7 @@ export const MissionsManagement = () => {
 
                 {/* ── Expanded panel ── */}
                 {isExpanded && (
-                  <div className="border-t border-zinc-100 dark:border-[#1c1c2e] bg-slate-50 dark:bg-[#0d0d14]">
+                  <div className="border-t border-zinc-100 dark:border-[#1c1c2e] bg-zinc-50 dark:bg-[#111118]">
 
                     {/* Submit Work form */}
                     {isCompleting && (
@@ -611,7 +603,7 @@ export const MissionsManagement = () => {
                             <CheckCircle size={13} />Mark as Done
                           </button>
                           <button onClick={resetCompletionForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>
@@ -637,7 +629,7 @@ export const MissionsManagement = () => {
                             <RotateCcw size={13} />Reopen Mission
                           </button>
                           <button onClick={resetReopenForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
 import axios from 'axios';
+import { PublicNav } from '../components/PublicNav';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -17,7 +17,6 @@ const PLATFORM_ICONS = {
 const GamesPage = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mobileMenu, setMobileMenu] = useState(false);
 
   useEffect(() => {
     document.title = 'Games — Vakar Games';
@@ -26,25 +25,7 @@ const GamesPage = () => {
 
   return (
     <div className="bg-[#0a0a0f] text-white min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="text-xl font-black tracking-[0.2em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</Link>
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/games" className="text-xs font-bold tracking-[0.15em] text-white uppercase">Games</Link>
-              <Link to="/blog" className="text-xs font-bold tracking-[0.15em] text-[#8A8A9A] hover:text-white transition-colors uppercase">Blog</Link>
-            </div>
-          </div>
-          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenu(!mobileMenu)}>{mobileMenu ? <X size={22}/> : <Menu size={22}/>}</button>
-        </div>
-        {mobileMenu && (
-          <div className="md:hidden bg-[#111118] border-t border-white/5 px-6 py-4 space-y-3">
-            <Link to="/" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Home</Link>
-            <Link to="/games" className="block text-sm text-white py-2" onClick={() => setMobileMenu(false)}>Games</Link>
-            <Link to="/blog" className="block text-sm text-[#8A8A9A] hover:text-white py-2" onClick={() => setMobileMenu(false)}>Blog</Link>
-          </div>
-        )}
-      </nav>
+      <PublicNav />
 
       <div className="pt-16">
         <div className="py-16 sm:py-20 px-6 text-center" style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a0f 100%)' }}>
