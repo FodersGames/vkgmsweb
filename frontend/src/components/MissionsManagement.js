@@ -353,6 +353,7 @@ export const MissionsManagement = () => {
   FILTERS.slice(1).forEach(f => { counts[f] = missions.filter(m => m.status === f).length; });
 
   return (
+    <>
     <div className="max-w-4xl space-y-4">
 
       {/* ── FILTERS + NEW ── */}
@@ -749,5 +750,6 @@ export const MissionsManagement = () => {
       loading={confirmLoading}
       variant="destructive"
     />
+    </>
   );
 };

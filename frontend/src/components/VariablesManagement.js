@@ -64,6 +64,7 @@ export const VariablesManagement = () => {
   };
 
   return (
+    <>
     <div className="max-w-5xl">
       <div className="bg-white dark:bg-[#151520] rounded-xl border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-200 dark:border-[#2a2a3c] flex justify-between items-center">
@@ -153,5 +154,6 @@ export const VariablesManagement = () => {
       loading={confirmLoading}
       variant="destructive"
     />
+    </>
   );
 };
