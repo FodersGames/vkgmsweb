@@ -6,52 +6,104 @@ import { PublicNav } from '../components/PublicNav';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+const PageFooter = () => (
+  <footer className="bg-[#1C1917] mt-24">
+    <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="flex items-center gap-8">
+        <Link to="/" className="text-base font-black tracking-[0.18em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+          VAKAR GAMES
+        </Link>
+        <Link to="/games" className="text-xs text-[#78716C] hover:text-white transition-colors">Games</Link>
+        <Link to="/blog"  className="text-xs text-[#78716C] hover:text-white transition-colors">Blog</Link>
+      </div>
+      <p className="text-xs text-[#44403C]">&copy; Vakar Games {new Date().getFullYear()}</p>
+    </div>
+  </footer>
+);
+
 export const BlogList = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'Blog — Vakar Games';
-    axios.get(`${API_URL}/api/website/blog/public`).then(r => { setPosts(r.data.posts); setLoading(false); }).catch(() => setLoading(false));
+    axios.get(`${API_URL}/api/website/blog/public`)
+      .then(r => { setPosts(r.data.posts); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
   return (
-    <div className="bg-[#0a0a0f] text-white min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="bg-[#F9F7F4] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
-        <div className="py-20 px-6 text-center" style={{ background: 'linear-gradient(180deg, #1a1a2e 0%, #0a0a0f 100%)' }}>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>BLOG</h1>
-          <p className="text-lg text-white/50 max-w-xl mx-auto">News, updates and announcements from Vakar Games.</p>
+        {/* Page header */}
+        <div className="bg-white border-b border-[#E8E3DB] py-16 px-6">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">
+              Vakar Games
+            </p>
+            <h1
+              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1C1917] leading-tight"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              BLOG
+            </h1>
+            <p className="text-[#78716C] mt-3">
+              News, updates and announcements from the studio.
+            </p>
+          </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-6 py-16">
+        <div className="max-w-4xl mx-auto px-6 py-14">
           {loading ? (
-            <div className="text-center py-20 text-white/30">Loading...</div>
+            <div className="text-center py-20 text-[#A8A29E]">Loading…</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-2xl font-bold text-white/20 mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>NO POSTS YET</p>
-              <p className="text-white/40">Check back soon for updates.</p>
+              <h2
+                className="text-3xl font-black text-[#A8A29E] mb-2"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              >
+                NO POSTS YET
+              </h2>
+              <p className="text-[#78716C]">Check back soon for updates.</p>
             </div>
           ) : (
-            <div className="space-y-8" data-testid="blog-posts-list">
+            <div className="space-y-4" data-testid="blog-posts-list">
               {posts.map((post) => (
-                <Link key={post.slug} to={`/blog/${post.slug}`}
-                  className="block bg-[#151520] border border-[#2a2a3c] rounded-xl overflow-hidden hover:border-[#4ECDC4]/30 transition-all group"
-                  data-testid={`blog-post-${post.slug}`}>
-                  <div className="flex flex-col md:flex-row">
+                <Link
+                  key={post.slug}
+                  to={`/blog/${post.slug}`}
+                  className="group block bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] hover:shadow-sm transition-all overflow-hidden"
+                  data-testid={`blog-post-${post.slug}`}
+                >
+                  <div className="flex flex-col sm:flex-row">
                     {post.image_url && (
-                      <div className="md:w-64 h-48 md:h-auto flex-shrink-0">
-                        <img src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
-                          alt={post.title} className="w-full h-full object-cover" />
+                      <div className="sm:w-52 h-44 sm:h-auto flex-shrink-0">
+                        <img
+                          src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                     )}
                     <div className="p-6 flex-1">
-                      <h2 className="text-xl font-bold text-white group-hover:text-[#4ECDC4] transition-colors mb-2">{post.title}</h2>
-                      <p className="text-white/50 text-sm line-clamp-2 mb-4">{post.content?.replace(/<[^>]*>/g, '').substring(0, 200)}...</p>
-                      <div className="flex items-center gap-4 text-xs text-white/30">
-                        <span className="flex items-center gap-1"><User size={12} />{post.author}</span>
-                        <span className="flex items-center gap-1"><Calendar size={12} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <h2 className="text-lg font-bold text-[#1C1917] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
+                        {post.title}
+                      </h2>
+                      <p className="text-[#78716C] text-sm line-clamp-2 mb-4 leading-relaxed">
+                        {post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-[#A8A29E]">
+                        <span className="flex items-center gap-1.5">
+                          <User size={11} />{post.author}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={11} />
+                          {new Date(post.created_at).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                          })}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -62,16 +114,7 @@ export const BlogList = () => {
         </div>
       </div>
 
-      <footer className="border-t border-white/10 bg-[#0a0a0f]">
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-8">
-            <Link to="/" className="text-lg font-black tracking-[0.2em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</Link>
-            <Link to="/games" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase">Games</Link>
-            <Link to="/blog" className="text-xs tracking-[0.1em] text-[#8A8A9A] hover:text-white transition-colors uppercase">Blog</Link>
-          </div>
-          <p className="text-xs text-[#8A8A9A]">&copy; VAKAR GAMES {new Date().getFullYear()}</p>
-        </div>
-      </footer>
+      <PageFooter />
     </div>
   );
 };
@@ -82,48 +125,74 @@ export const BlogPost = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/blog/${slug}`).then(r => {
-      setPost(r.data.post);
-      document.title = `${r.data.post.title} — Vakar Games`;
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    axios.get(`${API_URL}/api/website/blog/${slug}`)
+      .then(r => {
+        setPost(r.data.post);
+        document.title = `${r.data.post.title} — Vakar Games`;
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [slug]);
 
-  if (loading) return <div className="bg-[#0a0a0f] min-h-screen flex items-center justify-center text-white/30">Loading...</div>;
-  if (!post) return <div className="bg-[#0a0a0f] min-h-screen flex items-center justify-center text-white/30">Post not found</div>;
+  if (loading) return (
+    <div className="bg-[#F9F7F4] min-h-screen flex items-center justify-center text-[#A8A29E]">
+      Loading…
+    </div>
+  );
+  if (!post) return (
+    <div className="bg-[#F9F7F4] min-h-screen flex items-center justify-center text-[#A8A29E]">
+      Post not found
+    </div>
+  );
 
   return (
-    <div className="bg-[#0a0a0f] text-white min-h-screen" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="bg-[#F9F7F4] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16 max-w-3xl mx-auto px-6 py-16">
-        <Link to="/blog" className="inline-flex items-center gap-2 text-sm text-[#4ECDC4] hover:text-[#45b8b0] mb-8">
-          <ArrowLeft size={16} /> Back to Blog
-        </Link>
+      <div className="pt-16">
+        <div className="max-w-2xl mx-auto px-6 py-14">
+          <Link
+            to="/blog"
+            className="inline-flex items-center gap-2 text-sm text-[#78716C] hover:text-[#1C1917] mb-10 transition-colors"
+          >
+            <ArrowLeft size={14} /> Back to Blog
+          </Link>
 
-        {post.image_url && (
-          <img src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
-            alt={post.title} className="w-full rounded-xl mb-8 max-h-96 object-cover" />
-        )}
+          {post.image_url && (
+            <img
+              src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
+              alt={post.title}
+              className="w-full rounded-lg mb-10 max-h-80 object-cover border border-[#E8E3DB]"
+            />
+          )}
 
-        <h1 className="text-3xl md:text-5xl font-black mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>{post.title}</h1>
+          <h1
+            className="text-3xl sm:text-5xl font-black text-[#1C1917] mb-4 leading-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            {post.title}
+          </h1>
 
-        <div className="flex items-center gap-4 text-sm text-white/40 mb-8 pb-8 border-b border-white/10">
-          <span className="flex items-center gap-1"><User size={14} />{post.author}</span>
-          <span className="flex items-center gap-1"><Calendar size={14} />{new Date(post.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-        </div>
+          <div className="flex items-center gap-5 text-sm text-[#A8A29E] mb-10 pb-10 border-b border-[#E8E3DB]">
+            <span className="flex items-center gap-1.5"><User size={13} />{post.author}</span>
+            <span className="flex items-center gap-1.5">
+              <Calendar size={13} />
+              {new Date(post.created_at).toLocaleDateString('en-US', {
+                month: 'long', day: 'numeric', year: 'numeric',
+              })}
+            </span>
+          </div>
 
-        <div className="prose prose-invert max-w-none text-white/70 leading-relaxed whitespace-pre-wrap" data-testid="blog-content">
-          {post.content}
+          <div
+            className="text-[#44403C] leading-relaxed whitespace-pre-wrap text-base"
+            data-testid="blog-content"
+          >
+            {post.content}
+          </div>
         </div>
       </div>
 
-      <footer className="border-t border-white/10 bg-[#0a0a0f]">
-        <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link to="/" className="text-lg font-black tracking-[0.2em]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</Link>
-          <p className="text-xs text-[#8A8A9A]">&copy; VAKAR GAMES {new Date().getFullYear()}</p>
-        </div>
-      </footer>
+      <PageFooter />
     </div>
   );
 };
