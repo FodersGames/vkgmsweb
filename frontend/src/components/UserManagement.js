@@ -244,7 +244,7 @@ export const UserManagement = () => {
                 <label key={perm.id} className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
                   selectedPerms.includes(perm.id)
                     ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                    : 'border-zinc-200 dark:border-[#2a2a3c] bg-slate-100 dark:bg-[#0d0d14] text-[#71717a] hover:bg-slate-100 dark:hover:bg-[#1c1c2e]'
+                    : 'border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] text-[#71717a] hover:bg-zinc-100 dark:hover:bg-[#1c1c2e]'
                 }`}>
                   <input type="checkbox" checked={selectedPerms.includes(perm.id)} onChange={() => onToggle(perm.id)}
                     className="w-3.5 h-3.5 rounded" />
