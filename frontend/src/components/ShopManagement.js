@@ -40,7 +40,7 @@ const IconPicker = ({ value, onChange }) => {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-sm text-zinc-700 dark:text-[#e4e4e7] hover:border-[#6C5CE7]/40 transition-all w-full">
+        className="flex items-center gap-2 px-3 py-2.5 bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-sm text-zinc-700 dark:text-[#e4e4e7] hover:border-[#6C5CE7]/40 transition-all w-full">
         <Comp size={15} className="text-[#6C5CE7] shrink-0" />
         <span className="flex-1 text-left capitalize">{value || 'Choose icon…'}</span>
         <ChevronDown size={12} className="text-[#71717a] shrink-0" />
@@ -50,7 +50,7 @@ const IconPicker = ({ value, onChange }) => {
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
-              className={`p-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-[#2a2a3c] transition-all ${value === name ? 'bg-[#6C5CE7]/15 text-[#6C5CE7]' : 'text-zinc-500 dark:text-[#71717a]'}`}>
+              className={`p-2 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-[#2a2a3c] transition-all ${value === name ? 'bg-[#6C5CE7]/15 text-[#6C5CE7]' : 'text-zinc-500 dark:text-[#71717a]'}`}>
               <IC size={16} />
             </button>
           ))}
@@ -537,7 +537,7 @@ export const ShopManagement = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {PRESETS.map(p => (
                       <button key={p.id} onClick={() => applyPreset(p)}
-                        className="flex items-center gap-2 px-3 py-2.5 bg-zinc-100 dark:bg-[#1c1c2e] hover:bg-slate-200 dark:hover:bg-[#2a2a3c] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/40 rounded-xl text-sm font-medium text-zinc-700 dark:text-[#e4e4e7] transition-all text-left">
+                        className="flex items-center gap-2 px-3 py-2.5 bg-zinc-100 dark:bg-[#1c1c2e] hover:bg-zinc-200 dark:hover:bg-[#2a2a3c] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/40 rounded-xl text-sm font-medium text-zinc-700 dark:text-[#e4e4e7] transition-all text-left">
                         <span className="text-base">{p.emoji}</span>
                         <span className="truncate text-xs">{p.label}</span>
                       </button>
@@ -800,10 +800,8 @@ export const ShopManagement = () => {
                 placeholder={'{\n  "primary_color": "#C0392B",\n  "background_color": "#0A0806",\n  ...\n}'}
                 className="w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-xl text-xs font-mono px-4 py-3 focus:outline-none focus:border-[#6C5CE7] resize-none transition-all" />
               <div className="flex gap-3">
-                <button onClick={handleImport} className="flex-1 bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white rounded-lg py-2.5 text-sm font-semibold flex items-center justify-center gap-2">
-                  <Upload size={14} />Apply Theme
-                </button>
-                <button onClick={() => { setShowImport(false); setImportJson(''); }} className="px-5 py-2.5 bg-zinc-100 dark:bg-[#1c1c2e] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold">Cancel</button>
+                <Button variant="purple" icon={Upload} onClick={handleImport} className="flex-1 justify-center">Apply Theme</Button>
+                <Button variant="secondary" onClick={() => { setShowImport(false); setImportJson(''); }}>Cancel</Button>
               </div>
             </div>
           </div>
