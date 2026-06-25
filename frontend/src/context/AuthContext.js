@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
-
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export const AuthProvider = ({ children }) => {
@@ -12,19 +11,19 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      verifyToken();
+      fetchMe(token);
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const verifyToken = async () => {
+  const fetchMe = async (t) => {
     try {
-      const response = await axios.get(`${API_URL}/api/auth/verify`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await axios.get(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${t}` },
       });
-      setUser(response.data.user);
-    } catch (error) {
+      setUser(res.data);
+    } catch {
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
@@ -33,19 +32,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (key) => {
+  const login = async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, { key });
-      const { token: newToken, user: userData, first_login, new_key } = response.data;
+      const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      const { token: newToken, user: userData, first_login } = res.data;
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
-      return { success: true, first_login, new_key };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.detail || 'Login failed'
-      };
+      return { success: true, first_login };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || 'Login failed' };
+    }
+  };
+
+  const register = async ({ email, password, firstName, lastName, username }) => {
+    try {
+      await axios.post(`${API_URL}/api/auth/register`, { email, password, firstName, lastName, username });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || 'Registration failed' };
+    }
+  };
+
+  const changePassword = async ({ currentPassword, newPassword }) => {
+    try {
+      await axios.post(
+        `${API_URL}/api/auth/change-password`,
+        { current_password: currentPassword, new_password: newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh user data so mustChangePassword is cleared
+      await fetchMe(token);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || 'Failed to change password' };
     }
   };
 
@@ -58,24 +78,26 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.is_super_admin) return true;
-    // 'view_projects' is a meta-check: true if user can see at least one project
     if (permission === 'view_projects') {
       return user.permissions?.some(p => p === 'view_all_projects' || p.startsWith('project:')) ?? false;
     }
     return user.permissions?.includes(permission) ?? false;
   };
 
+  const isAdmin = () => {
+    if (!user) return false;
+    return user.is_super_admin || user.role === 'admin' || (user.permissions && user.permissions.length > 0);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, token, hasPermission }}>
+    <AuthContext.Provider value={{ user, loading, token, login, register, logout, changePassword, hasPermission, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };

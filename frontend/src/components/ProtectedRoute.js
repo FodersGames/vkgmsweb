@@ -2,13 +2,13 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export const ProtectedRoute = ({ children, permission }) => {
-  const { user, loading, hasPermission } = useAuth();
+export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
+  const { user, loading, hasPermission, isAdmin } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-neutral-950 font-mono text-sm">LOADING...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
+        <div className="text-[#78716C] text-sm">Loading…</div>
       </div>
     );
   }
@@ -17,12 +17,16 @@ export const ProtectedRoute = ({ children, permission }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (requiresAdmin && !isAdmin()) {
+    return <Navigate to="/profile" replace />;
+  }
+
   if (permission && !hasPermission(permission)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="max-w-md p-8 border border-neutral-950 bg-white">
-          <h2 className="text-2xl font-bold mb-4 text-neutral-950">ACCESS DENIED</h2>
-          <p className="text-neutral-700">You do not have permission to access this page.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
+        <div className="max-w-md p-8 border border-[#E8E3DB] bg-white rounded-xl text-center">
+          <h2 className="text-2xl font-bold mb-2 text-[#1C1917]">Access Denied</h2>
+          <p className="text-[#78716C] text-sm">You don't have permission to access this page.</p>
         </div>
       </div>
     );

@@ -13,6 +13,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Shop from './pages/Shop';
 import ShopSuccess from './pages/ShopSuccess';
+import Profile from './pages/Profile';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
@@ -36,7 +37,7 @@ const AppRoutes = () => {
 
   if (!checked) return null;
 
-  const adminPaths = ['/login', '/dashboard', '/privacy', '/terms', '/shop'];
+  const adminPaths = ['/login', '/dashboard', '/privacy', '/terms', '/shop', '/profile'];
   const isAdmin = adminPaths.some(p => location.pathname.startsWith(p));
 
   if (maintenance && !isAdmin) {
@@ -54,7 +55,8 @@ const AppRoutes = () => {
       <Route path="/shop/:gameSlug" element={<Shop />} />
       <Route path="/shop/:gameSlug/success" element={<ShopSuccess />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
