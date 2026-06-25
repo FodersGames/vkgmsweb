@@ -528,6 +528,11 @@ class SuspendUserRequest(BaseModel):
     suspended: bool
     reason: Optional[str] = ""
 
+class UpdateProfileRequest(BaseModel):
+    firstName: str
+    lastName: str
+    username: str
+
 class UpdateUserRoleRequest(BaseModel):
     role: Literal["user", "admin", "super_admin"]
     permissions: List[str] = []
@@ -751,6 +756,27 @@ async def register(request: Request, body: RegisterRequest):
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
     return user
+
+@api_router.patch("/auth/profile")
+async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_user)):
+    firstName = body.firstName.strip()
+    lastName = body.lastName.strip()
+    username = body.username.strip()
+    if not (1 <= len(firstName) <= 50):
+        raise HTTPException(status_code=400, detail="First name must be 1-50 characters")
+    if not (1 <= len(lastName) <= 50):
+        raise HTTPException(status_code=400, detail="Last name must be 1-50 characters")
+    if not re.match(r'^[a-zA-Z0-9_]{3,32}$', username):
+        raise HTTPException(status_code=400, detail="Username must be 3-32 characters (letters, numbers, underscores only)")
+    conflict = await db.users.find_one({"username": username, "_id": {"$ne": ObjectId(user["id"])}})
+    if conflict:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    await db.users.update_one(
+        {"_id": ObjectId(user["id"])},
+        {"$set": {"firstName": firstName, "lastName": lastName, "username": username}}
+    )
+    await log_action("auth", f"User '{user['username']}' updated their profile")
+    return {"success": True}
 
 @api_router.post("/auth/change-password")
 async def change_password(body: ChangePasswordRequest, user=Depends(get_current_user)):
