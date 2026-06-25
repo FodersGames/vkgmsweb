@@ -54,6 +54,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async ({ firstName, lastName, username }) => {
+    try {
+      await axios.patch(
+        `${API_URL}/api/auth/profile`,
+        { firstName, lastName, username },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchMe(token);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || 'Failed to update profile' };
+    }
+  };
+
   const changePassword = async ({ currentPassword, newPassword }) => {
     try {
       await axios.post(
@@ -90,7 +104,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, login, register, logout, changePassword, hasPermission, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, changePassword, hasPermission, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

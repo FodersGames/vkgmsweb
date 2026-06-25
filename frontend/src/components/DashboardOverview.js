@@ -29,10 +29,10 @@ const LOG_COLORS = {
 
 const timeAgo = (iso) => {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60)    return "à l'instant";
-  if (s < 3600)  return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return `il y a ${Math.floor(s / 86400)}j`;
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 };
 
 // ─── internal sub-components ──────────────────────────────────────────────────
@@ -94,12 +94,10 @@ export const DashboardOverview = ({ setActiveTab }) => {
   // project status — fetched independently
   const [projectStatus, setProjectStatus] = useState(null);
 
-  // French date — computed once at mount
   const dateStr = useMemo(() => {
-    const d = new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat('en-US', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     }).format(new Date());
-    return d.charAt(0).toUpperCase() + d.slice(1);
   }, []);
 
   // ── global stats fetch (users, games) ───────────────────────────────────────
@@ -107,9 +105,16 @@ export const DashboardOverview = ({ setActiveTab }) => {
     const fetches = [];
 
     if (canManageUsers) {
+      // Count only users with permissions or admin roles (not plain registered accounts)
       fetches.push(
-        api.get('/api/users?limit=1&page=1')
-          .then(r => setGlobalStats(s => ({ ...s, users: r.data.total ?? null })))
+        api.get('/api/users?limit=200&page=1')
+          .then(r => {
+            const all = r.data.users || [];
+            const withPerms = all.filter(u =>
+              u.role === 'super_admin' || u.role === 'admin' || (u.permissions && u.permissions.length > 0)
+            );
+            setGlobalStats(s => ({ ...s, users: withPerms.length }));
+          })
           .catch(() => {})
       );
     }
@@ -170,10 +175,10 @@ export const DashboardOverview = ({ setActiveTab }) => {
   const statusInfo = projectStatus && STATUS_CFG[projectStatus] ? STATUS_CFG[projectStatus] : null;
 
   const statCards = [
-    { label: 'Projets', value: projects.length, accent: '#6C5CE7', icon: Gamepad2, loading: false },
-    canManageUsers ? { label: 'Utilisateurs', value: globalStats.users, accent: '#F2994A', icon: Users,        loading: globalLoading && globalStats.users === null } : null,
-    canSeeGames    ? { label: 'Jeux',          value: globalStats.games, accent: '#4ECDC4', icon: Globe,        loading: globalLoading && globalStats.games === null } : null,
-    (canSeeMissions && selectedProject) ? { label: 'Missions ouvertes', value: openMissions, accent: '#9B51E0', icon: ClipboardList, loading: missionsLoading && openMissions === null } : null,
+    { label: 'Projects', value: projects.length, accent: '#6C5CE7', icon: Gamepad2, loading: false },
+    canManageUsers ? { label: 'Staff', value: globalStats.users, accent: '#F2994A', icon: Users,        loading: globalLoading && globalStats.users === null } : null,
+    canSeeGames    ? { label: 'Games',          value: globalStats.games, accent: '#4ECDC4', icon: Globe,        loading: globalLoading && globalStats.games === null } : null,
+    (canSeeMissions && selectedProject) ? { label: 'Open Missions', value: openMissions, accent: '#9B51E0', icon: ClipboardList, loading: missionsLoading && openMissions === null } : null,
   ].filter(Boolean);
 
   const quickActions = [
@@ -212,7 +217,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
       {/* ── quick actions ─────────────────────────────────────────────────────── */}
       {quickActions.length > 0 && (
         <div>
-          <SectionTitle>Accès rapide</SectionTitle>
+          <SectionTitle>Quick Actions</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {quickActions.map(action => (
               <QuickAction
@@ -234,17 +239,17 @@ export const DashboardOverview = ({ setActiveTab }) => {
             <Gamepad2 size={22} className="text-[#A29BFE]" />
           </div>
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7] mb-1">
-            Aucun projet sélectionné
+            No project selected
           </h3>
           <p className="text-xs text-[#71717a] mb-4 max-w-xs">
-            Sélectionne un projet dans le menu pour voir son activité, son statut et ses missions.
+            Select a project from the menu to view its activity, status, and missions.
           </p>
           {canSeeProjects && (
             <button
               onClick={() => setActiveTab('projects')}
               className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-4 py-2 text-xs font-semibold transition-colors"
             >
-              Voir les projets
+              View Projects
             </button>
           )}
         </Card>
@@ -254,12 +259,12 @@ export const DashboardOverview = ({ setActiveTab }) => {
       {selectedProject && canSeeLogs && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <SectionTitle>Activité récente — {selectedProject.name}</SectionTitle>
+            <SectionTitle>Recent Activity — {selectedProject.name}</SectionTitle>
             <button
               onClick={() => setActiveTab('logs')}
               className="text-xs text-[#4ECDC4] hover:text-[#45b8b0] font-medium flex items-center gap-1 transition-colors"
             >
-              Voir tout <ArrowRight size={12} />
+              View all <ArrowRight size={12} />
             </button>
           </div>
 
@@ -277,17 +282,17 @@ export const DashboardOverview = ({ setActiveTab }) => {
               <div className="p-5 flex items-center gap-3">
                 <AlertCircle size={15} className="text-[#F2994A] shrink-0" />
                 <span className="text-sm text-[#71717a]">
-                  Impossible de charger l'activité.{' '}
+                  Could not load activity.{' '}
                   <button
                     onClick={() => setLogsRetry(r => r + 1)}
                     className="text-[#4ECDC4] hover:underline"
                   >
-                    Réessayer
+                    Retry
                   </button>
                 </span>
               </div>
             ) : recentLogs.length === 0 ? (
-              <div className="p-6 text-center text-sm text-[#71717a]">Aucune activité récente.</div>
+              <div className="p-6 text-center text-sm text-[#71717a]">No recent activity.</div>
             ) : (
               <div className="divide-y divide-zinc-100 dark:divide-[#2a2a3c]">
                 {recentLogs.map((log, i) => {
@@ -322,7 +327,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
       {/* ── project status widget ─────────────────────────────────────────────── */}
       {selectedProject && canSeeStatus && (
         <div>
-          <SectionTitle>Statut — {selectedProject.name}</SectionTitle>
+          <SectionTitle>Status — {selectedProject.name}</SectionTitle>
           <Card className="px-5 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
@@ -378,7 +383,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
                   onClick={() => setActiveTab('status')}
                   className="text-xs bg-[#4ECDC4]/10 text-[#4ECDC4] hover:bg-[#4ECDC4]/20 border border-[#4ECDC4]/25 rounded-lg px-3 py-1.5 transition-all font-medium"
                 >
-                  Gérer le statut
+                  Manage Status
                 </button>
               </div>
             </div>

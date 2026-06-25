@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
+  Search, SlidersHorizontal,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -90,8 +91,31 @@ export const UserManagement = () => {
   const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  const [search, setSearch] = useState('');
+  const [onlyWithPerms, setOnlyWithPerms] = useState(false);
+
   const permissionGroups = buildPermissionGroups(projectsList);
   const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
+
+  const filteredUsers = useMemo(() => {
+    let result = users;
+    if (onlyWithPerms) {
+      result = result.filter(u =>
+        u.role === 'super_admin' || u.role === 'admin' || (u.permissions && u.permissions.length > 0)
+      );
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(u =>
+        u.username?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.firstName?.toLowerCase().includes(q) ||
+        u.lastName?.toLowerCase().includes(q) ||
+        `${u.firstName} ${u.lastName}`.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [users, search, onlyWithPerms]);
 
   const showConfirm = (config) => setDialog({ ...config, open: true });
   const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
@@ -251,14 +275,39 @@ export const UserManagement = () => {
           </CardHeader>
 
           <CardBody>
+            {/* Search + filter bar */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative flex-1">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search by name, username, or email…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#1C1917] dark:text-[#e4e4e7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+                />
+              </div>
+              <button
+                onClick={() => setOnlyWithPerms(v => !v)}
+                className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
+                  onlyWithPerms
+                    ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/30 text-[#4ECDC4]'
+                    : 'bg-[#F9F7F4] dark:bg-[#111118] border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
+                }`}
+              >
+                <SlidersHorizontal size={12} />
+                With permissions
+              </button>
+            </div>
+
             <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
-              Users ({users.length})
+              Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
             <div className="space-y-3" data-testid="users-list">
-              {users.length === 0 && (
-                <EmptyState icon={Users} title="No users yet" description="Users who register on the site will appear here." />
+              {filteredUsers.length === 0 && (
+                <EmptyState icon={Users} title={search || onlyWithPerms ? 'No users match your filters' : 'No users yet'} description={search || onlyWithPerms ? 'Try adjusting the search or filter.' : 'Users who register on the site will appear here.'} />
               )}
-              {users.map((user) => {
+              {filteredUsers.map((user) => {
                 const isEditing = editingUser?.id === user.id;
                 const isSelf = currentUser?.id === user.id;
                 const isSuperAdmin = user.role === 'super_admin';
