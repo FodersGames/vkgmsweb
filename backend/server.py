@@ -34,12 +34,18 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_urlsafe(64))
+_jwt_secret_env = os.environ.get('JWT_SECRET', '')
+JWT_SECRET = _jwt_secret_env if _jwt_secret_env else secrets.token_urlsafe(64)
+_JWT_EPHEMERAL = not bool(_jwt_secret_env)  # True = no env var set → tokens die on restart
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 # Initial setup key — only works ONCE to bootstrap the Super Admin
 SETUP_KEY = os.environ.get('MASTER_KEY', '')
+
+# Super admin credentials from environment (never hardcode in source)
+SUPER_ADMIN_EMAIL    = os.environ.get('SUPER_ADMIN_EMAIL', '')
+SUPER_ADMIN_PASSWORD = os.environ.get('SUPER_ADMIN_PASSWORD', '')
 
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -563,7 +569,7 @@ def slugify(text: str) -> str:
     return text.strip('-')
 
 def hash_key(key: str) -> str:
-    return bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
 
 def verify_key(key: str, hashed: str) -> bool:
     return bcrypt.checkpw(key.encode('utf-8'), hashed.encode('utf-8'))
@@ -983,6 +989,12 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
+    # Prevent privilege escalation: non-super-admin can only grant permissions they themselves hold
+    if not admin.get("is_super_admin") and admin.get("role") not in ("super_admin",):
+        admin_perms = set(admin.get("permissions", []))
+        for perm in req.permissions:
+            if perm not in admin_perms:
+                raise HTTPException(status_code=403, detail=f"Cannot grant permission '{perm}' — you do not hold it yourself")
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
     await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
     return {"success": True, "id": user_id, "permissions": req.permissions}
@@ -1608,7 +1620,7 @@ async def update_shop_settings(game_slug: str, req: ShopSettingsRequest, user=De
 
 @api_router.post("/shop/{game_slug}/checkout")
 @limiter.limit("10/minute")
-async def create_checkout_session(request: Request, game_slug: str, req: ShopCheckoutRequest):
+async def create_checkout_session(request: Request, game_slug: str, req: ShopCheckoutRequest, user=Depends(get_current_user)):
     if not req.player_uid.strip():
         raise HTTPException(status_code=400, detail="Player UID required")
     try:
@@ -2106,9 +2118,6 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-SUPER_ADMIN_EMAIL = "lastdaylast79@gmail.com"
-SUPER_ADMIN_PASSWORD = "azerty*1234*"
-
 TIER_THRESHOLDS = [("diamond", 25000), ("gold", 10000), ("silver", 2500), ("bronze", 0)]
 TIER_DISCOUNTS  = {"bronze": 0, "silver": 5, "gold": 10, "diamond": 15}
 
@@ -2136,6 +2145,9 @@ def _get_origin(request=None) -> str:
 
 async def _ensure_super_admin():
     """Idempotent: create the super admin account if it doesn't exist yet."""
+    if not SUPER_ADMIN_EMAIL or not SUPER_ADMIN_PASSWORD:
+        logger.warning("SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in environment — skipping super admin auto-creation")
+        return
     try:
         existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL})
         if existing:
@@ -2205,6 +2217,14 @@ async def startup_event():
         logger.info("Database indexes initialized")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
+
+    # Security warnings for missing env vars
+    if _JWT_EPHEMERAL:
+        logger.warning("⚠ JWT_SECRET not set in environment — using ephemeral random secret. All tokens will be invalidated on every restart!")
+    if not SUPER_ADMIN_EMAIL or not SUPER_ADMIN_PASSWORD:
+        logger.warning("⚠ SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD not set in .env — super admin auto-creation disabled")
+    if not SETUP_KEY:
+        logger.warning("⚠ MASTER_KEY not set in environment — /auth/init-superadmin endpoint is disabled")
 
     # Create initial super admin if not already present
     await _ensure_super_admin()
