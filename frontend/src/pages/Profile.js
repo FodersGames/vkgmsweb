@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
-import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save } from 'lucide-react';
+import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -61,6 +62,84 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
   </div>
 );
 
+// ── Grade system ──────────────────────────────────────────────────────────────
+const TIERS = {
+  bronze:  { label: 'Bronze',  color: '#CD7F32', bg: '#CD7F3215', icon: Shield,  discount: 0,  min: 0,    next: 2500  },
+  silver:  { label: 'Silver',  color: '#94A3B8', bg: '#94A3B815', icon: Star,    discount: 5,  min: 2500,  next: 10000 },
+  gold:    { label: 'Gold',    color: '#F59E0B', bg: '#F59E0B15', icon: Trophy,  discount: 10, min: 10000, next: 25000 },
+  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Gem,     discount: 15, min: 25000, next: null  },
+};
+const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
+
+const LoyaltyWidget = ({ loyalty }) => {
+  if (!loyalty) return null;
+  const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
+  const cfg = TIERS[tier] || TIERS.bronze;
+  const Icon = cfg.icon;
+  const tierIdx = TIER_ORDER.indexOf(tier);
+  const progressPct = next_threshold_cents
+    ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
+    : 100;
+
+  return (
+    <div className="bg-white border border-[#E8E3DB] rounded-xl p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-[#1C1917] uppercase tracking-wider flex items-center gap-2">
+          <Icon size={14} style={{ color: cfg.color }} />Loyalty Grade
+        </h2>
+        <span className="text-xs font-bold px-2.5 py-1 rounded" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+          {cfg.label}{cfg.discount > 0 ? ` · −${cfg.discount}% off` : ''}
+        </span>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between text-[10px] text-[#A8A29E] mb-1.5">
+          <span>€{(total_spent_cents / 100).toFixed(2)} spent</span>
+          {next_threshold_cents && <span>Next: {TIERS[next_tier]?.label} at €{(next_threshold_cents / 100).toFixed(0)}</span>}
+        </div>
+        <div className="relative h-2.5 bg-[#F0EDE8] rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progressPct}%`, backgroundColor: cfg.color }} />
+          {TIER_ORDER.map((t, i) => {
+            if (i === 0) return null;
+            const pct = (TIERS[t].min / 25000) * 100;
+            return (
+              <div key={t} className="absolute top-0 bottom-0 w-0.5 rounded-full" style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }} />
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        {TIER_ORDER.map(t => {
+          const tc = TIERS[t];
+          const TIcon = tc.icon;
+          const reached = TIER_ORDER.indexOf(t) <= tierIdx;
+          return (
+            <div key={t} className="flex flex-col items-center gap-1">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: reached ? tc.bg : '#F9F7F4' }}>
+                <TIcon size={13} style={{ color: reached ? tc.color : '#C9C3BB' }} />
+              </div>
+              <span className="text-[9px] font-bold" style={{ color: reached ? tc.color : '#C9C3BB' }}>{tc.label}</span>
+              {tc.discount > 0 && <span className="text-[8px] text-[#A8A29E]">−{tc.discount}%</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      {cfg.discount > 0 && (
+        <p className="text-xs text-[#4ECDC4] mt-4 font-medium text-center">
+          Your {cfg.label} grade gives you {cfg.discount}% off all in-app purchases
+        </p>
+      )}
+      {!cfg.discount && next_tier && (
+        <p className="text-xs text-[#A8A29E] mt-4 text-center">
+          Spend €{((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to unlock {TIERS[next_tier]?.discount}% off with {TIERS[next_tier]?.label}
+        </p>
+      )}
+    </div>
+  );
+};
+
 const SectionCard = ({ children, className = '' }) => (
   <div className={`bg-white border border-[#E8E3DB] rounded-xl p-6 ${className}`}>
     {children}
@@ -80,6 +159,9 @@ const SectionTitle = ({ icon: Icon, children, action }) => (
 const Profile = () => {
   const { user, logout, updateProfile, changePassword, token } = useAuth();
   const navigate = useNavigate();
+
+  // Loyalty
+  const [loyalty, setLoyalty] = useState(null);
 
   // Notifications
   const [notifications, setNotifications] = useState([]);
@@ -106,6 +188,10 @@ const Profile = () => {
     if (!user) { navigate('/login'); return; }
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
     fetchNotifications();
+    if (token) {
+      axios.get(`${API_URL}/api/user/loyalty`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => setLoyalty(r.data)).catch(() => {});
+    }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchNotifications = async () => {
@@ -290,6 +376,9 @@ const Profile = () => {
               </>
             )}
           </SectionCard>
+
+          {/* Loyalty */}
+          <LoyaltyWidget loyalty={loyalty} />
 
           {/* Notifications */}
           <SectionCard>

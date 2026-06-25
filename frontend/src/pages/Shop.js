@@ -1,404 +1,516 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'sonner';
-import { ShoppingCart, X, Loader2, ArrowLeft, Link2, Gift, Star, Clock, Package,
-  Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
+import { useAuth } from '../context/AuthContext';
+import { PublicNav } from '../components/PublicNav';
+import {
+  ShoppingCart, X, Loader2, ArrowLeft, ArrowRight, Star,
+  Package, Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
   Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
-  Award, Map, Cpu, Music, Moon, Sun, Tag } from 'lucide-react';
-
-const CATEGORY_ICONS = {
-  package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
-  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
-  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
-  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
-  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun,
-  gift: Gift, tag: Tag, star: Star,
-};
-const CatIcon = ({ name, size = 13 }) => {
-  const Comp = CATEGORY_ICONS[name] || Package;
-  return <Comp size={size} />;
-};
+  Award, Map, Cpu, Music, Moon, Sun, Tag, Gift,
+  CheckCircle, LogIn,
+} from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const BADGE_COLORS = {
-  NEW:     { bg: '#4ECDC4', text: '#fff' },
-  SALE:    { bg: '#EB5757', text: '#fff' },
-  LIMITED: { bg: '#F2994A', text: '#fff' },
-  HOT:     { bg: '#FF6B6B', text: '#fff' },
-  POPULAR: { bg: '#A29BFE', text: '#fff' },
+// ── Grade system ──────────────────────────────────────────────────────────────
+const TIERS = {
+  bronze:  { label: 'Bronze',  color: '#CD7F32', bg: '#CD7F3215', icon: Shield,  discount: 0,  min: 0,    max: 2500  },
+  silver:  { label: 'Silver',  color: '#94A3B8', bg: '#94A3B815', icon: Star,    discount: 5,  min: 2500,  max: 10000 },
+  gold:    { label: 'Gold',    color: '#F59E0B', bg: '#F59E0B15', icon: Trophy,  discount: 10, min: 10000, max: 25000 },
+  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Gem,     discount: 15, min: 25000, max: null  },
+};
+const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
+
+const GradeBadge = ({ tier, size = 'sm' }) => {
+  const cfg = TIERS[tier] || TIERS.bronze;
+  const Icon = cfg.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 font-bold ${size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-0.5'}`}
+      style={{ backgroundColor: cfg.bg, color: cfg.color }}
+    >
+      <Icon size={size === 'lg' ? 14 : 10} />
+      {cfg.label}
+      {cfg.discount > 0 && ` −${cfg.discount}%`}
+    </span>
+  );
 };
 
-const BANNER_HEIGHT = { sm: 140, md: 220, lg: 320 };
+const LoyaltyBar = ({ loyalty }) => {
+  if (!loyalty) return null;
+  const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
+  const tierIdx = TIER_ORDER.indexOf(tier);
+  const cfg = TIERS[tier];
+  const Icon = cfg.icon;
 
-const formatCountdown = (s) => {
-  if (s <= 0) return '00:00:00';
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  return [h, m, sec].map(n => String(n).padStart(2, '0')).join(':');
+  const progressPct = next_threshold_cents
+    ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
+    : 100;
+
+  return (
+    <div className="bg-white border border-[#E8E3DB] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Icon size={15} style={{ color: cfg.color }} />
+          <span className="text-sm font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
+          {cfg.discount > 0 && (
+            <span className="text-xs font-semibold text-[#4ECDC4]">−{cfg.discount}% on all in-app purchases</span>
+          )}
+        </div>
+        <span className="text-xs text-[#A8A29E]">
+          €{(total_spent_cents / 100).toFixed(2)} spent
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="relative h-2 bg-[#F0EDE8] overflow-hidden mb-2">
+        <div className="h-full transition-all duration-500" style={{ width: `${progressPct}%`, backgroundColor: cfg.color }} />
+        {/* Tier markers */}
+        {TIER_ORDER.map((t, i) => {
+          if (i === 0) return null;
+          const pct = (TIERS[t].min / 25000) * 100;
+          const isReached = tierIdx >= i;
+          return (
+            <div
+              key={t}
+              className="absolute top-0 bottom-0 w-0.5"
+              style={{ left: `${pct}%`, backgroundColor: isReached ? TIERS[t].color : '#E8E3DB' }}
+            />
+          );
+        })}
+      </div>
+
+      <div className="flex justify-between">
+        {TIER_ORDER.map((t) => {
+          const tc = TIERS[t];
+          const TIcon = tc.icon;
+          const reached = TIER_ORDER.indexOf(t) <= tierIdx;
+          return (
+            <div key={t} className="flex flex-col items-center gap-0.5">
+              <TIcon size={11} style={{ color: reached ? tc.color : '#C9C3BB' }} />
+              <span className="text-[9px] font-semibold" style={{ color: reached ? tc.color : '#C9C3BB' }}>{tc.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {next_tier && next_threshold_cents && (
+        <p className="text-[10px] text-[#A8A29E] mt-2 text-center">
+          €{((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to reach {TIERS[next_tier]?.label}
+        </p>
+      )}
+    </div>
+  );
 };
 
+// ── Badge system ──────────────────────────────────────────────────────────────
+const BADGE_STYLES = {
+  NEW:     { bg: '#4ECDC4', text: '#fff',     label: 'New'     },
+  SALE:    { bg: '#EB5757', text: '#fff',     label: 'Sale'    },
+  LIMITED: { bg: '#F2994A', text: '#fff',     label: 'Limited' },
+  HOT:     { bg: '#FF6B6B', text: '#fff',     label: 'Hot 🔥'  },
+  POPULAR: { bg: '#A29BFE', text: '#fff',     label: 'Popular' },
+  BEST:    { bg: '#F59E0B', text: '#fff',     label: 'Best Value' },
+  BUNDLE:  { bg: '#6C5CE7', text: '#fff',     label: 'Bundle'  },
+  EXCLUSIVE: { bg: '#1C1917', text: '#4ECDC4', label: '✦ Exclusive' },
+};
+
+const BadgePill = ({ badge, discount_pct }) => {
+  const cfg = BADGE_STYLES[badge];
+  if (!cfg) return null;
+  return (
+    <span
+      className="text-[9px] font-black px-1.5 py-0.5 tracking-wide"
+      style={{ backgroundColor: cfg.bg, color: cfg.text }}
+    >
+      {cfg.label}{badge === 'SALE' && discount_pct ? ` −${discount_pct}%` : ''}
+    </span>
+  );
+};
+
+// ── Icon picker for categories ────────────────────────────────────────────────
+const ICONS = { package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
+  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
+  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
+  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
+  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun, gift: Gift, tag: Tag, star: Star,
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 const Shop = () => {
-  const { gameSlug } = useParams();
-  const [searchParams] = useSearchParams();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [products, setProducts]           = useState([]);
-  const [settings, setSettings]           = useState(null);
-  const [gift, setGift]                   = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [products, setProducts]         = useState([]);
+  const [categories, setCategories]     = useState([]);
+  const [loyalty, setLoyalty]           = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [activeGame, setActiveGame]     = useState(searchParams.get('game') || 'all');
 
-  const [buyingProduct, setBuyingProduct] = useState(null);
-  const [uid, setUid]                     = useState('');
+  const [buying, setBuying]             = useState(null);
+  const [uid, setUid]                   = useState('');
+  const [buyError, setBuyError]         = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [buyError, setBuyError]           = useState('');
 
-  const [giftUid, setGiftUid]             = useState('');
-  const [giftClaiming, setGiftClaiming]   = useState(false);
-  const [giftClaimed, setGiftClaimed]     = useState(false);
-  const [giftError, setGiftError]         = useState('');
-  const [countdown, setCountdown]         = useState(0);
+  useEffect(() => { document.title = 'Shop — Vakar Games'; }, []);
 
-  // Theme
-  const primary      = settings?.primary_color    || '#6C5CE7';
-  const accent       = settings?.accent_color     || '#A29BFE';
-  const priceColor   = settings?.price_color      || primary;
-  const bgColor      = settings?.background_color || null;
-  const surfaceColor = settings?.surface_color    || null;
-  const borderColor  = settings?.border_color     || null;
-  const textColor    = settings?.text_color       || null;
-  const textMuted    = settings?.text_muted_color || null;
-  const bannerH      = BANNER_HEIGHT[settings?.banner_height || 'md'];
-  const bannerOverlay = settings?.banner_overlay  || 'rgba(0,0,0,0.55)';
-  const isRounded    = (settings?.card_style || 'rounded') === 'rounded';
-  const cardRadius   = isRounded ? '0.75rem' : '0.25rem';
-  const categories   = settings?.categories || [];
+  // Sync activeGame with URL param
+  useEffect(() => {
+    const g = searchParams.get('game') || 'all';
+    setActiveGame(g);
+  }, [searchParams]);
 
+  // Fetch products + categories
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [prodRes, settRes, giftRes] = await Promise.all([
-          axios.get(`${API_URL}/api/shop/${gameSlug}/products`),
-          axios.get(`${API_URL}/api/shop/${gameSlug}/settings`),
-          axios.get(`${API_URL}/api/shop/${gameSlug}/daily-gift`).catch(() => ({ data: { active: false } })),
+        const [prodRes, catRes] = await Promise.all([
+          axios.get(`${API_URL}/api/shop/products`),
+          axios.get(`${API_URL}/api/shop/categories`),
         ]);
         setProducts(prodRes.data.products || []);
-        setSettings(settRes.data);
-        if (giftRes.data.active) {
-          setGift(giftRes.data);
-          setCountdown(giftRes.data.seconds_until_reset || 0);
-        }
-      } catch (e) {}
-      finally { setLoading(false); }
+        setCategories(catRes.data.categories || []);
+      } catch { /* silent */ } finally {
+        setLoading(false);
+      }
     };
     load();
-  }, [gameSlug]);
+  }, []);
 
+  // Fetch loyalty (auth only)
   useEffect(() => {
-    if (products.length === 0) return;
-    const id = searchParams.get('product');
-    if (id) { const found = products.find(p => p.id === id); if (found) { setBuyingProduct(found); setUid(''); setBuyError(''); } }
-  }, [products, searchParams]);
+    if (!token) return;
+    axios.get(`${API_URL}/api/user/loyalty`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setLoyalty(r.data))
+      .catch(() => {});
+  }, [token]);
 
-  useEffect(() => {
-    if (!gift?.active || countdown <= 0) return;
-    const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
-    return () => clearInterval(t);
-  }, [gift?.active, countdown]);
+  const discount = loyalty ? (TIERS[loyalty.tier]?.discount || 0) : 0;
 
-  const copyLink = (p) => {
-    navigator.clipboard.writeText(`${window.location.origin}/shop/${gameSlug}?product=${p.id}`)
-      .then(() => toast.success('Link copied!'));
+  const applyDiscount = (priceInCents) => {
+    if (!discount) return priceInCents;
+    return Math.max(50, Math.round(priceInCents * (1 - discount / 100)));
+  };
+
+  const filtered = activeGame === 'all' ? products : products.filter(p => p.game_slug === activeGame);
+  const featured = filtered.filter(p => p.featured);
+  const regular  = filtered.filter(p => !p.featured);
+
+  const openBuy = (product) => {
+    if (!user) { navigate('/login'); return; }
+    setBuying(product);
+    setUid('');
+    setBuyError('');
   };
 
   const handleBuy = async () => {
     if (!uid.trim()) { setBuyError('Please enter your in-game Player ID.'); return; }
-    setBuyError(''); setCheckoutLoading(true);
+    setBuyError('');
+    setCheckoutLoading(true);
     try {
-      const r = await axios.post(`${API_URL}/api/shop/${gameSlug}/checkout`, { product_id: buyingProduct.id, player_uid: uid.trim() });
+      const r = await axios.post(
+        `${API_URL}/api/shop/checkout`,
+        { product_id: buying.id, player_uid: uid.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       window.location.href = r.data.checkout_url;
-    } catch (e) { setBuyError(e.response?.data?.detail || 'Payment unavailable. Please try again.'); setCheckoutLoading(false); }
-  };
-
-  const checkClaimed = useCallback(async (u) => {
-    if (!u.trim()) return;
-    try {
-      const r = await axios.get(`${API_URL}/api/shop/${gameSlug}/daily-gift?player_uid=${encodeURIComponent(u.trim())}`);
-      if (r.data.claimed) setGiftClaimed(true);
-    } catch (e) {}
-  }, [gameSlug]);
-
-  const handleClaim = async () => {
-    if (!giftUid.trim()) { setGiftError('Enter your Player ID.'); return; }
-    setGiftClaiming(true); setGiftError('');
-    try {
-      await axios.post(`${API_URL}/api/shop/${gameSlug}/daily-gift/claim`, { player_uid: giftUid.trim() });
-      setGiftClaimed(true);
-      toast.success('Daily gift claimed! Check your in-game account.');
     } catch (e) {
-      if (e.response?.status === 409) { setGiftClaimed(true); }
-      else { setGiftError(e.response?.data?.detail || 'Failed to claim.'); }
-    } finally { setGiftClaiming(false); }
+      setBuyError(e.response?.data?.detail || 'Payment unavailable. Please try again.');
+      setCheckoutLoading(false);
+    }
   };
 
-  const filtered  = activeCategory === 'all' ? products : products.filter(p => p.category === activeCategory);
-  const featured  = filtered.filter(p => p.featured);
-  const regular   = filtered.filter(p => !p.featured);
+  const setGame = (slug) => {
+    if (slug === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ game: slug });
+    }
+  };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-[#0d0d14]">
-      <Loader2 size={28} className="animate-spin text-zinc-400" />
-    </div>
-  );
+  const finalPrice = buying ? applyDiscount(buying.price) : 0;
 
-  const bannerBg = settings?.banner_url
-    ? `linear-gradient(${bannerOverlay}, ${bannerOverlay}), url(${settings.banner_url.startsWith('/') ? API_URL + settings.banner_url : settings.banner_url}) center/cover no-repeat`
-    : `linear-gradient(135deg, ${primary}, ${accent})`;
-
-  const pageStyle = bgColor ? { backgroundColor: bgColor } : undefined;
-  const cardStyle = (extra = {}) => ({
-    borderRadius: cardRadius,
-    ...(surfaceColor ? { backgroundColor: surfaceColor } : {}),
-    ...(borderColor  ? { border: `1px solid ${borderColor}` } : {}),
-    ...extra,
-  });
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className={!bgColor ? 'min-h-screen bg-zinc-50 dark:bg-[#0d0d14]' : 'min-h-screen'} style={pageStyle}>
+    <div className="bg-[#F9F7F4] min-h-screen">
+      <PublicNav />
 
-      {/* Background texture */}
-      {settings?.bg_texture_url && (
-        <div className="fixed inset-0 pointer-events-none z-0"
-          style={{ backgroundImage: `url(${settings.bg_texture_url})`, backgroundRepeat: 'repeat', opacity: settings.bg_texture_opacity ?? 0.05 }} />
-      )}
+      <div className="pt-16">
+        {/* Header — same style as home page sections */}
+        <section className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-10">
+          <div className="max-w-screen-xl mx-auto">
+            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">Store</p>
+            <div className="flex items-end justify-between gap-6 flex-wrap">
+              <h1
+                className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight"
+                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              >
+                VAKAR GAMES<br />SHOP
+              </h1>
+              {!user && (
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 border border-[#1C1917] text-[#1C1917] hover:bg-[#1C1917] hover:text-white px-5 py-2.5 text-sm font-semibold transition-all"
+                >
+                  <LogIn size={14} />Sign in to purchase
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
 
-      {/* ── BANNER ──────────────────────────────────────────────────────────── */}
-      <div className="relative z-10" style={{ background: bannerBg, minHeight: bannerH }}>
-        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center justify-center text-center relative" style={{ minHeight: bannerH, paddingTop: 32, paddingBottom: 32 }}>
-          <Link to="/" className="absolute top-5 left-0 flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors">
-            <ArrowLeft size={15} />Back
-          </Link>
-          <h1 className="text-3xl sm:text-4xl font-black text-white"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.06em' }}>
-            {settings?.shop_title || 'Shop'}
-          </h1>
-          {settings?.banner_subtitle && (
-            <p className="text-white/75 text-sm mt-1">{settings.banner_subtitle}</p>
+        <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10 space-y-10">
+
+          {/* Loyalty bar (auth only) */}
+          {user && loyalty && <LoyaltyBar loyalty={loyalty} />}
+
+          {/* Auth notice if not logged in */}
+          {!user && (
+            <div className="bg-white border border-[#E8E3DB] p-5 flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
+                <LogIn size={16} className="text-[#4ECDC4]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#1C1917]">Sign in to buy</p>
+                <p className="text-xs text-[#78716C]">An account is required to make purchases. Earn loyalty points with every order.</p>
+              </div>
+              <Link to="/login" className="ml-auto shrink-0 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors">
+                Sign In
+              </Link>
+            </div>
+          )}
+
+          {/* Category filter */}
+          {categories.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Browse by game</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
+                <button
+                  onClick={() => setGame('all')}
+                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
+                    activeGame === 'all'
+                      ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                      : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                  }`}
+                >
+                  All Games
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setGame(cat.id)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
+                      activeGame === cat.id
+                        ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                        : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    {cat.label}
+                    <span className="opacity-50">({cat.product_count})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Products */}
+          {loading ? (
+            <div className="py-24 flex justify-center">
+              <Loader2 size={24} className="animate-spin text-[#A8A29E]" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-24 text-center">
+              <ShoppingCart size={32} className="mx-auto mb-4 text-[#C9C3BB]" />
+              <p className="text-sm text-[#A8A29E]">No products available in this category yet.</p>
+            </div>
+          ) : (
+            <>
+              {/* Featured */}
+              {featured.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4 flex items-center gap-2">
+                    <Star size={11} className="text-[#F59E0B]" />Featured
+                  </p>
+                  <div className={`grid gap-4 ${featured.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                    {featured.map(p => <FeaturedCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular grid */}
+              {regular.length > 0 && (
+                <div>
+                  {featured.length > 0 && (
+                    <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">All Offers</p>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {regular.map(p => <ProductCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 relative z-10 space-y-6">
+      {/* Footer */}
+      <footer className="bg-[#1C1917] mt-16 py-8 px-6">
+        <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="text-sm font-black tracking-[0.18em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
+          <p className="text-xs text-[#44403C]">Secure payments powered by Stripe.</p>
+        </div>
+      </footer>
 
-        {/* ── DAILY GIFT ────────────────────────────────────────────────────── */}
-        {gift?.active && (
-          <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${!surfaceColor && !borderColor ? 'bg-white dark:bg-[#151520] border-zinc-200 dark:border-[#2a2a3c]' : ''}`}
-            style={cardStyle()}>
-            <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-200 dark:border-[#2a2a3c]">
-              {gift.image_url
-                ? <img src={gift.image_url.startsWith('/') ? `${API_URL}${gift.image_url}` : gift.image_url} alt="gift" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${primary}20` }}><Gift size={22} style={{ color: primary }} /></div>
-              }
+      {/* Buy modal */}
+      {buying && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1C1917]/50">
+          <div className="bg-white border border-[#E8E3DB] w-full max-w-md">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#E8E3DB] flex items-center justify-between">
+              <h3 className="font-bold text-[#1C1917] text-sm">{buying.name}</h3>
+              <button onClick={() => setBuying(null)} className="p-1 text-[#A8A29E] hover:text-[#1C1917] transition-colors">
+                <X size={16} />
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full" style={{ backgroundColor: `${primary}20`, color: primary }}>DAILY GIFT</span>
-                <span className={`font-bold text-sm ${!textColor ? 'text-zinc-900 dark:text-[#e4e4e7]' : ''}`} style={textColor ? { color: textColor } : undefined}>{gift.title}</span>
-              </div>
-              {gift.description && <p className={`text-xs ${!textMuted ? 'text-zinc-500 dark:text-[#71717a]' : ''}`} style={textMuted ? { color: textMuted } : undefined}>{gift.description}</p>}
-              <div className="flex items-center gap-1 mt-1">
-                <Clock size={10} className="text-zinc-400" />
-                <span className="text-xs font-mono text-zinc-400">Resets in {formatCountdown(countdown)}</span>
-              </div>
-            </div>
-            <div className="shrink-0 w-full sm:w-auto">
-              {giftClaimed ? (
-                <div className="text-center px-4 py-2 rounded-lg border" style={{ borderColor: `${primary}40`, backgroundColor: `${primary}10` }}>
-                  <p className="text-xs font-bold" style={{ color: primary }}>✓ Claimed</p>
-                  <p className="text-[10px] text-zinc-400">Come back tomorrow</p>
+
+            <div className="p-6 space-y-5">
+              {/* Product summary */}
+              <div className="flex items-center gap-4 p-4 bg-[#F9F7F4] border border-[#E8E3DB]">
+                {buying.image_url && (
+                  <img
+                    src={buying.image_url.startsWith('/') ? `${API_URL}${buying.image_url}` : buying.image_url}
+                    alt=""
+                    className="w-14 h-14 object-cover shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-[#1C1917] truncate">{buying.name}</p>
+                  {buying.description && <p className="text-xs text-[#78716C] truncate">{buying.description}</p>}
                 </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input type="text" value={giftUid} onChange={e => { setGiftUid(e.target.value); setGiftError(''); }}
-                    onBlur={() => checkClaimed(giftUid)} placeholder="Player ID"
-                    className={`text-xs px-3 py-2 rounded-lg border w-32 focus:outline-none focus:ring-1 ${!surfaceColor ? 'bg-zinc-50 dark:bg-[#0d0d14] border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-white' : ''}`}
-                    style={surfaceColor ? { backgroundColor: surfaceColor, borderColor: borderColor || '#3a3a4c', color: textColor || undefined } : { focusRingColor: primary }} />
-                  <button onClick={handleClaim} disabled={giftClaiming}
-                    className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-white rounded-lg disabled:opacity-50 transition-opacity hover:opacity-90 whitespace-nowrap"
-                    style={{ backgroundColor: primary, borderRadius: isRounded ? 8 : 3 }}>
-                    {giftClaiming ? <Loader2 size={11} className="animate-spin" /> : <Gift size={11} />}Claim
-                  </button>
+                <div className="shrink-0 text-right">
+                  {discount > 0 && (
+                    <p className="text-xs text-[#A8A29E] line-through">€{(buying.price / 100).toFixed(2)}</p>
+                  )}
+                  <p className="text-lg font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Loyalty discount info */}
+              {discount > 0 && loyalty && (
+                <div className="flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
+                  <GradeBadge tier={loyalty.tier} />
+                  <p className="text-xs text-[#4ECDC4] font-semibold">
+                    {discount}% loyalty discount applied — you save €{((buying.price - finalPrice) / 100).toFixed(2)}
+                  </p>
                 </div>
               )}
-              {giftError && <p className="text-xs text-red-400 mt-1">{giftError}</p>}
-            </div>
-          </div>
-        )}
 
-        {/* ── CATEGORIES ────────────────────────────────────────────────────── */}
-        {categories.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[{ id: 'all', label: 'All', emoji: '' }, ...categories].map(c => (
-              <button key={c.id} onClick={() => setActiveCategory(c.id)}
-                className="flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0"
-                style={activeCategory === c.id
-                  ? { backgroundColor: primary, color: '#fff', borderColor: primary }
-                  : { backgroundColor: 'transparent', color: textColor || undefined, borderColor: borderColor || undefined }}>
-                {c.icon ? <CatIcon name={c.icon} size={13} /> : c.emoji ? <span>{c.emoji}</span> : null}{c.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ── PRODUCTS ──────────────────────────────────────────────────────── */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <ShoppingCart size={36} className="mx-auto mb-3 opacity-20 text-zinc-400" />
-            <p className={`text-sm ${!textMuted ? 'text-zinc-400 dark:text-[#71717a]' : ''}`} style={textMuted ? { color: textMuted } : undefined}>No products available.</p>
-          </div>
-        ) : (
-          <>
-            {/* Featured */}
-            {featured.length > 0 && (
+              {/* Player ID */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                  <h2 className={`text-sm font-black uppercase tracking-widest ${!textColor ? 'text-zinc-900 dark:text-[#e4e4e7]' : ''}`} style={textColor ? { color: textColor } : undefined}>
-                    {settings?.featured_section_title || 'Featured'}
-                  </h2>
-                </div>
-                <div className={`grid gap-4 ${featured.length === 1 ? 'grid-cols-1 max-w-xs' : 'grid-cols-1 sm:grid-cols-2'}`}>
-                  {featured.map(p => {
-                    const badge = BADGE_COLORS[p.badge];
-                    const img = p.image_url?.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url;
-                    return (
-                      <div key={p.id} onClick={() => setBuyingProduct(p)}
-                        className={`cursor-pointer rounded-xl overflow-hidden flex gap-4 p-4 items-center ${!surfaceColor && !borderColor ? 'bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c]' : ''}`}
-                        style={cardStyle()}>
-                        {img && <img src={img} alt={p.name} className="w-20 h-20 object-cover rounded-lg shrink-0" style={{ borderRadius: cardRadius }} />}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              {badge && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mr-1" style={{ backgroundColor: badge.bg, color: badge.text }}>{p.badge}{p.badge === 'SALE' && p.discount_pct ? ` -${p.discount_pct}%` : ''}</span>}
-                              <h3 className={`font-bold text-sm ${!textColor ? 'text-zinc-900 dark:text-[#e4e4e7]' : ''}`} style={textColor ? { color: textColor } : undefined}>{p.name}</h3>
-                            </div>
-                            <button onClick={e => { e.stopPropagation(); copyLink(p); }} className="p-1 opacity-40 hover:opacity-100 transition-opacity shrink-0"><Link2 size={12} className="text-zinc-400" /></button>
-                          </div>
-                          {p.description && <p className={`text-xs mt-1 ${!textMuted ? 'text-zinc-500 dark:text-[#71717a]' : ''}`} style={textMuted ? { color: textMuted } : undefined}>{p.description}</p>}
-                          <div className="flex items-center justify-between mt-3">
-                            <span className="font-black text-lg" style={{ color: priceColor }}>€{(p.price / 100).toFixed(2)}</span>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white rounded-lg" style={{ backgroundColor: primary, borderRadius: isRounded ? 8 : 2 }}>
-                              <ShoppingCart size={11} />Buy
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Regular grid */}
-            {regular.length > 0 && (
-              <div>
-                {featured.length > 0 && (
-                  <h2 className={`text-sm font-black uppercase tracking-widest mb-3 ${!textColor ? 'text-zinc-900 dark:text-[#e4e4e7]' : ''}`} style={textColor ? { color: textColor } : undefined}>All Offers</h2>
-                )}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {regular.map(p => {
-                    const badge = BADGE_COLORS[p.badge];
-                    const img = p.image_url?.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url;
-                    return (
-                      <div key={p.id} onClick={() => setBuyingProduct(p)}
-                        className={`cursor-pointer overflow-hidden flex flex-col ${!surfaceColor && !borderColor ? 'bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c]' : ''}`}
-                        style={cardStyle()}>
-                        {/* Image */}
-                        <div className={`relative w-full ${!surfaceColor ? 'bg-zinc-100 dark:bg-[#1c1c2e]' : ''}`} style={{ height: 140, ...(surfaceColor ? { backgroundColor: surfaceColor } : {}) }}>
-                          {img
-                            ? <img src={img} alt={p.name} className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={28} className="opacity-20 text-zinc-400" /></div>
-                          }
-                          {badge && (
-                            <span className="absolute top-2 left-2 text-[9px] font-black px-2 py-0.5 rounded-full uppercase"
-                              style={{ backgroundColor: badge.bg, color: badge.text }}>
-                              {p.badge}{p.badge === 'SALE' && p.discount_pct ? ` -${p.discount_pct}%` : ''}
-                            </span>
-                          )}
-                        </div>
-                        {/* Info */}
-                        <div className="p-3 flex flex-col flex-1">
-                          <h3 className={`font-semibold text-xs leading-tight mb-0.5 ${!textColor ? 'text-zinc-900 dark:text-[#e4e4e7]' : ''}`} style={textColor ? { color: textColor } : undefined}>{p.name}</h3>
-                          {p.description && <p className={`text-[11px] mb-2 line-clamp-2 ${!textMuted ? 'text-zinc-500 dark:text-[#71717a]' : ''}`} style={textMuted ? { color: textMuted } : undefined}>{p.description}</p>}
-                          <div className="flex items-center justify-between mt-auto">
-                            <span className="font-black text-sm" style={{ color: priceColor }}>€{(p.price / 100).toFixed(2)}</span>
-                            <div className="flex items-center gap-1">
-                              <button onClick={e => { e.stopPropagation(); copyLink(p); }} className="p-1 opacity-40 hover:opacity-80 transition-opacity"><Link2 size={11} className="text-zinc-400" /></button>
-                              <span className="text-[10px] font-bold text-white px-2 py-1 rounded" style={{ backgroundColor: primary, borderRadius: isRounded ? 5 : 2 }}>Get</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Footer */}
-        {settings?.footer_text && (
-          <p className="text-center text-xs pt-4 opacity-40" style={textMuted ? { color: textMuted } : { color: '#71717a' }}>{settings.footer_text}</p>
-        )}
-      </div>
-
-      {/* ── BUY MODAL ───────────────────────────────────────────────────────── */}
-      {buyingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#151520] rounded-2xl shadow-2xl w-full max-w-md border border-zinc-200 dark:border-[#2a2a3c] overflow-hidden">
-            <div className="px-6 py-4 border-b border-zinc-100 dark:border-[#2a2a3c] flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${primary}18` }}>
-                  <ShoppingCart size={16} style={{ color: primary }} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-zinc-900 dark:text-[#e4e4e7] text-sm">{buyingProduct.name}</h3>
-                  <p className="text-xs text-zinc-400">Complete your purchase</p>
-                </div>
-              </div>
-              <button onClick={() => setBuyingProduct(null)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-[#1c1c2e] transition-all"><X size={16} /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-[#1c1c2e] rounded-xl border border-zinc-200 dark:border-[#2a2a3c]">
-                {buyingProduct.image_url && <img src={buyingProduct.image_url.startsWith('/') ? `${API_URL}${buyingProduct.image_url}` : buyingProduct.image_url} alt="" className="w-12 h-12 object-cover rounded-lg" />}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-zinc-900 dark:text-[#e4e4e7] truncate">{buyingProduct.name}</p>
-                  {buyingProduct.description && <p className="text-xs text-zinc-400 truncate">{buyingProduct.description}</p>}
-                </div>
-                <span className="font-black text-xl shrink-0" style={{ color: priceColor }}>€{(buyingProduct.price / 100).toFixed(2)}</span>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 dark:text-[#71717a] mb-1.5 uppercase tracking-wider">Your in-game Player ID</label>
-                <input type="text" value={uid} onChange={e => { setUid(e.target.value); setBuyError(''); }}
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1.5">
+                  Your in-game Player ID
+                </label>
+                <input
+                  type="text"
+                  value={uid}
+                  onChange={e => { setUid(e.target.value); setBuyError(''); }}
                   placeholder="player_12345"
-                  className="w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-xl text-sm px-4 py-3 focus:outline-none transition-all"
-                  style={{ borderColor: uid ? primary : undefined }}
-                  onKeyDown={e => e.key === 'Enter' && handleBuy()} autoFocus />
-                <p className="text-xs text-zinc-400 mt-1.5">Item delivered once payment is confirmed.</p>
-                {buyError && <p className="text-xs text-red-500 mt-1 font-medium">{buyError}</p>}
+                  className="w-full bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-4 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A8A29E]"
+                  onKeyDown={e => e.key === 'Enter' && handleBuy()}
+                  autoFocus
+                />
+                <p className="text-[10px] text-[#A8A29E] mt-1.5">Item delivered once payment is confirmed.</p>
+                {buyError && <p className="text-xs text-red-500 mt-1.5 font-medium">{buyError}</p>}
               </div>
-              <button onClick={handleBuy} disabled={checkoutLoading}
-                className="w-full py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ backgroundColor: primary }}>
-                {checkoutLoading ? <><Loader2 size={15} className="animate-spin" />Redirecting...</> : `Pay €${(buyingProduct.price / 100).toFixed(2)} with Stripe`}
+
+              <button
+                onClick={handleBuy}
+                disabled={checkoutLoading}
+                className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white py-3 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+              >
+                {checkoutLoading
+                  ? <><Loader2 size={15} className="animate-spin" />Redirecting…</>
+                  : `Pay €${(finalPrice / 100).toFixed(2)} with Stripe`
+                }
               </button>
-              <p className="text-center text-xs text-zinc-400">Secure payment powered by Stripe.</p>
+
+              <p className="text-center text-[10px] text-[#A8A29E]">
+                Secure payment · Powered by Stripe · Your grade: {loyalty ? TIERS[loyalty.tier]?.label : 'Bronze'}
+              </p>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
+  const finalPrice = applyDiscount(product.price);
+  const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
+  return (
+    <div
+      className="flex gap-4 p-5 bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] cursor-pointer transition-colors"
+      onClick={() => onBuy(product)}
+    >
+      {img && <img src={img} alt={product.name} className="w-20 h-20 object-cover shrink-0" />}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start gap-2 mb-1">
+          {product.badge && <BadgePill badge={product.badge} discount_pct={product.discount_pct} />}
+          <h3 className="font-bold text-sm text-[#1C1917] leading-tight">{product.name}</h3>
+        </div>
+        {product.description && <p className="text-xs text-[#78716C] mb-3 line-clamp-2">{product.description}</p>}
+        <div className="flex items-center justify-between">
+          <div>
+            {discount > 0 && <p className="text-xs text-[#A8A29E] line-through">€{(product.price / 100).toFixed(2)}</p>}
+            <p className="text-lg font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+          </div>
+          <div className="flex items-center gap-1.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-bold px-3 py-1.5 transition-colors">
+            <ShoppingCart size={11} />Buy
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
+  const finalPrice = applyDiscount(product.price);
+  const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
+  return (
+    <div
+      className="flex flex-col bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] cursor-pointer transition-colors overflow-hidden"
+      onClick={() => onBuy(product)}
+    >
+      {/* Image */}
+      <div className="relative w-full bg-[#F9F7F4]" style={{ height: 140 }}>
+        {img
+          ? <img src={img} alt={product.name} className="w-full h-full object-cover" />
+          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={24} className="text-[#C9C3BB]" /></div>
+        }
+        {product.badge && (
+          <div className="absolute top-2 left-2">
+            <BadgePill badge={product.badge} discount_pct={product.discount_pct} />
+          </div>
+        )}
+      </div>
+      {/* Info */}
+      <div className="p-3 flex flex-col flex-1">
+        <h3 className="font-semibold text-xs text-[#1C1917] leading-tight mb-1 line-clamp-1">{product.name}</h3>
+        {product.description && <p className="text-[11px] text-[#78716C] mb-2 line-clamp-2">{product.description}</p>}
+        <div className="flex items-center justify-between mt-auto">
+          <div>
+            {discount > 0 && <p className="text-[10px] text-[#A8A29E] line-through">€{(product.price / 100).toFixed(2)}</p>}
+            <p className="text-sm font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+          </div>
+          <span className="text-[10px] font-bold text-white bg-[#1C1917] px-2 py-1">Get</span>
+        </div>
+      </div>
     </div>
   );
 };

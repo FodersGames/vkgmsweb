@@ -13,6 +13,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Shop from './pages/Shop';
 import ShopSuccess from './pages/ShopSuccess';
+import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
@@ -52,8 +53,10 @@ const AppRoutes = () => {
       <Route path="/blog/:slug" element={<BlogPost />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
-      <Route path="/shop/:gameSlug" element={<Shop />} />
-      <Route path="/shop/:gameSlug/success" element={<ShopSuccess />} />
+      <Route path="/shop" element={<Shop />} />
+      <Route path="/shop/success" element={<ShopSuccess />} />
+      <Route path="/shop/:gameSlug" element={<GameShop />} />
+      <Route path="/shop/:gameSlug/success" element={<ShopSuccess legacy />} />
       <Route path="/login" element={<Login />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />

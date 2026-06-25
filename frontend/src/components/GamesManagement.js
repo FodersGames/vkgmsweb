@@ -25,7 +25,7 @@ export const GamesManagement = () => {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false });
+  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0 });
   const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -67,10 +67,10 @@ export const GamesManagement = () => {
 
   const setPlatformUrl = (platformId, url) => setForm(p => ({ ...p, platforms: p.platforms.map(pl => pl.name === platformId ? { ...pl, url } : pl) }));
 
-  const resetForm = () => { setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0 }); setEditing(null); setShowForm(false); };
 
   const startEdit = (game) => {
-    setForm({ name: game.name, description: game.description, logo_url: game.logo_url || '', screenshots: game.screenshots || [], platforms: game.platforms || [], status: game.status, featured: game.featured || false });
+    setForm({ name: game.name, description: game.description, logo_url: game.logo_url || '', screenshots: game.screenshots || [], platforms: game.platforms || [], status: game.status, featured: game.featured || false, price_cents: game.price_cents || 0 });
     setEditing(game.slug); setShowForm(true);
   };
 
@@ -177,6 +177,27 @@ export const GamesManagement = () => {
                   </div>
                 </div>
 
+                {/* Price */}
+                <div>
+                  <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Game Price</p>
+                  <div className="relative max-w-[180px]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] text-sm font-medium">€</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.price_cents === 0 ? '' : (form.price_cents / 100).toFixed(2)}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        setForm(p => ({ ...p, price_cents: isNaN(val) ? 0 : Math.round(val * 100) }));
+                      }}
+                      placeholder="0.00 (free)"
+                      className="w-full pl-7 pr-3 py-2 border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-sm text-zinc-900 dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#4ECDC4]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-[#71717a] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
+                </div>
+
                 <label className="flex items-center gap-3 px-4 py-3 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg cursor-pointer hover:border-[#4ECDC4]/30 transition-colors" data-testid="featured-toggle">
                   <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
                   <div>
@@ -211,6 +232,8 @@ export const GamesManagement = () => {
                       <h4 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">{g.name}</h4>
                       <Badge variant={statusVariant[g.status] || 'default'}>{statusLabel[g.status] || g.status}</Badge>
                       {g.featured && <Badge variant="orange">Featured</Badge>}
+                      {g.price_cents > 0 && <Badge variant="default">€{(g.price_cents / 100).toFixed(2)}</Badge>}
+                      {(g.price_cents === 0 || !g.price_cents) && <Badge variant="success">Free</Badge>}
                     </div>
                     <p className="text-xs text-[#71717a] truncate mt-0.5">{g.description}</p>
                     {g.platforms?.length > 0 && (

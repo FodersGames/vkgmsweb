@@ -17,6 +17,7 @@ export const PublicNav = ({ onAbout }) => {
 
   const links = [
     { to: '/games', label: 'Games' },
+    { to: '/shop',  label: 'Shop'  },
     { to: '/blog',  label: 'Blog'  },
   ];
 
