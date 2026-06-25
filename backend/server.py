@@ -509,6 +509,37 @@ class MissionReopenRequest(BaseModel):
     feedback: str = ""
     keep_assigned: bool = True
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    firstName: str
+    lastName: str
+    username: str
+
+class LoginEmailRequest(BaseModel):
+    email: str
+    password: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str
+
+class SuspendUserRequest(BaseModel):
+    suspended: bool
+    reason: Optional[str] = ""
+
+class UpdateUserRoleRequest(BaseModel):
+    role: Literal["user", "admin", "super_admin"]
+    permissions: List[str] = []
+
+    @field_validator('permissions', mode='before')
+    @classmethod
+    def validate_permissions(cls, perms):
+        for p in perms:
+            if not is_valid_permission(p):
+                raise ValueError(f"Invalid permission: {p}")
+        return perms
+
 # ============== HELPERS ==============
 def slugify(text: str) -> str:
     text = text.lower().strip()
@@ -523,8 +554,16 @@ def hash_key(key: str) -> str:
 def verify_key(key: str, hashed: str) -> bool:
     return bcrypt.checkpw(key.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_access_token(user_id, username, is_super_admin, permissions):
-    payload = {"sub": user_id, "username": username, "is_super_admin": is_super_admin, "permissions": permissions,
+def validate_password_strength(password: str) -> None:
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if not re.search(r'[a-zA-Z]', password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one letter")
+    if not re.search(r'[0-9]', password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one number")
+
+def create_access_token(user_id, username, is_super_admin, permissions, email=""):
+    payload = {"sub": user_id, "username": username, "email": email, "is_super_admin": is_super_admin, "permissions": permissions,
                "exp": datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -540,7 +579,30 @@ async def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    return verify_token(auth_header[7:])
+    payload = verify_token(auth_header[7:])
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    if user.get("isSuspended"):
+        raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
+    is_super = user.get("role") == "super_admin"
+    return {
+        "id": str(user["_id"]),
+        "email": user.get("email", ""),
+        "username": user.get("username", ""),
+        "firstName": user.get("firstName", ""),
+        "lastName": user.get("lastName", ""),
+        "role": user.get("role", "user"),
+        "is_super_admin": is_super,
+        "permissions": ALL_PERMISSIONS if is_super else user.get("permissions", []),
+        "mustChangePassword": user.get("mustChangePassword", False),
+    }
 
 def require_permission(permission):
     async def check(user=Depends(get_current_user)):
@@ -616,54 +678,97 @@ async def get_version():
 async def get_all_permissions():
     return {"permissions": ALL_PERMISSIONS}
 
-@api_router.post("/auth/login", response_model=LoginResponse)
+@api_router.post("/auth/login")
 @limiter.limit("10/minute")
-async def login(request: Request, login_req: LoginRequest):
-    key = login_req.key
+async def login(request: Request, body: LoginEmailRequest):
+    email = body.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not verify_key(body.password, user.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user.get("isSuspended"):
+        raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": datetime.now(timezone.utc)}})
+    is_super = user.get("role") == "super_admin"
+    permissions = ALL_PERMISSIONS if is_super else user.get("permissions", [])
+    token = create_access_token(str(user["_id"]), user["username"], is_super, permissions, email)
+    await log_action("auth", f"User '{user['username']}' logged in", user=user["username"])
+    return {
+        "token": token,
+        "user": {
+            "id": str(user["_id"]),
+            "email": user["email"],
+            "username": user["username"],
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "role": user.get("role", "user"),
+            "is_super_admin": is_super,
+            "permissions": permissions,
+            "mustChangePassword": user.get("mustChangePassword", False),
+        },
+        "first_login": user.get("mustChangePassword", False),
+    }
 
-    # Check if Super Admin has been set up in DB
-    super_admin_doc = await db.super_admin.find_one({"role": "super_admin"})
+@api_router.post("/auth/register")
+@limiter.limit("5/minute")
+async def register(request: Request, body: RegisterRequest):
+    email = body.email.lower().strip()
+    username = body.username.strip()
+    firstName = body.firstName.strip()
+    lastName = body.lastName.strip()
+    if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    if not re.match(r'^[a-zA-Z0-9_]{3,32}$', username):
+        raise HTTPException(status_code=400, detail="Username must be 3-32 characters (letters, numbers, underscores only)")
+    if not (1 <= len(firstName) <= 50):
+        raise HTTPException(status_code=400, detail="First name must be 1-50 characters")
+    if not (1 <= len(lastName) <= 50):
+        raise HTTPException(status_code=400, detail="Last name must be 1-50 characters")
+    validate_password_strength(body.password)
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if await db.users.find_one({"username": username}):
+        raise HTTPException(status_code=400, detail="Username already taken")
+    try:
+        await db.users.insert_one({
+            "email": email,
+            "password_hash": hash_key(body.password),
+            "firstName": firstName,
+            "lastName": lastName,
+            "username": username,
+            "role": "user",
+            "permissions": [],
+            "isVerified": True,
+            "isSuspended": False,
+            "mustChangePassword": False,
+            "createdAt": datetime.now(timezone.utc),
+            "lastLogin": None,
+        })
+    except DuplicateKeyError:
+        raise HTTPException(status_code=400, detail="Email or username already taken")
+    await log_action("auth", f"New user registered: {username} ({email})")
+    return {"success": True, "message": "Account created successfully"}
 
-    if super_admin_doc:
-        # Super Admin exists in DB — check against stored hash
-        if verify_key(key, super_admin_doc["key_hash"]):
-            token = create_access_token("super_admin", "Super Admin", True, [])
-            await log_action("auth", "Super Admin logged in", user="Super Admin")
-            return LoginResponse(token=token, user={"id": "super_admin", "username": "Super Admin", "is_super_admin": True, "permissions": ALL_PERMISSIONS})
-    else:
-        # No Super Admin yet — check if the key matches the initial setup key
-        if key == SETUP_KEY:
-            # First login! Generate a new secure key
-            new_key = secrets.token_urlsafe(48)
-            new_key_hash = hash_key(new_key)
+@api_router.get("/auth/me")
+async def get_me(user=Depends(get_current_user)):
+    return user
 
-            # Store the hashed key in DB
-            await db.super_admin.insert_one({
-                "role": "super_admin",
-                "key_hash": new_key_hash,
-                "created_at": datetime.now(timezone.utc)
-            })
-
-            token = create_access_token("super_admin", "Super Admin", True, [])
-            await log_action("auth", "Super Admin first login — new secure key generated", user="Super Admin")
-            logger.info("=== SUPER ADMIN SETUP COMPLETE — Initial key is now invalidated ===")
-
-            return LoginResponse(
-                token=token,
-                user={"id": "super_admin", "username": "Super Admin", "is_super_admin": True, "permissions": ALL_PERMISSIONS},
-                first_login=True,
-                new_key=new_key
-            )
-
-    # Check user keys
-    users = await db.users.find().to_list(1000)
-    for u in users:
-        if verify_key(key, u["access_key_hash"]):
-            token = create_access_token(str(u["_id"]), u["username"], False, u["permissions"])
-            await log_action("auth", f"User '{u['username']}' logged in", user=u["username"])
-            return LoginResponse(token=token, user={"id": str(u["_id"]), "username": u["username"], "is_super_admin": False, "permissions": u["permissions"]})
-
-    raise HTTPException(status_code=401, detail="Invalid access key")
+@api_router.post("/auth/change-password")
+async def change_password(body: ChangePasswordRequest, user=Depends(get_current_user)):
+    u = await db.users.find_one({"_id": ObjectId(user["id"])})
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not u.get("mustChangePassword"):
+        if not body.current_password:
+            raise HTTPException(status_code=400, detail="Current password is required")
+        if not verify_key(body.current_password, u.get("password_hash", "")):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+    validate_password_strength(body.new_password)
+    await db.users.update_one(
+        {"_id": u["_id"]},
+        {"$set": {"password_hash": hash_key(body.new_password), "mustChangePassword": False}}
+    )
+    await log_action("auth", f"User '{u['username']}' changed their password")
+    return {"success": True, "message": "Password updated successfully"}
 
 @api_router.get("/auth/verify")
 async def verify(user=Depends(get_current_user)):
@@ -748,43 +853,92 @@ async def delete_project(slug: str, user=Depends(require_permission("delete_proj
     return {"success": True, "message": f"Project '{p['name']}' deleted"}
 
 # ============== USERS ==============
-@api_router.post("/users", response_model=CreateUserResponse)
-async def create_user(req: CreateUserRequest, user=Depends(require_permission("manage_users"))):
-    if await db.users.find_one({"username": req.username}):
-        raise HTTPException(status_code=400, detail="Username exists")
-    key = secrets.token_urlsafe(32)
-    doc = {"username": req.username, "access_key_hash": hash_key(key), "permissions": req.permissions, "is_super_admin": False,
-           "created_at": datetime.now(timezone.utc), "created_by": user["username"]}
-    await db.users.insert_one(doc)
-    await log_action("user_action", f"User '{req.username}' created", user=user["username"])
-    return CreateUserResponse(username=req.username, access_key=key, permissions=req.permissions)
-
 @api_router.get("/users")
-async def list_users(page: int = 1, limit: int = 100, user=Depends(require_permission("manage_users"))):
+async def list_users(page: int = 1, limit: int = 100, admin=Depends(require_permission("manage_users"))):
     skip = (page - 1) * limit
     total = await db.users.count_documents({})
-    users = await db.users.find({}, {"_id": 0, "access_key_hash": 0}).skip(skip).limit(limit).to_list(limit)
-    for u in users:
-        if isinstance(u.get("created_at"), datetime):
-            u["created_at"] = u["created_at"].isoformat()
+    raw = await db.users.find({}, {"password_hash": 0, "access_key_hash": 0}).skip(skip).limit(limit).to_list(limit)
+    result = []
+    for u in raw:
+        result.append({
+            "id": str(u["_id"]),
+            "email": u.get("email", ""),
+            "username": u.get("username", ""),
+            "firstName": u.get("firstName", ""),
+            "lastName": u.get("lastName", ""),
+            "role": u.get("role", "user"),
+            "permissions": u.get("permissions", []),
+            "isSuspended": u.get("isSuspended", False),
+            "createdAt": u["createdAt"].isoformat() if isinstance(u.get("createdAt"), datetime) else u.get("created_at", ""),
+            "lastLogin": u["lastLogin"].isoformat() if isinstance(u.get("lastLogin"), datetime) else None,
+        })
+    return {"users": result, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
-    return {"users": users, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
-
-@api_router.delete("/users/{username}")
-async def delete_user(username: str, user=Depends(require_permission("manage_users"))):
-    if not await db.users.find_one({"username": username}):
+@api_router.get("/users/{user_id}")
+async def get_user(user_id: str, admin=Depends(require_permission("manage_users"))):
+    try:
+        u = await db.users.find_one({"_id": ObjectId(user_id)}, {"password_hash": 0, "access_key_hash": 0})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not u:
         raise HTTPException(status_code=404, detail="User not found")
-    await db.users.delete_one({"username": username})
-    await log_action("user_action", f"User '{username}' deleted", user=user["username"])
-    return {"success": True, "message": f"User '{username}' deleted"}
+    return {
+        "id": str(u["_id"]),
+        "email": u.get("email", ""),
+        "username": u.get("username", ""),
+        "firstName": u.get("firstName", ""),
+        "lastName": u.get("lastName", ""),
+        "role": u.get("role", "user"),
+        "permissions": u.get("permissions", []),
+        "isSuspended": u.get("isSuspended", False),
+        "createdAt": u["createdAt"].isoformat() if isinstance(u.get("createdAt"), datetime) else u.get("created_at", ""),
+        "lastLogin": u["lastLogin"].isoformat() if isinstance(u.get("lastLogin"), datetime) else None,
+    }
 
-@api_router.put("/users/{username}/permissions")
-async def update_perms(username: str, req: UpdateUserPermissionsRequest, user=Depends(require_permission("manage_users"))):
-    if not await db.users.find_one({"username": username}):
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    await db.users.update_one({"username": username}, {"$set": {"permissions": req.permissions}})
-    await log_action("user_action", f"User '{username}' permissions updated", user=user["username"])
-    return {"success": True, "username": username, "permissions": req.permissions}
+    if target.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Cannot delete a super admin account")
+    if str(target["_id"]) == admin["id"]:
+        raise HTTPException(status_code=403, detail="Cannot delete your own account")
+    await db.users.delete_one({"_id": ObjectId(user_id)})
+    await log_action("user_action", f"User '{target.get('username', user_id)}' deleted", user=admin["username"])
+    return {"success": True, "message": f"User '{target.get('username', user_id)}' deleted"}
+
+@api_router.patch("/users/{user_id}/suspend")
+async def suspend_user(user_id: str, req: SuspendUserRequest, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Cannot suspend a super admin account")
+    if str(target["_id"]) == admin["id"]:
+        raise HTTPException(status_code=403, detail="Cannot suspend your own account")
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"isSuspended": req.suspended}})
+    action = "suspended" if req.suspended else "reactivated"
+    await log_action("user_action", f"User '{target.get('username', user_id)}' {action}", user=admin["username"])
+    return {"success": True, "suspended": req.suspended}
+
+@api_router.put("/users/{user_id}/permissions")
+async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
+    await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
+    return {"success": True, "id": user_id, "permissions": req.permissions}
 
 # ============== PROJECT-SCOPED: ITEMS ==============
 @api_router.post("/projects/{slug}/items/send")
@@ -1570,6 +1724,53 @@ async def reopen_mission(slug: str, mission_id: str, req: MissionReopenRequest, 
     await log_action("missions", f"Mission reopened: {mission['title']}", user=user["username"], project_slug=slug)
     return {"success": True}
 
+# ============== NOTIFICATIONS ==============
+@api_router.get("/notifications")
+async def get_notifications(page: int = 1, limit: int = 20, user=Depends(get_current_user)):
+    user_oid = ObjectId(user["id"])
+    skip = (page - 1) * limit
+    total = await db.notifications.count_documents({"userId": user_oid})
+    unread = await db.notifications.count_documents({"userId": user_oid, "read": False})
+    notifs = await db.notifications.find({"userId": user_oid}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    return {
+        "notifications": [serialize_doc(n) for n in notifs],
+        "total": total,
+        "unread": unread,
+        "page": page,
+        "pages": math.ceil(total / limit) if limit else 1,
+    }
+
+@api_router.patch("/notifications/read-all")
+async def mark_all_notifications_read(user=Depends(get_current_user)):
+    await db.notifications.update_many(
+        {"userId": ObjectId(user["id"]), "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"success": True}
+
+@api_router.patch("/notifications/{notif_id}/read")
+async def mark_notification_read(notif_id: str, user=Depends(get_current_user)):
+    try:
+        oid = ObjectId(notif_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid notification ID")
+    n = await db.notifications.find_one({"_id": oid, "userId": ObjectId(user["id"])})
+    if not n:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    await db.notifications.update_one({"_id": oid}, {"$set": {"read": True}})
+    return {"success": True}
+
+@api_router.delete("/notifications/{notif_id}")
+async def delete_notification(notif_id: str, user=Depends(get_current_user)):
+    try:
+        oid = ObjectId(notif_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid notification ID")
+    r = await db.notifications.delete_one({"_id": oid, "userId": ObjectId(user["id"])})
+    if r.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"success": True}
+
 # ============== SETUP ==============
 app.include_router(api_router)
 
@@ -1598,6 +1799,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 async def startup_event():
     try:
         await db.users.create_index("username", unique=True)
+        await db.users.create_index("email", unique=True, sparse=True)
         await db.projects.create_index("slug", unique=True)
         await db.items.create_index([("project_slug", 1), ("uid", 1)])
         await db.logs.create_index([("project_slug", 1), ("type", 1)])
@@ -1614,9 +1816,32 @@ async def startup_event():
         await db.website_shop_daily_gifts.create_index("game_slug", unique=True)
         await db.missions.create_index([("project_slug", 1), ("status", 1)])
         await db.missions.create_index("created_at")
-        logger.info("Database initialized successfully")
+        await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
+        logger.info("Database indexes initialized")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
+
+    # Create initial super admin if not already present
+    try:
+        existing = await db.users.find_one({"email": "lastdaylast79@gmail.com"})
+        if not existing:
+            await db.users.insert_one({
+                "email": "lastdaylast79@gmail.com",
+                "password_hash": hash_key("azerty*1234*"),
+                "firstName": "Admin",
+                "lastName": "Vakar",
+                "username": "superadmin",
+                "role": "super_admin",
+                "permissions": ALL_PERMISSIONS,
+                "isVerified": True,
+                "isSuspended": False,
+                "mustChangePassword": True,
+                "createdAt": datetime.now(timezone.utc),
+                "lastLogin": None,
+            })
+            logger.info("Initial super admin account created (lastdaylast79@gmail.com)")
+    except Exception as e:
+        logger.error(f"Super admin initialization error: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

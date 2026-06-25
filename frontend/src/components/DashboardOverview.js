@@ -183,9 +183,10 @@ export const DashboardOverview = ({ setActiveTab }) => {
     (canSeeStatus && selectedProject)                 ? { label: 'Server Status',  tab: 'status',     icon: Activity,     color: '#4ECDC4' } : null,
   ].filter(Boolean);
 
-  const greeting = user?.username
-    ? `Bonjour, ${user.username.charAt(0).toUpperCase() + user.username.slice(1)}`
-    : 'Bonjour';
+  const displayName = user?.firstName || user?.username;
+  const greeting = displayName
+    ? `Welcome, ${displayName.charAt(0).toUpperCase() + displayName.slice(1)}`
+    : 'Welcome';
 
   const gridClass = STAT_GRID[Math.min(statCards.length, 4)] || 'grid-cols-2 lg:grid-cols-4';
 

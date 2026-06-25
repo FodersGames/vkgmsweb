@@ -123,10 +123,12 @@ const DashboardContent = () => {
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
-              {user?.username?.charAt(0)?.toUpperCase() || 'A'}
+              {((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'A'}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{user?.username}</p>
+              <p className="text-xs font-semibold text-white truncate">
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}
+              </p>
               {user?.is_super_admin
                 ? <p className="text-[10px] text-[#4ECDC4]">Super Admin</p>
                 : <p className="text-[10px] text-[#57534E]">Admin</p>

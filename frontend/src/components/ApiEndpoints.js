@@ -94,11 +94,28 @@ export const ApiEndpoints = () => {
         {
           method: 'POST',
           path: '/api/auth/login',
-          description: 'Login with master key or user access key',
+          description: 'Login with email and password',
           example: `${API_URL}/api/auth/login`,
-          body: `{\n  "key": "your_access_key_or_master_key"\n}`,
-          response: `{\n  "token": "eyJhbGci...",\n  "user": {\n    "id": "super_admin",\n    "username": "Super Admin",\n    "is_super_admin": true,\n    "permissions": [...]\n  }\n}`,
-          note: 'Use the master key configured in backend environment (MASTER_KEY)'
+          body: `{\n  "email": "user@example.com",\n  "password": "yourpassword"\n}`,
+          response: `{\n  "token": "eyJhbGci...",\n  "user": {\n    "id": "...",\n    "email": "user@example.com",\n    "username": "johndoe",\n    "is_super_admin": false,\n    "permissions": [...]\n  },\n  "first_login": false\n}`,
+          note: 'Returns a JWT token (24h expiry). Pass it as Authorization: Bearer <token>'
+        },
+        {
+          method: 'POST',
+          path: '/api/auth/register',
+          description: 'Create a new user account',
+          example: `${API_URL}/api/auth/register`,
+          body: `{\n  "email": "user@example.com",\n  "password": "pass1234",\n  "firstName": "Jane",\n  "lastName": "Doe",\n  "username": "jane_doe"\n}`,
+          response: `{\n  "success": true,\n  "message": "Account created successfully"\n}`,
+          note: 'Password requires 8+ chars, at least one letter and one number'
+        },
+        {
+          method: 'GET',
+          path: '/api/auth/me',
+          description: 'Get current user profile',
+          example: `${API_URL}/api/auth/me`,
+          auth: true,
+          response: `{\n  "id": "...",\n  "email": "...",\n  "username": "...",\n  "firstName": "...",\n  "role": "user",\n  "is_super_admin": false,\n  "permissions": [...]\n}`
         }
       ]
     },
@@ -186,31 +203,30 @@ export const ApiEndpoints = () => {
       ]
     },
     {
-      category: 'USER MANAGEMENT (Super Admin Only)',
+      category: 'USER MANAGEMENT (manage_users Permission)',
       items: [
-        {
-          method: 'POST',
-          path: '/api/users',
-          description: 'Create a new user',
-          example: `${API_URL}/api/users`,
-          auth: true,
-          body: `{\n  "username": "john_doe",\n  "permissions": ["send_items", "view_logs"]\n}`,
-          response: `{\n  "username": "john_doe",\n  "access_key": "generated_key...",\n  "permissions": ["send_items", "view_logs"]\n}`,
-          note: 'Save the access_key - it will not be shown again!'
-        },
         {
           method: 'GET',
           path: '/api/users',
-          description: 'List all users',
+          description: 'List all registered users',
           example: `${API_URL}/api/users`,
           auth: true,
-          response: `{\n  "users": [...]\n}`
+          response: `{\n  "users": [{\n    "id": "...",\n    "email": "...",\n    "username": "...",\n    "firstName": "...",\n    "role": "user",\n    "permissions": [...],\n    "isSuspended": false\n  }],\n  "total": 1\n}`
+        },
+        {
+          method: 'PATCH',
+          path: '/api/users/{user_id}/suspend',
+          description: 'Suspend or reactivate a user',
+          example: `${API_URL}/api/users/{user_id}/suspend`,
+          auth: true,
+          body: `{\n  "suspended": true\n}`,
+          response: `{\n  "success": true,\n  "suspended": true\n}`
         },
         {
           method: 'DELETE',
-          path: '/api/users/{username}',
-          description: 'Delete a user',
-          example: `${API_URL}/api/users/john_doe`,
+          path: '/api/users/{user_id}',
+          description: 'Permanently delete a user',
+          example: `${API_URL}/api/users/{user_id}`,
           auth: true,
           response: `{\n  "success": true,\n  "message": "User 'john_doe' deleted successfully"\n}`
         }

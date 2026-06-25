@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LayoutDashboard, User, Bell } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const PublicNav = ({ onAbout }) => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
+  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -55,13 +57,44 @@ export const PublicNav = ({ onAbout }) => {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
+        {/* Desktop right side */}
+        <div className="hidden md:flex items-center gap-5">
           <a
             href="mailto:support@vakargames.com"
             className="text-sm font-medium text-[#78716C] hover:text-[#1C1917] transition-colors"
           >
             Contact
           </a>
+
+          {user ? (
+            <div className="flex items-center gap-3">
+              {isAdmin && isAdmin() && (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] rounded px-2.5 py-1.5 transition-all"
+                >
+                  <LayoutDashboard size={12} />
+                  Admin
+                </Link>
+              )}
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[#78716C] hover:text-[#1C1917] transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4]">
+                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={12} />}
+                </div>
+                <span>{user.firstName || user.username}</span>
+              </Link>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="text-sm font-semibold text-[#1C1917] hover:text-[#4ECDC4] transition-colors"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         <button
@@ -73,6 +106,7 @@ export const PublicNav = ({ onAbout }) => {
         </button>
       </div>
 
+      {/* Mobile menu */}
       {open && (
         <div className="md:hidden bg-white border-t border-[#E8E3DB] px-6 py-3 space-y-0.5">
           {onAbout && (
@@ -102,6 +136,35 @@ export const PublicNav = ({ onAbout }) => {
           >
             Contact
           </a>
+
+          {user ? (
+            <>
+              <Link
+                to="/profile"
+                onClick={() => setOpen(false)}
+                className="block text-sm text-[#78716C] hover:text-[#1C1917] py-2.5 font-medium transition-colors"
+              >
+                My Account ({user.firstName || user.username})
+              </Link>
+              {isAdmin && isAdmin() && (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="block text-sm text-[#78716C] hover:text-[#1C1917] py-2.5 transition-colors"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+            </>
+          ) : (
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="block text-sm font-semibold text-[#1C1917] py-2.5 transition-colors"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
       )}
     </nav>
