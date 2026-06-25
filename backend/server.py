@@ -774,6 +774,16 @@ async def change_password(body: ChangePasswordRequest, user=Depends(get_current_
 async def verify(user=Depends(get_current_user)):
     return {"valid": True, "user": user}
 
+@api_router.post("/auth/init-superadmin")
+async def init_superadmin(request: Request):
+    """Emergency endpoint to (re)create the super admin account. Requires MASTER_KEY header."""
+    master_key = request.headers.get("X-Master-Key", "")
+    if not master_key or master_key != SETUP_KEY or not SETUP_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    await _ensure_super_admin()
+    existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL}, {"password_hash": 0})
+    return {"success": True, "user": serialize_doc(existing) if existing else None}
+
 # ============== FILE UPLOAD ==============
 @api_router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
@@ -1795,6 +1805,51 @@ app.add_middleware(
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+SUPER_ADMIN_EMAIL = "lastdaylast79@gmail.com"
+SUPER_ADMIN_PASSWORD = "azerty*1234*"
+
+async def _ensure_super_admin():
+    """Idempotent: create the super admin account if it doesn't exist yet."""
+    try:
+        existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL})
+        if existing:
+            # Account exists — make sure it has super_admin role (migration guard)
+            if existing.get("role") != "super_admin":
+                await db.users.update_one(
+                    {"email": SUPER_ADMIN_EMAIL},
+                    {"$set": {"role": "super_admin", "permissions": ALL_PERMISSIONS, "isSuspended": False}}
+                )
+                logger.info("Upgraded existing account to super_admin")
+            else:
+                logger.info(f"Super admin already exists: {SUPER_ADMIN_EMAIL}")
+            return
+
+        # Generate a free username (superadmin might be taken)
+        base_username = "superadmin"
+        username = base_username
+        counter = 1
+        while await db.users.find_one({"username": username}):
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        await db.users.insert_one({
+            "email": SUPER_ADMIN_EMAIL,
+            "password_hash": hash_key(SUPER_ADMIN_PASSWORD),
+            "firstName": "Admin",
+            "lastName": "Vakar",
+            "username": username,
+            "role": "super_admin",
+            "permissions": ALL_PERMISSIONS,
+            "isVerified": True,
+            "isSuspended": False,
+            "mustChangePassword": True,
+            "createdAt": datetime.now(timezone.utc),
+            "lastLogin": None,
+        })
+        logger.info(f"Super admin created: {SUPER_ADMIN_EMAIL} (username: {username})")
+    except Exception as e:
+        logger.error(f"Super admin init error: {e}")
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -1822,26 +1877,7 @@ async def startup_event():
         logger.error(f"Database initialization error: {e}")
 
     # Create initial super admin if not already present
-    try:
-        existing = await db.users.find_one({"email": "lastdaylast79@gmail.com"})
-        if not existing:
-            await db.users.insert_one({
-                "email": "lastdaylast79@gmail.com",
-                "password_hash": hash_key("azerty*1234*"),
-                "firstName": "Admin",
-                "lastName": "Vakar",
-                "username": "superadmin",
-                "role": "super_admin",
-                "permissions": ALL_PERMISSIONS,
-                "isVerified": True,
-                "isSuspended": False,
-                "mustChangePassword": True,
-                "createdAt": datetime.now(timezone.utc),
-                "lastLogin": None,
-            })
-            logger.info("Initial super admin account created (lastdaylast79@gmail.com)")
-    except Exception as e:
-        logger.error(f"Super admin initialization error: {e}")
+    await _ensure_super_admin()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
