@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
-import { useTheme } from '../context/ThemeContext';
 import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
-  MessageSquare, Sun, Moon, Menu, X, ShoppingBag, ClipboardList,
-  LayoutDashboard,
+  MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard, ArrowRight,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -23,10 +21,44 @@ import { WebsiteSettings } from '../components/WebsiteSettings';
 import { ShopManagement } from '../components/ShopManagement';
 import { MissionsManagement } from '../components/MissionsManagement';
 
+const NAV_GROUPS = [
+  {
+    label: 'General',
+    items: [
+      { id: 'overview',  label: 'Overview',  icon: LayoutDashboard, permission: null },
+      { id: 'projects',  label: 'Projects',  icon: Gamepad2,        permission: 'view_projects' },
+      { id: 'users',     label: 'Users',     icon: Users,            permission: 'manage_users' },
+      { id: 'api',       label: 'API Docs',  icon: Code,             permission: 'view_api_docs' },
+    ],
+  },
+  {
+    label: 'Project',
+    requiresProject: true,
+    items: [
+      { id: 'send-items', label: 'Send Items',    icon: Package,       permission: 'send_items' },
+      { id: 'status',     label: 'Server Status', icon: Activity,      permission: 'change_status' },
+      { id: 'variables',  label: 'Variables',     icon: Database,      permission: 'view_variables' },
+      { id: 'logs',       label: 'Logs',          icon: FileText,      permission: 'view_logs' },
+      { id: 'chat',       label: 'Chat',          icon: MessageSquare, permission: 'manage_chat' },
+      { id: 'missions',   label: 'Missions',      icon: ClipboardList, permission: 'claim_missions' },
+    ],
+  },
+  {
+    label: 'Website',
+    items: [
+      { id: 'website-games',    label: 'Games',    icon: Gamepad2,     permission: 'create_games' },
+      { id: 'website-blog',     label: 'Blog',     icon: PenTool,      permission: 'create_blog' },
+      { id: 'website-settings', label: 'Settings', icon: Settings,     permission: 'manage_website' },
+      { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag,  permission: 'manage_shop' },
+    ],
+  },
+];
+
+const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
+
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
   const { projects, selectedProject, selectProject } = useProject();
-  const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('overview');
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,145 +66,113 @@ const DashboardContent = () => {
   const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions'];
   const needsProject = projectTabs.includes(activeTab);
 
-  const generalItems = [
-    { id: 'overview',  label: 'Overview',  icon: LayoutDashboard, permission: null },
-    { id: 'projects',  label: 'Projects',  icon: Gamepad2,        permission: 'view_projects' },
-    { id: 'users',     label: 'Users',     icon: Users,            permission: 'manage_users' },
-    { id: 'api',       label: 'API Docs',  icon: Code,             permission: 'view_api_docs' },
-  ];
+  const currentItem = ALL_ITEMS.find(i => i.id === activeTab);
 
-  const projectItems = [
-    { id: 'send-items', label: 'Send Items',    icon: Package,       permission: 'send_items' },
-    { id: 'status',     label: 'Server Status', icon: Activity,      permission: 'change_status' },
-    { id: 'variables',  label: 'Variables',     icon: Database,      permission: 'view_variables' },
-    { id: 'logs',       label: 'Logs',          icon: FileText,      permission: 'view_logs' },
-    { id: 'chat',       label: 'Chat',          icon: MessageSquare, permission: 'manage_chat' },
-    { id: 'missions',   label: 'Missions',      icon: ClipboardList, permission: 'claim_missions' },
-  ];
+  const isVisible = (item) => {
+    if (item.permission === null) return true;
+    return hasPermission(item.permission);
+  };
 
-  const websiteItems = [
-    { id: 'website-games',    label: 'Games',    icon: Gamepad2,     permission: 'create_games' },
-    { id: 'website-blog',     label: 'Blog',     icon: PenTool,      permission: 'create_blog' },
-    { id: 'website-settings', label: 'Settings', icon: Settings,     permission: 'manage_website' },
-    { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag,  permission: 'manage_shop' },
-  ];
-
-  const allItems = [...generalItems, ...projectItems, ...websiteItems];
-
-  const renderTab = (item) => {
-    const Icon = item.icon;
+  const NavItem = ({ item }) => {
+    if (!isVisible(item)) return null;
     const isActive = activeTab === item.id;
-    if (item.permission !== null && !hasPermission(item.permission)) return null;
+    const Icon = item.icon;
     return (
       <button
-        key={item.id}
         onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
-        className={`relative w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all ${
+        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
           isActive
-            ? 'bg-[#4ECDC4]/10 text-[#4ECDC4] font-semibold'
-            : 'text-[#78716C] hover:bg-[#292524] hover:text-[#A8A29E]'
+            ? 'bg-[#1C1917] text-white font-semibold'
+            : 'text-[#78716C] hover:text-[#1C1917] hover:bg-[#F9F7F4]'
         }`}
         data-testid={`sidebar-nav-${item.id}`}
       >
-        {isActive && (
-          <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full bg-[#4ECDC4]" />
-        )}
-        <Icon size={15} className={isActive ? 'text-[#4ECDC4]' : 'text-[#57534E]'} />
+        <Icon size={13} className={isActive ? 'text-white' : 'text-[#A8A29E]'} />
         {item.label}
       </button>
     );
   };
 
-  const currentLabel = allItems.find(i => i.id === activeTab)?.label || 'Dashboard';
-  const CurrentIcon = allItems.find(i => i.id === activeTab)?.icon || Package;
+  const initials = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase()
+    || user?.username?.charAt(0)?.toUpperCase() || '?';
 
   return (
-    <div className="flex h-screen bg-[#F9F7F4] dark:bg-[#0d0d14]">
+    <div className="flex h-screen bg-[#F9F7F4]">
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-[#1C1917]/40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar — always dark */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-56 shrink-0 bg-[#1C1917] border-r border-[#292524] flex flex-col transition-transform duration-200 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* Sidebar */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-56 shrink-0 bg-white border-r border-[#E8E3DB] flex flex-col transition-transform duration-200 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
-        {/* Brand + user */}
-        <div className="px-4 py-4 border-b border-[#292524]">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#4ECDC4]/15 flex items-center justify-center shrink-0">
-                <Globe size={13} className="text-[#4ECDC4]" />
-              </div>
-              <span
-                className="text-sm font-black tracking-[0.12em] text-white"
-                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-              >
-                VAKAR GAMES
-              </span>
-            </div>
-            <button
-              className="md:hidden p-1 rounded text-[#57534E] hover:text-white transition-colors"
-              onClick={() => setSidebarOpen(false)}
+        {/* Brand */}
+        <div className="px-4 py-5 border-b border-[#E8E3DB]">
+          <div className="flex items-center justify-between">
+            <span
+              className="text-base font-black tracking-[0.14em] text-[#1C1917]"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
             >
-              <X size={16} />
+              VAKAR GAMES
+            </span>
+            <button className="md:hidden p-1 text-[#78716C] hover:text-[#1C1917]" onClick={() => setSidebarOpen(false)}>
+              <X size={15} />
             </button>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
-              {((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'A'}
+
+          {/* User */}
+          <div className="flex items-center gap-2.5 mt-4">
+            <div className="w-7 h-7 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+              {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">
+              <p className="text-xs font-semibold text-[#1C1917] truncate">
                 {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}
               </p>
-              {user?.is_super_admin
-                ? <p className="text-[10px] text-[#4ECDC4]">Super Admin</p>
-                : <p className="text-[10px] text-[#57534E]">Admin</p>
-              }
+              <p className="text-[10px] text-[#A8A29E]">
+                {user?.is_super_admin ? 'Super Admin' : 'Admin'}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Project selector */}
         {projects.length > 0 && (
-          <div className="px-3 pt-3 pb-1">
-            <div className="text-[10px] font-semibold text-[#57534E] uppercase tracking-widest px-1 mb-1.5">
+          <div className="px-3 pt-4 pb-2">
+            <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase px-1 mb-1.5">
               Active Project
-            </div>
+            </p>
             <div className="relative">
               <button
                 onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                className="w-full flex items-center gap-2 px-3 py-2 bg-[#292524] border border-[#3D3934] rounded-lg text-xs text-left hover:border-[#4ECDC4]/30 transition-all"
+                className="w-full flex items-center gap-2 px-3 py-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-xs text-left transition-colors bg-[#F9F7F4]"
                 data-testid="project-selector"
               >
-                <Gamepad2 size={12} className="text-[#4ECDC4] shrink-0" />
-                <span className="flex-1 truncate text-white font-medium">
+                <Gamepad2 size={11} className="text-[#4ECDC4] shrink-0" />
+                <span className="flex-1 truncate text-[#1C1917] font-medium">
                   {selectedProject?.name || 'Select a project'}
                 </span>
-                <ChevronDown size={12} className={`text-[#57534E] transition-transform shrink-0 ${showProjectDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown size={11} className={`text-[#A8A29E] transition-transform shrink-0 ${showProjectDropdown ? 'rotate-180' : ''}`} />
               </button>
               {showProjectDropdown && (
                 <div
-                  className="absolute z-50 left-0 right-0 mt-1 bg-[#292524] border border-[#3D3934] rounded-lg shadow-xl overflow-hidden"
+                  className="absolute z-50 left-0 right-0 mt-0.5 bg-white border border-[#E8E3DB] shadow-md overflow-hidden"
                   data-testid="project-dropdown"
                 >
                   {projects.map(p => (
                     <button
                       key={p.slug}
                       onClick={() => { selectProject(p); setShowProjectDropdown(false); }}
-                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-all ${
+                      className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-colors ${
                         selectedProject?.slug === p.slug
-                          ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                          : 'text-[#A8A29E] hover:bg-[#3D3934] hover:text-white'
+                          ? 'bg-[#1C1917] text-white'
+                          : 'text-[#78716C] hover:bg-[#F9F7F4] hover:text-[#1C1917]'
                       }`}
                       data-testid={`project-option-${p.slug}`}
                     >
                       <span className="flex-1 truncate">{p.name}</span>
-                      {selectedProject?.slug === p.slug && <Check size={12} />}
+                      {selectedProject?.slug === p.slug && <Check size={11} />}
                     </button>
                   ))}
                 </div>
@@ -182,114 +182,104 @@ const DashboardContent = () => {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto" data-testid="sidebar-nav">
-          <div className="text-[10px] font-semibold text-[#57534E] uppercase tracking-widest px-3 pb-1.5">
-            General
-          </div>
-          {generalItems.map(renderTab)}
-
-          {selectedProject && projectItems.some(i => hasPermission(i.permission)) && (
-            <>
-              <div className="text-[10px] font-semibold text-[#57534E] uppercase tracking-widest px-3 pt-4 pb-1.5">
-                Project
+        <nav className="flex-1 py-3 overflow-y-auto" data-testid="sidebar-nav">
+          {NAV_GROUPS.map((group) => {
+            const visibleItems = group.items.filter(isVisible);
+            const showGroup = visibleItems.length > 0 &&
+              (!group.requiresProject || (selectedProject && visibleItems.some(i => hasPermission(i.permission))));
+            if (!showGroup) return null;
+            return (
+              <div key={group.label} className="mb-1">
+                <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase px-4 py-2">
+                  {group.label}
+                </p>
+                {visibleItems.map(item => <NavItem key={item.id} item={item} />)}
               </div>
-              {projectItems.map(renderTab)}
-            </>
-          )}
-
-          {websiteItems.some(i => hasPermission(i.permission)) && (
-            <>
-              <div className="text-[10px] font-semibold text-[#57534E] uppercase tracking-widest px-3 pt-4 pb-1.5">
-                Website
-              </div>
-              {websiteItems.map(renderTab)}
-            </>
-          )}
+            );
+          })}
         </nav>
 
-        {/* Sidebar footer */}
-        <div className="border-t border-[#292524] p-2 space-y-0.5">
+        {/* Sign out */}
+        <div className="border-t border-[#E8E3DB] p-3">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-[#78716C] hover:bg-red-950/40 hover:text-red-400 rounded-lg transition-all"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#78716C] hover:text-red-500 hover:bg-red-50 transition-colors"
             data-testid="logout-button"
           >
-            <LogOut size={14} />
+            <LogOut size={13} className="text-[#A8A29E]" />
             Sign Out
           </button>
-          <div className="px-3 pt-1 flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />
-            <span className="text-[10px] font-mono text-[#44403C]">v1.3.0</span>
-          </div>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main content */}
       <main
         className="flex-1 min-w-0 overflow-y-auto flex flex-col"
-        onClick={() => { showProjectDropdown && setShowProjectDropdown(false); }}
+        onClick={() => showProjectDropdown && setShowProjectDropdown(false)}
       >
-        {/* Top header */}
-        <header className="bg-white dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c] px-4 md:px-6 py-3 sticky top-0 z-10">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                className="md:hidden p-1.5 rounded-lg text-[#78716C] hover:bg-[#F9F7F4] dark:hover:bg-[#1c1c2e] hover:text-[#1C1917] dark:hover:text-white transition-colors"
-                onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
-              >
-                <Menu size={18} />
-              </button>
-              <div className="w-7 h-7 rounded-lg bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
-                <CurrentIcon size={13} className="text-[#4ECDC4]" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-[#1C1917] dark:text-[#e4e4e7] leading-tight truncate">
-                  {currentLabel}
-                </h2>
-                {needsProject && selectedProject && (
-                  <p className="text-[11px] text-[#78716C] dark:text-[#71717a] truncate">
-                    {selectedProject.name}
-                  </p>
-                )}
-              </div>
-            </div>
+        {/* Header */}
+        <header className="bg-white border-b border-[#E8E3DB] px-4 md:px-8 py-0 sticky top-0 z-10">
+          <div className="flex items-center gap-0 h-12">
 
-            {/* Theme toggle */}
+            {/* Mobile menu */}
             <button
-              onClick={toggleTheme}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] dark:text-[#71717a] hover:border-[#4ECDC4]/50 hover:text-[#4ECDC4] transition-all text-xs font-medium shrink-0"
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="md:hidden p-2 mr-2 text-[#78716C] hover:text-[#1C1917] transition-colors"
+              onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
             >
-              {isDark ? <Sun size={14} /> : <Moon size={14} />}
-              <span className="hidden sm:inline">{isDark ? 'Light' : 'Dark'}</span>
+              <Menu size={17} />
             </button>
+
+            {/* Tab navigation strip */}
+            <nav className="flex items-stretch gap-0 flex-1 overflow-x-auto scrollbar-none h-full">
+              {ALL_ITEMS.filter(isVisible).map(item => {
+                const isActive = activeTab === item.id;
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-all shrink-0 ${
+                      isActive
+                        ? 'text-[#1C1917] border-[#1C1917]'
+                        : 'text-[#A8A29E] border-transparent hover:text-[#78716C] hover:border-[#E8E3DB]'
+                    }`}
+                    data-testid={`tab-nav-${item.id}`}
+                  >
+                    <Icon size={12} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
         </header>
 
-        {/* Page content */}
-        <div className="p-4 md:p-6 flex-1">
+        {/* Content */}
+        <div className="p-6 md:p-8 flex-1">
+
           {activeTab === 'overview' && <DashboardOverview setActiveTab={setActiveTab} />}
           {activeTab === 'projects' && <ProjectManagement />}
           {activeTab === 'users' && hasPermission('manage_users') && <UserManagement />}
           {activeTab === 'api' && hasPermission('view_api_docs') && <ApiEndpoints />}
 
           {needsProject && !selectedProject && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-[#4ECDC4]/10 border border-[#4ECDC4]/15 flex items-center justify-center mb-4">
-                <Gamepad2 size={22} className="text-[#4ECDC4]/60" />
+            <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
+              <div className="w-12 h-12 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center mb-5">
+                <Gamepad2 size={20} className="text-[#C9C3BB]" />
               </div>
-              <h3 className="text-base font-semibold text-[#1C1917] dark:text-[#e4e4e7] mb-2">
-                No project selected
+              <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-2">No project selected</p>
+              <h3 className="text-lg font-bold text-[#1C1917] mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                SELECT A PROJECT
               </h3>
-              <p className="text-sm text-[#78716C] dark:text-[#71717a] mb-5">
-                Select or create a project to manage its data.
+              <p className="text-sm text-[#78716C] mb-6 leading-relaxed">
+                Choose a project from the sidebar to access its data, logs, and settings.
               </p>
               <button
                 onClick={() => setActiveTab('projects')}
-                className="bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] rounded-lg px-5 py-2 text-sm font-semibold transition-colors"
+                className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
                 data-testid="go-to-projects-button"
               >
-                Go to Projects
+                View Projects <ArrowRight size={13} />
               </button>
             </div>
           )}

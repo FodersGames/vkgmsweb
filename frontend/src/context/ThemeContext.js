@@ -1,27 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 
-const ThemeContext = createContext();
+const ThemeContext = createContext({ isDark: false, toggleTheme: () => {} });
 
-export const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('vg-theme');
-    return saved ? saved === 'dark' : false;
-  });
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('vg-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme: () => setIsDark(d => !d) }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
+export const ThemeProvider = ({ children }) => (
+  <ThemeContext.Provider value={{ isDark: false, toggleTheme: () => {} }}>
+    {children}
+  </ThemeContext.Provider>
+);
 
 export const useTheme = () => useContext(ThemeContext);

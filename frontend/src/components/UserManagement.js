@@ -213,8 +213,8 @@ export const UserManagement = () => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
-          <div key={group.label} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div key={group.label} className="border border-[#E8E3DB] overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F7F4] border-b border-[#E8E3DB]">
               <Icon size={13} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1" />
@@ -227,7 +227,7 @@ export const UserManagement = () => {
                     group.permissions.forEach(p => { if (!selectedPerms.includes(p.id)) onToggle(p.id); });
                   }
                 }}
-                className="text-[10px] font-semibold text-[#71717a] hover:text-zinc-900 dark:hover:text-[#e4e4e7] uppercase"
+                className="text-[10px] font-semibold text-[#A8A29E] hover:text-[#1C1917] uppercase"
               >
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
@@ -236,10 +236,10 @@ export const UserManagement = () => {
               {group.permissions.map((perm) => (
                 <label
                   key={perm.id}
-                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
+                  className={`flex items-center gap-2 px-3 py-2 border cursor-pointer transition-all text-sm ${
                     selectedPerms.includes(perm.id)
                       ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                      : 'border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] text-[#71717a] hover:bg-zinc-100 dark:hover:bg-[#1c1c2e]'
+                      : 'border-[#E8E3DB] bg-[#F9F7F4] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917]'
                   }`}
                 >
                   <input
@@ -264,12 +264,12 @@ export const UserManagement = () => {
         <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
                 <Users size={16} style={{ color: '#F2994A' }} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">User Management</h3>
-                <p className="text-xs text-[#71717a]">Manage accounts, permissions, and suspension</p>
+                <h3 className="text-sm font-semibold text-[#1C1917]">User Management</h3>
+                <p className="text-xs text-[#A8A29E]">Manage accounts, permissions, and suspension</p>
               </div>
             </div>
           </CardHeader>
@@ -284,7 +284,7 @@ export const UserManagement = () => {
                   placeholder="Search by name, username, or email…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#1C1917] dark:text-[#e4e4e7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
                 />
               </div>
               <button
@@ -292,7 +292,7 @@ export const UserManagement = () => {
                 className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
                   onlyWithPerms
                     ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/30 text-[#4ECDC4]'
-                    : 'bg-[#F9F7F4] dark:bg-[#111118] border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
+                    : 'bg-[#F9F7F4] border-[#E8E3DB] text-[#78716C] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
                 }`}
               >
                 <SlidersHorizontal size={12} />
@@ -300,7 +300,7 @@ export const UserManagement = () => {
               </button>
             </div>
 
-            <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+            <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">
               Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
             <div className="space-y-3" data-testid="users-list">
@@ -316,46 +316,46 @@ export const UserManagement = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`bg-zinc-50 dark:bg-[#111118] border rounded-xl transition-all ${
+                    className={`bg-white border transition-all ${
                       user.isSuspended
-                        ? 'border-red-200 dark:border-red-900/40'
-                        : 'border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20'
+                        ? 'border-red-200'
+                        : 'border-[#E8E3DB] hover:border-[#C9C3BB]'
                     }`}
                     data-testid={`user-card-${user.username}`}
                   >
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${
-                            user.isSuspended ? 'bg-red-100 text-red-500' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
+                          <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold shrink-0 ${
+                            user.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
                           }`}>
                             {initials}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-zinc-900 dark:text-[#e4e4e7] text-sm">
+                              <span className="font-semibold text-[#1C1917] text-sm">
                                 {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
                               </span>
-                              <span className="text-xs text-[#71717a]">@{user.username}</span>
+                              <span className="text-xs text-[#A8A29E]">@{user.username}</span>
                               {isSuperAdmin && (
-                                <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5">
                                   Super Admin
                                 </span>
                               )}
                               {user.isSuspended && (
-                                <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5">
                                   Suspended
                                 </span>
                               )}
                               {isSelf && (
-                                <span className="text-[10px] font-semibold text-[#A8A29E] bg-zinc-100 dark:bg-[#1c1c2e] px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-[#A8A29E] bg-[#F9F7F4] px-1.5 py-0.5">
                                   You
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <Mail size={10} className="text-[#A8A29E]" />
-                              <span className="text-xs text-[#71717a] truncate">{user.email}</span>
+                              <span className="text-xs text-[#78716C] truncate">{user.email}</span>
                             </div>
                             <div className="text-xs text-[#A8A29E] mt-0.5">
                               {user.permissions?.length || 0} permission(s)
@@ -405,7 +405,7 @@ export const UserManagement = () => {
 
                       {isEditing ? (
                         <div>
-                          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-3">
+                          <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">
                             Edit Permissions ({editingUser.permissions.length}/{ALL_PERMISSIONS.length})
                           </p>
                           {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}

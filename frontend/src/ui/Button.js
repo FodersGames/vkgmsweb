@@ -2,12 +2,13 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 const V = {
-  primary:     'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]',
+  primary:     'bg-[#1C1917] hover:bg-[#2D2926] text-white',
+  accent:      'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]',
   purple:      'bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white',
-  secondary:   'border border-zinc-200 dark:border-[#2a2a3c] text-zinc-700 dark:text-[#a1a1aa] hover:bg-zinc-50 dark:hover:bg-[#1c1c2e] hover:text-zinc-800 dark:hover:text-[#e4e4e7]',
-  ghost:       'text-zinc-500 dark:text-[#71717a] hover:bg-zinc-100 dark:hover:bg-[#1c1c2e] hover:text-zinc-700 dark:hover:text-[#e4e4e7]',
+  secondary:   'border border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917] bg-white',
+  ghost:       'text-[#78716C] hover:bg-[#F9F7F4] hover:text-[#1C1917]',
   destructive: 'bg-red-500 hover:bg-red-600 text-white',
-  danger:      'border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50',
+  danger:      'border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400',
 };
 
 const S = {
@@ -30,7 +31,7 @@ export const Button = ({
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
+      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
       {...props}
     >
       {loading
