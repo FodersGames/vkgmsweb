@@ -679,7 +679,8 @@ async def verify_chat_api_key(project_slug: str, request: Request):
     project = await db.projects.find_one({"slug": project_slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if project.get("chat_api_key") != api_key:
+    stored_key = project.get("chat_api_key") or ""
+    if not secrets.compare_digest(stored_key, api_key):
         raise HTTPException(status_code=401, detail="Invalid chat API key")
     return project
 
@@ -788,7 +789,8 @@ async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_us
     return {"success": True}
 
 @api_router.post("/auth/change-password")
-async def change_password(body: ChangePasswordRequest, user=Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def change_password(request: Request, body: ChangePasswordRequest, user=Depends(get_current_user)):
     u = await db.users.find_one({"_id": ObjectId(user["id"])})
     if not u:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1124,7 +1126,7 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
     return {"success": True, "game": serialize_doc(doc)}
 
 @api_router.get("/website/games")
-async def list_games_admin(user=Depends(get_current_user)):
+async def list_games_admin(user=Depends(require_permission("create_games"))):
     games = await db.website_games.find().sort("created_at", -1).to_list(1000)
     return {"games": [serialize_doc(g) for g in games]}
 
@@ -1181,7 +1183,7 @@ async def create_blog_post(req: BlogCreateRequest, user=Depends(require_permissi
     return {"success": True, "post": serialize_doc(doc)}
 
 @api_router.get("/website/blog")
-async def list_blog_admin(user=Depends(get_current_user)):
+async def list_blog_admin(user=Depends(require_permission("create_blog"))):
     posts = await db.blog_posts.find().sort("created_at", -1).to_list(1000)
     return {"posts": [serialize_doc(p) for p in posts]}
 
@@ -1370,7 +1372,6 @@ async def get_user_loyalty(user=Depends(get_current_user)):
             next_tier = t_name
             next_threshold = t_thresh
     return {
-        "email": user["email"],
         "total_spent_cents": total,
         "tier": tier,
         "discount_pct": discount,
@@ -1618,15 +1619,7 @@ async def create_checkout_session(request: Request, game_slug: str, req: ShopChe
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    origin = request.headers.get("origin") or ""
-    if not origin:
-        referer = request.headers.get("referer", "")
-        if referer:
-            parts = referer.split("/")
-            if len(parts) >= 3:
-                origin = "/".join(parts[:3])
-    if not origin:
-        origin = os.environ.get("FRONTEND_URL", "")
+    origin = _get_origin()
     images = [product["image_url"]] if (product.get("image_url") and product["image_url"].startswith("http")) else []
 
     def _create():
@@ -2107,7 +2100,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=_cors_origins,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Chat-Api-Key"],
 )
 
@@ -2137,17 +2130,9 @@ async def _update_loyalty(email: str, amount_cents: int):
     tier = get_tier(new_total)
     await db.user_points.update_one({"email": email}, {"$set": {"tier": tier}})
 
-def _get_origin(request) -> str:
-    origin = request.headers.get("origin") or ""
-    if not origin:
-        referer = request.headers.get("referer", "")
-        if referer:
-            parts = referer.split("/")
-            if len(parts) >= 3:
-                origin = "/".join(parts[:3])
-    if not origin:
-        origin = os.environ.get("FRONTEND_URL", "")
-    return origin
+def _get_origin(request=None) -> str:
+    # Always prefer server-side env var — never trust client Origin/Referer for Stripe URLs
+    return os.environ.get("FRONTEND_URL", "").rstrip("/")
 
 async def _ensure_super_admin():
     """Idempotent: create the super admin account if it doesn't exist yet."""

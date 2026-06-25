@@ -161,7 +161,9 @@ const Profile = () => {
   const navigate = useNavigate();
 
   // Loyalty
+  const DEFAULT_LOYALTY = { total_spent_cents: 0, tier: 'bronze', discount_pct: 0, next_tier: 'silver', next_threshold_cents: 2500 };
   const [loyalty, setLoyalty] = useState(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
 
   // Notifications
   const [notifications, setNotifications] = useState([]);
@@ -189,8 +191,14 @@ const Profile = () => {
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
     fetchNotifications();
     if (token) {
+      setLoyaltyLoading(true);
       axios.get(`${API_URL}/api/user/loyalty`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => setLoyalty(r.data)).catch(() => {});
+        .then(r => setLoyalty(r.data))
+        .catch(() => setLoyalty(DEFAULT_LOYALTY))
+        .finally(() => setLoyaltyLoading(false));
+    } else {
+      setLoyalty(DEFAULT_LOYALTY);
+      setLoyaltyLoading(false);
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -378,7 +386,10 @@ const Profile = () => {
           </SectionCard>
 
           {/* Loyalty */}
-          <LoyaltyWidget loyalty={loyalty} />
+          {loyaltyLoading
+            ? <div className="bg-white border border-[#E8E3DB] rounded-xl p-6 h-[150px] animate-pulse" />
+            : <LoyaltyWidget loyalty={loyalty} />
+          }
 
           {/* Notifications */}
           <SectionCard>

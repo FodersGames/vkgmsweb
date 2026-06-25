@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
+import { Link } from 'react-router-dom';
 import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
-  MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard, ArrowRight,
+  MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard, ArrowRight, Home,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -199,8 +200,15 @@ const DashboardContent = () => {
           })}
         </nav>
 
-        {/* Sign out */}
-        <div className="border-t border-[#E8E3DB] p-3">
+        {/* Bottom actions */}
+        <div className="border-t border-[#E8E3DB] p-3 space-y-0.5">
+          <Link
+            to="/"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#78716C] hover:text-[#1C1917] hover:bg-[#F9F7F4] transition-colors"
+          >
+            <Home size={13} className="text-[#A8A29E]" />
+            Back to site
+          </Link>
           <button
             onClick={logout}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#78716C] hover:text-red-500 hover:bg-red-50 transition-colors"

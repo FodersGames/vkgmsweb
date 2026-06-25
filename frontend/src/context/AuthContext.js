@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = () => {
     if (!user) return false;
-    return user.is_super_admin || user.role === 'admin' || (user.permissions && user.permissions.length > 0);
+    return user.is_super_admin || user.role === 'admin' || (user.permissions?.length > 0);
   };
 
   return (
