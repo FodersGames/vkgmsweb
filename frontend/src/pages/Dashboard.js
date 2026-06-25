@@ -66,7 +66,7 @@ const DashboardContent = () => {
   const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions'];
   const needsProject = projectTabs.includes(activeTab);
 
-  const currentItem = ALL_ITEMS.find(i => i.id === activeTab);
+  const currentItem = ALL_ITEMS.find(i => i.id === activeTab) || ALL_ITEMS[0];
 
   const isVisible = (item) => {
     if (item.permission === null) return true;
@@ -218,39 +218,20 @@ const DashboardContent = () => {
         onClick={() => showProjectDropdown && setShowProjectDropdown(false)}
       >
         {/* Header */}
-        <header className="bg-white border-b border-[#E8E3DB] px-4 md:px-8 py-0 sticky top-0 z-10">
-          <div className="flex items-center gap-0 h-12">
-
-            {/* Mobile menu */}
+        <header className="bg-white border-b border-[#E8E3DB] px-4 md:px-8 sticky top-0 z-10">
+          <div className="flex items-center gap-3 h-12">
             <button
-              className="md:hidden p-2 mr-2 text-[#78716C] hover:text-[#1C1917] transition-colors"
+              className="md:hidden p-1.5 text-[#78716C] hover:text-[#1C1917] transition-colors"
               onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
             >
               <Menu size={17} />
             </button>
-
-            {/* Tab navigation strip */}
-            <nav className="flex items-stretch gap-0 flex-1 overflow-x-auto scrollbar-none h-full">
-              {ALL_ITEMS.filter(isVisible).map(item => {
-                const isActive = activeTab === item.id;
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 px-3 text-xs font-semibold whitespace-nowrap border-b-2 transition-all shrink-0 ${
-                      isActive
-                        ? 'text-[#1C1917] border-[#1C1917]'
-                        : 'text-[#A8A29E] border-transparent hover:text-[#78716C] hover:border-[#E8E3DB]'
-                    }`}
-                    data-testid={`tab-nav-${item.id}`}
-                  >
-                    <Icon size={12} />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
+            {currentItem && (
+              <>
+                <currentItem.icon size={13} className="text-[#A8A29E]" />
+                <span className="text-sm font-semibold text-[#1C1917]">{currentItem.label}</span>
+              </>
+            )}
           </div>
         </header>
 

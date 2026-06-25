@@ -382,6 +382,7 @@ class GameCreateRequest(BaseModel):
     platforms: List[dict] = []  # [{name, url}]
     status: Literal["published", "draft", "coming_soon"] = "draft"
     featured: bool = False
+    price_cents: int = 0
 
 class GameUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -391,6 +392,7 @@ class GameUpdateRequest(BaseModel):
     platforms: Optional[List[dict]] = None
     status: Optional[Literal["published", "draft", "coming_soon"]] = None
     featured: Optional[bool] = None
+    price_cents: Optional[int] = None
 
 class BlogCreateRequest(BaseModel):
     title: str
@@ -486,6 +488,13 @@ class ShopSettingsRequest(BaseModel):
     featured_section_title: str = "Featured Offers"
     footer_text: str = ""
     categories: List[dict] = []
+
+class ShopGlobalSettingsRequest(BaseModel):
+    shop_title: str = "Shop"
+    footer_text: str = ""
+
+class GamePurchaseCheckoutRequest(BaseModel):
+    pass  # auth only, game_slug from URL path
 
 class MissionCreateRequest(BaseModel):
     title: str
@@ -1107,6 +1116,7 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
         await db.website_games.update_many({}, {"$set": {"featured": False}})
     doc = {"name": req.name, "slug": slug, "description": req.description, "logo_url": req.logo_url,
            "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status, "featured": req.featured,
+           "price_cents": req.price_cents,
            "created_at": datetime.now(timezone.utc), "created_by": user["username"],
            "updated_at": datetime.now(timezone.utc)}
     await db.website_games.insert_one(doc)
@@ -1136,6 +1146,9 @@ async def update_game(game_slug: str, req: GameUpdateRequest, user=Depends(requi
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     updates = {k: v for k, v in req.dict().items() if v is not None}
+    # price_cents=0 is valid (free game), handle it explicitly
+    if req.price_cents is not None:
+        updates["price_cents"] = req.price_cents
     updates["updated_at"] = datetime.now(timezone.utc)
     if updates.get("featured"):
         await db.website_games.update_many({"slug": {"$ne": game_slug}}, {"$set": {"featured": False}})
@@ -1290,6 +1303,217 @@ async def update_banned_words(req: BannedWordsUpdateRequest, user=Depends(requir
     return {"success": True, "words": words}
 
 # ============== SHOP ==============
+
+# ── Global shop settings ─────────────────────────────────────────────────────
+@api_router.get("/shop/settings")
+async def get_global_shop_settings():
+    doc = await db.website_shop_global_settings.find_one({})
+    if not doc:
+        return {"shop_title": "Shop", "footer_text": ""}
+    return serialize_doc(doc)
+
+@api_router.put("/shop/settings")
+async def update_global_shop_settings(req: ShopGlobalSettingsRequest, user=Depends(require_permission("manage_shop"))):
+    updates = req.dict()
+    updates["updated_at"] = datetime.now(timezone.utc)
+    await db.website_shop_global_settings.update_one({}, {"$set": updates}, upsert=True)
+    await log_action("website", "Global shop settings updated", user=user["username"])
+    return serialize_doc(await db.website_shop_global_settings.find_one({}))
+
+# ── Global products list ──────────────────────────────────────────────────────
+@api_router.get("/shop/products")
+async def list_all_shop_products(game_slug: Optional[str] = None, category: Optional[str] = None):
+    query: dict = {"active": True}
+    if game_slug:
+        query["game_slug"] = game_slug
+    if category:
+        query["category"] = category
+    products = await db.website_shop_products.find(query).sort([("featured", -1), ("created_at", 1)]).to_list(500)
+    return {"products": [serialize_doc(p) for p in products]}
+
+@api_router.get("/shop/products/admin")
+async def list_all_shop_products_admin(game_slug: Optional[str] = None, user=Depends(require_permission("manage_shop"))):
+    query: dict = {}
+    if game_slug:
+        query["game_slug"] = game_slug
+    products = await db.website_shop_products.find(query).sort([("game_slug", 1), ("created_at", 1)]).to_list(500)
+    return {"products": [serialize_doc(p) for p in products]}
+
+# ── Categories (derived from games with active products) ──────────────────────
+@api_router.get("/shop/categories")
+async def get_shop_categories():
+    games = await db.website_games.find({"status": {"$in": ["published", "coming_soon"]}}).sort("name", 1).to_list(200)
+    categories = []
+    for g in games:
+        count = await db.website_shop_products.count_documents({"game_slug": g["slug"], "active": True})
+        if count > 0:
+            categories.append({
+                "id": g["slug"],
+                "label": g["name"],
+                "product_count": count,
+                "logo_url": g.get("logo_url", ""),
+            })
+    return {"categories": categories}
+
+# ── User loyalty ──────────────────────────────────────────────────────────────
+@api_router.get("/user/loyalty")
+async def get_user_loyalty(user=Depends(get_current_user)):
+    doc = await db.user_points.find_one({"email": user["email"]})
+    total = doc.get("total_spent_cents", 0) if doc else 0
+    tier = get_tier(total)
+    discount = TIER_DISCOUNTS.get(tier, 0)
+    # next tier threshold
+    next_tier = None
+    next_threshold = None
+    for t_name, t_thresh in TIER_THRESHOLDS:
+        if total < t_thresh:
+            next_tier = t_name
+            next_threshold = t_thresh
+    return {
+        "email": user["email"],
+        "total_spent_cents": total,
+        "tier": tier,
+        "discount_pct": discount,
+        "next_tier": next_tier,
+        "next_threshold_cents": next_threshold,
+    }
+
+# ── Unified shop checkout (auth required, applies loyalty discount) ────────────
+@api_router.post("/shop/checkout")
+@limiter.limit("10/minute")
+async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, user=Depends(get_current_user)):
+    if not req.player_uid.strip():
+        raise HTTPException(status_code=400, detail="Player ID required")
+    try:
+        oid = ObjectId(req.product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    product = await db.website_shop_products.find_one({"_id": oid, "active": True})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Apply loyalty discount
+    loyalty_doc = await db.user_points.find_one({"email": user["email"]})
+    total_spent = loyalty_doc.get("total_spent_cents", 0) if loyalty_doc else 0
+    tier = get_tier(total_spent)
+    discount_pct = TIER_DISCOUNTS.get(tier, 0)
+    base_price = product["price"]
+    final_price = max(50, int(base_price * (1 - discount_pct / 100))) if discount_pct > 0 else base_price
+
+    origin = _get_origin(request)
+    images = [product["image_url"]] if (product.get("image_url") and product["image_url"].startswith("http")) else []
+    desc_parts = []
+    if product.get("description"):
+        desc_parts.append(product["description"])
+    if discount_pct > 0:
+        desc_parts.append(f"{discount_pct}% {tier.capitalize()} loyalty discount applied")
+    description = " · ".join(desc_parts) or ""
+
+    def _create():
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            customer_email=user["email"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": product["name"],
+                        "description": description,
+                        "images": images,
+                    },
+                    "unit_amount": final_price,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{origin}/shop/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{origin}/shop",
+            metadata={
+                "checkout_type": "shop_item",
+                "player_uid": req.player_uid.strip(),
+                "product_id": str(product["_id"]),
+                "game_slug": product.get("game_slug", ""),
+                "user_email": user["email"],
+                "original_price": str(base_price),
+                "final_price": str(final_price),
+                "discount_pct": str(discount_pct),
+            },
+        )
+
+    try:
+        session = await asyncio.to_thread(_create)
+    except Exception as e:
+        logger.error(f"Stripe unified checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service unavailable")
+
+    return {"checkout_url": session.url, "session_id": session.id, "final_price": final_price, "discount_pct": discount_pct}
+
+# ── Game purchase checkout ────────────────────────────────────────────────────
+@api_router.post("/games/{game_slug}/checkout")
+@limiter.limit("10/minute")
+async def create_game_checkout(request: Request, game_slug: str, user=Depends(get_current_user)):
+    game = await db.website_games.find_one({"slug": game_slug, "status": "published"})
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    price = game.get("price_cents", 0)
+    if price <= 0:
+        raise HTTPException(status_code=400, detail="This game is free")
+
+    # Check if already purchased
+    existing = await db.game_purchases.find_one({"email": user["email"], "game_slug": game_slug})
+    if existing:
+        raise HTTPException(status_code=409, detail="You already own this game")
+
+    origin = _get_origin(request)
+    images = [game["logo_url"]] if (game.get("logo_url") and game["logo_url"].startswith("http")) else []
+
+    def _create():
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            customer_email=user["email"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": game["name"],
+                        "description": game.get("description") or "",
+                        "images": images,
+                    },
+                    "unit_amount": price,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{origin}/shop/success?session_id={{CHECKOUT_SESSION_ID}}&type=game",
+            cancel_url=f"{origin}/games",
+            metadata={
+                "checkout_type": "game_purchase",
+                "game_slug": game_slug,
+                "game_name": game["name"],
+                "user_email": user["email"],
+            },
+        )
+
+    try:
+        session = await asyncio.to_thread(_create)
+    except Exception as e:
+        logger.error(f"Stripe game checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service unavailable")
+
+    return {"checkout_url": session.url, "session_id": session.id}
+
+# ── Check if user purchased a game ───────────────────────────────────────────
+@api_router.get("/games/{game_slug}/purchased")
+async def check_game_purchased(game_slug: str, user=Depends(get_current_user)):
+    purchase = await db.game_purchases.find_one({"email": user["email"], "game_slug": game_slug})
+    return {"purchased": purchase is not None, "game_slug": game_slug}
+
+# ── List game purchases (admin) ──────────────────────────────────────────────
+@api_router.get("/games/{game_slug}/purchases")
+async def list_game_purchases(game_slug: str, user=Depends(require_permission("manage_shop"))):
+    purchases = await db.game_purchases.find({"game_slug": game_slug}).sort("purchased_at", -1).to_list(1000)
+    return {"purchases": [serialize_doc(p) for p in purchases]}
+
 @api_router.get("/shop/{game_slug}/products")
 async def list_shop_products_public(game_slug: str):
     products = await db.website_shop_products.find({"game_slug": game_slug, "active": True}).sort("created_at", 1).to_list(200)
@@ -1562,29 +1786,87 @@ async def stripe_webhook(request: Request):
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         meta = session.get("metadata", {})
-        uid = meta.get("player_uid", "").strip()
-        product_id = meta.get("product_id", "")
-        game_slug = meta.get("game_slug", "")
+        checkout_type = meta.get("checkout_type", "")
+        amount_paid = session.get("amount_total", 0)
 
-        if uid and product_id and game_slug:
-            try:
-                product = await db.website_shop_products.find_one({"_id": ObjectId(product_id), "game_slug": game_slug})
-                if product:
-                    await db.items.insert_one({
-                        "project_slug": product["project_slug"],
-                        "uid": uid,
-                        "variable": product["variable"],
-                        "amount": product["amount"],
-                        "created_at": datetime.now(timezone.utc),
-                        "created_by": "stripe_shop",
-                    })
-                    await log_action("send",
-                        f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe payment)",
-                        project_slug=product["project_slug"], user="stripe_shop",
-                        uid=uid, variable=product["variable"], amount=product["amount"])
-                    logger.info(f"Shop delivery OK: {product['amount']}x {product['variable']} to {uid}")
-            except Exception as e:
-                logger.error(f"Shop webhook delivery error: {e}")
+        if checkout_type == "shop_item":
+            uid = meta.get("player_uid", "").strip()
+            product_id = meta.get("product_id", "")
+            game_slug_meta = meta.get("game_slug", "")
+            user_email = meta.get("user_email", "")
+            # Deliver item
+            if uid and product_id:
+                try:
+                    product = await db.website_shop_products.find_one({"_id": ObjectId(product_id)})
+                    if product:
+                        await db.items.insert_one({
+                            "project_slug": product["project_slug"],
+                            "uid": uid,
+                            "variable": product["variable"],
+                            "amount": product["amount"],
+                            "created_at": datetime.now(timezone.utc),
+                            "created_by": "stripe_shop",
+                        })
+                        await log_action("send",
+                            f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe)",
+                            project_slug=product["project_slug"], user="stripe_shop",
+                            uid=uid, variable=product["variable"], amount=product["amount"])
+                        logger.info(f"Shop delivery OK: {product['amount']}x {product['variable']} to {uid}")
+                except Exception as e:
+                    logger.error(f"Shop delivery error: {e}")
+            # Update loyalty (only shop items give points)
+            if user_email and amount_paid > 0:
+                try:
+                    await _update_loyalty(user_email, amount_paid)
+                    logger.info(f"Loyalty updated for {user_email}: +{amount_paid} cents")
+                except Exception as e:
+                    logger.error(f"Loyalty update error: {e}")
+
+        elif checkout_type == "game_purchase":
+            game_slug_meta = meta.get("game_slug", "")
+            game_name = meta.get("game_name", "")
+            user_email = meta.get("user_email", "")
+            if user_email and game_slug_meta:
+                try:
+                    await db.game_purchases.update_one(
+                        {"email": user_email, "game_slug": game_slug_meta},
+                        {"$setOnInsert": {
+                            "email": user_email,
+                            "game_slug": game_slug_meta,
+                            "game_name": game_name,
+                            "stripe_session_id": session.get("id", ""),
+                            "amount_paid_cents": amount_paid,
+                            "purchased_at": datetime.now(timezone.utc),
+                        }},
+                        upsert=True,
+                    )
+                    logger.info(f"Game purchase recorded: {user_email} → {game_slug_meta}")
+                except Exception as e:
+                    logger.error(f"Game purchase record error: {e}")
+
+        else:
+            # Backward compat: old sessions without checkout_type metadata
+            uid = meta.get("player_uid", "").strip()
+            product_id = meta.get("product_id", "")
+            game_slug_meta = meta.get("game_slug", "")
+            if uid and product_id and game_slug_meta:
+                try:
+                    product = await db.website_shop_products.find_one({"_id": ObjectId(product_id), "game_slug": game_slug_meta})
+                    if product:
+                        await db.items.insert_one({
+                            "project_slug": product["project_slug"],
+                            "uid": uid,
+                            "variable": product["variable"],
+                            "amount": product["amount"],
+                            "created_at": datetime.now(timezone.utc),
+                            "created_by": "stripe_shop",
+                        })
+                        await log_action("send",
+                            f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe legacy)",
+                            project_slug=product["project_slug"], user="stripe_shop",
+                            uid=uid, variable=product["variable"], amount=product["amount"])
+                except Exception as e:
+                    logger.error(f"Legacy shop webhook error: {e}")
 
     return {"received": True}
 
@@ -1834,6 +2116,39 @@ app.add_middleware(SecurityHeadersMiddleware)
 SUPER_ADMIN_EMAIL = "lastdaylast79@gmail.com"
 SUPER_ADMIN_PASSWORD = "azerty*1234*"
 
+TIER_THRESHOLDS = [("diamond", 25000), ("gold", 10000), ("silver", 2500), ("bronze", 0)]
+TIER_DISCOUNTS  = {"bronze": 0, "silver": 5, "gold": 10, "diamond": 15}
+
+def get_tier(total_cents: int) -> str:
+    for tier, threshold in TIER_THRESHOLDS:
+        if total_cents >= threshold:
+            return tier
+    return "bronze"
+
+async def _update_loyalty(email: str, amount_cents: int):
+    """Atomically increment total_spent and recalculate tier."""
+    result = await db.user_points.find_one_and_update(
+        {"email": email},
+        {"$inc": {"total_spent_cents": amount_cents}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+        return_document=True,
+    )
+    new_total = result.get("total_spent_cents", amount_cents) if result else amount_cents
+    tier = get_tier(new_total)
+    await db.user_points.update_one({"email": email}, {"$set": {"tier": tier}})
+
+def _get_origin(request) -> str:
+    origin = request.headers.get("origin") or ""
+    if not origin:
+        referer = request.headers.get("referer", "")
+        if referer:
+            parts = referer.split("/")
+            if len(parts) >= 3:
+                origin = "/".join(parts[:3])
+    if not origin:
+        origin = os.environ.get("FRONTEND_URL", "")
+    return origin
+
 async def _ensure_super_admin():
     """Idempotent: create the super admin account if it doesn't exist yet."""
     try:
@@ -1898,6 +2213,10 @@ async def startup_event():
         await db.missions.create_index([("project_slug", 1), ("status", 1)])
         await db.missions.create_index("created_at")
         await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
+        await db.game_purchases.create_index([("email", 1), ("game_slug", 1)], unique=True)
+        await db.game_purchases.create_index("purchased_at")
+        await db.user_points.create_index("email", unique=True)
+        await db.website_shop_global_settings.create_index("_id")
         logger.info("Database indexes initialized")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
