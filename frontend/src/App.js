@@ -46,8 +46,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<HomeV2 />} />
-      <Route path="/home-classic" element={<Home />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/home-v2" element={<HomeV2 />} />
       <Route path="/games" element={<GamesPage />} />
       <Route path="/blog" element={<BlogList />} />
       <Route path="/blog/:slug" element={<BlogPost />} />
