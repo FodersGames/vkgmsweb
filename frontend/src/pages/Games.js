@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Loader2, CheckCircle, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 
@@ -17,8 +19,13 @@ const PLATFORM_ICONS = {
 
 
 const GamesPage = () => {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(null);
+  const [purchaseError, setPurchaseError] = useState({ slug: '', msg: '' });
+  const [ownedSlugs, setOwnedSlugs] = useState(new Set());
 
   useEffect(() => {
     document.title = 'Games — Vakar Games';
@@ -26,6 +33,36 @@ const GamesPage = () => {
       .then(r => { setGames(r.data.games); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!token || games.length === 0) return;
+    const paidPublished = games.filter(g => g.price_cents > 0 && g.status === 'published');
+    if (paidPublished.length === 0) return;
+    Promise.all(
+      paidPublished.map(g =>
+        axios.get(`${API_URL}/api/games/${g.slug}/purchased`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.data.purchased ? g.slug : null)
+          .catch(() => null)
+      )
+    ).then(results => setOwnedSlugs(new Set(results.filter(Boolean))));
+  }, [token, games]);
+
+  const buyGame = async (game) => {
+    if (!user) { navigate('/login'); return; }
+    setPurchasing(game.slug);
+    setPurchaseError({ slug: '', msg: '' });
+    try {
+      const r = await axios.post(
+        `${API_URL}/api/games/${game.slug}/checkout`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      window.location.href = r.data.checkout_url;
+    } catch (e) {
+      setPurchaseError({ slug: game.slug, msg: e.response?.data?.detail || 'Purchase failed. Please try again.' });
+      setPurchasing(null);
+    }
+  };
 
   return (
     <div className="bg-[#F9F7F4] min-h-screen">
@@ -153,6 +190,36 @@ const GamesPage = () => {
                             </a>
                           ) : null;
                         })}
+                      </div>
+                    )}
+
+                    {/* Buy button — only for published paid games */}
+                    {game.price_cents > 0 && game.status === 'published' && (
+                      <div>
+                        {purchaseError.slug === game.slug && (
+                          <p className="text-xs text-red-500 mb-2">{purchaseError.msg}</p>
+                        )}
+                        {ownedSlugs.has(game.slug) ? (
+                          <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#22C55E]/10 text-[#22C55E] text-sm font-semibold border border-[#22C55E]/20">
+                            <CheckCircle size={14} />
+                            Owned
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => buyGame(game)}
+                            disabled={purchasing === game.slug}
+                            className="inline-flex items-center gap-2 bg-[#4ECDC4] hover:bg-[#3BB8B0] text-white px-6 py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
+                          >
+                            {purchasing === game.slug
+                              ? <Loader2 size={14} className="animate-spin" />
+                              : <ShoppingCart size={14} />
+                            }
+                            {purchasing === game.slug
+                              ? 'Processing…'
+                              : `Buy — €${(game.price_cents / 100).toFixed(2)}`
+                            }
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

@@ -37,9 +37,20 @@ export const SupportWidget = ({ user }) => {
   const [activeTicket, setActiveTicket] = useState(null);
   const [reply, setReply] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
 
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // Check for unread ticket reply notifications on mount
+  useEffect(() => {
+    const t = localStorage.getItem('token');
+    if (!t) return;
+    axios.get(`${API_URL}/api/notifications`, {
+      headers: { Authorization: `Bearer ${t}` },
+      params: { notif_type: 'ticket_reply', limit: 1 },
+    }).then(r => setHasUnread((r.data.unread || 0) > 0)).catch(() => {});
+  }, []); // eslint-disable-line
 
   const fetchTickets = useCallback(async () => {
     if (!token) return;
@@ -55,8 +66,16 @@ export const SupportWidget = ({ user }) => {
   }, [token]); // eslint-disable-line
 
   useEffect(() => {
-    if (view === 'mytickets') fetchTickets();
-  }, [view, fetchTickets]);
+    if (view === 'mytickets') {
+      fetchTickets();
+      if (token && hasUnread) {
+        axios.patch(`${API_URL}/api/notifications/read-all`, {}, {
+          headers,
+          params: { notif_type: 'ticket_reply' },
+        }).then(() => setHasUnread(false)).catch(() => {});
+      }
+    }
+  }, [view, fetchTickets]); // eslint-disable-line
 
   const openThread = async (ticket) => {
     try {
@@ -117,6 +136,9 @@ export const SupportWidget = ({ user }) => {
         aria-label="Support"
       >
         <MessageCircle size={20} />
+        {hasUnread && (
+          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" />
+        )}
       </button>
 
       {open && (

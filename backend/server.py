@@ -2308,12 +2308,15 @@ async def reopen_mission(slug: str, mission_id: str, req: MissionReopenRequest, 
 
 # ============== NOTIFICATIONS ==============
 @api_router.get("/notifications")
-async def get_notifications(page: int = 1, limit: int = 20, user=Depends(get_current_user)):
+async def get_notifications(page: int = 1, limit: int = 20, notif_type: Optional[str] = None, user=Depends(get_current_user)):
     user_oid = ObjectId(user["id"])
+    q: dict = {"userId": user_oid}
+    if notif_type:
+        q["type"] = notif_type
     skip = (page - 1) * limit
-    total = await db.notifications.count_documents({"userId": user_oid})
-    unread = await db.notifications.count_documents({"userId": user_oid, "read": False})
-    notifs = await db.notifications.find({"userId": user_oid}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.notifications.count_documents(q)
+    unread = await db.notifications.count_documents({**q, "read": False})
+    notifs = await db.notifications.find(q).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
     return {
         "notifications": [serialize_doc(n) for n in notifs],
         "total": total,
@@ -2323,11 +2326,11 @@ async def get_notifications(page: int = 1, limit: int = 20, user=Depends(get_cur
     }
 
 @api_router.patch("/notifications/read-all")
-async def mark_all_notifications_read(user=Depends(get_current_user)):
-    await db.notifications.update_many(
-        {"userId": ObjectId(user["id"]), "read": False},
-        {"$set": {"read": True}}
-    )
+async def mark_all_notifications_read(notif_type: Optional[str] = None, user=Depends(get_current_user)):
+    q: dict = {"userId": ObjectId(user["id"]), "read": False}
+    if notif_type:
+        q["type"] = notif_type
+    await db.notifications.update_many(q, {"$set": {"read": True}})
     return {"success": True}
 
 @api_router.patch("/notifications/{notif_id}/read")
