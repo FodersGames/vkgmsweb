@@ -132,7 +132,7 @@ export const ShopManagement = () => {
   const fetchProducts = async () => {
     if (!selectedGame) return;
     try {
-      const r = await api.get(`/api/shop/products/admin?game_slug=${selectedGame.slug}`);
+      const r = await api.get(`/api/shop/${selectedGame.slug}/products/admin`);
       setProducts(r.data.products || []);
     } catch (e) {}
   };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useSearchParams, useParams } from 'react-router-dom';
-import { CheckCircle, ShoppingBag, Gamepad2, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { SiteFooter } from '../components/SiteFooter';
 
 const ShopSuccess = ({ legacy }) => {
   const [searchParams] = useSearchParams();
@@ -9,7 +10,8 @@ const ShopSuccess = ({ legacy }) => {
   const isGame = type === 'game';
 
   return (
-    <div className="min-h-screen bg-[#F9F7F4] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#F9F7F4] flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-6">
       <div className="bg-white border border-[#E8E3DB] p-10 max-w-md w-full text-center">
 
         <div className="w-14 h-14 bg-[#4ECDC4]/10 flex items-center justify-center mx-auto mb-6">
@@ -54,6 +56,8 @@ const ShopSuccess = ({ legacy }) => {
           </Link>
         </div>
       </div>
+      </div>
+      <SiteFooter />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
+import { SiteFooter } from '../components/SiteFooter';
 import {
   ShoppingCart, X, Loader2, ArrowLeft, ArrowRight, Star,
   Package, Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
@@ -444,6 +445,7 @@ const Shop = () => {
           </div>
         </div>
       )}
+      <SiteFooter />
     </div>
   );
 };
