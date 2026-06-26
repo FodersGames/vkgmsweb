@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { SiteFooter } from '../components/SiteFooter';
 
 const Section = ({ title, children }) => (
   <div>
@@ -89,16 +90,7 @@ const TermsOfService = () => {
         </div>
       </div>
 
-      <footer className="border-t border-white/10 bg-[#0a0a0f]">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link to="/" className="text-base font-black tracking-[0.2em] text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</Link>
-          <div className="flex items-center gap-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-            <Link to="/privacy" className="text-xs text-white/40 hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="text-xs text-[#9B51E0]">Terms of Service</Link>
-          </div>
-          <p className="text-xs text-white/20" style={{ fontFamily: "'Inter', sans-serif" }}>&copy; {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 };

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import axios from 'axios';
 import { PublicNav } from '../components/PublicNav';
+import { SiteFooter } from '../components/SiteFooter';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,20 +15,6 @@ const PLATFORM_ICONS = {
   android:     { label: 'Android',      svg: <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.523 15.341c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.474-1.056-1.056-1.056zm-11.046 0c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.473-1.056-1.056-1.056zm11.405-6.02l1.945-3.368c.108-.188.044-.429-.144-.537-.188-.108-.429-.044-.537.144l-1.97 3.41c-1.479-.672-3.14-1.047-4.89-1.047s-3.411.375-4.89 1.047l-1.97-3.41c-.108-.188-.349-.252-.537-.144-.188.108-.252.349-.144.537l1.945 3.368C3.013 11.18.612 14.04.612 17.353h22.776c0-3.313-2.401-6.173-5.506-8.032z"/></svg> },
 };
 
-const PageFooter = () => (
-  <footer className="bg-[#1C1917] mt-24">
-    <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="flex items-center gap-8">
-        <Link to="/" className="text-base font-black tracking-[0.18em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-          VAKAR GAMES
-        </Link>
-        <Link to="/games" className="text-xs text-[#78716C] hover:text-white transition-colors">Games</Link>
-        <Link to="/blog"  className="text-xs text-[#78716C] hover:text-white transition-colors">Blog</Link>
-      </div>
-      <p className="text-xs text-[#44403C]">&copy; Vakar Games {new Date().getFullYear()}</p>
-    </div>
-  </footer>
-);
 
 const GamesPage = () => {
   const [games, setGames] = useState([]);
@@ -177,7 +163,7 @@ const GamesPage = () => {
         </div>
       </div>
 
-      <PageFooter />
+      <SiteFooter />
     </div>
   );
 };

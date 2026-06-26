@@ -242,10 +242,11 @@ export const ApiEndpoints = () => {
   };
 
   const methodColors = {
-    GET: { bg: '#27AE6015', color: '#27AE60', border: '#27AE60' },
-    POST: { bg: '#2F80ED15', color: '#2F80ED', border: '#2F80ED' },
-    PUT: { bg: '#FEF3C7', color: '#F59E0B', border: '#F59E0B' },
-    DELETE: { bg: '#EB575715', color: '#EB5757', border: '#EB5757' }
+    GET:    { bg: '#27AE6015', color: '#27AE60', border: '#27AE60' },
+    POST:   { bg: '#2F80ED15', color: '#2F80ED', border: '#2F80ED' },
+    PUT:    { bg: '#FEF3C7',   color: '#F59E0B', border: '#F59E0B' },
+    PATCH:  { bg: '#9B59B615', color: '#9B59B6', border: '#9B59B6' },
+    DELETE: { bg: '#EB575715', color: '#EB5757', border: '#EB5757' },
   };
 
   return (

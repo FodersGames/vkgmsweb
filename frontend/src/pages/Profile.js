@@ -3,22 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
+import { SiteFooter } from '../components/SiteFooter';
 import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const PageFooter = () => (
-  <footer className="bg-[#1C1917] mt-24">
-    <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="flex items-center gap-8">
-        <Link to="/" className="text-base font-black tracking-[0.18em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</Link>
-        <Link to="/games" className="text-xs text-[#78716C] hover:text-white transition-colors">Games</Link>
-        <Link to="/blog" className="text-xs text-[#78716C] hover:text-white transition-colors">Blog</Link>
-      </div>
-      <p className="text-xs text-[#44403C]">&copy; Vakar Games {new Date().getFullYear()}</p>
-    </div>
-  </footer>
-);
 
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
@@ -467,7 +456,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <PageFooter />
+      <SiteFooter />
     </div>
   );
 };
