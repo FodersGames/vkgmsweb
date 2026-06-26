@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Save, Loader2, CheckCircle } from 'lucide-react';
+import { Save, Loader2, CheckCircle, Trophy } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+const TIER_LABELS = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', diamond: 'Diamond' };
+
 export const AccountSettings = () => {
-  const { user } = useAuth();
+  const { user, token, hasPermission } = useAuth();
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [username, setUsername] = useState(user?.username || '');
@@ -14,13 +16,19 @@ export const AccountSettings = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  const [loyaltyAmt, setLoyaltyAmt] = useState('');
+  const [loyaltyReason, setLoyaltyReason] = useState('');
+  const [loyaltySaving, setLoyaltySaving] = useState(false);
+  const [loyaltyResult, setLoyaltyResult] = useState(null);
+
+  const canAdjustLoyalty = user?.role === 'super_admin' || hasPermission('manage_users');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setSuccess(false);
     setError('');
     try {
-      const token = localStorage.getItem('token');
       await axios.patch(
         `${API_URL}/api/auth/profile`,
         { firstName, lastName, username },
@@ -32,6 +40,27 @@ export const AccountSettings = () => {
       setError(err.response?.data?.detail || 'Failed to update profile.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLoyalty = async (e) => {
+    e.preventDefault();
+    if (!loyaltyAmt) return;
+    setLoyaltySaving(true);
+    setLoyaltyResult(null);
+    try {
+      const r = await axios.patch(
+        `${API_URL}/api/admin/users/${user.id}/loyalty`,
+        { adjust_euros: parseFloat(loyaltyAmt), reason: loyaltyReason || 'Manual adjustment' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setLoyaltyResult({ success: true, ...r.data });
+      setLoyaltyAmt('');
+      setLoyaltyReason('');
+    } catch (err) {
+      setLoyaltyResult({ success: false, error: err.response?.data?.detail || 'Failed.' });
+    } finally {
+      setLoyaltySaving(false);
     }
   };
 
@@ -117,6 +146,63 @@ export const AccountSettings = () => {
         To change your email or password, go to your{' '}
         <a href="/profile" className="underline hover:text-[#1C1917] transition-colors">public profile</a>.
       </p>
+
+      {/* Loyalty adjustment — admin only */}
+      {canAdjustLoyalty && (
+        <div className="bg-white border border-[#E8E3DB] p-6 mt-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Trophy size={14} className="text-[#F59E0B]" />
+            <h3 className="text-sm font-bold text-[#1C1917]">Loyalty Balance Adjustment</h3>
+          </div>
+          <p className="text-xs text-[#A8A29E] mb-4">Add or subtract loyalty spend (€) from your own account. Tier recalculates automatically.</p>
+
+          <form onSubmit={handleLoyalty} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Amount (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={loyaltyAmt}
+                onChange={e => setLoyaltyAmt(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                placeholder="e.g. 50 or -10"
+              />
+              <p className="text-[10px] text-[#A8A29E] mt-0.5">Positive to add, negative to remove. Tiers: Bronze 0€ · Silver 25€ · Gold 100€ · Diamond 250€</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Reason (optional)</label>
+              <input
+                type="text"
+                maxLength={100}
+                value={loyaltyReason}
+                onChange={e => setLoyaltyReason(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                placeholder="Test, correction, bonus…"
+              />
+            </div>
+
+            {loyaltyResult && (
+              loyaltyResult.success ? (
+                <p className="text-xs font-semibold text-[#22C55E]">
+                  ✓ Applied — {TIER_LABELS[loyaltyResult.previous_tier]} → {TIER_LABELS[loyaltyResult.new_tier]} (€{(loyaltyResult.new_total_cents / 100).toFixed(2)} total)
+                </p>
+              ) : (
+                <p className="text-xs text-red-500">{loyaltyResult.error}</p>
+              )
+            )}
+
+            <button
+              type="submit"
+              disabled={loyaltySaving || !loyaltyAmt}
+              className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              {loyaltySaving && <Loader2 size={13} className="animate-spin" />}
+              Apply adjustment
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
