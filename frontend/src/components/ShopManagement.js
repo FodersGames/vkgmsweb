@@ -351,7 +351,7 @@ export const ShopManagement = () => {
                         <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={IN} required placeholder="100 Gold Coins" />
                       </div>
                       <div>
-                        <label className={LBL}>Price (€)</label>
+                        <label className={LBL}>Price ($)</label>
                         <input type="number" step="0.01" min="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} className={IN} required placeholder="9.99" />
                       </div>
                       <div className="md:col-span-2">
@@ -521,7 +521,7 @@ export const ShopManagement = () => {
                               {!p.active && <span className="text-[10px] font-bold text-[#A8A29E] bg-[#F9F7F4] border border-[#E8E3DB] px-1.5 py-0.5">Hidden</span>}
                             </div>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-sm font-black text-[#1C1917]">€{(p.price / 100).toFixed(2)}</span>
+                              <span className="text-sm font-black text-[#1C1917]">${(p.price / 100).toFixed(2)}</span>
                               <span className="text-xs text-[#A8A29E]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
                             </div>
                           </div>

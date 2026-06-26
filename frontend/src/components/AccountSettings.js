@@ -51,7 +51,7 @@ export const AccountSettings = () => {
     try {
       const r = await axios.patch(
         `${API_URL}/api/admin/users/${user.id}/loyalty`,
-        { adjust_euros: parseFloat(loyaltyAmt), reason: loyaltyReason || 'Manual adjustment' },
+        { adjust_dollars: parseFloat(loyaltyAmt), reason: loyaltyReason || 'Manual adjustment' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setLoyaltyResult({ success: true, ...r.data });
@@ -154,11 +154,11 @@ export const AccountSettings = () => {
             <Trophy size={14} className="text-[#F59E0B]" />
             <h3 className="text-sm font-bold text-[#1C1917]">Loyalty Balance Adjustment</h3>
           </div>
-          <p className="text-xs text-[#A8A29E] mb-4">Add or subtract loyalty spend (€) from your own account. Tier recalculates automatically.</p>
+          <p className="text-xs text-[#A8A29E] mb-4">Add or subtract loyalty spend ($) from your own account. Tier recalculates automatically.</p>
 
           <form onSubmit={handleLoyalty} className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Amount (€)</label>
+              <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Amount ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -168,7 +168,7 @@ export const AccountSettings = () => {
                 className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                 placeholder="e.g. 50 or -10"
               />
-              <p className="text-[10px] text-[#A8A29E] mt-0.5">Positive to add, negative to remove. Tiers: Bronze 0€ · Silver 25€ · Gold 100€ · Diamond 250€</p>
+              <p className="text-[10px] text-[#A8A29E] mt-0.5">Positive to add, negative to remove. Tiers: Bronze $0 · Silver $25 · Gold $100 · Diamond $250</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Reason (optional)</label>
@@ -185,7 +185,7 @@ export const AccountSettings = () => {
             {loyaltyResult && (
               loyaltyResult.success ? (
                 <p className="text-xs font-semibold text-[#22C55E]">
-                  ✓ Applied — {TIER_LABELS[loyaltyResult.previous_tier]} → {TIER_LABELS[loyaltyResult.new_tier]} (€{(loyaltyResult.new_total_cents / 100).toFixed(2)} total)
+                  ✓ Applied — {TIER_LABELS[loyaltyResult.previous_tier]} → {TIER_LABELS[loyaltyResult.new_tier]} (${(loyaltyResult.new_total_cents / 100).toFixed(2)} total)
                 </p>
               ) : (
                 <p className="text-xs text-red-500">{loyaltyResult.error}</p>

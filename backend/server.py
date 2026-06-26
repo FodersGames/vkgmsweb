@@ -531,7 +531,6 @@ class TicketCreateRequest(BaseModel):
     subject: str
     category: Literal["general", "technical", "billing", "account"] = "general"
     message: str
-    email: str
 
 class TicketReplyRequest(BaseModel):
     content: str
@@ -541,15 +540,15 @@ class TicketStatusUpdateRequest(BaseModel):
     priority: Optional[Literal["normal", "high", "urgent"]] = None
 
 class LoyaltyAdjustRequest(BaseModel):
-    adjust_euros: float
+    adjust_dollars: float
     reason: str = ""
 
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    firstName: str
-    lastName: str
-    username: str
+    firstName: Optional[str] = ""
+    lastName: Optional[str] = ""
+    username: Optional[str] = ""
 
 class LoginEmailRequest(BaseModel):
     email: str
@@ -775,17 +774,22 @@ async def login(request: Request, body: LoginEmailRequest):
 @limiter.limit("5/minute")
 async def register(request: Request, body: RegisterRequest):
     email = body.email.lower().strip()
-    username = body.username.strip()
-    firstName = body.firstName.strip()
-    lastName = body.lastName.strip()
+    firstName = (body.firstName or "").strip()[:50]
+    lastName = (body.lastName or "").strip()[:50]
     if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
         raise HTTPException(status_code=400, detail="Invalid email address")
+    # Auto-generate username from email prefix if not provided
+    raw_username = (body.username or "").strip()
+    if not raw_username:
+        base = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:24]
+        raw_username = base
+        suffix = 0
+        while await db.users.find_one({"username": raw_username}):
+            suffix += 1
+            raw_username = f"{base}_{suffix}"
+    username = raw_username
     if not re.match(r'^[a-zA-Z0-9_]{3,32}$', username):
         raise HTTPException(status_code=400, detail="Username must be 3-32 characters (letters, numbers, underscores only)")
-    if not (1 <= len(firstName) <= 50):
-        raise HTTPException(status_code=400, detail="First name must be 1-50 characters")
-    if not (1 <= len(lastName) <= 50):
-        raise HTTPException(status_code=400, detail="Last name must be 1-50 characters")
     validate_password_strength(body.password)
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -948,6 +952,66 @@ async def delete_project(slug: str, user=Depends(require_permission("delete_proj
     return {"success": True, "message": f"Project '{p['name']}' deleted"}
 
 # ============== USERS ==============
+class AdminCreateUserRequest(BaseModel):
+    email: str
+    password: Optional[str] = ""
+    firstName: Optional[str] = ""
+    lastName: Optional[str] = ""
+    username: Optional[str] = ""
+    role: Literal["user", "admin"] = "user"
+    permissions: List[str] = []
+
+@api_router.post("/admin/users/create")
+async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_permission("manage_users"))):
+    email = body.email.lower().strip()
+    if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    firstName = (body.firstName or "").strip()[:50]
+    lastName = (body.lastName or "").strip()[:50]
+    # Auto-generate username if not provided
+    raw_username = (body.username or "").strip()
+    if not raw_username:
+        base = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:24]
+        raw_username = base
+        suffix = 0
+        while await db.users.find_one({"username": raw_username}):
+            suffix += 1
+            raw_username = f"{base}_{suffix}"
+    if not re.match(r'^[a-zA-Z0-9_]{3,32}$', raw_username):
+        raise HTTPException(status_code=400, detail="Username must be 3-32 characters (letters, numbers, underscores only)")
+    if await db.users.find_one({"username": raw_username}):
+        raise HTTPException(status_code=400, detail="Username already taken")
+    # Auto-generate password if not provided
+    password = body.password.strip() if body.password else secrets.token_urlsafe(12)
+    validate_password_strength(password)
+    for p in body.permissions:
+        if not is_valid_permission(p):
+            raise HTTPException(status_code=400, detail=f"Invalid permission: {p}")
+    await db.users.insert_one({
+        "email": email,
+        "password_hash": hash_key(password),
+        "firstName": firstName,
+        "lastName": lastName,
+        "username": raw_username,
+        "role": body.role,
+        "permissions": body.permissions,
+        "isVerified": True,
+        "isSuspended": False,
+        "mustChangePassword": bool(not body.password),
+        "createdAt": datetime.now(timezone.utc),
+        "lastLogin": None,
+        "createdByAdmin": admin["username"],
+    })
+    await log_action("user_action", f"Admin '{admin['username']}' created user account: {raw_username} ({email})", user=admin["username"])
+    return {
+        "success": True,
+        "username": raw_username,
+        "email": email,
+        "generated_password": password if not body.password else None,
+    }
+
 @api_router.get("/users")
 async def list_users(page: int = 1, limit: int = 100, admin=Depends(require_permission("manage_users"))):
     skip = (page - 1) * limit
@@ -1049,7 +1113,7 @@ async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Dep
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    adjust_cents = round(req.adjust_euros * 100)
+    adjust_cents = round(req.adjust_dollars * 100)
     if adjust_cents == 0:
         raise HTTPException(status_code=400, detail="Adjustment cannot be zero")
     user_email = target.get("email", "")
@@ -1066,11 +1130,11 @@ async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Dep
     reason_str = f" (reason: {req.reason})" if req.reason else ""
     await log_action("user_action",
         f"Admin '{admin['username']}' adjusted loyalty for '{target.get('username', user_email)}': "
-        f"€{req.adjust_euros:+.2f}{reason_str} → {new_total}cts ({new_tier})",
+        f"${req.adjust_dollars:+.2f}{reason_str} → {new_total}cts ({new_tier})",
         user=admin["username"])
     await _create_notification(
         user_id=user_id,
-        message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by €{abs(req.adjust_euros):.2f}. Current tier: {new_tier.capitalize()}.",
+        message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by ${abs(req.adjust_dollars):.2f}. Current tier: {new_tier.capitalize()}.",
         notif_type="loyalty_adjustment",
     )
     return {
@@ -1114,7 +1178,7 @@ async def export_user_data(user_id: str, admin=Depends(require_permission("manag
         "loyalty": {
             "tier": loyalty.get("tier", "bronze"),
             "total_spent_cents": loyalty.get("total_spent_cents", 0),
-            "total_spent_euros": round(loyalty.get("total_spent_cents", 0) / 100, 2),
+            "total_spent_dollars": round(loyalty.get("total_spent_cents", 0) / 100, 2),
         } if loyalty else None,
         "game_purchases": [
             {
@@ -1567,7 +1631,7 @@ async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, us
             customer_email=user["email"],
             line_items=[{
                 "price_data": {
-                    "currency": "eur",
+                    "currency": "usd",
                     "product_data": {
                         "name": product["name"],
                         "description": description,
@@ -1625,7 +1689,7 @@ async def create_game_checkout(request: Request, game_slug: str, user=Depends(ge
             customer_email=user["email"],
             line_items=[{
                 "price_data": {
-                    "currency": "eur",
+                    "currency": "usd",
                     "product_data": {
                         "name": game["name"],
                         "description": game.get("description") or "",
@@ -1779,7 +1843,7 @@ async def create_checkout_session(request: Request, game_slug: str, req: ShopChe
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
-                    "currency": "eur",
+                    "currency": "usd",
                     "product_data": {
                         "name": product["name"],
                         "description": product.get("description") or "",
@@ -1975,7 +2039,7 @@ async def stripe_webhook(request: Request):
                         product_name = product.get("name", "item") if product else "item"
                         await _create_notification(
                             user_id=str(u["_id"]),
-                            message=f"✅ Purchase confirmed: {product_name} — €{amount_paid/100:.2f}. Your items will be delivered in-game at next login.",
+                            message=f"✅ Purchase confirmed: {product_name} — ${amount_paid/100:.2f}. Your items will be delivered in-game at next login.",
                             notif_type="purchase_success",
                         )
                 except Exception as e:
@@ -2005,7 +2069,7 @@ async def stripe_webhook(request: Request):
                     if u:
                         await _create_notification(
                             user_id=str(u["_id"]),
-                            message=f"🎮 Game unlocked: {game_name} — €{amount_paid/100:.2f}. Sign in to start playing.",
+                            message=f"🎮 Game unlocked: {game_name} — ${amount_paid/100:.2f}. Sign in to start playing.",
                             notif_type="game_purchase_success",
                         )
                 except Exception as e:
@@ -2059,19 +2123,17 @@ async def stripe_webhook(request: Request):
 
 @api_router.post("/tickets")
 @limiter.limit("5/hour")
-async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends(get_optional_user)):
+async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends(get_current_user)):
     subject = req.subject.strip()[:200]
     message = req.message.strip()[:2000]
-    email = req.email.strip().lower()
-    if not subject or not message or not email:
-        raise HTTPException(status_code=400, detail="Subject, message and email are required")
-    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-        raise HTTPException(status_code=400, detail="Invalid email address")
+    email = user["email"]
+    if not subject or not message:
+        raise HTTPException(status_code=400, detail="Subject and message are required")
     ticket_number = "TKT-" + secrets.token_hex(3).upper()
     while await db.support_tickets.find_one({"ticket_number": ticket_number}):
         ticket_number = "TKT-" + secrets.token_hex(3).upper()
-    user_id_oid = ObjectId(user["id"]) if user else None
-    username = user.get("username", "Guest") if user else "Guest"
+    user_id_oid = ObjectId(user["id"])
+    username = user.get("username", user["email"])
     doc = {
         "ticket_number": ticket_number,
         "subject": subject,

@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
+import HomeV2 from './pages/HomeV2';
 import GamesPage from './pages/Games';
 import { BlogList, BlogPost } from './pages/Blog';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -45,7 +46,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<HomeV2 />} />
+      <Route path="/home-classic" element={<Home />} />
       <Route path="/games" element={<GamesPage />} />
       <Route path="/blog" element={<BlogList />} />
       <Route path="/blog/:slug" element={<BlogPost />} />

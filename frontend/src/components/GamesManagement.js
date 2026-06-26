@@ -181,7 +181,7 @@ export const GamesManagement = () => {
                 <div>
                   <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Game Price</p>
                   <div className="relative max-w-[180px]">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] text-sm font-medium">€</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] text-sm font-medium">$</span>
                     <input
                       type="number"
                       min="0"
@@ -232,7 +232,7 @@ export const GamesManagement = () => {
                       <h4 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">{g.name}</h4>
                       <Badge variant={statusVariant[g.status] || 'default'}>{statusLabel[g.status] || g.status}</Badge>
                       {g.featured && <Badge variant="orange">Featured</Badge>}
-                      {g.price_cents > 0 && <Badge variant="default">€{(g.price_cents / 100).toFixed(2)}</Badge>}
+                      {g.price_cents > 0 && <Badge variant="default">${(g.price_cents / 100).toFixed(2)}</Badge>}
                       {(g.price_cents === 0 || !g.price_cents) && <Badge variant="success">Free</Badge>}
                     </div>
                     <p className="text-xs text-[#71717a] truncate mt-0.5">{g.description}</p>

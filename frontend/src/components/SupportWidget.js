@@ -166,27 +166,35 @@ export const SupportWidget = ({ user }) => {
             {view === 'menu' && (
               <div className="p-4 space-y-3">
                 <p className="text-xs text-[#78716C]">How can we help you today?</p>
-                <button
-                  onClick={() => { setView('new'); setSuccess(''); setError(''); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
-                >
-                  <Send size={16} className="text-[#4ECDC4] flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-[#1C1917]">Open a ticket</p>
-                    <p className="text-xs text-[#A8A29E]">Send us a support request</p>
+                {token ? (
+                  <>
+                    <button
+                      onClick={() => { setView('new'); setSuccess(''); setError(''); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
+                    >
+                      <Send size={16} className="text-[#4ECDC4] flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-[#1C1917]">Open a ticket</p>
+                        <p className="text-xs text-[#A8A29E]">Send us a support request</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setView('mytickets')}
+                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
+                    >
+                      <ExternalLink size={16} className="text-[#78716C] flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-[#1C1917]">My tickets</p>
+                        <p className="text-xs text-[#A8A29E]">View your past requests</p>
+                      </div>
+                    </button>
+                  </>
+                ) : (
+                  <div className="px-4 py-4 border border-[#E8E3DB] bg-[#F9F7F4] text-center space-y-2">
+                    <p className="text-sm font-semibold text-[#1C1917]">Sign in required</p>
+                    <p className="text-xs text-[#A8A29E]">You need an account to open a support ticket.</p>
+                    <a href="/login" className="inline-block mt-1 text-xs font-bold text-[#4ECDC4] hover:underline">Sign in or create account →</a>
                   </div>
-                </button>
-                {token && (
-                  <button
-                    onClick={() => setView('mytickets')}
-                    className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
-                  >
-                    <ExternalLink size={16} className="text-[#78716C] flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-[#1C1917]">My tickets</p>
-                      <p className="text-xs text-[#A8A29E]">View your past requests</p>
-                    </div>
-                  </button>
                 )}
                 <p className="text-xs text-[#A8A29E] text-center pt-2">
                   Email: <a href="mailto:support@vakargames.com" className="underline hover:text-[#1C1917]">support@vakargames.com</a>
