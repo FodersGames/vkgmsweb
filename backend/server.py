@@ -1081,6 +1081,63 @@ async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Dep
         "new_tier": new_tier,
     }
 
+@api_router.get("/admin/users/{user_id}/export")
+async def export_user_data(user_id: str, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    email = target.get("email", "")
+    loyalty = await db.user_points.find_one({"email": email})
+    purchases = await db.game_purchases.find({"email": email}).to_list(500)
+    tickets = await db.support_tickets.find({"user_email": email}).to_list(500)
+
+    def _serialize_date(v):
+        if hasattr(v, "isoformat"):
+            return v.isoformat()
+        return str(v) if v else None
+
+    return {
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "profile": {
+            "id": str(target["_id"]),
+            "email": email,
+            "username": target.get("username"),
+            "firstName": target.get("firstName"),
+            "lastName": target.get("lastName"),
+            "role": target.get("role"),
+            "created_at": _serialize_date(target.get("created_at")),
+            "isSuspended": target.get("isSuspended", False),
+        },
+        "loyalty": {
+            "tier": loyalty.get("tier", "bronze"),
+            "total_spent_cents": loyalty.get("total_spent_cents", 0),
+            "total_spent_euros": round(loyalty.get("total_spent_cents", 0) / 100, 2),
+        } if loyalty else None,
+        "game_purchases": [
+            {
+                "game_slug": p.get("game_slug"),
+                "game_name": p.get("game_name"),
+                "purchased_at": _serialize_date(p.get("purchased_at")),
+                "amount_paid_cents": p.get("amount_paid_cents"),
+            }
+            for p in purchases
+        ],
+        "support_tickets": [
+            {
+                "ticket_number": t.get("ticket_number"),
+                "subject": t.get("subject"),
+                "status": t.get("status"),
+                "category": t.get("category"),
+                "created_at": _serialize_date(t.get("created_at")),
+                "message_count": len(t.get("messages", [])),
+            }
+            for t in tickets
+        ],
+    }
+
 # ============== PROJECT-SCOPED: ITEMS ==============
 @api_router.post("/projects/{slug}/items/send")
 async def send_items(slug: str, req: SendItemRequest, user=Depends(require_permission("send_items"))):

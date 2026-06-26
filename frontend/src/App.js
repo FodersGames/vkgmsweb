@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -15,6 +15,7 @@ import Shop from './pages/Shop';
 import ShopSuccess from './pages/ShopSuccess';
 import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
+import Contact from './pages/Contact';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
@@ -35,14 +36,10 @@ const NotFound = () => (
 
 const AppRoutes = () => {
   const { maintenance, checked } = useMaintenanceCheck();
-  const location = useLocation();
 
   if (!checked) return null;
 
-  const adminPaths = ['/login', '/dashboard', '/privacy', '/terms', '/shop', '/profile'];
-  const isAdmin = adminPaths.some(p => location.pathname.startsWith(p));
-
-  if (maintenance && !isAdmin) {
+  if (maintenance) {
     return <MaintenancePage />;
   }
 
@@ -60,6 +57,7 @@ const AppRoutes = () => {
       <Route path="/shop/:gameSlug/success" element={<ShopSuccess legacy />} />
       <Route path="/login" element={<Login />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

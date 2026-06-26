@@ -114,25 +114,18 @@ const GamesPage = () => {
                       <img
                         src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
                         alt={game.name}
-                        className={`w-full max-w-md mx-auto rounded-lg shadow-md ${game.status === 'coming_soon' ? 'opacity-50' : ''}`}
+                        className="w-full max-w-md mx-auto rounded-lg shadow-md"
                       />
                     ) : game.screenshots?.length > 0 ? (
                       <img
                         src={game.screenshots[0].startsWith('/') ? `${API_URL}${game.screenshots[0]}` : game.screenshots[0]}
                         alt={game.name}
-                        className={`w-full rounded-lg shadow-md ${game.status === 'coming_soon' ? 'opacity-50' : ''}`}
+                        className="w-full rounded-lg shadow-md"
                       />
                     ) : (
                       <div className="w-full aspect-video bg-white border border-[#E8E3DB] rounded-lg flex items-center justify-center">
                         <span className="text-[#A8A29E] text-2xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                           {game.name}
-                        </span>
-                      </div>
-                    )}
-                    {game.status === 'coming_soon' && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="px-4 py-2 bg-[#1C1917] text-white text-xs font-black tracking-widest uppercase rounded">
-                          COMING SOON
                         </span>
                       </div>
                     )}

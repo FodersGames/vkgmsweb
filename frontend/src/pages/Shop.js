@@ -39,6 +39,7 @@ const GradeBadge = ({ tier, size = 'sm' }) => {
 };
 
 const LoyaltyBar = ({ loyalty }) => {
+  const [showInfo, setShowInfo] = useState(false);
   if (!loyalty) return null;
   const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
   const tierIdx = TIER_ORDER.indexOf(tier);
@@ -58,6 +59,11 @@ const LoyaltyBar = ({ loyalty }) => {
           {cfg.discount > 0 && (
             <span className="text-xs font-semibold text-[#4ECDC4]">−{cfg.discount}% on all in-app purchases</span>
           )}
+          <button
+            onClick={() => setShowInfo(v => !v)}
+            className="w-4 h-4 rounded-full border border-[#C9C3BB] text-[#A8A29E] hover:border-[#4ECDC4] hover:text-[#4ECDC4] flex items-center justify-center text-[10px] font-bold transition-colors"
+            title="How does the loyalty program work?"
+          >?</button>
         </div>
         <span className="text-xs text-[#A8A29E]">
           €{(total_spent_cents / 100).toFixed(2)} spent
@@ -100,6 +106,34 @@ const LoyaltyBar = ({ loyalty }) => {
         <p className="text-[10px] text-[#A8A29E] mt-2 text-center">
           €{((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to reach {TIERS[next_tier]?.label}
         </p>
+      )}
+
+      {showInfo && (
+        <div className="mt-3 p-4 bg-[#F9F7F4] border border-[#E8E3DB] text-xs text-[#78716C] space-y-3">
+          <p className="font-bold text-[#1C1917]">How the loyalty program works</p>
+          <p>Every euro you spend in the shop adds to your loyalty total. The more you spend, the higher your tier — and the bigger your discount on every future purchase.</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {TIER_ORDER.map(t => {
+              const tc = TIERS[t];
+              const TIcon = tc.icon;
+              const reached = TIER_ORDER.indexOf(t) <= tierIdx;
+              return (
+                <div
+                  key={t}
+                  className="flex items-center gap-1.5 px-2 py-1.5 bg-white border"
+                  style={{ borderColor: reached ? tc.color : '#E8E3DB' }}
+                >
+                  <TIcon size={10} style={{ color: tc.color }} />
+                  <span className="font-semibold" style={{ color: tc.color }}>{tc.label}</span>
+                  <span className="text-[#A8A29E] text-[10px] ml-auto">€{tc.min / 100}+{tc.discount > 0 ? ` · −${tc.discount}%` : ''}</span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[#A8A29E] pt-1 border-t border-[#E8E3DB]">
+            <strong className="text-[#78716C]">Silver, Gold and Diamond members</strong> receive exclusive coupons and bonus offers directly in their inbox from time to time.
+          </p>
+        </div>
       )}
     </div>
   );
