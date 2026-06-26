@@ -146,9 +146,12 @@ const Shop = () => {
 
   const [products, setProducts]         = useState([]);
   const [categories, setCategories]     = useState([]);
+  const [gameCategories, setGameCategories] = useState([]);
   const [loyalty, setLoyalty]           = useState(null);
   const [loading, setLoading]           = useState(true);
   const [activeGame, setActiveGame]     = useState(searchParams.get('game') || 'all');
+  const [activeCat, setActiveCat]       = useState(searchParams.get('cat') || '');
+  const [activeSub, setActiveSub]       = useState(searchParams.get('sub') || '');
 
   const [buying, setBuying]             = useState(null);
   const [uid, setUid]                   = useState('');
@@ -157,11 +160,23 @@ const Shop = () => {
 
   useEffect(() => { document.title = 'Shop — Vakar Games'; }, []);
 
-  // Sync activeGame with URL param
+  // Sync state with URL params
   useEffect(() => {
     const g = searchParams.get('game') || 'all';
+    const c = searchParams.get('cat') || '';
+    const s = searchParams.get('sub') || '';
     setActiveGame(g);
+    setActiveCat(c);
+    setActiveSub(s);
   }, [searchParams]);
+
+  // Fetch per-game categories when a specific game is selected
+  useEffect(() => {
+    if (activeGame === 'all') { setGameCategories([]); return; }
+    axios.get(`${API_URL}/api/shop/${activeGame}/settings`)
+      .then(r => setGameCategories(r.data.categories || []))
+      .catch(() => setGameCategories([]));
+  }, [activeGame]);
 
   // Fetch products + categories
   useEffect(() => {
@@ -196,10 +211,6 @@ const Shop = () => {
     return Math.max(50, Math.round(priceInCents * (1 - discount / 100)));
   };
 
-  const filtered = activeGame === 'all' ? products : products.filter(p => p.game_slug === activeGame);
-  const featured = filtered.filter(p => p.featured);
-  const regular  = filtered.filter(p => !p.featured);
-
   const openBuy = (product) => {
     if (!user) { navigate('/login'); return; }
     setBuying(product);
@@ -230,9 +241,35 @@ const Shop = () => {
     } else {
       setSearchParams({ game: slug });
     }
+    setActiveCat('');
+    setActiveSub('');
+  };
+
+  const selectCat = (catId) => {
+    const params = { game: activeGame };
+    if (catId) params.cat = catId;
+    setSearchParams(params);
+    setActiveSub('');
+  };
+
+  const selectSub = (subId) => {
+    const params = { game: activeGame };
+    if (activeCat) params.cat = activeCat;
+    if (subId) params.sub = subId;
+    setSearchParams(params);
   };
 
   const finalPrice = buying ? applyDiscount(buying.price) : 0;
+
+  // ── Filtered products ────────────────────────────────────────────────────
+  const filteredByGame = activeGame === 'all' ? products : products.filter(p => p.game_slug === activeGame);
+  const filteredByCat = activeCat ? filteredByGame.filter(p => p.category === activeCat) : filteredByGame;
+  const filtered = activeSub ? filteredByCat.filter(p => p.subcategory === activeSub) : filteredByCat;
+  const featured = filtered.filter(p => p.featured);
+  const regular  = filtered.filter(p => !p.featured);
+
+  const activeCatObj = gameCategories.find(c => c.id === activeCat);
+  const activeSubcats = activeCatObj?.subcategories || [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -311,6 +348,66 @@ const Shop = () => {
                   >
                     {cat.label}
                     <span className="opacity-50">({cat.product_count})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Per-game category filter */}
+          {activeGame !== 'all' && gameCategories.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Category</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
+                <button
+                  onClick={() => selectCat('')}
+                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
+                    !activeCat ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:text-[#1C1917]'
+                  }`}
+                >
+                  All
+                </button>
+                {gameCategories.map(cat => {
+                  const Icon = ICONS[cat.icon] || Package;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => selectCat(cat.id)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
+                        activeCat === cat.id ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:text-[#1C1917]'
+                      }`}
+                    >
+                      <Icon size={12} />
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Per-category sub-category filter */}
+          {activeCat && activeSubcats.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Sub-category</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
+                <button
+                  onClick={() => selectSub('')}
+                  className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
+                    !activeSub ? 'bg-[#1C1917] text-white border-[#1C1917]' : 'bg-white text-[#A8A29E] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#78716C]'
+                  }`}
+                >
+                  All
+                </button>
+                {activeSubcats.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => selectSub(s.id)}
+                    className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
+                      activeSub === s.id ? 'bg-[#1C1917] text-white border-[#1C1917]' : 'bg-white text-[#A8A29E] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#78716C]'
+                    }`}
+                  >
+                    {s.label}
                   </button>
                 ))}
               </div>

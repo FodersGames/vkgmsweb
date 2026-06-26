@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, LayoutDashboard, User, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { SupportWidget } from './SupportWidget';
 
 export const PublicNav = ({ onAbout }) => {
   const [open, setOpen] = useState(false);
@@ -169,5 +170,6 @@ export const PublicNav = ({ onAbout }) => {
         </div>
       )}
     </nav>
+    <SupportWidget user={user} />
   );
 };

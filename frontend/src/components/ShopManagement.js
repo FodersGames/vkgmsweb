@@ -75,7 +75,7 @@ const IconPicker = ({ value, onChange }) => {
 const defaultForm = {
   name: '', description: '', price: '', image_url: '',
   badge: '', discount_pct: '', project_slug: '', variable: '', amount: '',
-  active: true, category: '', featured: false,
+  active: true, category: '', subcategory: '', featured: false,
 };
 
 // ── Shared input class ────────────────────────────────────────────────────────
@@ -106,6 +106,8 @@ export const ShopManagement = () => {
   const [newCatLabel, setNewCatLabel] = useState('');
   const [newCatIcon, setNewCatIcon]   = useState('package');
   const [savingCats, setSavingCats]   = useState(false);
+  const [expandedCat, setExpandedCat] = useState(null);
+  const [newSubLabel, setNewSubLabel] = useState('');
 
   const showConfirm = (config) => setDialog({ ...config, open: true });
   const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
@@ -168,7 +170,7 @@ export const ShopManagement = () => {
       image_url: p.image_url || '', badge: p.badge || '',
       discount_pct: p.discount_pct ?? '',
       project_slug: p.project_slug, variable: p.variable, amount: p.amount,
-      active: p.active, category: p.category || '', featured: p.featured || false,
+      active: p.active, category: p.category || '', subcategory: p.subcategory || '', featured: p.featured || false,
     });
     setShowForm(true);
   };
@@ -182,6 +184,7 @@ export const ShopManagement = () => {
       discount_pct: form.discount_pct !== '' ? parseInt(form.discount_pct) : null,
       badge: form.badge || null,
       category: form.category || null,
+      subcategory: form.subcategory || null,
       game_slug: selectedGame.slug,
     };
     try {
@@ -215,27 +218,58 @@ export const ShopManagement = () => {
     } catch { toast.error('Failed'); }
   };
 
+  const saveCategories = async (updated) => {
+    await api.put(`/api/shop/${selectedGame.slug}/settings`, { categories: updated });
+    setCategories(updated);
+  };
+
   const addCategory = async () => {
     const label = newCatLabel.trim();
     if (!label) return;
     const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     if (categories.some(c => c.id === id)) { toast.error('Category already exists'); return; }
-    const newCat = { id, label, icon: newCatIcon };
-    const updated = [...categories, newCat];
+    const newCat = { id, label, icon: newCatIcon, subcategories: [] };
     setSavingCats(true);
     try {
-      await api.put(`/api/shop/${selectedGame.slug}/settings`, { categories: updated });
-      setCategories(updated); setNewCatLabel(''); setNewCatIcon('package');
+      await saveCategories([...categories, newCat]);
+      setNewCatLabel(''); setNewCatIcon('package');
       toast.success('Category added');
     } catch { toast.error('Failed'); }
     finally { setSavingCats(false); }
   };
 
   const removeCategory = async (id) => {
-    const updated = categories.filter(c => c.id !== id);
     try {
-      await api.put(`/api/shop/${selectedGame.slug}/settings`, { categories: updated });
-      setCategories(updated); toast.success('Category removed');
+      await saveCategories(categories.filter(c => c.id !== id));
+      if (expandedCat === id) setExpandedCat(null);
+      toast.success('Category removed');
+    } catch { toast.error('Failed'); }
+  };
+
+  const addSubcategory = async (catId) => {
+    const label = newSubLabel.trim();
+    if (!label) return;
+    const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    const updated = categories.map(c => {
+      if (c.id !== catId) return c;
+      const subs = c.subcategories || [];
+      if (subs.some(s => s.id === id)) { toast.error('Sub-category already exists'); return c; }
+      return { ...c, subcategories: [...subs, { id, label }] };
+    });
+    try {
+      await saveCategories(updated);
+      setNewSubLabel('');
+      toast.success('Sub-category added');
+    } catch { toast.error('Failed'); }
+  };
+
+  const removeSubcategory = async (catId, subId) => {
+    const updated = categories.map(c => c.id !== catId ? c : {
+      ...c, subcategories: (c.subcategories || []).filter(s => s.id !== subId),
+    });
+    try {
+      await saveCategories(updated);
+      toast.success('Sub-category removed');
     } catch { toast.error('Failed'); }
   };
 
@@ -378,11 +412,27 @@ export const ShopManagement = () => {
                       {/* Category */}
                       <div>
                         <label className={LBL}>Category</label>
-                        <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className={IN}>
+                        <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value, subcategory: '' }))} className={IN}>
                           <option value="">— No category —</option>
                           {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                         </select>
                       </div>
+
+                      {/* Sub-category */}
+                      {form.category && (() => {
+                        const cat = categories.find(c => c.id === form.category);
+                        const subs = cat?.subcategories || [];
+                        if (subs.length === 0) return null;
+                        return (
+                          <div>
+                            <label className={LBL}>Sub-category</label>
+                            <select value={form.subcategory} onChange={e => setForm(f => ({ ...f, subcategory: e.target.value }))} className={IN}>
+                              <option value="">— No sub-category —</option>
+                              {subs.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                          </div>
+                        );
+                      })()}
 
                       {/* Backend project */}
                       <div>
@@ -499,31 +549,65 @@ export const ShopManagement = () => {
           {subTab === 'categories' && (
             <div className="bg-white border border-[#E8E3DB] p-5 space-y-5">
               <p className="text-xs text-[#78716C]">
-                Categories group products in the shop. They appear as filter tabs on the shop page.
+                Categories group products in the shop. Each category can have optional sub-categories for finer filtering.
               </p>
 
-              {/* Existing categories */}
+              {/* Existing categories with sub-category management */}
               {categories.length === 0 ? (
                 <p className="text-sm text-[#A8A29E]">No categories yet. Add one below.</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                   {categories.map(c => (
-                    <div
-                      key={c.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F9F7F4] border border-[#E8E3DB] text-sm"
-                    >
-                      <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
-                      <span className="font-semibold text-[#1C1917]">{c.label}</span>
-                      <span className="text-[#A8A29E] text-xs">#{c.id}</span>
-                      <button onClick={() => removeCategory(c.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors ml-0.5">
-                        <X size={12} />
-                      </button>
+                    <div key={c.id} className="border border-[#E8E3DB]">
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F9F7F4]">
+                        <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
+                        <span className="font-semibold text-[#1C1917] text-sm flex-1">{c.label}</span>
+                        <span className="text-[#A8A29E] text-xs">{(c.subcategories || []).length} sub</span>
+                        <button
+                          onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
+                          className="text-xs text-[#78716C] hover:text-[#1C1917] px-2 py-0.5 border border-[#E8E3DB] bg-white transition-colors"
+                        >
+                          {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
+                        </button>
+                        <button onClick={() => removeCategory(c.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors">
+                          <X size={13} />
+                        </button>
+                      </div>
+                      {expandedCat === c.id && (
+                        <div className="px-4 py-3 border-t border-[#E8E3DB] space-y-2">
+                          {(c.subcategories || []).length === 0 ? (
+                            <p className="text-xs text-[#A8A29E]">No sub-categories yet.</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {(c.subcategories || []).map(s => (
+                                <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-[#E8E3DB] text-xs">
+                                  <span className="text-[#1C1917] font-medium">{s.label}</span>
+                                  <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors ml-0.5">
+                                    <X size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2 items-center mt-2">
+                            <input
+                              type="text"
+                              value={newSubLabel}
+                              onChange={e => setNewSubLabel(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubcategory(c.id))}
+                              className={`${IN} flex-1`}
+                              placeholder="Sub-category name (e.g. Premium Pass)"
+                            />
+                            <Button icon={Plus} onClick={() => addSubcategory(c.id)} className="shrink-0">Add</Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Add new */}
+              {/* Add new category */}
               <div>
                 <p className={LBL}>Add Category</p>
                 <div className="flex gap-2 items-center">
