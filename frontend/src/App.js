@@ -17,6 +17,7 @@ import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
+import { CookieBanner } from './components/CookieBanner';
 import './App.css';
 
 const NotFound = () => (
@@ -72,6 +73,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <AppRoutes />
+            <CookieBanner />
           </BrowserRouter>
           <Toaster position="top-right" />
         </AuthProvider>
