@@ -6,6 +6,7 @@ import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard, ArrowRight, Home,
+  Ticket, UserCircle,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -21,6 +22,8 @@ import { ChatManagement } from '../components/ChatManagement';
 import { WebsiteSettings } from '../components/WebsiteSettings';
 import { ShopManagement } from '../components/ShopManagement';
 import { MissionsManagement } from '../components/MissionsManagement';
+import TicketManagement from '../components/TicketManagement';
+import { AccountSettings } from '../components/AccountSettings';
 
 const NAV_GROUPS = [
   {
@@ -51,6 +54,13 @@ const NAV_GROUPS = [
       { id: 'website-blog',     label: 'Blog',     icon: PenTool,      permission: 'create_blog' },
       { id: 'website-settings', label: 'Settings', icon: Settings,     permission: 'manage_website' },
       { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag,  permission: 'manage_shop' },
+      { id: 'support',          label: 'Support',  icon: Ticket,       permission: 'manage_tickets' },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { id: 'account', label: 'My Account', icon: UserCircle, permission: null },
     ],
   },
 ];
@@ -284,6 +294,8 @@ const DashboardContent = () => {
           {activeTab === 'website-blog' && <BlogManagement />}
           {activeTab === 'website-settings' && <WebsiteSettings />}
           {activeTab === 'website-shop' && hasPermission('manage_shop') && <ShopManagement />}
+          {activeTab === 'support' && hasPermission('manage_tickets') && <TicketManagement />}
+          {activeTab === 'account' && <AccountSettings />}
         </div>
       </main>
     </div>

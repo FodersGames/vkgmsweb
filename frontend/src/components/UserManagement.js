@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
-  Search, SlidersHorizontal,
+  Search, SlidersHorizontal, Trophy, Loader2, MessageCircle,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -60,6 +60,10 @@ const STATIC_GROUPS = [
     permissions: [{ id: 'manage_shop', label: 'Manage Shop' }]
   },
   {
+    label: 'Support', icon: MessageCircle, color: '#F59E0B',
+    permissions: [{ id: 'manage_tickets', label: 'Manage Support Tickets' }]
+  },
+  {
     label: 'Missions', icon: ClipboardList, color: '#A29BFE',
     permissions: [
       { id: 'create_missions', label: 'Post Missions' },
@@ -93,6 +97,11 @@ export const UserManagement = () => {
 
   const [search, setSearch] = useState('');
   const [onlyWithPerms, setOnlyWithPerms] = useState(false);
+  const [loyaltyUser, setLoyaltyUser] = useState(null);
+  const [loyaltyAmount, setLoyaltyAmount] = useState('');
+  const [loyaltyReason, setLoyaltyReason] = useState('');
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [loyaltyResult, setLoyaltyResult] = useState(null);
 
   const permissionGroups = buildPermissionGroups(projectsList);
   const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
@@ -183,6 +192,27 @@ export const UserManagement = () => {
         fetchUsers();
       },
     });
+  };
+
+  const handleLoyaltyAdjust = async (e) => {
+    e.preventDefault();
+    if (!loyaltyUser || !loyaltyAmount) return;
+    setLoyaltyLoading(true);
+    setLoyaltyResult(null);
+    try {
+      const r = await api.patch(`/api/admin/users/${loyaltyUser.id}/loyalty`, {
+        adjust_euros: parseFloat(loyaltyAmount),
+        reason: loyaltyReason,
+      });
+      setLoyaltyResult(r.data);
+      toast.success(`Loyalty adjusted → ${r.data.new_tier}`);
+      setLoyaltyAmount('');
+      setLoyaltyReason('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to adjust loyalty');
+    } finally {
+      setLoyaltyLoading(false);
+    }
   };
 
   const toggleEditPermission = (permId) => {
@@ -369,6 +399,13 @@ export const UserManagement = () => {
                             <Button
                               variant="secondary"
                               size="sm"
+                              icon={Trophy}
+                              onClick={() => { setLoyaltyUser(user); setLoyaltyResult(null); setLoyaltyAmount(''); setLoyaltyReason(''); }}
+                              title="Adjust loyalty"
+                            />
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               icon={Edit2}
                               onClick={() => setEditingUser({ ...user })}
                               data-testid={`edit-user-${user.username}`}
@@ -439,6 +476,54 @@ export const UserManagement = () => {
                         </div>
                       )}
                     </div>
+
+                    {loyaltyUser?.id === user.id && (
+                      <div className="mt-3 pt-3 border-t border-[#E8E3DB]">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-semibold text-[#F59E0B] tracking-widest uppercase flex items-center gap-1.5">
+                            <Trophy size={10} /> Loyalty Adjustment
+                          </p>
+                          <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-[#A8A29E] hover:text-[#1C1917]">✕ Close</button>
+                        </div>
+                        {loyaltyResult && (
+                          <div className="text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
+                            {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: €{(loyaltyResult.new_total_cents / 100).toFixed(2)}
+                          </div>
+                        )}
+                        <form onSubmit={handleLoyaltyAdjust} className="flex flex-wrap gap-2 items-end">
+                          <div>
+                            <label className="block text-[10px] text-[#A8A29E] mb-1">Amount (€) — use − for removal</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              required
+                              value={loyaltyAmount}
+                              onChange={e => setLoyaltyAmount(e.target.value)}
+                              placeholder="+10.00 or -5.00"
+                              className="w-32 px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1C1917]"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-32">
+                            <label className="block text-[10px] text-[#A8A29E] mb-1">Reason (optional)</label>
+                            <input
+                              type="text"
+                              value={loyaltyReason}
+                              onChange={e => setLoyaltyReason(e.target.value)}
+                              placeholder="e.g. compensation"
+                              className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1C1917]"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={loyaltyLoading || !loyaltyAmount}
+                            className="flex items-center gap-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-white px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
+                          >
+                            {loyaltyLoading ? <Loader2 size={11} className="animate-spin" /> : <Trophy size={11} />}
+                            Apply
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 );
               })}

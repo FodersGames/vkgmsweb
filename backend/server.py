@@ -316,6 +316,7 @@ ALL_PERMISSIONS = [
     "manage_chat",
     "manage_shop",
     "create_missions", "claim_missions", "manage_missions",
+    "manage_tickets",
 ]
 
 def is_valid_permission(p: str) -> bool:
@@ -435,6 +436,7 @@ class ShopProductCreateRequest(BaseModel):
     amount: str
     active: bool = True
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     featured: bool = False
 
 class ShopProductUpdateRequest(BaseModel):
@@ -449,6 +451,7 @@ class ShopProductUpdateRequest(BaseModel):
     amount: Optional[str] = None
     active: Optional[bool] = None
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     featured: Optional[bool] = None
 
 class DailyGiftConfigRequest(BaseModel):
@@ -523,6 +526,23 @@ class MissionCompleteRequest(BaseModel):
 class MissionReopenRequest(BaseModel):
     feedback: str = ""
     keep_assigned: bool = True
+
+class TicketCreateRequest(BaseModel):
+    subject: str
+    category: Literal["general", "technical", "billing", "account"] = "general"
+    message: str
+    email: str
+
+class TicketReplyRequest(BaseModel):
+    content: str
+
+class TicketStatusUpdateRequest(BaseModel):
+    status: Optional[Literal["open", "in_progress", "resolved", "closed"]] = None
+    priority: Optional[Literal["normal", "high", "urgent"]] = None
+
+class LoyaltyAdjustRequest(BaseModel):
+    adjust_euros: float
+    reason: str = ""
 
 class RegisterRequest(BaseModel):
     email: str
@@ -623,6 +643,28 @@ async def get_current_user(request: Request):
         "permissions": ALL_PERMISSIONS if is_super else user.get("permissions", []),
         "mustChangePassword": user.get("mustChangePassword", False),
     }
+
+async def get_optional_user(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    try:
+        payload = verify_token(auth_header[7:])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        if not user or user.get("isSuspended"):
+            return None
+        return {
+            "id": str(user["_id"]),
+            "email": user.get("email", ""),
+            "username": user.get("username", ""),
+            "role": user.get("role", "user"),
+            "is_super_admin": user.get("role") == "super_admin",
+        }
+    except Exception:
+        return None
 
 def require_permission(permission):
     async def check(user=Depends(get_current_user)):
@@ -998,6 +1040,46 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
     await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
     return {"success": True, "id": user_id, "permissions": req.permissions}
+
+@api_router.patch("/admin/users/{user_id}/loyalty")
+async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    adjust_cents = round(req.adjust_euros * 100)
+    if adjust_cents == 0:
+        raise HTTPException(status_code=400, detail="Adjustment cannot be zero")
+    user_email = target.get("email", "")
+    current = await db.user_points.find_one({"email": user_email})
+    current_total = current.get("total_spent_cents", 0) if current else 0
+    previous_tier = get_tier(current_total)
+    new_total = max(0, current_total + adjust_cents)
+    new_tier = get_tier(new_total)
+    await db.user_points.update_one(
+        {"email": user_email},
+        {"$set": {"total_spent_cents": new_total, "tier": new_tier, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    reason_str = f" (reason: {req.reason})" if req.reason else ""
+    await log_action("user_action",
+        f"Admin '{admin['username']}' adjusted loyalty for '{target.get('username', user_email)}': "
+        f"€{req.adjust_euros:+.2f}{reason_str} → {new_total}cts ({new_tier})",
+        user=admin["username"])
+    await _create_notification(
+        user_id=user_id,
+        message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by €{abs(req.adjust_euros):.2f}. Current tier: {new_tier.capitalize()}.",
+        notif_type="loyalty_adjustment",
+    )
+    return {
+        "success": True,
+        "previous_total_cents": current_total,
+        "new_total_cents": new_total,
+        "previous_tier": previous_tier,
+        "new_tier": new_tier,
+    }
 
 # ============== PROJECT-SCOPED: ITEMS ==============
 @api_router.post("/projects/{slug}/items/send")
@@ -1554,6 +1636,7 @@ async def create_shop_product(game_slug: str, req: ShopProductCreateRequest, use
         "amount": req.amount,
         "active": req.active,
         "category": req.category,
+        "subcategory": req.subcategory,
         "featured": req.featured,
         "created_at": datetime.now(timezone.utc),
         "created_by": user["username"],
@@ -1799,6 +1882,7 @@ async def stripe_webhook(request: Request):
             product_id = meta.get("product_id", "")
             game_slug_meta = meta.get("game_slug", "")
             user_email = meta.get("user_email", "")
+            product = None
             # Deliver item
             if uid and product_id:
                 try:
@@ -1826,6 +1910,19 @@ async def stripe_webhook(request: Request):
                     logger.info(f"Loyalty updated for {user_email}: +{amount_paid} cents")
                 except Exception as e:
                     logger.error(f"Loyalty update error: {e}")
+            # Notify user of successful purchase
+            if user_email:
+                try:
+                    u = await db.users.find_one({"email": user_email})
+                    if u:
+                        product_name = product.get("name", "item") if product else "item"
+                        await _create_notification(
+                            user_id=str(u["_id"]),
+                            message=f"✅ Purchase confirmed: {product_name} — €{amount_paid/100:.2f}. Your items will be delivered in-game at next login.",
+                            notif_type="purchase_success",
+                        )
+                except Exception as e:
+                    logger.error(f"Purchase notification error: {e}")
 
         elif checkout_type == "game_purchase":
             game_slug_meta = meta.get("game_slug", "")
@@ -1846,6 +1943,14 @@ async def stripe_webhook(request: Request):
                         upsert=True,
                     )
                     logger.info(f"Game purchase recorded: {user_email} → {game_slug_meta}")
+                    # Notify user
+                    u = await db.users.find_one({"email": user_email})
+                    if u:
+                        await _create_notification(
+                            user_id=str(u["_id"]),
+                            message=f"🎮 Game unlocked: {game_name} — €{amount_paid/100:.2f}. Sign in to start playing.",
+                            notif_type="game_purchase_success",
+                        )
                 except Exception as e:
                     logger.error(f"Game purchase record error: {e}")
 
@@ -1873,7 +1978,161 @@ async def stripe_webhook(request: Request):
                 except Exception as e:
                     logger.error(f"Legacy shop webhook error: {e}")
 
+    elif event["type"] == "checkout.session.expired":
+        session = event["data"]["object"]
+        meta = session.get("metadata", {})
+        user_email = meta.get("user_email", "")
+        checkout_type = meta.get("checkout_type", "")
+        subject = meta.get("game_name") if checkout_type == "game_purchase" else "your purchase"
+        if user_email:
+            try:
+                u = await db.users.find_one({"email": user_email})
+                if u:
+                    await _create_notification(
+                        user_id=str(u["_id"]),
+                        message=f"❌ Payment failed or expired for {subject}. Please try again from the shop.",
+                        notif_type="purchase_failed",
+                    )
+            except Exception as e:
+                logger.error(f"Failed purchase notification error: {e}")
+
     return {"received": True}
+
+# ============== SUPPORT TICKETS ==============
+
+@api_router.post("/tickets")
+@limiter.limit("5/hour")
+async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends(get_optional_user)):
+    subject = req.subject.strip()[:200]
+    message = req.message.strip()[:2000]
+    email = req.email.strip().lower()
+    if not subject or not message or not email:
+        raise HTTPException(status_code=400, detail="Subject, message and email are required")
+    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    ticket_number = "TKT-" + secrets.token_hex(3).upper()
+    while await db.support_tickets.find_one({"ticket_number": ticket_number}):
+        ticket_number = "TKT-" + secrets.token_hex(3).upper()
+    user_id_oid = ObjectId(user["id"]) if user else None
+    username = user.get("username", "Guest") if user else "Guest"
+    doc = {
+        "ticket_number": ticket_number,
+        "subject": subject,
+        "category": req.category,
+        "status": "open",
+        "priority": "normal",
+        "user_email": email,
+        "user_id": user_id_oid,
+        "username": username,
+        "messages": [{
+            "sender": "user",
+            "author_name": username,
+            "content": message,
+            "timestamp": datetime.now(timezone.utc),
+        }],
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    await db.support_tickets.insert_one(doc)
+    await log_action("support", f"New ticket {ticket_number}: '{subject}' from {email}")
+    return {"success": True, "ticket_number": ticket_number}
+
+@api_router.get("/tickets/mine")
+async def list_my_tickets(user=Depends(get_current_user)):
+    email = user.get("email", "").lower()
+    tickets = await db.support_tickets.find({"user_email": email}).sort("created_at", -1).to_list(50)
+    return {"tickets": [serialize_doc(t) for t in tickets]}
+
+@api_router.get("/tickets/{ticket_number}")
+async def get_ticket(ticket_number: str, user=Depends(get_current_user)):
+    t = await db.support_tickets.find_one({"ticket_number": ticket_number.upper()})
+    if not t:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    is_owner = t.get("user_email", "").lower() == user.get("email", "").lower()
+    has_perm = user.get("is_super_admin") or "manage_tickets" in user.get("permissions", [])
+    if not is_owner and not has_perm:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return {"ticket": serialize_doc(t)}
+
+@api_router.post("/tickets/{ticket_number}/reply")
+@limiter.limit("20/hour")
+async def reply_to_ticket(request: Request, ticket_number: str, req: TicketReplyRequest, user=Depends(get_current_user)):
+    content = req.content.strip()[:2000]
+    if not content:
+        raise HTTPException(status_code=400, detail="Reply cannot be empty")
+    t = await db.support_tickets.find_one({"ticket_number": ticket_number.upper()})
+    if not t:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    if t.get("user_email", "").lower() != user.get("email", "").lower():
+        raise HTTPException(status_code=403, detail="Not your ticket")
+    if t.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="Ticket is closed")
+    await db.support_tickets.update_one(
+        {"ticket_number": ticket_number.upper()},
+        {
+            "$push": {"messages": {"sender": "user", "author_name": user.get("username", "User"), "content": content, "timestamp": datetime.now(timezone.utc)}},
+            "$set": {"updated_at": datetime.now(timezone.utc), "status": "open"},
+        }
+    )
+    return {"success": True}
+
+@api_router.get("/admin/tickets")
+async def list_all_tickets(status: Optional[str] = None, priority: Optional[str] = None,
+                            page: int = 1, limit: int = 50,
+                            user=Depends(require_permission("manage_tickets"))):
+    q: dict = {}
+    if status:
+        q["status"] = status
+    if priority:
+        q["priority"] = priority
+    skip = (page - 1) * limit
+    total = await db.support_tickets.count_documents(q)
+    tickets = await db.support_tickets.find(q).sort("updated_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {
+        "tickets": [serialize_doc(t) for t in tickets],
+        "total": total,
+        "page": page,
+        "pages": math.ceil(total / limit) if limit else 1,
+    }
+
+@api_router.patch("/admin/tickets/{ticket_number}")
+async def update_ticket_status(ticket_number: str, req: TicketStatusUpdateRequest, user=Depends(require_permission("manage_tickets"))):
+    t = await db.support_tickets.find_one({"ticket_number": ticket_number.upper()})
+    if not t:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    updates: dict = {"updated_at": datetime.now(timezone.utc)}
+    if req.status is not None:
+        updates["status"] = req.status
+    if req.priority is not None:
+        updates["priority"] = req.priority
+    await db.support_tickets.update_one({"ticket_number": ticket_number.upper()}, {"$set": updates})
+    return {"success": True}
+
+@api_router.post("/admin/tickets/{ticket_number}/reply")
+async def admin_reply_to_ticket(ticket_number: str, req: TicketReplyRequest, user=Depends(require_permission("manage_tickets"))):
+    content = req.content.strip()[:2000]
+    if not content:
+        raise HTTPException(status_code=400, detail="Reply cannot be empty")
+    t = await db.support_tickets.find_one({"ticket_number": ticket_number.upper()})
+    if not t:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    await db.support_tickets.update_one(
+        {"ticket_number": ticket_number.upper()},
+        {
+            "$push": {"messages": {"sender": "support", "author_name": user.get("username", "Support"), "content": content, "timestamp": datetime.now(timezone.utc)}},
+            "$set": {"updated_at": datetime.now(timezone.utc), "status": "in_progress"},
+        }
+    )
+    user_account = await db.users.find_one({"email": t.get("user_email", "")})
+    if user_account:
+        await _create_notification(
+            user_id=str(user_account["_id"]),
+            message=f"💬 Support replied to your ticket [{ticket_number.upper()}]: \"{content[:80]}{'...' if len(content) > 80 else ''}\"",
+            notif_type="ticket_reply",
+            link="/profile",
+        )
+    await log_action("support", f"Admin '{user['username']}' replied to ticket {ticket_number.upper()}")
+    return {"success": True}
 
 # ============== MISSIONS ==============
 @api_router.get("/projects/{slug}/missions")
@@ -2127,6 +2386,19 @@ def get_tier(total_cents: int) -> str:
             return tier
     return "bronze"
 
+async def _create_notification(user_id: str, message: str, notif_type: str = "info", link: str = ""):
+    try:
+        await db.notifications.insert_one({
+            "userId": ObjectId(user_id),
+            "message": message,
+            "type": notif_type,
+            "link": link,
+            "read": False,
+            "createdAt": datetime.now(timezone.utc),
+        })
+    except Exception as e:
+        logger.error(f"_create_notification error: {e}")
+
 async def _update_loyalty(email: str, amount_cents: int):
     """Atomically increment total_spent and recalculate tier."""
     result = await db.user_points.find_one_and_update(
@@ -2210,6 +2482,9 @@ async def startup_event():
         await db.missions.create_index([("project_slug", 1), ("status", 1)])
         await db.missions.create_index("created_at")
         await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
+        await db.support_tickets.create_index("ticket_number", unique=True)
+        await db.support_tickets.create_index([("user_email", 1), ("created_at", -1)])
+        await db.support_tickets.create_index([("status", 1), ("updated_at", -1)])
         await db.game_purchases.create_index([("email", 1), ("game_slug", 1)], unique=True)
         await db.game_purchases.create_index("purchased_at")
         await db.user_points.create_index("email", unique=True)
