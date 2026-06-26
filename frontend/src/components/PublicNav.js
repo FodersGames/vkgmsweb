@@ -62,12 +62,12 @@ export const PublicNav = ({ onAbout }) => {
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-5">
-          <a
-            href="mailto:support@vakargames.com"
+          <Link
+            to="/contact"
             className="text-sm font-medium text-[#78716C] hover:text-[#1C1917] transition-colors"
           >
             Contact
-          </a>
+          </Link>
 
           {user ? (
             <div className="flex items-center gap-3">
@@ -132,13 +132,13 @@ export const PublicNav = ({ onAbout }) => {
               {label}
             </Link>
           ))}
-          <a
-            href="mailto:support@vakargames.com"
+          <Link
+            to="/contact"
             onClick={() => setOpen(false)}
             className="block text-sm text-[#78716C] hover:text-[#1C1917] py-2.5 transition-colors"
           >
             Contact
-          </a>
+          </Link>
 
           {user ? (
             <>

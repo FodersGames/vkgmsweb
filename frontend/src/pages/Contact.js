@@ -1,0 +1,228 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { PublicNav } from '../components/PublicNav';
+import { SiteFooter } from '../components/SiteFooter';
+import { Send, MessageCircle, Mail, Ticket, CheckCircle, Loader2 } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const CATEGORIES = [
+  { value: 'general', label: 'General question' },
+  { value: 'technical', label: 'Technical issue' },
+  { value: 'billing', label: 'Billing / Purchase' },
+  { value: 'account', label: 'Account' },
+];
+
+const Contact = () => {
+  const { user, token } = useAuth();
+  const [form, setForm] = useState({ subject: '', category: 'general', message: '', email: '' });
+  const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => { document.title = 'Contact — Vakar Games'; }, []);
+
+  useEffect(() => {
+    if (user?.email) setForm(f => ({ ...f, email: user.email }));
+  }, [user]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    setError('');
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const r = await axios.post(`${API_URL}/api/tickets`, form, { headers });
+      setSuccess(r.data.ticket_number);
+      setForm(f => ({ ...f, subject: '', message: '' }));
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to send. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#F9F7F4] min-h-screen flex flex-col">
+      <PublicNav />
+
+      <div className="flex-1 pt-16">
+        {/* Header */}
+        <div className="bg-white border-b border-[#E8E3DB] py-14 px-6">
+          <div className="max-w-6xl mx-auto">
+            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Support</p>
+            <h1
+              className="text-5xl sm:text-7xl font-black text-[#1C1917] leading-none"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              CONTACT &amp; SUPPORT
+            </h1>
+            <p className="text-[#78716C] mt-4 max-w-md text-sm leading-relaxed">
+              We're here to help. Fill out the form below and we'll get back to you as soon as possible.
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Form */}
+          <div className="lg:col-span-2">
+            {success ? (
+              <div className="bg-white border border-[#E8E3DB] p-10 text-center">
+                <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
+                <h2
+                  className="text-2xl font-black text-[#1C1917] mb-2"
+                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                >
+                  TICKET SUBMITTED!
+                </h2>
+                <p className="text-sm text-[#78716C] mb-1">
+                  Your reference: <strong className="text-[#1C1917]">{success}</strong>
+                </p>
+                <p className="text-xs text-[#A8A29E] mt-3 mb-6">
+                  We'll reply by email as soon as possible.
+                </p>
+                {token && (
+                  <Link
+                    to="/profile"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#4ECDC4] hover:underline"
+                  >
+                    <Ticket size={14} /> View my tickets
+                  </Link>
+                )}
+                <button
+                  onClick={() => setSuccess('')}
+                  className="block mx-auto mt-3 text-xs text-[#A8A29E] hover:text-[#1C1917] transition-colors"
+                >
+                  Send another message
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white border border-[#E8E3DB] p-8">
+                <h2 className="text-lg font-black text-[#1C1917] mb-6">Send us a message</h2>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Your email</label>
+                    <input
+                      type="email"
+                      required
+                      value={form.email}
+                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                      readOnly={!!user}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] disabled:bg-[#F9F7F4]"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Category</label>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                    >
+                      {CATEGORIES.map(c => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Subject</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={200}
+                      value={form.subject}
+                      onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                      placeholder="Brief description of your issue"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Message</label>
+                    <textarea
+                      required
+                      maxLength={2000}
+                      rows={6}
+                      value={form.message}
+                      onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] resize-none"
+                      placeholder="Describe your issue in detail…"
+                    />
+                  </div>
+                  {error && <p className="text-xs text-red-500">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={sending}
+                    className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {sending ? 'Sending…' : 'Send message'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar info */}
+          <div className="space-y-4">
+            <div className="bg-white border border-[#E8E3DB] p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                  <Mail size={14} className="text-[#4ECDC4]" />
+                </div>
+                <h3 className="text-sm font-bold text-[#1C1917]">Email</h3>
+              </div>
+              <a
+                href="mailto:support@vakargames.com"
+                className="text-sm text-[#78716C] hover:text-[#4ECDC4] transition-colors"
+              >
+                support@vakargames.com
+              </a>
+            </div>
+
+            <div className="bg-white border border-[#E8E3DB] p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                  <MessageCircle size={14} className="text-[#4ECDC4]" />
+                </div>
+                <h3 className="text-sm font-bold text-[#1C1917]">Chat support</h3>
+              </div>
+              <p className="text-xs text-[#78716C] leading-relaxed">
+                The chat bubble at the bottom right of every page lets you open a ticket or track your existing requests instantly.
+              </p>
+            </div>
+
+            {token && (
+              <div className="bg-white border border-[#E8E3DB] p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                    <Ticket size={14} className="text-[#4ECDC4]" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#1C1917]">My tickets</h3>
+                </div>
+                <Link
+                  to="/profile"
+                  className="text-sm font-semibold text-[#4ECDC4] hover:underline"
+                >
+                  View ticket history →
+                </Link>
+              </div>
+            )}
+
+            <div className="bg-white border border-[#E8E3DB] p-5">
+              <p className="text-xs font-semibold text-[#1C1917] mb-1.5">Response time</p>
+              <p className="text-xs text-[#78716C] leading-relaxed">
+                We typically respond within <strong>24–48 hours</strong> during business days.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SiteFooter />
+    </div>
+  );
+};
+
+export default Contact;

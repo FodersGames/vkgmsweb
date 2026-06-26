@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
-  Search, SlidersHorizontal, Trophy, Loader2, MessageCircle,
+  Search, SlidersHorizontal, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -102,6 +102,7 @@ export const UserManagement = () => {
   const [loyaltyReason, setLoyaltyReason] = useState('');
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const [loyaltyResult, setLoyaltyResult] = useState(null);
+  const [copiedUserId, setCopiedUserId] = useState(null);
 
   const permissionGroups = buildPermissionGroups(projectsList);
   const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
@@ -212,6 +213,17 @@ export const UserManagement = () => {
       toast.error(err.response?.data?.detail || 'Failed to adjust loyalty');
     } finally {
       setLoyaltyLoading(false);
+    }
+  };
+
+  const copyUserData = async (userId) => {
+    try {
+      const r = await api.get(`/api/admin/users/${userId}/export`);
+      await navigator.clipboard.writeText(JSON.stringify(r.data, null, 2));
+      setCopiedUserId(userId);
+      setTimeout(() => setCopiedUserId(null), 2500);
+    } catch {
+      toast.error('Failed to copy user data');
     }
   };
 
@@ -396,6 +408,13 @@ export const UserManagement = () => {
 
                         {!isEditing && !isSuperAdmin && !isSelf && (
                           <div className="flex gap-1.5 shrink-0">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={copiedUserId === user.id ? ClipboardCheck : Clipboard}
+                              onClick={() => copyUserData(user.id)}
+                              title="Copy user data (GDPR export)"
+                            />
                             <Button
                               variant="secondary"
                               size="sm"
