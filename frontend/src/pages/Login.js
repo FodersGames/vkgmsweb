@@ -273,7 +273,7 @@ export const Login = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                        First name
+                        First name <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
                       </label>
                       <InputField
                         icon={User}
@@ -286,7 +286,7 @@ export const Login = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                        Last name
+                        Last name <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
                       </label>
                       <InputField
                         icon={User}
@@ -300,12 +300,12 @@ export const Login = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                      Username
+                      Username <span className="text-[#C9C3BB] normal-case font-normal">(optional — auto-generated from email)</span>
                     </label>
                     <InputField
                       icon={User}
                       type="text"
-                      placeholder="jane_doe (letters, numbers, _)"
+                      placeholder="jane_doe"
                       value={reg.username}
                       onChange={e => setReg(r => ({ ...r, username: e.target.value }))}
                       autoComplete="username"

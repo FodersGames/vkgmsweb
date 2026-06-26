@@ -209,7 +209,7 @@ const GamesPage = () => {
                             }
                             {purchasing === game.slug
                               ? 'Processing…'
-                              : `Buy — €${(game.price_cents / 100).toFixed(2)}`
+                              : `Buy — $${(game.price_cents / 100).toFixed(2)}`
                             }
                           </button>
                         )}

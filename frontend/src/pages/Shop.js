@@ -66,7 +66,7 @@ const LoyaltyBar = ({ loyalty }) => {
           >?</button>
         </div>
         <span className="text-xs text-[#A8A29E]">
-          €{(total_spent_cents / 100).toFixed(2)} spent
+          ${(total_spent_cents / 100).toFixed(2)} spent
         </span>
       </div>
 
@@ -104,14 +104,14 @@ const LoyaltyBar = ({ loyalty }) => {
 
       {next_tier && next_threshold_cents && (
         <p className="text-[10px] text-[#A8A29E] mt-2 text-center">
-          €{((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to reach {TIERS[next_tier]?.label}
+          ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to reach {TIERS[next_tier]?.label}
         </p>
       )}
 
       {showInfo && (
         <div className="mt-3 p-4 bg-[#F9F7F4] border border-[#E8E3DB] text-xs text-[#78716C] space-y-3">
           <p className="font-bold text-[#1C1917]">How the loyalty program works</p>
-          <p>Every euro you spend in the shop adds to your loyalty total. The more you spend, the higher your tier — and the bigger your discount on every future purchase.</p>
+          <p>Every dollar you spend in the shop adds to your loyalty total. The more you spend, the higher your tier — and the bigger your discount on every future purchase.</p>
           <div className="grid grid-cols-2 gap-1.5">
             {TIER_ORDER.map(t => {
               const tc = TIERS[t];
@@ -125,7 +125,7 @@ const LoyaltyBar = ({ loyalty }) => {
                 >
                   <TIcon size={10} style={{ color: tc.color }} />
                   <span className="font-semibold" style={{ color: tc.color }}>{tc.label}</span>
-                  <span className="text-[#A8A29E] text-[10px] ml-auto">€{tc.min / 100}+{tc.discount > 0 ? ` · −${tc.discount}%` : ''}</span>
+                  <span className="text-[#A8A29E] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` · −${tc.discount}%` : ''}</span>
                 </div>
               );
             })}
@@ -524,9 +524,9 @@ const Shop = () => {
                 </div>
                 <div className="shrink-0 text-right">
                   {discount > 0 && (
-                    <p className="text-xs text-[#A8A29E] line-through">€{(buying.price / 100).toFixed(2)}</p>
+                    <p className="text-xs text-[#A8A29E] line-through">${(buying.price / 100).toFixed(2)}</p>
                   )}
-                  <p className="text-lg font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+                  <p className="text-lg font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
                 </div>
               </div>
 
@@ -535,7 +535,7 @@ const Shop = () => {
                 <div className="flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
                   <GradeBadge tier={loyalty.tier} />
                   <p className="text-xs text-[#4ECDC4] font-semibold">
-                    {discount}% loyalty discount applied — you save €{((buying.price - finalPrice) / 100).toFixed(2)}
+                    {discount}% loyalty discount applied — you save ${((buying.price - finalPrice) / 100).toFixed(2)}
                   </p>
                 </div>
               )}
@@ -565,7 +565,7 @@ const Shop = () => {
               >
                 {checkoutLoading
                   ? <><Loader2 size={15} className="animate-spin" />Redirecting…</>
-                  : `Pay €${(finalPrice / 100).toFixed(2)} with Stripe`
+                  : `Pay $${(finalPrice / 100).toFixed(2)} with Stripe`
                 }
               </button>
 
@@ -600,8 +600,8 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         {product.description && <p className="text-xs text-[#78716C] mb-3 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between">
           <div>
-            {discount > 0 && <p className="text-xs text-[#A8A29E] line-through">€{(product.price / 100).toFixed(2)}</p>}
-            <p className="text-lg font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+            {discount > 0 && <p className="text-xs text-[#A8A29E] line-through">${(product.price / 100).toFixed(2)}</p>}
+            <p className="text-lg font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
           <div className="flex items-center gap-1.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-bold px-3 py-1.5 transition-colors">
             <ShoppingCart size={11} />Buy
@@ -638,8 +638,8 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         {product.description && <p className="text-[11px] text-[#78716C] mb-2 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between mt-auto">
           <div>
-            {discount > 0 && <p className="text-[10px] text-[#A8A29E] line-through">€{(product.price / 100).toFixed(2)}</p>}
-            <p className="text-sm font-black text-[#1C1917]">€{(finalPrice / 100).toFixed(2)}</p>
+            {discount > 0 && <p className="text-[10px] text-[#A8A29E] line-through">${(product.price / 100).toFixed(2)}</p>}
+            <p className="text-sm font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
           <span className="text-[10px] font-bold text-white bg-[#1C1917] px-2 py-1">Get</span>
         </div>

@@ -101,6 +101,15 @@ const Contact = () => {
             ) : (
               <div className="bg-white border border-[#E8E3DB] p-8">
                 <h2 className="text-lg font-black text-[#1C1917] mb-6">Send us a message</h2>
+                {!token ? (
+                  <div className="text-center py-10 space-y-4">
+                    <p className="text-sm font-semibold text-[#1C1917]">Account required</p>
+                    <p className="text-xs text-[#78716C] max-w-xs mx-auto leading-relaxed">You need to be signed in to open a support ticket. This helps us track your request and reply faster.</p>
+                    <a href="/login" className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-6 py-2.5 text-sm font-semibold transition-colors">
+                      Sign in or create account
+                    </a>
+                  </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
                     <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Your email</label>
@@ -108,10 +117,8 @@ const Contact = () => {
                       type="email"
                       required
                       value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      readOnly={!!user}
-                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] disabled:bg-[#F9F7F4]"
-                      placeholder="your@email.com"
+                      readOnly
+                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] bg-[#F9F7F4] text-[#78716C]"
                     />
                   </div>
                   <div>
@@ -160,6 +167,7 @@ const Contact = () => {
                     {sending ? 'Sending…' : 'Send message'}
                   </button>
                 </form>
+                )}
               </div>
             )}
           </div>

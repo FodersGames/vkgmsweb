@@ -103,6 +103,10 @@ export const UserManagement = () => {
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const [loyaltyResult, setLoyaltyResult] = useState(null);
   const [copiedUserId, setCopiedUserId] = useState(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: '', password: '', firstName: '', lastName: '', username: '', role: 'user', permissions: [] });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createResult, setCreateResult] = useState(null);
 
   const permissionGroups = buildPermissionGroups(projectsList);
   const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
@@ -202,7 +206,7 @@ export const UserManagement = () => {
     setLoyaltyResult(null);
     try {
       const r = await api.patch(`/api/admin/users/${loyaltyUser.id}/loyalty`, {
-        adjust_euros: parseFloat(loyaltyAmount),
+        adjust_dollars: parseFloat(loyaltyAmount),
         reason: loyaltyReason,
       });
       setLoyaltyResult(r.data);
@@ -225,6 +229,31 @@ export const UserManagement = () => {
     } catch {
       toast.error('Failed to copy user data');
     }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreateLoading(true);
+    setCreateResult(null);
+    try {
+      const r = await api.post('/api/admin/users/create', createForm);
+      setCreateResult({ success: true, ...r.data });
+      setCreateForm({ email: '', password: '', firstName: '', lastName: '', username: '', role: 'user', permissions: [] });
+      fetchUsers();
+    } catch (err) {
+      setCreateResult({ success: false, error: err.response?.data?.detail || 'Failed to create user' });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const toggleCreatePermission = (permId) => {
+    setCreateForm(f => ({
+      ...f,
+      permissions: f.permissions.includes(permId)
+        ? f.permissions.filter(p => p !== permId)
+        : [...f.permissions, permId],
+    }));
   };
 
   const toggleEditPermission = (permId) => {
@@ -305,15 +334,112 @@ export const UserManagement = () => {
       <div className="max-w-6xl">
         <Card className="overflow-hidden">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
-                <Users size={16} style={{ color: '#F2994A' }} />
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+                  <Users size={16} style={{ color: '#F2994A' }} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#1C1917]">User Management</h3>
+                  <p className="text-xs text-[#A8A29E]">Manage accounts, permissions, and suspension</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold text-[#1C1917]">User Management</h3>
-                <p className="text-xs text-[#A8A29E]">Manage accounts, permissions, and suspension</p>
-              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setShowCreateUser(v => !v); setCreateResult(null); }}
+              >
+                {showCreateUser ? 'Cancel' : '+ Add user'}
+              </Button>
             </div>
+
+            {/* Create user panel */}
+            {showCreateUser && (
+              <div className="mt-4 p-4 bg-[#F9F7F4] border border-[#E8E3DB]">
+                <p className="text-xs font-bold text-[#1C1917] mb-3">Create user account</p>
+                {createResult?.success ? (
+                  <div className="text-xs space-y-1">
+                    <p className="font-semibold text-[#22C55E]">✓ User created — @{createResult.username}</p>
+                    {createResult.generated_password && (
+                      <p className="text-[#78716C]">Generated password: <strong className="text-[#1C1917] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
+                    )}
+                    <button onClick={() => setCreateResult(null)} className="text-[#4ECDC4] hover:underline mt-1">Create another</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreateUser} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Email *</label>
+                        <input type="email" required value={createForm.email}
+                          onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          placeholder="user@example.com" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Password (leave blank = auto-generate)</label>
+                        <input type="text" value={createForm.password}
+                          onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] font-mono"
+                          placeholder="auto-generated" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">First name</label>
+                        <input type="text" maxLength={50} value={createForm.firstName}
+                          onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          placeholder="Optional" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Last name</label>
+                        <input type="text" maxLength={50} value={createForm.lastName}
+                          onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          placeholder="Optional" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Username (leave blank = auto)</label>
+                        <input type="text" maxLength={32} value={createForm.username}
+                          onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          placeholder="auto-generated" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Role</label>
+                        <select value={createForm.role}
+                          onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]">
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                    </div>
+                    {/* Permissions */}
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[#A8A29E] mb-2">Permissions</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {permissionGroups.flatMap(g => g.permissions).map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => toggleCreatePermission(p.id)}
+                            className={`text-[10px] px-2 py-0.5 border transition-colors ${
+                              createForm.permissions.includes(p.id)
+                                ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/40 text-[#4ECDC4]'
+                                : 'bg-white border-[#E8E3DB] text-[#A8A29E] hover:border-[#C9C3BB]'
+                            }`}>
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {createResult?.error && <p className="text-xs text-red-500">{createResult.error}</p>}
+                    <Button type="submit" size="sm" disabled={createLoading}>
+                      {createLoading ? 'Creating…' : 'Create account'}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           </CardHeader>
 
           <CardBody>
@@ -506,12 +632,12 @@ export const UserManagement = () => {
                         </div>
                         {loyaltyResult && (
                           <div className="text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
-                            {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: €{(loyaltyResult.new_total_cents / 100).toFixed(2)}
+                            {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: ${(loyaltyResult.new_total_cents / 100).toFixed(2)}
                           </div>
                         )}
                         <form onSubmit={handleLoyaltyAdjust} className="flex flex-wrap gap-2 items-end">
                           <div>
-                            <label className="block text-[10px] text-[#A8A29E] mb-1">Amount (€) — use − for removal</label>
+                            <label className="block text-[10px] text-[#A8A29E] mb-1">Amount ($) — use − for removal</label>
                             <input
                               type="number"
                               step="0.01"

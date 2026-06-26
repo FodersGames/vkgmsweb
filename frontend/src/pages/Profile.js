@@ -83,8 +83,8 @@ const LoyaltyWidget = ({ loyalty }) => {
 
       <div className="mb-4">
         <div className="flex justify-between text-[10px] text-[#A8A29E] mb-1.5">
-          <span>€{(total_spent_cents / 100).toFixed(2)} spent</span>
-          {next_threshold_cents && <span>Next: {TIERS[next_tier]?.label} at €{(next_threshold_cents / 100).toFixed(0)}</span>}
+          <span>${(total_spent_cents / 100).toFixed(2)} spent</span>
+          {next_threshold_cents && <span>Next: {TIERS[next_tier]?.label} at ${(next_threshold_cents / 100).toFixed(0)}</span>}
         </div>
         <div className="relative h-2.5 bg-[#F0EDE8] rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progressPct}%`, backgroundColor: cfg.color }} />
@@ -122,7 +122,7 @@ const LoyaltyWidget = ({ loyalty }) => {
       )}
       {!cfg.discount && next_tier && (
         <p className="text-xs text-[#A8A29E] mt-4 text-center">
-          Spend €{((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to unlock {TIERS[next_tier]?.discount}% off with {TIERS[next_tier]?.label}
+          Spend ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to unlock {TIERS[next_tier]?.discount}% off with {TIERS[next_tier]?.label}
         </p>
       )}
     </div>
