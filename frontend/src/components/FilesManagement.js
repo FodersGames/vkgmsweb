@@ -86,8 +86,10 @@ export const FilesManagement = () => {
   const [deleting,    setDeleting]    = useState(null);
 
   // Copy ID / Group ID
-  const [copiedId,      setCopiedId]      = useState('');
-  const [copiedGroupId, setCopiedGroupId] = useState('');
+  const [copiedId,        setCopiedId]        = useState('');
+  const [copiedGroupId,   setCopiedGroupId]   = useState('');
+  const [deletingGroupId, setDeletingGroupId] = useState(null);
+  const [confirmGroupDel, setConfirmGroupDel] = useState(null);
 
   // Search + pagination
   const [search, setSearch] = useState('');
@@ -387,6 +389,19 @@ export const FilesManagement = () => {
       alert(e.response?.data?.detail || 'Delete failed.');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const deleteGroup = async (group) => {
+    setDeletingGroupId(group.group_id);
+    try {
+      await axios.delete(`${API_URL}/api/admin/projects/${slug}/files/group/${group.group_id}`, { headers });
+      setConfirmGroupDel(null);
+      load();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Delete group failed.');
+    } finally {
+      setDeletingGroupId(null);
     }
   };
 
@@ -921,6 +936,34 @@ export const FilesManagement = () => {
         </div>
       )}
 
+      {/* Delete group confirm */}
+      {confirmGroupDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white border border-[#E8E3DB] p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={18} className="text-red-500 shrink-0" />
+              <h3 className="text-sm font-bold text-[#1C1917]">Supprimer le groupe ?</h3>
+            </div>
+            <p className="text-xs text-[#78716C]">
+              Le groupe <strong className="text-[#1C1917]">{confirmGroupDel.group_name || confirmGroupDel.group_id}</strong> et ses <strong className="text-[#1C1917]">{confirmGroupDel.files.length} fichier{confirmGroupDel.files.length > 1 ? 's' : ''}</strong> seront supprimés définitivement du serveur.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteGroup(confirmGroupDel)}
+                disabled={deletingGroupId === confirmGroupDel.group_id}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+              >
+                {deletingGroupId === confirmGroupDel.group_id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Supprimer le groupe
+              </button>
+              <button onClick={() => setConfirmGroupDel(null)} className="text-sm text-[#78716C] px-4 py-2.5 border border-[#E8E3DB] transition-colors">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -977,15 +1020,23 @@ export const FilesManagement = () => {
                       </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setShared(s => ({ ...s, file_type: 'text_engine', group_id: group.group_id, group_name: group.group_name }));
-                      setShowUpload(true);
-                    }}
-                    className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-2.5 py-1.5 hover:bg-[#4ECDC4]/10 transition-colors shrink-0"
-                  >
-                    <Plus size={10} /> Ajouter fichiers
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => {
+                        setShared(s => ({ ...s, file_type: 'text_engine', group_id: group.group_id, group_name: group.group_name }));
+                        setShowUpload(true);
+                      }}
+                      className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-2.5 py-1.5 hover:bg-[#4ECDC4]/10 transition-colors"
+                    >
+                      <Plus size={10} /> Ajouter
+                    </button>
+                    <button
+                      onClick={() => setConfirmGroupDel(group)}
+                      className="flex items-center gap-1 text-[10px] font-semibold text-red-400 border border-red-200 px-2.5 py-1.5 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={10} /> Supprimer
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {group.files.map(f => (
