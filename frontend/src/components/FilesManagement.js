@@ -5,7 +5,7 @@ import { useProject } from '../context/ProjectContext';
 import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
-  HardDrive, Star, X,
+  HardDrive, Star, X, GitBranch, ChevronDown, Plus,
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -37,7 +37,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const emptyUpload = { name: '', version: '', platform: 'all', file_type: 'build', description: '' };
+const emptyUpload = { name: '', version: '', platform: 'all', file_type: 'build', description: '', version_tag: 'default' };
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -61,22 +61,40 @@ export const FilesManagement = () => {
   const [editingId,   setEditingId]   = useState(null);
   const [editForm,    setEditForm]    = useState({});
   const [editSaving,  setEditSaving]  = useState(false);
-  const [replacing,   setReplacing]   = useState(null); // file id being replaced
+  const [replacing,   setReplacing]   = useState(null);
   const [replaceFile, setReplaceFile] = useState(null);
   const [replaceSaving, setReplaceSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting,    setDeleting]    = useState(null);
 
+  // Version management
+  const [versions,          setVersions]          = useState(['default']);
+  const [activeVersionTag,  setActiveVersionTag]  = useState('all');
+  const [versionDropOpen,   setVersionDropOpen]   = useState(false);
+  const [showCreateVersion, setShowCreateVersion] = useState(false);
+  const [newVersionTag,     setNewVersionTag]     = useState('');
+  const [creatingVersion,   setCreatingVersion]   = useState(false);
+  const [createVersionErr,  setCreateVersionErr]  = useState('');
+
   const fileInputRef    = useRef(null);
   const replaceInputRef = useRef(null);
   const dropRef         = useRef(null);
+
+  const loadVersions = useCallback(async () => {
+    if (!slug) return;
+    try {
+      const r = await axios.get(`${API_URL}/api/admin/projects/${slug}/versions`, { headers });
+      setVersions(r.data.versions || ['default']);
+    } catch {}
+  }, [slug, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     if (!slug) return;
     setLoading(true);
     try {
+      const params = activeVersionTag !== 'all' ? { version_tag: activeVersionTag } : {};
       const [filesRes, keyRes] = await Promise.all([
-        axios.get(`${API_URL}/api/admin/projects/${slug}/files`, { headers }),
+        axios.get(`${API_URL}/api/admin/projects/${slug}/files`, { headers, params }),
         axios.get(`${API_URL}/api/admin/projects/${slug}/files-api-key`, { headers }),
       ]);
       setFiles(filesRes.data.files || []);
@@ -84,9 +102,9 @@ export const FilesManagement = () => {
     } catch { /* silent */ } finally {
       setLoading(false);
     }
-  }, [slug, token]);
+  }, [slug, token, activeVersionTag]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); loadVersions(); }, [load, loadVersions]);
 
   // ── API key ───────────────────────────────────────────────────────────────
 
@@ -117,6 +135,25 @@ export const FilesManagement = () => {
     if (f) { setSelectedFile(f); setForm(prev => ({ ...prev, name: prev.name || f.name.replace(/\.[^/.]+$/, '') })); }
   };
 
+  const createVersion = async () => {
+    const tag = newVersionTag.trim();
+    if (!tag) { setCreateVersionErr('Version name is required.'); return; }
+    if (!/^[a-zA-Z0-9._-]+$/.test(tag)) { setCreateVersionErr('Only letters, numbers, dots, dashes and underscores.'); return; }
+    setCreatingVersion(true);
+    setCreateVersionErr('');
+    try {
+      await axios.post(`${API_URL}/api/admin/projects/${slug}/versions`, { new_tag: tag }, { headers });
+      setShowCreateVersion(false);
+      setNewVersionTag('');
+      await loadVersions();
+      setActiveVersionTag(tag);
+    } catch (e) {
+      setCreateVersionErr(e.response?.data?.detail || 'Failed to create version.');
+    } finally {
+      setCreatingVersion(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) { setUploadErr('Please select a file.'); return; }
     setUploadErr('');
@@ -128,6 +165,7 @@ export const FilesManagement = () => {
     fd.append('platform', form.platform);
     fd.append('file_type', form.file_type);
     fd.append('description', form.description.trim());
+    fd.append('version_tag', form.version_tag || 'default');
     try {
       await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' },
@@ -235,22 +273,87 @@ export const FilesManagement = () => {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-black text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em' }}>
             GAME FILES — {selectedProject?.name?.toUpperCase()}
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            {files.length} file{files.length !== 1 ? 's' : ''} · Game client downloads via stable ID
+            {files.length} file{files.length !== 1 ? 's' : ''} · stable ID per file
           </p>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => { setShowCreateVersion(v => !v); setCreateVersionErr(''); setNewVersionTag(''); }}
+            className="flex items-center gap-1.5 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#78716C] hover:text-[#1C1917] text-xs font-semibold px-3 py-2.5 transition-colors"
+          >
+            <GitBranch size={12} /> New version
+          </button>
+          <button
+            onClick={() => { setShowUpload(v => !v); setUploadErr(''); setSelectedFile(null); setForm({ ...emptyUpload, version_tag: activeVersionTag !== 'all' ? activeVersionTag : 'default' }); }}
+            className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
+          >
+            <Upload size={13} /> Upload file
+          </button>
+        </div>
+      </div>
+
+      {/* Version filter bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.1em] uppercase">Version:</span>
+        {['all', ...versions].map(tag => (
+          <button
+            key={tag}
+            onClick={() => setActiveVersionTag(tag)}
+            className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
+              activeVersionTag === tag
+                ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+            }`}
+          >
+            {tag}
+          </button>
+        ))}
         <button
-          onClick={() => { setShowUpload(v => !v); setUploadErr(''); setSelectedFile(null); setForm(emptyUpload); }}
-          className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
+          onClick={() => setVersionDropOpen(v => !v)}
+          className="flex items-center gap-1 text-[10px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors"
         >
-          <Upload size={13} /> Upload file
+          <Plus size={10} /> add
         </button>
       </div>
+
+      {/* Create version panel */}
+      {(showCreateVersion || versionDropOpen) && (
+        <div className="bg-white border border-[#E8E3DB] p-4 space-y-3">
+          <h3 className="text-sm font-bold text-[#1C1917] flex items-center gap-2">
+            <GitBranch size={14} className="text-[#4ECDC4]" /> Create a new version
+          </h3>
+          <p className="text-xs text-[#78716C]">
+            Clones all files marked <strong>is_latest</strong> into a new version tag. Files on disk are copied — existing versions are never touched.
+          </p>
+          <div className="flex gap-2 items-start">
+            <input
+              value={newVersionTag}
+              onChange={e => setNewVersionTag(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && createVersion()}
+              placeholder="e.g. v1.1, v2.0-beta"
+              className="flex-1 px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+            />
+            <button
+              onClick={createVersion}
+              disabled={creatingVersion || !newVersionTag.trim()}
+              className="flex items-center gap-1.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              {creatingVersion ? <Loader2 size={12} className="animate-spin" /> : <GitBranch size={12} />}
+              Create
+            </button>
+            <button onClick={() => { setShowCreateVersion(false); setVersionDropOpen(false); }} className="text-xs text-[#78716C] px-3 py-2.5 border border-[#E8E3DB] transition-colors">
+              Cancel
+            </button>
+          </div>
+          {createVersionErr && <p className="text-xs text-red-500">{createVersionErr}</p>}
+        </div>
+      )}
 
       {/* API Key section */}
       <div className="bg-white border border-[#E8E3DB] p-4 space-y-3">
@@ -363,6 +466,21 @@ export const FilesManagement = () => {
               >
                 {FILE_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Version tag</label>
+              <div className="relative">
+                <select
+                  value={form.version_tag}
+                  onChange={e => setForm(f => ({ ...f, version_tag: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] appearance-none"
+                >
+                  {['default', ...versions.filter(v => v !== 'default')].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Description <span className="font-normal normal-case text-[#C9C3BB]">(optional)</span></label>
@@ -585,9 +703,12 @@ export const FilesManagement = () => {
                   {file.description && (
                     <p className="text-xs text-[#78716C] mt-1 truncate">{file.description}</p>
                   )}
-                  <p className="text-[9px] text-[#C9C3BB] mt-1 font-mono truncate">
-                    ID: {file.id}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <p className="text-[9px] text-[#C9C3BB] font-mono truncate">ID: {file.id}</p>
+                    <span className="text-[9px] text-[#A8A29E] border border-[#E8E3DB] px-1.5 py-0.5 font-semibold shrink-0">
+                      {file.version_tag || 'default'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Actions */}
