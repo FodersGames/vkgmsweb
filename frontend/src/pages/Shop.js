@@ -191,6 +191,9 @@ const Shop = () => {
   const [uid, setUid]                   = useState('');
   const [buyError, setBuyError]         = useState('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [couponCode, setCouponCode]     = useState('');
+  const [couponStatus, setCouponStatus] = useState(null); // { valid, discount_pct, error }
+  const [couponChecking, setCouponChecking] = useState(false);
 
   useEffect(() => { document.title = 'Shop — Vakar Games'; }, []);
 
@@ -250,6 +253,26 @@ const Shop = () => {
     setBuying(product);
     setUid('');
     setBuyError('');
+    setCouponCode('');
+    setCouponStatus(null);
+  };
+
+  const checkCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponChecking(true);
+    setCouponStatus(null);
+    try {
+      const r = await axios.post(
+        `${API_URL}/api/coupons/validate`,
+        { code: couponCode.trim(), product_id: buying?.id || null },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCouponStatus({ valid: true, discount_pct: r.data.discount_pct, scope_name: r.data.scope_name });
+    } catch (e) {
+      setCouponStatus({ valid: false, error: e.response?.data?.detail || 'Invalid coupon code.' });
+    } finally {
+      setCouponChecking(false);
+    }
   };
 
   const handleBuy = async () => {
@@ -259,7 +282,7 @@ const Shop = () => {
     try {
       const r = await axios.post(
         `${API_URL}/api/shop/checkout`,
-        { product_id: buying.id, player_uid: uid.trim() },
+        { product_id: buying.id, player_uid: uid.trim(), coupon_code: couponStatus?.valid ? couponCode.trim() : '' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       window.location.href = r.data.checkout_url;
@@ -293,7 +316,11 @@ const Shop = () => {
     setSearchParams(params);
   };
 
-  const finalPrice = buying ? applyDiscount(buying.price) : 0;
+  const loyaltyFinalPrice = buying ? applyDiscount(buying.price) : 0;
+  const couponExtraDiscount = couponStatus?.valid ? couponStatus.discount_pct : 0;
+  const finalPrice = buying
+    ? Math.max(50, Math.round(loyaltyFinalPrice * (1 - couponExtraDiscount / 100)))
+    : 0;
 
   // ── Filtered products ────────────────────────────────────────────────────
   const filteredByGame = activeGame === 'all' ? products : products.filter(p => p.game_slug === activeGame);
@@ -523,7 +550,7 @@ const Shop = () => {
                   {buying.description && <p className="text-xs text-[#78716C] truncate">{buying.description}</p>}
                 </div>
                 <div className="shrink-0 text-right">
-                  {discount > 0 && (
+                  {(discount > 0 || couponExtraDiscount > 0) && (
                     <p className="text-xs text-[#A8A29E] line-through">${(buying.price / 100).toFixed(2)}</p>
                   )}
                   <p className="text-lg font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
@@ -535,10 +562,43 @@ const Shop = () => {
                 <div className="flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
                   <GradeBadge tier={loyalty.tier} />
                   <p className="text-xs text-[#4ECDC4] font-semibold">
-                    {discount}% loyalty discount applied — you save ${((buying.price - finalPrice) / 100).toFixed(2)}
+                    {discount}% loyalty discount applied
                   </p>
                 </div>
               )}
+
+              {/* Promo coupon */}
+              <div>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1.5">
+                  Promo code <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
+                    placeholder="VG-XXXXXXXX"
+                    className="flex-1 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:text-[#A8A29E] placeholder:font-sans placeholder:tracking-normal"
+                  />
+                  <button
+                    onClick={checkCoupon}
+                    disabled={!couponCode.trim() || couponChecking}
+                    className="shrink-0 text-xs font-semibold border border-[#E8E3DB] hover:border-[#4ECDC4] text-[#78716C] hover:text-[#4ECDC4] px-3 py-2.5 transition-colors disabled:opacity-40"
+                  >
+                    {couponChecking ? '…' : 'Apply'}
+                  </button>
+                </div>
+                {couponStatus?.valid && (
+                  <p className="text-xs text-[#4ECDC4] font-semibold mt-1.5">
+                    ✓ {couponStatus.discount_pct}% promo discount applied
+                    {couponStatus.scope_name ? ` (${couponStatus.scope_name})` : ''}
+                    {' '}— you save ${((loyaltyFinalPrice - finalPrice) / 100).toFixed(2)} extra
+                  </p>
+                )}
+                {couponStatus?.valid === false && (
+                  <p className="text-xs text-red-500 mt-1.5">{couponStatus.error}</p>
+                )}
+              </div>
 
               {/* Player ID */}
               <div>
