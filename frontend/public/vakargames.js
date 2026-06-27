@@ -534,11 +534,14 @@
             const storage = vm.runtime.storage;
             const ext     = fileExt(file.original_filename);
 
-            // Si le costume existe déjà avec le même updated_at → skip (pas de doublon)
+            // Clé de version : updated_at si présent (nouveaux fichiers), sinon uploaded_at (anciens)
+            const fileVersion = file.updated_at || file.uploaded_at || file.id;
+
+            // Si le costume existe déjà avec la même version → skip (pas de doublon)
             const existing = target.sprite.costumes_.find(c => c.name === file.name);
             if (existing) {
                 const cached = await this._filesCache.get(file.id).catch(() => null);
-                if (cached && cached.updated_at === file.updated_at) return; // déjà à jour
+                if (cached && cached.updated_at === fileVersion) return; // déjà à jour
                 // Fichier mis à jour : supprime l'ancien avant d'ajouter le nouveau
                 const idx = target.sprite.costumes_.indexOf(existing);
                 if (idx !== -1) target.deleteCostume(idx);
@@ -559,7 +562,7 @@
                 suffix     = '.jpg';
             }
 
-            const bytes = await this._getFileBytes(file.id, file.updated_at);
+            const bytes = await this._getFileBytes(file.id, fileVersion);
 
             // Priorité : valeurs stockées dans la BDD → parsing SVG → 0,0
             let rotX = (file.rotation_center_x != null) ? file.rotation_center_x : null;

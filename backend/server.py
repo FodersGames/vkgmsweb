@@ -2159,6 +2159,34 @@ async def upload_game_file(
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
+    now = datetime.now(timezone.utc)
+
+    # Text engine group: replace in place if a file with the same name already exists
+    gid = group_id.strip() if group_id else None
+    if file_type == "text_engine" and gid:
+        existing = await db.game_files.find_one({
+            "project_slug": slug,
+            "group_id": gid,
+            "name": display_name,
+        })
+        if existing:
+            dest = _game_file_path(slug, str(existing["_id"]))
+            with open(dest, "wb") as f:
+                f.write(content)
+            updates = {
+                "original_filename": file.filename or existing["original_filename"],
+                "size_bytes": len(content),
+                "uploaded_at": now,
+                "updated_at":  now,
+            }
+            if group_name:
+                updates["group_name"] = group_name.strip()
+            await db.game_files.update_one({"_id": existing["_id"]}, {"$set": updates})
+            updated = await db.game_files.find_one({"_id": existing["_id"]})
+            await log_action("website", f"Text engine file '{display_name}' replaced in group '{gid}' for project '{slug}'", user=user["username"])
+            return {"success": True, "file": serialize_doc(updated), "replaced": True}
+
     file_id = ObjectId()
     file_id_hex = str(file_id)
 
@@ -2166,7 +2194,6 @@ async def upload_game_file(
     with open(dest, "wb") as f:
         f.write(content)
 
-    display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
     doc = {
         "_id": file_id,
         "project_slug": slug,
@@ -2181,11 +2208,12 @@ async def upload_game_file(
         "is_latest": False,
         "rotation_center_x": rotation_center_x,
         "rotation_center_y": rotation_center_y,
-        "group_id":   group_id.strip()   if group_id   else None,
+        "group_id":   gid,
         "group_name": group_name.strip() if group_name else None,
         "download_count": 0,
         "uploaded_by": user["username"],
-        "uploaded_at": datetime.now(timezone.utc),
+        "uploaded_at": now,
+        "updated_at":  now,
     }
     await db.game_files.insert_one(doc)
     await log_action("website", f"Game file '{display_name}' uploaded for project '{slug}'", user=user["username"])
@@ -2223,11 +2251,13 @@ async def replace_game_file(
     with open(dest, "wb") as f:
         f.write(content)
 
+    now = datetime.now(timezone.utc)
     updates = {
         "original_filename": file.filename or doc["original_filename"],
         "size_bytes": len(content),
         "uploaded_by": user["username"],
-        "uploaded_at": datetime.now(timezone.utc),
+        "uploaded_at": now,
+        "updated_at":  now,
     }
     await db.game_files.update_one({"_id": oid}, {"$set": updates})
     await log_action("website", f"Game file '{doc['name']}' replaced for project '{slug}'", user=user["username"])
