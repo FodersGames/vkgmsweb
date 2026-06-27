@@ -2385,6 +2385,21 @@ async def delete_game_file(slug: str, file_id: str, user=Depends(require_permiss
     await log_action("website", f"Game file '{doc['name']}' deleted from project '{slug}'", user=user["username"])
     return {"success": True}
 
+# ── Admin: delete entire text engine group ───────────────────────────────────
+
+@api_router.delete("/admin/projects/{slug}/files/group/{group_id}")
+async def delete_file_group(slug: str, group_id: str, user=Depends(require_permission("manage_files"))):
+    docs = await db.game_files.find({"project_slug": slug, "group_id": group_id}).to_list(1000)
+    if not docs:
+        raise HTTPException(status_code=404, detail="Groupe introuvable")
+    for doc in docs:
+        dest = _game_file_path(slug, str(doc["_id"]))
+        if dest.exists():
+            dest.unlink()
+    await db.game_files.delete_many({"project_slug": slug, "group_id": group_id})
+    await log_action("website", f"Text engine group '{group_id}' deleted ({len(docs)} fichiers) from project '{slug}'", user=user["username"])
+    return {"success": True, "deleted": len(docs)}
+
 # ── Admin: preview image file ─────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files/{file_id}/preview")
