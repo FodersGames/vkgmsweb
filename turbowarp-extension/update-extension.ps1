@@ -15,7 +15,7 @@ Add-Type -AssemblyName System.IO.Compression
 # Lire et encoder le nouveau code
 $code   = [IO.File]::ReadAllText($ExtPath, [Text.Encoding]::UTF8)
 $b64    = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($code))
-$newUrl = "data:application/javascript;base64,$b64"
+$newUrl = "data:text/javascript;base64,$b64"
 
 # Ouvrir le .sb3 (ZIP) en mode update
 $zip = [IO.Compression.ZipFile]::Open($SB3, 'Update')
@@ -29,7 +29,7 @@ $json   = $reader.ReadToEnd()
 $reader.Close(); $stream.Close()
 
 # Remplacer uniquement l'URL de l'extension vakargames (regex, sans parser tout le JSON)
-$pattern = '("vakargames"\s*:\s*)"data:application/javascript;base64,[^"]*"'
+$pattern = '("vakargames"\s*:\s*)"data:[^;]+;base64,[^"]*"'
 $newJson = [regex]::Replace($json, $pattern, "`$1`"$newUrl`"")
 
 if ($newJson -eq $json) {
