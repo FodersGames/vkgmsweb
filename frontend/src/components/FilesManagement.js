@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import {
@@ -72,6 +73,9 @@ export const FilesManagement = () => {
   const [replaceSaving, setReplaceSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting,    setDeleting]    = useState(null);
+
+  // Copy ID
+  const [copiedId, setCopiedId] = useState('');
 
   // Image preview
   const [previews,       setPreviews]       = useState({});  // { fileId: blobUrl }
@@ -265,12 +269,24 @@ export const FilesManagement = () => {
 
   // ── Toggle latest ─────────────────────────────────────────────────────────
 
+  const copyFileId = (id) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(''), 2000);
+  };
+
   const toggleLatest = async (file) => {
+    const next = !file.is_latest;
+    // Optimistic update
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, is_latest: next } : f));
     try {
       await axios.put(`${API_URL}/api/admin/projects/${slug}/files/${file.id}`,
-        { is_latest: !file.is_latest }, { headers });
-      load();
-    } catch { /* silent */ }
+        { is_latest: next }, { headers });
+    } catch (e) {
+      // Revert on error
+      setFiles(prev => prev.map(f => f.id === file.id ? { ...f, is_latest: !next } : f));
+      toast.error(e.response?.data?.detail || 'Impossible de modifier le fichier');
+    }
   };
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -801,8 +817,18 @@ export const FilesManagement = () => {
                   {file.description && (
                     <p className="text-xs text-[#78716C] mt-1 truncate">{file.description}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <p className="text-[9px] text-[#C9C3BB] font-mono truncate">ID: {file.id}</p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className="text-[9px] text-[#C9C3BB] font-mono">{file.id}</span>
+                    <button
+                      onClick={() => copyFileId(file.id)}
+                      title="Copier l'ID"
+                      className="flex items-center gap-0.5 text-[9px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors shrink-0"
+                    >
+                      {copiedId === file.id
+                        ? <><Check size={9} className="text-[#4ECDC4]" /><span className="text-[#4ECDC4]">copié</span></>
+                        : <><Copy size={9} /><span>copier ID</span></>
+                      }
+                    </button>
                     <span className="text-[9px] text-[#A8A29E] border border-[#E8E3DB] px-1.5 py-0.5 font-semibold shrink-0">
                       {file.version_tag || 'default'}
                     </span>
@@ -813,7 +839,7 @@ export const FilesManagement = () => {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => toggleLatest(file)}
-                    title={file.is_latest ? 'Unmark latest' : 'Mark as latest'}
+                    title={file.is_latest ? 'Retirer du marquage "latest" (utilisé pour cloner les versions)' : 'Marquer comme latest (sera inclus dans le clone de version)'}
                     className={`p-1.5 border transition-colors ${file.is_latest ? 'text-[#4ECDC4] border-[#4ECDC4]/30 bg-[#4ECDC4]/5' : 'text-[#A8A29E] border-[#E8E3DB] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/30'}`}
                   >
                     <Star size={13} />
