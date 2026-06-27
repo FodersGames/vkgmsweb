@@ -504,6 +504,16 @@
             const storage = vm.runtime.storage;
             const ext     = fileExt(file.original_filename);
 
+            // Si le costume existe déjà avec le même updated_at → skip (pas de doublon)
+            const existing = target.sprite.costumes_.find(c => c.name === file.name);
+            if (existing) {
+                const cached = await this._filesCache.get(file.id).catch(() => null);
+                if (cached && cached.updated_at === file.updated_at) return; // déjà à jour
+                // Fichier mis à jour : supprime l'ancien avant d'ajouter le nouveau
+                const idx = target.sprite.costumes_.indexOf(existing);
+                if (idx !== -1) vm.deleteCostume(target.id, idx);
+            }
+
             let assetType, dataFormat, suffix;
             if (ext === 'svg') {
                 assetType  = storage.AssetType.ImageVector;
