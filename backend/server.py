@@ -3120,7 +3120,7 @@ async def delete_notification(notif_id: str, user=Depends(get_current_user)):
 
 @api_router.get("/admin/system/stats")
 async def get_system_stats(user=Depends(require_permission("manage_users"))):
-    cpu_percent = psutil.cpu_percent(interval=0.2)
+    cpu_percent = psutil.cpu_percent(interval=None)
     cpu_count   = psutil.cpu_count(logical=True)
 
     ram  = psutil.virtual_memory()
