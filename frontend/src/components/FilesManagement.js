@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,8 @@ import {
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
   HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn, Search,
 } from 'lucide-react';
+
+const PAGE_SIZE = 10;
 
 const IMAGE_EXTS = ['.svg', '.png', '.jpg', '.jpeg', '.webp'];
 function isImageFile(filename) {
@@ -86,8 +88,9 @@ export const FilesManagement = () => {
   // Copy ID
   const [copiedId, setCopiedId] = useState('');
 
-  // Search
+  // Search + pagination
   const [search, setSearch] = useState('');
+  const [page,   setPage]   = useState(1);
 
   // Image preview
   const [previews,       setPreviews]       = useState({});  // { fileId: blobUrl }
@@ -137,10 +140,27 @@ export const FilesManagement = () => {
 
   useEffect(() => { load(); loadVersions(); }, [load, loadVersions]);
 
-  // Auto-load previews for all image files when the list changes
+  // Reset page when search or version filter changes
+  useEffect(() => { setPage(1); }, [search, activeVersionTag]);
+
+  // All files filtered by search query (searches entire project list)
+  const filteredFiles = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return files;
+    return files.filter(f =>
+      f.name?.toLowerCase().includes(q) ||
+      f.original_filename?.toLowerCase().includes(q) ||
+      f.description?.toLowerCase().includes(q)
+    );
+  }, [files, search]);
+
+  // Slice to current page
+  const displayedFiles = useMemo(() => filteredFiles.slice(0, page * PAGE_SIZE), [filteredFiles, page]);
+
+  // Auto-load previews only for visible files
   useEffect(() => {
-    files.forEach(f => { if (isImageFile(f.original_filename)) loadPreview(f); });
-  }, [files]); // eslint-disable-line react-hooks/exhaustive-deps
+    displayedFiles.forEach(f => { if (isImageFile(f.original_filename)) loadPreview(f); });
+  }, [displayedFiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── API key ───────────────────────────────────────────────────────────────
 
@@ -840,18 +860,25 @@ export const FilesManagement = () => {
 
       {/* Search */}
       {files.length > 0 && (
-        <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un fichier…"
-            className="w-full pl-9 pr-9 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={`Rechercher parmi ${files.length} fichier${files.length !== 1 ? 's' : ''}…`}
+              className="w-full pl-9 pr-9 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#1C1917]">
+                <X size={12} />
+              </button>
+            )}
+          </div>
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#1C1917]">
-              <X size={12} />
-            </button>
+            <span className="text-xs text-[#78716C] shrink-0">
+              {filteredFiles.length} résultat{filteredFiles.length !== 1 ? 's' : ''}
+            </span>
           )}
         </div>
       )}
@@ -866,24 +893,14 @@ export const FilesManagement = () => {
           <FileText size={28} className="text-[#C9C3BB] mx-auto mb-3" />
           <p className="text-sm text-[#78716C]">No files yet. Upload your first game file above.</p>
         </div>
-      ) : (() => {
-        const q = search.toLowerCase();
-        const displayed = q
-          ? files.filter(f =>
-              f.name?.toLowerCase().includes(q) ||
-              f.original_filename?.toLowerCase().includes(q) ||
-              f.description?.toLowerCase().includes(q)
-            )
-          : files;
-        if (displayed.length === 0) return (
-          <div className="text-center py-10 border border-dashed border-[#E8E3DB]">
-            <Search size={22} className="text-[#C9C3BB] mx-auto mb-2" />
-            <p className="text-sm text-[#78716C]">Aucun fichier ne correspond à "<strong>{search}</strong>".</p>
-          </div>
-        );
-        return (
+      ) : filteredFiles.length === 0 ? (
+        <div className="text-center py-10 border border-dashed border-[#E8E3DB]">
+          <Search size={22} className="text-[#C9C3BB] mx-auto mb-2" />
+          <p className="text-sm text-[#78716C]">Aucun fichier ne correspond à "<strong>{search}</strong>".</p>
+        </div>
+      ) : (
         <div className="space-y-2">
-          {displayed.map(file => (
+          {displayedFiles.map(file => (
             <div key={file.id} className="bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] transition-colors">
               {/* Main row */}
               <div className="flex items-start gap-4 p-4">
@@ -997,9 +1014,23 @@ export const FilesManagement = () => {
               </div>
             </div>
           ))}
+
+          {/* Load more */}
+          {displayedFiles.length < filteredFiles.length && (
+            <div className="flex flex-col items-center gap-1.5 pt-2 pb-1">
+              <button
+                onClick={() => setPage(p => p + 1)}
+                className="flex items-center gap-2 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-5 py-2.5 transition-colors"
+              >
+                <Plus size={12} /> Voir {Math.min(PAGE_SIZE, filteredFiles.length - displayedFiles.length)} de plus
+              </button>
+              <span className="text-[10px] text-[#A8A29E]">
+                {displayedFiles.length} / {filteredFiles.length} fichiers affichés
+              </span>
+            </div>
+          )}
         </div>
-        );
-      })()}
+      )}
     </div>
   );
 };
