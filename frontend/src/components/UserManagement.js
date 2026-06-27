@@ -5,6 +5,7 @@ import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
   Search, SlidersHorizontal, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
+  FolderOpen, Server,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -41,6 +42,14 @@ const STATIC_GROUPS = [
   {
     label: 'Users', icon: Shield, color: '#EB5757',
     permissions: [{ id: 'manage_users', label: 'Manage Users' }]
+  },
+  {
+    label: 'Files', icon: FolderOpen, color: '#E67E22',
+    permissions: [{ id: 'manage_files', label: 'Manage Project Files' }]
+  },
+  {
+    label: 'Infrastructure', icon: Server, color: '#16A085',
+    permissions: [{ id: 'view_vps', label: 'View VPS Stats' }]
   },
   {
     label: 'Website', icon: Code, color: '#4ECDC4',
