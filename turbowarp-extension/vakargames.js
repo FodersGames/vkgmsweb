@@ -15,7 +15,7 @@
     function _openWindow(url) {
         if (typeof Scratch !== 'undefined' && Scratch.openWindow) {
             Scratch.openWindow(url, 'stripe_checkout');
-            return null; // pas de référence popup en sandbox
+            return null;
         }
         if (typeof window !== 'undefined' && window.open) {
             return window.open(url, 'stripe_checkout', 'width=520,height=720,scrollbars=yes,resizable=yes');
@@ -23,13 +23,76 @@
         return null;
     }
 
+    // ── IndexedDB cache pour les fichiers de jeu ──────────────────────────────
+
+    class VGCache {
+        constructor(slug) {
+            this._name = 'vg_files_' + slug.replace(/[^a-zA-Z0-9]/g, '_');
+            this._db   = null;
+        }
+
+        open() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(this._name, 1);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('files')) {
+                        db.createObjectStore('files', { keyPath: 'id' });
+                    }
+                };
+                req.onsuccess = e => { this._db = e.target.result; resolve(); };
+                req.onerror   = ()  => reject(new Error('IndexedDB unavailable'));
+            });
+        }
+
+        get(id) {
+            return new Promise((resolve, reject) => {
+                const tx  = this._db.transaction('files', 'readonly');
+                const req = tx.objectStore('files').get(id);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror   = () => reject(req.error);
+            });
+        }
+
+        put(id, updatedAt, data) {
+            return new Promise((resolve, reject) => {
+                const tx  = this._db.transaction('files', 'readwrite');
+                const req = tx.objectStore('files').put({ id, updated_at: updatedAt, data });
+                req.onsuccess = resolve;
+                req.onerror   = () => reject(req.error);
+            });
+        }
+    }
+
+    // ── Helpers fichiers ──────────────────────────────────────────────────────
+
+    function fileExt(filename) {
+        const s = (filename || '').toLowerCase();
+        if (s.endsWith('.svg'))  return 'svg';
+        if (s.endsWith('.png'))  return 'png';
+        if (s.endsWith('.jpg') || s.endsWith('.jpeg')) return 'jpg';
+        return null;
+    }
+
+    // ── Extension principale ──────────────────────────────────────────────────
+
     class VakarGames {
         constructor() {
+            // Chat
             this._chatSlug     = '';
             this._chatApiKey   = '';
             this._chatMessages = [];
             this._prevCount    = 0;
             this._newMsg       = false;
+
+            // Files
+            this._filesSlug    = '';
+            this._filesApiKey  = '';
+            this._filesVersion = 'default';
+            this._filesReady   = false;
+            this._filesError   = '';
+            this._fileIndex    = {};
+            this._filesCache   = null;
         }
 
         getInfo() {
@@ -58,7 +121,7 @@
                     // ══════════════════════════════
                     //  CHAT GLOBAL
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Chat Global —' },
+                    { blockType: Scratch.BlockType.LABEL, text: '— Chat —' },
                     {
                         opcode:    'setChatConfig',
                         blockType: Scratch.BlockType.COMMAND,
@@ -130,6 +193,87 @@
                         text:      'last message level'
                     },
 
+                    // ══════════════════════════════
+                    //  FICHIERS / RESSOURCES
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Ressources —' },
+
+                    // Config
+                    {
+                        opcode:    'configureFiles',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'configurer ressources projet [SLUG] clé [KEY]',
+                        arguments: {
+                            SLUG: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon-jeu' },
+                            KEY:  { type: Scratch.ArgumentType.STRING, defaultValue: '' }
+                        }
+                    },
+
+                    // Réseau
+                    {
+                        opcode:    'hasInternet',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'connexion internet disponible ?'
+                    },
+
+                    // Version
+                    {
+                        opcode:    'useLiveVersion',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'utiliser la version en ligne'
+                    },
+                    {
+                        opcode:    'useVersion',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'utiliser la version [V]',
+                        arguments: {
+                            V: { type: Scratch.ArgumentType.STRING, defaultValue: 'default' }
+                        }
+                    },
+                    {
+                        opcode:    'currentVersion',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'version actuelle'
+                    },
+
+                    // Chargement groupé
+                    {
+                        opcode:    'loadAllToSprite',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'charger toutes les images dans le sprite [SPRITE]',
+                        arguments: {
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'filesReady',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'ressources prêtes ?'
+                    },
+                    {
+                        opcode:    'filesError',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'erreur de chargement'
+                    },
+
+                    // Fichier individuel
+                    {
+                        opcode:    'loadCostumeById',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'charger costume ID [ID] dans sprite [SPRITE]',
+                        arguments: {
+                            ID:     { type: Scratch.ArgumentType.STRING, defaultValue: '' },
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'fileDisplayName',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'nom du fichier [ID]',
+                        arguments: {
+                            ID: { type: Scratch.ArgumentType.STRING, defaultValue: '' }
+                        }
+                    },
                 ]
             };
         }
@@ -138,7 +282,6 @@
         //  SHOP
         // ══════════════════════════════════════════
         async buyProduct({ URL: urlStr, UID }) {
-            // 1 — Parser le lien produit
             let gameSlug, productId;
             try {
                 const parsed = new URL(urlStr);
@@ -149,7 +292,6 @@
 
             if (!gameSlug || !productId || !String(UID).trim()) return false;
 
-            // 2 — Créer la session Stripe via le backend
             let sessionId, checkoutUrl;
             try {
                 const res = await _fetch(
@@ -166,22 +308,18 @@
                 sessionId   = data.session_id;
             } catch { return false; }
 
-            // 3 — Ouvrir Stripe (sandbox → Scratch.openWindow, unsandboxed → window.open)
             const popupRef = _openWindow(checkoutUrl);
 
-            // 4 — Poller le statut toutes les 3 s
             return await new Promise((resolve) => {
                 let elapsed  = 0;
-                const maxMs  = 600000; // 10 min max
+                const maxMs  = 600000;
                 const pollMs = 3000;
 
                 const interval = setInterval(async () => {
                     elapsed += pollMs;
 
-                    // En mode unsandboxed : détecter la fermeture du popup
                     if (popupRef && popupRef.closed) {
                         clearInterval(interval);
-                        // Laisser 6 s au webhook pour arriver
                         await new Promise(r => setTimeout(r, 6000));
                         try {
                             const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
@@ -191,14 +329,12 @@
                         return;
                     }
 
-                    // Timeout global
                     if (elapsed >= maxMs) {
                         clearInterval(interval);
                         resolve(false);
                         return;
                     }
 
-                    // Vérifier le statut de la session
                     try {
                         const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
                         const d = await r.json();
@@ -250,14 +386,13 @@
                     (msgs.length > 0 && this._chatMessages.length > 0 &&
                      msgs[msgs.length - 1]?.timestamp !== this._chatMessages[this._chatMessages.length - 1]?.timestamp);
                 this._prevCount    = msgs.length;
-                this._chatMessages = msgs; // oldest → newest en interne
+                this._chatMessages = msgs;
 
-                // Retourner newest-first avec position (1 = le plus récent)
                 const output = [...msgs].reverse().map((msg, i) => ({
-                    position: i + 1,
-                    username: msg.username,
-                    message:  msg.message,
-                    level:    msg.level ?? 0,
+                    position:  i + 1,
+                    username:  msg.username,
+                    message:   msg.message,
+                    level:     msg.level ?? 0,
                     timestamp: msg.timestamp,
                 }));
 
@@ -273,7 +408,6 @@
 
         messageCount() { return this._chatMessages.length; }
 
-        // INDEX 1-basé, 1 = message le plus récent
         _msgAt(index) {
             const i = parseInt(index);
             if (i < 1 || i > this._chatMessages.length) return undefined;
@@ -286,6 +420,188 @@
         lastMessageText()          { return this._msgAt(1)?.message  ?? ''; }
         lastMessageUsername()      { return this._msgAt(1)?.username ?? ''; }
         lastMessageLevel()         { return this._msgAt(1)?.level    ?? 0;  }
+
+        // ══════════════════════════════════════════
+        //  FICHIERS / RESSOURCES — helpers internes
+        // ══════════════════════════════════════════
+
+        async _ensureFilesCache() {
+            if (this._filesCache) return;
+            this._filesCache = new VGCache(this._filesSlug + '_' + this._filesVersion);
+            await this._filesCache.open();
+        }
+
+        async _fetchWithKey(url) {
+            const res = await _fetch(url, {
+                headers: { 'X-Files-Api-Key': this._filesApiKey }
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res;
+        }
+
+        async _getFileBytes(fileId, updatedAt) {
+            await this._ensureFilesCache();
+            const cached = await this._filesCache.get(fileId).catch(() => null);
+            if (cached && cached.updated_at === updatedAt) {
+                return cached.data; // Uint8Array depuis IndexedDB
+            }
+            const url = `${API_URL}/api/game/${encodeURIComponent(this._filesSlug)}/files/${encodeURIComponent(fileId)}/download`;
+            const res = await this._fetchWithKey(url);
+            const buf = await res.arrayBuffer();
+            const data = new Uint8Array(buf);
+            await this._filesCache.put(fileId, updatedAt, data).catch(() => {});
+            return data;
+        }
+
+        async _addCostumeToTarget(target, file) {
+            const vm      = Scratch.vm;
+            const storage = vm.runtime.storage;
+            const ext     = fileExt(file.original_filename);
+
+            let assetType, dataFormat, suffix;
+            if (ext === 'svg') {
+                assetType  = storage.AssetType.ImageVector;
+                dataFormat = storage.DataFormat.SVG;
+                suffix     = '.svg';
+            } else if (ext === 'png') {
+                assetType  = storage.AssetType.ImageBitmap;
+                dataFormat = storage.DataFormat.PNG;
+                suffix     = '.png';
+            } else {
+                assetType  = storage.AssetType.ImageBitmap;
+                dataFormat = storage.DataFormat.JPEG;
+                suffix     = '.jpg';
+            }
+
+            const bytes   = await this._getFileBytes(file.id, file.updated_at);
+            const asset   = storage.createAsset(assetType, dataFormat, bytes, null, true);
+            const costume = {
+                asset,
+                assetId:          asset.assetId,
+                name:             file.name,        // display name du dashboard
+                md5ext:           asset.assetId + suffix,
+                bitmapResolution: 1,
+                rotationCenterX:  0,
+                rotationCenterY:  0,
+            };
+            await vm.addCostume(costume.md5ext, costume, target.id);
+        }
+
+        _findTarget(spriteName) {
+            const vm = Scratch.vm;
+            return vm.runtime.getSpriteTargetByName(String(spriteName))
+                || vm.runtime.targets.find(t => !t.isStage)
+                || null;
+        }
+
+        async _fetchFileList() {
+            const url = `${API_URL}/api/game/${encodeURIComponent(this._filesSlug)}/files?version=${encodeURIComponent(this._filesVersion)}`;
+            const res = await this._fetchWithKey(url);
+            const data = await res.json();
+            const files = (data.files || []).filter(f => fileExt(f.original_filename) !== null);
+            this._fileIndex = {};
+            for (const f of files) this._fileIndex[f.id] = f;
+            return files;
+        }
+
+        // ══════════════════════════════════════════
+        //  FICHIERS / RESSOURCES — blocs
+        // ══════════════════════════════════════════
+
+        configureFiles({ SLUG, KEY }) {
+            this._filesSlug    = String(SLUG).trim();
+            this._filesApiKey  = String(KEY).trim();
+            this._filesCache   = null;
+            this._fileIndex    = {};
+            this._filesReady   = false;
+            this._filesError   = '';
+        }
+
+        hasInternet() {
+            return navigator.onLine === true;
+        }
+
+        async useLiveVersion() {
+            if (!this._filesSlug || !this._filesApiKey) {
+                this._filesError = 'Configurez les ressources d\'abord.';
+                return;
+            }
+            try {
+                const res  = await this._fetchWithKey(`${API_URL}/api/game/${encodeURIComponent(this._filesSlug)}/live-version`);
+                const data = await res.json();
+                const v    = data.live_version || 'default';
+                if (v !== this._filesVersion) {
+                    this._filesVersion = v;
+                    this._filesCache   = null; // nouveau namespace de cache
+                    this._filesReady   = false;
+                }
+            } catch (e) {
+                this._filesError = 'Impossible de récupérer la version en ligne : ' + e.message;
+            }
+        }
+
+        useVersion({ V }) {
+            const tag = String(V).trim() || 'default';
+            if (tag !== this._filesVersion) {
+                this._filesVersion = tag;
+                this._filesCache   = null;
+                this._filesReady   = false;
+            }
+        }
+
+        currentVersion() { return this._filesVersion; }
+
+        async loadAllToSprite({ SPRITE }) {
+            if (!this._filesSlug || !this._filesApiKey) {
+                this._filesError = 'Configurez les ressources d\'abord.';
+                return;
+            }
+            const target = this._findTarget(SPRITE);
+            if (!target) {
+                this._filesError = 'Sprite "' + SPRITE + '" introuvable.';
+                return;
+            }
+            this._filesReady = false;
+            this._filesError = '';
+            try {
+                const files = await this._fetchFileList();
+                for (const f of files) {
+                    try {
+                        await this._addCostumeToTarget(target, f);
+                    } catch (e) {
+                        console.warn('[VG] Impossible de charger ' + f.name + ' : ' + e.message);
+                    }
+                }
+                this._filesReady = true;
+            } catch (e) {
+                this._filesError = e.message;
+            }
+        }
+
+        filesReady()  { return this._filesReady; }
+        filesError()  { return this._filesError; }
+
+        async loadCostumeById({ ID, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+
+            let f = this._fileIndex[String(ID)];
+            if (!f) {
+                try { await this._fetchFileList(); } catch (e) { this._filesError = e.message; return; }
+                f = this._fileIndex[String(ID)];
+            }
+            if (!f) { this._filesError = 'Fichier ID "' + ID + '" introuvable dans la version "' + this._filesVersion + '".'; return; }
+            if (fileExt(f.original_filename) === null) { this._filesError = '"' + f.name + '" n\'est pas une image (SVG/PNG/JPG).'; return; }
+
+            try {
+                await this._addCostumeToTarget(target, f);
+            } catch (e) { this._filesError = e.message; }
+        }
+
+        fileDisplayName({ ID }) {
+            const f = this._fileIndex[String(ID)];
+            return f ? f.name : '';
+        }
     }
 
     Scratch.extensions.register(new VakarGames());
