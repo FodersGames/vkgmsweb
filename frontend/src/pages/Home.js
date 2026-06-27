@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowRight, ExternalLink, Mail } from 'lucide-react';
 import axios from 'axios';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
@@ -268,13 +268,21 @@ const Home = () => {
             <p className="text-[#78716C] mb-8 leading-relaxed">
               Questions about our games, a collaboration proposal or press inquiries — reach us directly.
             </p>
-            <a
-              href="mailto:support@vakargames.com"
-              className="inline-flex items-center gap-2 border border-[#1C1917] text-[#1C1917] px-5 py-2.5 text-sm font-semibold hover:bg-[#1C1917] hover:text-white transition-all"
-              data-testid="contact-email-button"
-            >
-              support@vakargames.com <ArrowRight size={14} />
-            </a>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/contact"
+                className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+                data-testid="contact-email-button"
+              >
+                Open a ticket <ArrowRight size={14} />
+              </Link>
+              <a
+                href="mailto:support@vakargames.com"
+                className="inline-flex items-center gap-2 border border-[#E8E3DB] hover:border-[#C9C3BB] bg-white text-[#78716C] px-5 py-2.5 text-sm font-semibold transition-all"
+              >
+                <Mail size={14} /> support@vakargames.com
+              </a>
+            </div>
           </div>
         </div>
       </section>
