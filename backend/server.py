@@ -50,6 +50,9 @@ SUPER_ADMIN_PASSWORD = os.environ.get('SUPER_ADMIN_PASSWORD', '')
 UPLOADS_DIR = ROOT_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
+GAME_FILES_DIR = ROOT_DIR / "uploads" / "game_files"
+GAME_FILES_DIR.mkdir(exist_ok=True, parents=True)
+
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
 
@@ -505,6 +508,14 @@ class ShopGlobalSettingsRequest(BaseModel):
 
 class GamePurchaseCheckoutRequest(BaseModel):
     coupon_code: Optional[str] = ""
+
+class GameFileUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    version: Optional[str] = None
+    platform: Optional[str] = None
+    file_type: Optional[str] = None
+    description: Optional[str] = None
+    is_latest: Optional[bool] = None
 
 class CouponCampaignRequest(BaseModel):
     name: str
@@ -2051,6 +2062,237 @@ async def update_daily_gift(game_slug: str, req: DailyGiftConfigRequest, user=De
     await db.website_shop_daily_gifts.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
     await log_action("website", f"Daily gift updated for '{game_slug}'", user=user["username"])
     return serialize_doc(await db.website_shop_daily_gifts.find_one({"game_slug": game_slug}))
+
+# ── Game files ───────────────────────────────────────────────────────────────
+
+_GAME_FILE_EXTS = {
+    ".zip", ".rar", ".7z",
+    ".exe", ".msi", ".dmg", ".pkg",
+    ".apk", ".ipa",
+    ".pak", ".dat", ".bin", ".unity3d",
+    ".json", ".xml", ".yaml", ".toml", ".cfg", ".ini",
+    ".png", ".jpg", ".jpeg", ".webp",
+    ".pdf",
+    ".mp4", ".mov",
+}
+_GAME_FILE_MAX_BYTES = 500 * 1024 * 1024  # 500 MB
+
+async def _verify_files_api_key(project_slug: str, request: Request):
+    api_key = request.headers.get("X-Files-Api-Key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Missing X-Files-Api-Key header")
+    project = await db.projects.find_one({"slug": project_slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    stored = project.get("files_api_key") or ""
+    if not stored or not secrets.compare_digest(stored, api_key):
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return project
+
+def _game_file_path(project_slug: str, file_id: str) -> Path:
+    project_dir = GAME_FILES_DIR / project_slug
+    project_dir.mkdir(exist_ok=True)
+    return project_dir / file_id  # stored without extension; original name in Content-Disposition
+
+# ── Admin: get / regenerate files API key ────────────────────────────────────
+
+@api_router.get("/admin/projects/{slug}/files-api-key")
+async def get_files_api_key(slug: str, user=Depends(require_permission("view_projects"))):
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"files_api_key": project.get("files_api_key") or None}
+
+@api_router.post("/admin/projects/{slug}/files-api-key/regenerate")
+async def regenerate_files_api_key(slug: str, user=Depends(require_permission("view_projects"))):
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    new_key = secrets.token_urlsafe(32)
+    await db.projects.update_one({"slug": slug}, {"$set": {"files_api_key": new_key}})
+    await log_action("website", f"Files API key regenerated for project '{slug}'", user=user["username"])
+    return {"files_api_key": new_key}
+
+# ── Admin: upload file ────────────────────────────────────────────────────────
+
+@api_router.post("/admin/projects/{slug}/files")
+async def upload_game_file(
+    slug: str,
+    file: UploadFile = File(...),
+    name: str = "",
+    version: str = "",
+    platform: str = "all",
+    file_type: str = "build",
+    description: str = "",
+    user=Depends(require_permission("view_projects")),
+):
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in _GAME_FILE_EXTS:
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {ext or '(none)'}")
+
+    content = await file.read()
+    if len(content) > _GAME_FILE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 500 MB)")
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    file_id = ObjectId()
+    file_id_hex = str(file_id)
+
+    dest = _game_file_path(slug, file_id_hex)
+    with open(dest, "wb") as f:
+        f.write(content)
+
+    display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
+    doc = {
+        "_id": file_id,
+        "project_slug": slug,
+        "name": display_name,
+        "original_filename": file.filename or "",
+        "size_bytes": len(content),
+        "version": version.strip(),
+        "platform": platform,
+        "file_type": file_type,
+        "description": description.strip(),
+        "is_latest": False,
+        "download_count": 0,
+        "uploaded_by": user["username"],
+        "uploaded_at": datetime.now(timezone.utc),
+    }
+    await db.game_files.insert_one(doc)
+    await log_action("website", f"Game file '{display_name}' uploaded for project '{slug}'", user=user["username"])
+    return {"success": True, "file": serialize_doc(doc)}
+
+# ── Admin: replace file content (keeps same ID) ───────────────────────────────
+
+@api_router.put("/admin/projects/{slug}/files/{file_id}/replace")
+async def replace_game_file(
+    slug: str,
+    file_id: str,
+    file: UploadFile = File(...),
+    user=Depends(require_permission("view_projects")),
+):
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in _GAME_FILE_EXTS:
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {ext or '(none)'}")
+
+    content = await file.read()
+    if len(content) > _GAME_FILE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 500 MB)")
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    dest = _game_file_path(slug, file_id)
+    with open(dest, "wb") as f:
+        f.write(content)
+
+    updates = {
+        "original_filename": file.filename or doc["original_filename"],
+        "size_bytes": len(content),
+        "uploaded_by": user["username"],
+        "uploaded_at": datetime.now(timezone.utc),
+    }
+    await db.game_files.update_one({"_id": oid}, {"$set": updates})
+    await log_action("website", f"Game file '{doc['name']}' replaced for project '{slug}'", user=user["username"])
+    updated = await db.game_files.find_one({"_id": oid})
+    return {"success": True, "file": serialize_doc(updated)}
+
+# ── Admin: update metadata ────────────────────────────────────────────────────
+
+@api_router.put("/admin/projects/{slug}/files/{file_id}")
+async def update_game_file_meta(
+    slug: str,
+    file_id: str,
+    req: GameFileUpdateRequest,
+    user=Depends(require_permission("view_projects")),
+):
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    updates = {k: v for k, v in req.dict().items() if v is not None}
+    updates["updated_at"] = datetime.now(timezone.utc)
+    await db.game_files.update_one({"_id": oid}, {"$set": updates})
+    updated = await db.game_files.find_one({"_id": oid})
+    return {"success": True, "file": serialize_doc(updated)}
+
+# ── Admin: delete file ────────────────────────────────────────────────────────
+
+@api_router.delete("/admin/projects/{slug}/files/{file_id}")
+async def delete_game_file(slug: str, file_id: str, user=Depends(require_permission("view_projects"))):
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    dest = _game_file_path(slug, file_id)
+    if dest.exists():
+        dest.unlink()
+    await db.game_files.delete_one({"_id": oid})
+    await log_action("website", f"Game file '{doc['name']}' deleted from project '{slug}'", user=user["username"])
+    return {"success": True}
+
+# ── Admin: list files ─────────────────────────────────────────────────────────
+
+@api_router.get("/admin/projects/{slug}/files")
+async def list_game_files_admin(slug: str, user=Depends(require_permission("view_projects"))):
+    files = await db.game_files.find({"project_slug": slug}).sort("uploaded_at", -1).to_list(500)
+    return {"files": [serialize_doc(f) for f in files]}
+
+# ── Game client: list files (API key auth) ────────────────────────────────────
+
+@api_router.get("/game/{slug}/files")
+async def list_game_files_client(slug: str, request: Request):
+    project = await _verify_files_api_key(slug, request)
+    base_url = str(request.base_url).rstrip("/")
+    files = await db.game_files.find({"project_slug": slug}).sort("uploaded_at", -1).to_list(500)
+    result = []
+    for f in files:
+        doc = serialize_doc(f)
+        doc["download_url"] = f"{base_url}/api/game/{slug}/files/{doc['id']}/download"
+        result.append(doc)
+    return {"files": result}
+
+# ── Game client: download file (API key auth) ─────────────────────────────────
+
+@api_router.get("/game/{slug}/files/{file_id}/download")
+async def download_game_file_client(slug: str, file_id: str, request: Request):
+    await _verify_files_api_key(slug, request)
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    dest = _game_file_path(slug, file_id)
+    if not dest.exists():
+        raise HTTPException(status_code=404, detail="File data missing on server")
+    await db.game_files.update_one({"_id": oid}, {"$inc": {"download_count": 1}})
+    safe_name = re.sub(r"[^\w.\- ]", "_", doc.get("original_filename") or doc["name"])
+    return FileResponse(
+        dest,
+        filename=safe_name,
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
 
 # ── Coupon campaign endpoints ────────────────────────────────────────────────
 

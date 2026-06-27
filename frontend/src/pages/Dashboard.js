@@ -6,7 +6,7 @@ import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
-  ArrowRight, Home, Ticket, UserCircle, Tag, ChevronRight,
+  ArrowRight, Home, Ticket, UserCircle, Tag, ChevronRight, HardDrive,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -22,6 +22,7 @@ import { ChatManagement } from '../components/ChatManagement';
 import { WebsiteSettings } from '../components/WebsiteSettings';
 import { ShopManagement } from '../components/ShopManagement';
 import { MissionsManagement } from '../components/MissionsManagement';
+import { FilesManagement } from '../components/FilesManagement';
 import TicketManagement from '../components/TicketManagement';
 import { AccountSettings } from '../components/AccountSettings';
 import { CouponManagement } from '../components/CouponManagement';
@@ -47,6 +48,7 @@ const SECTIONS = [
       { id: 'logs',       label: 'Logs',           icon: FileText,      permission: 'view_logs',       requiresProject: true },
       { id: 'chat',       label: 'Chat',           icon: MessageSquare, permission: 'manage_chat',     requiresProject: true },
       { id: 'missions',   label: 'Missions',       icon: ClipboardList, permission: 'claim_missions',  requiresProject: true },
+      { id: 'files',      label: 'Files',          icon: HardDrive,     permission: 'view_projects',   requiresProject: true },
     ],
   },
   {
@@ -148,7 +150,7 @@ const DashboardContent = () => {
   const currentItem    = currentSection?.items?.find(i => i.id === activeTab)
     || (currentSection?.directTab ? currentSection : null);
 
-  const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions'];
+  const projectTabs = ['send-items', 'status', 'variables', 'logs', 'chat', 'missions', 'files'];
   const needsProject = projectTabs.includes(activeTab);
 
   const initials = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase()
@@ -519,6 +521,7 @@ const DashboardContent = () => {
               {activeTab === 'logs'       && selectedProject && hasPermission('view_logs')                                           && <LogsViewer />}
               {activeTab === 'chat'       && selectedProject && hasPermission('manage_chat')                                         && <ChatManagement />}
               {activeTab === 'missions'   && selectedProject && (hasPermission('claim_missions') || hasPermission('create_missions')) && <MissionsManagement />}
+              {activeTab === 'files'      && selectedProject && hasPermission('view_projects')  && <FilesManagement />}
 
               {activeTab === 'website-games'    &&                               <GamesManagement />}
               {activeTab === 'website-blog'     &&                               <BlogManagement />}
