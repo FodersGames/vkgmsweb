@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
 from fastapi.responses import JSONResponse, FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -2128,14 +2128,14 @@ async def regenerate_files_api_key(slug: str, user=Depends(require_permission("v
 async def upload_game_file(
     slug: str,
     file: UploadFile = File(...),
-    name: str = "",
-    version: str = "",
-    platform: str = "all",
-    file_type: str = "build",
-    description: str = "",
-    version_tag: str = "default",
-    rotation_center_x: Optional[float] = None,
-    rotation_center_y: Optional[float] = None,
+    name: str = Form(""),
+    version: str = Form(""),
+    platform: str = Form("all"),
+    file_type: str = Form("build"),
+    description: str = Form(""),
+    version_tag: str = Form("1.0"),
+    rotation_center_x: Optional[float] = Form(None),
+    rotation_center_y: Optional[float] = Form(None),
     user=Depends(require_permission("view_projects")),
 ):
     project = await db.projects.find_one({"slug": slug})
@@ -2243,7 +2243,12 @@ async def update_game_file_meta(
         raise HTTPException(status_code=404, detail="File not found")
     _rot_fields = {"rotation_center_x", "rotation_center_y"}
     payload = req.dict()
-    updates = {k: v for k, v in payload.items() if v is not None or k in _rot_fields}
+    # rotation_center peut être 0.0 (valide) → garder si présent et numérique; ignorer string vide
+    def _keep(k, v):
+        if k in _rot_fields:
+            return isinstance(v, (int, float))
+        return v is not None
+    updates = {k: v for k, v in payload.items() if _keep(k, v)}
     updates["updated_at"] = datetime.now(timezone.utc)
     await db.game_files.update_one({"_id": oid}, {"$set": updates})
     updated = await db.game_files.find_one({"_id": oid})

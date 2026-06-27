@@ -44,7 +44,15 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const emptyUpload = { name: '', version: '', platform: 'all', file_type: 'build', description: '', version_tag: 'default', rotation_center_x: '', rotation_center_y: '' };
+// Paramètres partagés par tous les fichiers d'un lot d'upload
+const emptyShared = { platform: 'all', file_type: 'asset', description: '', version_tag: '1.0', rotation_center_x: '', rotation_center_y: '' };
+// Entrée par fichier dans la liste multi-upload
+const makeFileEntry = (file) => ({
+  file,
+  name: file.name.replace(/\.[^/.]+$/, ''), // nom sans extension
+  id: Math.random().toString(36).slice(2),   // clé locale unique
+});
+
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -60,11 +68,12 @@ export const FilesManagement = () => {
   const [showKey,     setShowKey]     = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
   const [copied,      setCopied]      = useState(false);
-  const [showUpload,  setShowUpload]  = useState(false);
-  const [uploading,   setUploading]   = useState(false);
-  const [uploadErr,   setUploadErr]   = useState('');
-  const [form,        setForm]        = useState(emptyUpload);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [showUpload,   setShowUpload]  = useState(false);
+  const [fileEntries,  setFileEntries] = useState([]);    // { file, name, id }[]
+  const [shared,       setShared]      = useState(emptyShared);
+  const [uploadStates, setUploadStates] = useState({});   // { id: 'pending'|'uploading'|'done'|'error' }
+  const [uploadingAll, setUploadingAll] = useState(false);
+  const [uploadErr,    setUploadErr]   = useState('');
   const [editingId,   setEditingId]   = useState(null);
   const [editForm,    setEditForm]    = useState({});
   const [editSaving,  setEditSaving]  = useState(false);
@@ -148,10 +157,60 @@ export const FilesManagement = () => {
 
   // ── Upload ────────────────────────────────────────────────────────────────
 
+  const addFilesToQueue = (rawFiles) => {
+    const entries = Array.from(rawFiles).map(makeFileEntry);
+    setFileEntries(prev => [...prev, ...entries]);
+    setUploadStates(prev => {
+      const next = { ...prev };
+      entries.forEach(e => { next[e.id] = 'pending'; });
+      return next;
+    });
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
-    const f = e.dataTransfer.files?.[0];
-    if (f) { setSelectedFile(f); setForm(prev => ({ ...prev, name: prev.name || f.name.replace(/\.[^/.]+$/, '') })); }
+    if (e.dataTransfer.files?.length) addFilesToQueue(e.dataTransfer.files);
+  };
+
+  const uploadOneFile = async (entry) => {
+    const fd = new FormData();
+    fd.append('file', entry.file);
+    fd.append('name', entry.name.trim() || entry.file.name);
+    fd.append('platform', shared.platform);
+    fd.append('file_type', shared.file_type);
+    fd.append('description', shared.description.trim());
+    fd.append('version_tag', shared.version_tag || '1.0');
+    if (shared.rotation_center_x !== '') fd.append('rotation_center_x', shared.rotation_center_x);
+    if (shared.rotation_center_y !== '') fd.append('rotation_center_y', shared.rotation_center_y);
+    await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
+      headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+    });
+  };
+
+  const handleUploadAll = async () => {
+    if (!fileEntries.length) { setUploadErr('Sélectionne au moins un fichier.'); return; }
+    setUploadErr('');
+    setUploadingAll(true);
+    let anyError = false;
+    for (const entry of fileEntries) {
+      setUploadStates(prev => ({ ...prev, [entry.id]: 'uploading' }));
+      try {
+        await uploadOneFile(entry);
+        setUploadStates(prev => ({ ...prev, [entry.id]: 'done' }));
+      } catch (e) {
+        setUploadStates(prev => ({ ...prev, [entry.id]: 'error:' + (e.response?.data?.detail || e.message) }));
+        anyError = true;
+      }
+    }
+    setUploadingAll(false);
+    if (!anyError) {
+      setShowUpload(false);
+      setFileEntries([]);
+      setUploadStates({});
+      setShared(emptyShared);
+    }
+    await load();
+    await loadVersions();
   };
 
   const loadPreview = async (file) => {
@@ -189,35 +248,6 @@ export const FilesManagement = () => {
       setCreateVersionErr(e.response?.data?.detail || 'Failed to create version.');
     } finally {
       setCreatingVersion(false);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) { setUploadErr('Please select a file.'); return; }
-    setUploadErr('');
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('file', selectedFile);
-    fd.append('name', form.name.trim() || selectedFile.name);
-    fd.append('version', form.version.trim());
-    fd.append('platform', form.platform);
-    fd.append('file_type', form.file_type);
-    fd.append('description', form.description.trim());
-    fd.append('version_tag', form.version_tag || 'default');
-    if (form.rotation_center_x !== '') fd.append('rotation_center_x', form.rotation_center_x);
-    if (form.rotation_center_y !== '') fd.append('rotation_center_y', form.rotation_center_y);
-    try {
-      await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
-        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
-      });
-      setShowUpload(false);
-      setForm(emptyUpload);
-      setSelectedFile(null);
-      load();
-    } catch (e) {
-      setUploadErr(e.response?.data?.detail || 'Upload failed.');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -260,8 +290,14 @@ export const FilesManagement = () => {
 
   const saveEdit = async () => {
     setEditSaving(true);
+    // Convertir strings vides en null pour les champs numériques (sinon Pydantic rejette)
+    const payload = {
+      ...editForm,
+      rotation_center_x: editForm.rotation_center_x === '' ? null : parseFloat(editForm.rotation_center_x) || null,
+      rotation_center_y: editForm.rotation_center_y === '' ? null : parseFloat(editForm.rotation_center_y) || null,
+    };
     try {
-      await axios.put(`${API_URL}/api/admin/projects/${slug}/files/${editingId}`, editForm, { headers });
+      await axios.put(`${API_URL}/api/admin/projects/${slug}/files/${editingId}`, payload, { headers });
       setEditingId(null);
       load();
     } catch (e) {
@@ -453,9 +489,9 @@ export const FilesManagement = () => {
       {/* Upload panel */}
       {showUpload && (
         <div className="bg-white border border-[#E8E3DB] p-5 space-y-4">
-          <h3 className="text-sm font-bold text-[#1C1917] border-b border-[#E8E3DB] pb-3">Upload a new file</h3>
+          <h3 className="text-sm font-bold text-[#1C1917] border-b border-[#E8E3DB] pb-3">Importer des fichiers</h3>
 
-          {/* Drop zone */}
+          {/* Drop zone — accepte plusieurs fichiers */}
           <div
             ref={dropRef}
             onDragOver={e => e.preventDefault()}
@@ -464,48 +500,61 @@ export const FilesManagement = () => {
             className="border-2 border-dashed border-[#E8E3DB] hover:border-[#4ECDC4] bg-[#F9F7F4] hover:bg-[#4ECDC4]/5 transition-colors cursor-pointer p-8 text-center"
           >
             <Upload size={24} className="text-[#C9C3BB] mx-auto mb-2" />
-            {selectedFile ? (
-              <div>
-                <p className="text-sm font-semibold text-[#1C1917]">{selectedFile.name}</p>
-                <p className="text-xs text-[#78716C]">{formatBytes(selectedFile.size)}</p>
-              </div>
+            {fileEntries.length > 0 ? (
+              <p className="text-sm font-semibold text-[#1C1917]">{fileEntries.length} fichier{fileEntries.length > 1 ? 's' : ''} sélectionné{fileEntries.length > 1 ? 's' : ''} — clique pour en ajouter d'autres</p>
             ) : (
               <div>
-                <p className="text-sm text-[#78716C]">Drop a file here or click to browse</p>
-                <p className="text-[10px] text-[#A8A29E] mt-1">ZIP, EXE, APK, PAK, JSON… — max 500 MB</p>
+                <p className="text-sm text-[#78716C]">Glisse des fichiers ici ou clique pour parcourir</p>
+                <p className="text-[10px] text-[#A8A29E] mt-1">SVG, PNG, ZIP, EXE, APK… — max 500 MB — plusieurs à la fois</p>
               </div>
             )}
           </div>
-          <input ref={fileInputRef} type="file" className="hidden" onChange={e => {
-            const f = e.target.files?.[0];
-            if (f) { setSelectedFile(f); setForm(prev => ({ ...prev, name: prev.name || f.name.replace(/\.[^/.]+$/, '') })); }
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => {
+            if (e.target.files?.length) addFilesToQueue(e.target.files);
+            e.target.value = '';
           }} />
 
-          {/* Metadata */}
+          {/* Liste des fichiers avec nom éditable */}
+          {fileEntries.length > 0 && (
+            <div className="border border-[#E8E3DB] divide-y divide-[#E8E3DB]">
+              {fileEntries.map((entry) => {
+                const st = uploadStates[entry.id] || 'pending';
+                const isErr = st.startsWith('error:');
+                return (
+                  <div key={entry.id} className="flex items-center gap-3 px-3 py-2">
+                    <span className="shrink-0 w-5 text-center">
+                      {st === 'done'      && <span className="text-[#4ECDC4] text-xs">✓</span>}
+                      {st === 'uploading' && <Loader2 size={12} className="animate-spin text-[#4ECDC4]" />}
+                      {st === 'pending'   && <span className="text-[#C9C3BB] text-xs">○</span>}
+                      {isErr             && <span className="text-red-400 text-xs">✕</span>}
+                    </span>
+                    <input
+                      value={entry.name}
+                      disabled={st === 'done' || st === 'uploading'}
+                      onChange={e => setFileEntries(prev => prev.map(fe => fe.id === entry.id ? { ...fe, name: e.target.value } : fe))}
+                      className="flex-1 min-w-0 px-2 py-1 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] disabled:bg-[#F9F7F4] disabled:text-[#A8A29E]"
+                    />
+                    <span className="text-[10px] text-[#A8A29E] shrink-0 w-16 text-right">{formatBytes(entry.file.size)}</span>
+                    {st !== 'uploading' && st !== 'done' && (
+                      <button
+                        onClick={() => { setFileEntries(prev => prev.filter(fe => fe.id !== entry.id)); setUploadStates(prev => { const n = { ...prev }; delete n[entry.id]; return n; }); }}
+                        className="text-[#C9C3BB] hover:text-red-400 transition-colors shrink-0"
+                      >×</button>
+                    )}
+                    {isErr && <span className="text-[9px] text-red-400 shrink-0 max-w-[120px] truncate">{st.slice(6)}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Paramètres partagés */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Display name</label>
-              <input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Game v1.2.3 Windows"
-                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Version</label>
-              <input
-                value={form.version}
-                onChange={e => setForm(f => ({ ...f, version: e.target.value }))}
-                placeholder="1.2.3"
-                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Platform</label>
+              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Plateforme</label>
               <select
-                value={form.platform}
-                onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+                value={shared.platform}
+                onChange={e => setShared(s => ({ ...s, platform: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
               >
                 {PLATFORMS.map(p => <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>)}
@@ -514,8 +563,8 @@ export const FilesManagement = () => {
             <div>
               <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Type</label>
               <select
-                value={form.file_type}
-                onChange={e => setForm(f => ({ ...f, file_type: e.target.value }))}
+                value={shared.file_type}
+                onChange={e => setShared(s => ({ ...s, file_type: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
               >
                 {FILE_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
@@ -525,50 +574,31 @@ export const FilesManagement = () => {
               <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Version tag</label>
               <div className="relative">
                 <select
-                  value={form.version_tag}
-                  onChange={e => setForm(f => ({ ...f, version_tag: e.target.value }))}
+                  value={shared.version_tag}
+                  onChange={e => setShared(s => ({ ...s, version_tag: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] appearance-none"
                 >
-                  {['default', ...versions.filter(v => v !== 'default')].map(t => (
+                  {(versions.length ? versions : ['1.0']).map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
                 <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
               </div>
             </div>
-            {/* Rotation center — SVG seulement */}
-            {isImageFile(selectedFile?.name || '') && (
+            {fileEntries.some(fe => isImageFile(fe.file.name)) && (
               <div className="sm:col-span-2">
                 <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">
                   Centre de rotation <span className="font-normal normal-case text-[#C9C3BB]">(SVG/PNG — laisser vide = centre auto)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    value={form.rotation_center_x}
-                    onChange={e => setForm(f => ({ ...f, rotation_center_x: e.target.value }))}
-                    placeholder="X (auto)"
-                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-                  />
-                  <input
-                    type="number"
-                    value={form.rotation_center_y}
-                    onChange={e => setForm(f => ({ ...f, rotation_center_y: e.target.value }))}
-                    placeholder="Y (auto)"
-                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-                  />
+                  <input type="number" value={shared.rotation_center_x} onChange={e => setShared(s => ({ ...s, rotation_center_x: e.target.value }))} placeholder="X (auto)" className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]" />
+                  <input type="number" value={shared.rotation_center_y} onChange={e => setShared(s => ({ ...s, rotation_center_y: e.target.value }))} placeholder="Y (auto)" className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]" />
                 </div>
-                <p className="text-[9px] text-[#A8A29E] mt-1">Obtiens les valeurs avec le bloc TurboWarp <code className="bg-[#F9F7F4] px-1">centre rotation X costume [...] sprite [...]</code></p>
               </div>
             )}
             <div className="sm:col-span-2">
-              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Description <span className="font-normal normal-case text-[#C9C3BB]">(optional)</span></label>
-              <input
-                value={form.description}
-                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Changelog, notes…"
-                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
-              />
+              <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Description <span className="font-normal normal-case text-[#C9C3BB]">(optionnel)</span></label>
+              <input value={shared.description} onChange={e => setShared(s => ({ ...s, description: e.target.value }))} placeholder="Notes, changelog…" className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]" />
             </div>
           </div>
 
@@ -576,15 +606,21 @@ export const FilesManagement = () => {
 
           <div className="flex gap-2 pt-1 border-t border-[#E8E3DB]">
             <button
-              onClick={handleUpload}
-              disabled={uploading || !selectedFile}
+              onClick={handleUploadAll}
+              disabled={uploadingAll || !fileEntries.length}
               className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-sm font-semibold px-5 py-2.5 disabled:opacity-50 transition-colors"
             >
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {uploading ? 'Uploading…' : 'Upload'}
+              {uploadingAll ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploadingAll
+                ? `Envoi… (${Object.values(uploadStates).filter(s => s === 'done').length}/${fileEntries.length})`
+                : `Uploader ${fileEntries.length > 1 ? `${fileEntries.length} fichiers` : 'le fichier'}`
+              }
             </button>
-            <button onClick={() => setShowUpload(false)} className="text-sm text-[#78716C] hover:text-[#1C1917] px-4 py-2.5 transition-colors">
-              Cancel
+            <button
+              onClick={() => { setShowUpload(false); setFileEntries([]); setUploadStates({}); setShared(emptyShared); setUploadErr(''); }}
+              className="text-sm text-[#78716C] hover:text-[#1C1917] px-4 py-2.5 transition-colors"
+            >
+              Annuler
             </button>
           </div>
         </div>
