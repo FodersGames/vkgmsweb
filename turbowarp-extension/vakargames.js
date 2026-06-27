@@ -274,6 +274,26 @@
                             ID: { type: Scratch.ArgumentType.STRING, defaultValue: '' }
                         }
                     },
+
+                    // Lecture du centre de rotation (pour le copier dans le dashboard)
+                    {
+                        opcode:    'costumeCenterX',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'centre rotation X costume [COSTUME] sprite [SPRITE]',
+                        arguments: {
+                            COSTUME: { type: Scratch.ArgumentType.STRING, defaultValue: 'costume1' },
+                            SPRITE:  { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'costumeCenterY',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'centre rotation Y costume [COSTUME] sprite [SPRITE]',
+                        arguments: {
+                            COSTUME: { type: Scratch.ArgumentType.STRING, defaultValue: 'costume1' },
+                            SPRITE:  { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
                 ]
             };
         }
@@ -453,6 +473,31 @@
             return data;
         }
 
+        // Parse SVG pour obtenir ses dimensions réelles et calculer le centre auto
+        _parseSVGCenter(bytes) {
+            try {
+                const svgStr = new TextDecoder().decode(bytes);
+                const parser = new DOMParser();
+                const doc    = parser.parseFromString(svgStr, 'image/svg+xml');
+                const svgEl  = doc.documentElement;
+
+                // Essayer viewBox en premier (plus fiable)
+                const vb = svgEl.getAttribute('viewBox');
+                if (vb) {
+                    const parts = vb.trim().split(/[\s,]+/).map(Number);
+                    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                        return { x: parts[2] / 2, y: parts[3] / 2 };
+                    }
+                }
+
+                // Fallback sur width/height
+                const w = parseFloat(svgEl.getAttribute('width')  || '0');
+                const h = parseFloat(svgEl.getAttribute('height') || '0');
+                if (w > 0 && h > 0) return { x: w / 2, y: h / 2 };
+            } catch {}
+            return null;
+        }
+
         async _addCostumeToTarget(target, file) {
             const vm      = Scratch.vm;
             const storage = vm.runtime.storage;
@@ -473,16 +518,32 @@
                 suffix     = '.jpg';
             }
 
-            const bytes   = await this._getFileBytes(file.id, file.updated_at);
+            const bytes = await this._getFileBytes(file.id, file.updated_at);
+
+            // Priorité : valeurs stockées dans la BDD → parsing SVG → 0,0
+            let rotX = (file.rotation_center_x != null) ? file.rotation_center_x : null;
+            let rotY = (file.rotation_center_y != null) ? file.rotation_center_y : null;
+
+            if ((rotX === null || rotY === null) && ext === 'svg') {
+                const auto = this._parseSVGCenter(bytes);
+                if (auto) {
+                    if (rotX === null) rotX = auto.x;
+                    if (rotY === null) rotY = auto.y;
+                }
+            }
+
+            rotX = rotX ?? 0;
+            rotY = rotY ?? 0;
+
             const asset   = storage.createAsset(assetType, dataFormat, bytes, null, true);
             const costume = {
                 asset,
                 assetId:          asset.assetId,
-                name:             file.name,        // display name du dashboard
+                name:             file.name,
                 md5ext:           asset.assetId + suffix,
                 bitmapResolution: 1,
-                rotationCenterX:  0,
-                rotationCenterY:  0,
+                rotationCenterX:  rotX,
+                rotationCenterY:  rotY,
             };
             await vm.addCostume(costume.md5ext, costume, target.id);
         }
@@ -601,6 +662,27 @@
         fileDisplayName({ ID }) {
             const f = this._fileIndex[String(ID)];
             return f ? f.name : '';
+        }
+
+        // Lit le centre de rotation d'un costume existant dans TurboWarp
+        // Utile pour copier la valeur dans le dashboard avant d'uploader le fichier
+        _getCostumeCenter(spriteName, costumeName) {
+            const target = Scratch.vm.runtime.getSpriteTargetByName(String(spriteName));
+            if (!target) return null;
+            const costume = target.sprite.costumes_.find(
+                c => c.name === String(costumeName)
+            );
+            return costume || null;
+        }
+
+        costumeCenterX({ COSTUME, SPRITE }) {
+            const c = this._getCostumeCenter(SPRITE, COSTUME);
+            return c != null ? c.rotationCenterX : '';
+        }
+
+        costumeCenterY({ COSTUME, SPRITE }) {
+            const c = this._getCostumeCenter(SPRITE, COSTUME);
+            return c != null ? c.rotationCenterY : '';
         }
     }
 

@@ -516,6 +516,8 @@ class GameFileUpdateRequest(BaseModel):
     file_type: Optional[str] = None
     description: Optional[str] = None
     is_latest: Optional[bool] = None
+    rotation_center_x: Optional[float] = None
+    rotation_center_y: Optional[float] = None
 
 class CouponCampaignRequest(BaseModel):
     name: str
@@ -2132,6 +2134,8 @@ async def upload_game_file(
     file_type: str = "build",
     description: str = "",
     version_tag: str = "default",
+    rotation_center_x: Optional[float] = None,
+    rotation_center_y: Optional[float] = None,
     user=Depends(require_permission("view_projects")),
 ):
     project = await db.projects.find_one({"slug": slug})
@@ -2168,6 +2172,8 @@ async def upload_game_file(
         "file_type": file_type,
         "description": description.strip(),
         "is_latest": False,
+        "rotation_center_x": rotation_center_x,
+        "rotation_center_y": rotation_center_y,
         "download_count": 0,
         "uploaded_by": user["username"],
         "uploaded_at": datetime.now(timezone.utc),
@@ -2235,7 +2241,9 @@ async def update_game_file_meta(
     doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
     if not doc:
         raise HTTPException(status_code=404, detail="File not found")
-    updates = {k: v for k, v in req.dict().items() if v is not None}
+    _rot_fields = {"rotation_center_x", "rotation_center_y"}
+    payload = req.dict()
+    updates = {k: v for k, v in payload.items() if v is not None or k in _rot_fields}
     updates["updated_at"] = datetime.now(timezone.utc)
     await db.game_files.update_one({"_id": oid}, {"$set": updates})
     updated = await db.game_files.find_one({"_id": oid})
