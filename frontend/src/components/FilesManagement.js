@@ -224,9 +224,10 @@ export const FilesManagement = () => {
     if (shared.rotation_center_y !== '') fd.append('rotation_center_y', shared.rotation_center_y);
     if (shared.group_id)   fd.append('group_id',   shared.group_id);
     if (shared.group_name) fd.append('group_name', shared.group_name);
-    await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
+    const res = await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
       headers: { ...headers, 'Content-Type': 'multipart/form-data' },
     });
+    return res.data;
   };
 
   const handleUploadAll = async () => {
@@ -237,8 +238,11 @@ export const FilesManagement = () => {
     for (const entry of fileEntries) {
       setUploadStates(prev => ({ ...prev, [entry.id]: 'uploading' }));
       try {
-        await uploadOneFile(entry);
-        setUploadStates(prev => ({ ...prev, [entry.id]: 'done' }));
+        const result = await uploadOneFile(entry);
+        const msg = result?.sprite3
+          ? `done:${result.count} costume${result.count > 1 ? 's' : ''} importé${result.count > 1 ? 's' : ''} (${result.created} nouveau${result.created > 1 ? 'x' : ''}, ${result.replaced} remplacé${result.replaced > 1 ? 's' : ''})`
+          : result?.replaced ? 'done:remplacé' : 'done';
+        setUploadStates(prev => ({ ...prev, [entry.id]: msg }));
       } catch (e) {
         setUploadStates(prev => ({ ...prev, [entry.id]: 'error:' + (e.response?.data?.detail || e.message) }));
         anyError = true;
@@ -547,7 +551,10 @@ export const FilesManagement = () => {
             ) : (
               <div>
                 <p className="text-sm text-[#78716C]">Glisse des fichiers ici ou clique pour parcourir</p>
-                <p className="text-[10px] text-[#A8A29E] mt-1">SVG, PNG, ZIP, EXE, APK… — max 500 MB — plusieurs à la fois</p>
+                {shared.file_type === 'text_engine'
+                  ? <p className="text-[10px] text-[#4ECDC4] mt-1">SVG, PNG — ou dépose un <strong>.sprite3</strong> pour importer tous ses costumes d'un coup</p>
+                  : <p className="text-[10px] text-[#A8A29E] mt-1">SVG, PNG, ZIP, EXE, APK… — max 500 MB — plusieurs à la fois</p>
+                }
               </div>
             )}
           </div>
@@ -561,11 +568,13 @@ export const FilesManagement = () => {
             <div className="border border-[#E8E3DB] divide-y divide-[#E8E3DB]">
               {fileEntries.map((entry) => {
                 const st = uploadStates[entry.id] || 'pending';
-                const isErr = st.startsWith('error:');
+                const isErr  = st.startsWith('error:');
+                const isDone = st === 'done' || st.startsWith('done:');
+                const doneMsg = st.startsWith('done:') ? st.slice(5) : null;
                 return (
                   <div key={entry.id} className="flex items-center gap-3 px-3 py-2">
                     <span className="shrink-0 w-5 text-center">
-                      {st === 'done'      && <span className="text-[#4ECDC4] text-xs">✓</span>}
+                      {isDone            && <span className="text-[#4ECDC4] text-xs">✓</span>}
                       {st === 'uploading' && <Loader2 size={12} className="animate-spin text-[#4ECDC4]" />}
                       {st === 'pending'   && <span className="text-[#C9C3BB] text-xs">○</span>}
                       {isErr             && <span className="text-red-400 text-xs">✕</span>}
@@ -577,13 +586,14 @@ export const FilesManagement = () => {
                       className="flex-1 min-w-0 px-2 py-1 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] disabled:bg-[#F9F7F4] disabled:text-[#A8A29E]"
                     />
                     <span className="text-[10px] text-[#A8A29E] shrink-0 w-16 text-right">{formatBytes(entry.file.size)}</span>
-                    {st !== 'uploading' && st !== 'done' && (
+                    {!isDone && st !== 'uploading' && (
                       <button
                         onClick={() => { setFileEntries(prev => prev.filter(fe => fe.id !== entry.id)); setUploadStates(prev => { const n = { ...prev }; delete n[entry.id]; return n; }); }}
                         className="text-[#C9C3BB] hover:text-red-400 transition-colors shrink-0"
                       >×</button>
                     )}
-                    {isErr && <span className="text-[9px] text-red-400 shrink-0 max-w-[120px] truncate">{st.slice(6)}</span>}
+                    {doneMsg  && <span className="text-[9px] text-[#4ECDC4] shrink-0 max-w-[160px] truncate">{doneMsg}</span>}
+                    {isErr    && <span className="text-[9px] text-red-400 shrink-0 max-w-[120px] truncate">{st.slice(6)}</span>}
                   </div>
                 );
               })}

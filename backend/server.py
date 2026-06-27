@@ -26,6 +26,9 @@ from slowapi.errors import RateLimitExceeded
 import stripe
 import asyncio
 import math
+import zipfile
+import io
+import json
 
 VERSION = "1.3.0"
 
@@ -2150,14 +2153,85 @@ async def upload_game_file(
         raise HTTPException(status_code=404, detail="Project not found")
 
     ext = Path(file.filename or "").suffix.lower()
-    if ext not in _GAME_FILE_EXTS:
-        raise HTTPException(status_code=400, detail=f"File type not allowed: {ext or '(none)'}")
 
     content = await file.read()
     if len(content) > _GAME_FILE_MAX_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 500 MB)")
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Empty file")
+
+    # ── .sprite3 import : extract all costumes into the text engine group ──────
+    if ext == '.sprite3':
+        gid_s3 = (group_id or "").strip()
+        if file_type != 'text_engine' or not gid_s3:
+            raise HTTPException(status_code=400, detail="Les fichiers .sprite3 ne peuvent être importés que dans un groupe Text Engine")
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                sprite_data = json.loads(zf.read('sprite.json').decode('utf-8'))
+                costumes = sprite_data.get('costumes', [])
+                if not costumes:
+                    raise HTTPException(status_code=400, detail="Aucun costume trouvé dans ce sprite")
+
+                now = datetime.now(timezone.utc)
+                gname = (group_name or "").strip() or sprite_data.get('name', '')
+                created_docs, replaced_docs = [], []
+
+                for costume in costumes:
+                    md5ext       = costume.get('md5ext', '')
+                    costume_name = costume.get('name', '') or Path(md5ext).stem
+                    rot_x        = costume.get('rotationCenterX')
+                    rot_y        = costume.get('rotationCenterY')
+                    c_ext        = Path(md5ext).suffix.lower()
+
+                    if c_ext not in ('.svg', '.png', '.jpg', '.jpeg', '.webp'):
+                        continue
+                    try:
+                        costume_bytes = zf.read(md5ext)
+                    except KeyError:
+                        continue
+
+                    existing = await db.game_files.find_one({
+                        "project_slug": slug, "group_id": gid_s3, "name": costume_name
+                    })
+                    if existing:
+                        dest = _game_file_path(slug, str(existing["_id"]))
+                        with open(dest, "wb") as f:
+                            f.write(costume_bytes)
+                        upd = {"original_filename": md5ext, "size_bytes": len(costume_bytes),
+                               "uploaded_at": now, "updated_at": now,
+                               "rotation_center_x": rot_x, "rotation_center_y": rot_y,
+                               "group_name": gname}
+                        await db.game_files.update_one({"_id": existing["_id"]}, {"$set": upd})
+                        replaced_docs.append(str(existing["_id"]))
+                    else:
+                        fid = ObjectId()
+                        dest = _game_file_path(slug, str(fid))
+                        with open(dest, "wb") as f:
+                            f.write(costume_bytes)
+                        doc = {
+                            "_id": fid, "project_slug": slug,
+                            "name": costume_name, "original_filename": md5ext,
+                            "size_bytes": len(costume_bytes),
+                            "version": "", "version_tag": version_tag.strip() or "default",
+                            "platform": platform, "file_type": "text_engine",
+                            "description": description.strip(), "is_latest": False,
+                            "rotation_center_x": rot_x, "rotation_center_y": rot_y,
+                            "group_id": gid_s3, "group_name": gname,
+                            "download_count": 0, "uploaded_by": user["username"],
+                            "uploaded_at": now, "updated_at": now,
+                        }
+                        await db.game_files.insert_one(doc)
+                        created_docs.append(str(fid))
+
+        except zipfile.BadZipFile:
+            raise HTTPException(status_code=400, detail="Fichier .sprite3 invalide (ZIP corrompu)")
+
+        total = len(created_docs) + len(replaced_docs)
+        await log_action("website", f"Sprite '{file.filename}' importé : {len(created_docs)} créés, {len(replaced_docs)} remplacés dans groupe '{gid_s3}'", user=user["username"])
+        return {"success": True, "sprite3": True, "created": len(created_docs), "replaced": len(replaced_docs), "count": total}
+
+    if ext not in _GAME_FILE_EXTS:
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {ext or '(none)'}")
 
     display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
     now = datetime.now(timezone.utc)
