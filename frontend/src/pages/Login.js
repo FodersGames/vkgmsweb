@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 
-const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoComplete }) => {
+const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoComplete, required = true }) => {
   const [show, setShow] = useState(false);
   const isPassword = type === 'password';
   return (
@@ -16,7 +16,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         onChange={onChange}
         autoComplete={autoComplete}
         placeholder={placeholder}
-        required
+        required={required}
         className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
       />
       {isPassword && (
@@ -282,6 +282,7 @@ export const Login = () => {
                         value={reg.firstName}
                         onChange={e => setReg(r => ({ ...r, firstName: e.target.value }))}
                         autoComplete="given-name"
+                        required={false}
                       />
                     </div>
                     <div>
@@ -295,6 +296,7 @@ export const Login = () => {
                         value={reg.lastName}
                         onChange={e => setReg(r => ({ ...r, lastName: e.target.value }))}
                         autoComplete="family-name"
+                        required={false}
                       />
                     </div>
                   </div>
@@ -309,6 +311,7 @@ export const Login = () => {
                       value={reg.username}
                       onChange={e => setReg(r => ({ ...r, username: e.target.value }))}
                       autoComplete="username"
+                      required={false}
                     />
                   </div>
                   <div>
