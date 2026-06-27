@@ -260,8 +260,9 @@
                     {
                         opcode:    'loadCostumeById',
                         blockType: Scratch.BlockType.COMMAND,
-                        text:      'charger costume ID [ID] dans sprite [SPRITE]',
+                        text:      'charger costume [LABEL] ID [ID] dans sprite [SPRITE]',
                         arguments: {
+                            LABEL:  { type: Scratch.ArgumentType.STRING, defaultValue: 'nom asset' },
                             ID:     { type: Scratch.ArgumentType.STRING, defaultValue: '' },
                             SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
                         }
