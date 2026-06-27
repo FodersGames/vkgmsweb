@@ -5,8 +5,14 @@ import { useProject } from '../context/ProjectContext';
 import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
-  HardDrive, Star, X, GitBranch, ChevronDown, Plus,
+  HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn,
 } from 'lucide-react';
+
+const IMAGE_EXTS = ['.svg', '.png', '.jpg', '.jpeg', '.webp'];
+function isImageFile(filename) {
+  const s = (filename || '').toLowerCase();
+  return IMAGE_EXTS.some(e => s.endsWith(e));
+}
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -66,6 +72,15 @@ export const FilesManagement = () => {
   const [replaceSaving, setReplaceSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting,    setDeleting]    = useState(null);
+
+  // Image preview
+  const [previews,       setPreviews]       = useState({});  // { fileId: blobUrl }
+  const [previewLoading, setPreviewLoading] = useState(new Set());
+  const [previewModal,   setPreviewModal]   = useState(null); // file object
+
+  useEffect(() => {
+    return () => { Object.values(previews).forEach(u => URL.revokeObjectURL(u)); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Version management
   const [versions,          setVersions]          = useState(['default']);
@@ -133,6 +148,25 @@ export const FilesManagement = () => {
     e.preventDefault();
     const f = e.dataTransfer.files?.[0];
     if (f) { setSelectedFile(f); setForm(prev => ({ ...prev, name: prev.name || f.name.replace(/\.[^/.]+$/, '') })); }
+  };
+
+  const loadPreview = async (file) => {
+    if (previews[file.id] || previewLoading.has(file.id)) return;
+    setPreviewLoading(prev => new Set([...prev, file.id]));
+    try {
+      const res  = await fetch(`${API_URL}/api/admin/projects/${slug}/files/${file.id}/preview`, { headers });
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      setPreviews(prev => ({ ...prev, [file.id]: url }));
+    } catch {}
+    finally {
+      setPreviewLoading(prev => { const n = new Set(prev); n.delete(file.id); return n; });
+    }
+  };
+
+  const openPreview = (file) => {
+    setPreviewModal(file);
+    loadPreview(file);
   };
 
   const createVersion = async () => {
@@ -625,6 +659,46 @@ export const FilesManagement = () => {
         </div>
       )}
 
+      {/* Image preview modal */}
+      {previewModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          onClick={() => setPreviewModal(null)}
+        >
+          <div
+            className="bg-white border border-[#E8E3DB] w-full max-w-3xl max-h-[90vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E8E3DB]">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#1C1917] truncate">{previewModal.name}</p>
+                <p className="text-[10px] text-[#A8A29E] mt-0.5">{previewModal.original_filename} · {formatBytes(previewModal.size_bytes)}</p>
+              </div>
+              <button onClick={() => setPreviewModal(null)} className="ml-4 text-[#A8A29E] hover:text-[#1C1917] shrink-0">
+                <X size={15} />
+              </button>
+            </div>
+            {/* Preview area */}
+            <div className="flex-1 overflow-auto flex items-center justify-center p-6 bg-[#F9F7F4] min-h-[200px]">
+              {previews[previewModal.id] ? (
+                <img
+                  src={previews[previewModal.id]}
+                  alt={previewModal.name}
+                  className="max-w-full max-h-[70vh] object-contain"
+                  style={{ imageRendering: 'auto' }}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-[#A8A29E]">
+                  <Loader2 size={20} className="animate-spin" />
+                  <p className="text-xs">Chargement…</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -669,10 +743,34 @@ export const FilesManagement = () => {
             <div key={file.id} className="bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] transition-colors">
               {/* Main row */}
               <div className="flex items-start gap-4 p-4">
-                {/* Icon */}
-                <div className="w-9 h-9 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center shrink-0 mt-0.5">
-                  <FileText size={15} className="text-[#A8A29E]" />
-                </div>
+                {/* Thumbnail / icon */}
+                {isImageFile(file.original_filename) ? (
+                  <button
+                    onClick={() => openPreview(file)}
+                    className="w-10 h-10 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center shrink-0 mt-0.5 overflow-hidden group relative hover:border-[#4ECDC4]/50 transition-colors"
+                    title="Prévisualiser"
+                  >
+                    {previews[file.id] ? (
+                      <>
+                        <img src={previews[file.id]} alt="" className="w-full h-full object-contain" />
+                        <span className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ZoomIn size={11} className="text-white" />
+                        </span>
+                      </>
+                    ) : previewLoading.has(file.id) ? (
+                      <Loader2 size={12} className="animate-spin text-[#A8A29E]" />
+                    ) : (
+                      <>
+                        <Image size={14} className="text-[#A8A29E] group-hover:hidden" />
+                        <ZoomIn size={13} className="text-[#4ECDC4] hidden group-hover:block" />
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center shrink-0 mt-0.5">
+                    <FileText size={15} className="text-[#A8A29E]" />
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">

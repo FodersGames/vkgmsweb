@@ -2071,9 +2071,16 @@ _GAME_FILE_EXTS = {
     ".apk", ".ipa",
     ".pak", ".dat", ".bin", ".unity3d",
     ".json", ".xml", ".yaml", ".toml", ".cfg", ".ini",
-    ".png", ".jpg", ".jpeg", ".webp",
+    ".svg", ".png", ".jpg", ".jpeg", ".webp",
     ".pdf",
     ".mp4", ".mov",
+}
+_PREVIEW_TYPES = {
+    ".svg":  "image/svg+xml",
+    ".png":  "image/png",
+    ".jpg":  "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
 }
 _GAME_FILE_MAX_BYTES = 500 * 1024 * 1024  # 500 MB
 
@@ -2251,6 +2258,26 @@ async def delete_game_file(slug: str, file_id: str, user=Depends(require_permiss
     await db.game_files.delete_one({"_id": oid})
     await log_action("website", f"Game file '{doc['name']}' deleted from project '{slug}'", user=user["username"])
     return {"success": True}
+
+# ── Admin: preview image file ─────────────────────────────────────────────────
+
+@api_router.get("/admin/projects/{slug}/files/{file_id}/preview")
+async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_permission("view_projects"))):
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    ext = Path(doc.get("original_filename", "")).suffix.lower()
+    media_type = _PREVIEW_TYPES.get(ext)
+    if not media_type:
+        raise HTTPException(status_code=400, detail="Not a previewable image file")
+    dest = _game_file_path(slug, file_id)
+    if not dest.exists():
+        raise HTTPException(status_code=404, detail="File data missing on server")
+    return FileResponse(dest, media_type=media_type)
 
 # ── Admin: list files ─────────────────────────────────────────────────────────
 
