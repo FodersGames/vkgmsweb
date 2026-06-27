@@ -6,7 +6,7 @@ import { useProject } from '../context/ProjectContext';
 import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
-  HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn,
+  HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn, Search,
 } from 'lucide-react';
 
 const IMAGE_EXTS = ['.svg', '.png', '.jpg', '.jpeg', '.webp'];
@@ -86,6 +86,9 @@ export const FilesManagement = () => {
   // Copy ID
   const [copiedId, setCopiedId] = useState('');
 
+  // Search
+  const [search, setSearch] = useState('');
+
   // Image preview
   const [previews,       setPreviews]       = useState({});  // { fileId: blobUrl }
   const [previewLoading, setPreviewLoading] = useState(new Set());
@@ -133,6 +136,11 @@ export const FilesManagement = () => {
   }, [slug, token, activeVersionTag]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); loadVersions(); }, [load, loadVersions]);
+
+  // Auto-load previews for all image files when the list changes
+  useEffect(() => {
+    files.forEach(f => { if (isImageFile(f.original_filename)) loadPreview(f); });
+  }, [files]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── API key ───────────────────────────────────────────────────────────────
 
@@ -380,7 +388,7 @@ export const FilesManagement = () => {
             <GitBranch size={12} /> New version
           </button>
           <button
-            onClick={() => { setShowUpload(v => !v); setUploadErr(''); setSelectedFile(null); setForm({ ...emptyUpload, version_tag: activeVersionTag !== 'all' ? activeVersionTag : 'default' }); }}
+            onClick={() => { setShowUpload(v => !v); setUploadErr(''); }}
             className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
           >
             <Upload size={13} /> Upload file
@@ -830,6 +838,24 @@ export const FilesManagement = () => {
         </div>
       )}
 
+      {/* Search */}
+      {files.length > 0 && (
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un fichier…"
+            className="w-full pl-9 pr-9 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#1C1917]">
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* File list */}
       {loading ? (
         <div className="text-center py-12 text-[#A8A29E] text-sm flex items-center justify-center gap-2">
@@ -840,9 +866,24 @@ export const FilesManagement = () => {
           <FileText size={28} className="text-[#C9C3BB] mx-auto mb-3" />
           <p className="text-sm text-[#78716C]">No files yet. Upload your first game file above.</p>
         </div>
-      ) : (
+      ) : (() => {
+        const q = search.toLowerCase();
+        const displayed = q
+          ? files.filter(f =>
+              f.name?.toLowerCase().includes(q) ||
+              f.original_filename?.toLowerCase().includes(q) ||
+              f.description?.toLowerCase().includes(q)
+            )
+          : files;
+        if (displayed.length === 0) return (
+          <div className="text-center py-10 border border-dashed border-[#E8E3DB]">
+            <Search size={22} className="text-[#C9C3BB] mx-auto mb-2" />
+            <p className="text-sm text-[#78716C]">Aucun fichier ne correspond à "<strong>{search}</strong>".</p>
+          </div>
+        );
+        return (
         <div className="space-y-2">
-          {files.map(file => (
+          {displayed.map(file => (
             <div key={file.id} className="bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] transition-colors">
               {/* Main row */}
               <div className="flex items-start gap-4 p-4">
@@ -957,7 +998,8 @@ export const FilesManagement = () => {
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
