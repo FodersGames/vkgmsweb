@@ -2124,6 +2124,7 @@ async def upload_game_file(
     platform: str = "all",
     file_type: str = "build",
     description: str = "",
+    version_tag: str = "default",
     user=Depends(require_permission("view_projects")),
 ):
     project = await db.projects.find_one({"slug": slug})
@@ -2155,6 +2156,7 @@ async def upload_game_file(
         "original_filename": file.filename or "",
         "size_bytes": len(content),
         "version": version.strip(),
+        "version_tag": version_tag.strip() or "default",
         "platform": platform,
         "file_type": file_type,
         "description": description.strip(),
@@ -2253,23 +2255,46 @@ async def delete_game_file(slug: str, file_id: str, user=Depends(require_permiss
 # ── Admin: list files ─────────────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files")
-async def list_game_files_admin(slug: str, user=Depends(require_permission("view_projects"))):
-    files = await db.game_files.find({"project_slug": slug}).sort("uploaded_at", -1).to_list(500)
+async def list_game_files_admin(
+    slug: str,
+    version_tag: Optional[str] = None,
+    user=Depends(require_permission("view_projects")),
+):
+    query: dict = {"project_slug": slug}
+    if version_tag:
+        if version_tag == "default":
+            query["$or"] = [{"version_tag": "default"}, {"version_tag": {"$exists": False}}]
+        else:
+            query["version_tag"] = version_tag
+    files = await db.game_files.find(query).sort("uploaded_at", -1).to_list(500)
     return {"files": [serialize_doc(f) for f in files]}
 
 # ── Game client: list files (API key auth) ────────────────────────────────────
 
 @api_router.get("/game/{slug}/files")
-async def list_game_files_client(slug: str, request: Request):
+async def list_game_files_client(slug: str, request: Request, version: Optional[str] = None):
     project = await _verify_files_api_key(slug, request)
     base_url = str(request.base_url).rstrip("/")
-    files = await db.game_files.find({"project_slug": slug}).sort("uploaded_at", -1).to_list(500)
+
+    # Resolve "live" version from project settings
+    resolved_version = version
+    if version == "live" or not version:
+        resolved_version = project.get("live_version") or "default"
+
+    query: dict = {"project_slug": slug}
+    if resolved_version == "default":
+        query["$or"] = [{"version_tag": "default"}, {"version_tag": {"$exists": False}}]
+    else:
+        query["version_tag"] = resolved_version
+
+    files = await db.game_files.find(query).sort("uploaded_at", -1).to_list(500)
     result = []
     for f in files:
         doc = serialize_doc(f)
         doc["download_url"] = f"{base_url}/api/game/{slug}/files/{doc['id']}/download"
+        doc["resolved_version"] = resolved_version
         result.append(doc)
-    return {"files": result}
+    return {"files": result, "resolved_version": resolved_version}
 
 # ── Game client: download file (API key auth) ─────────────────────────────────
 
@@ -2293,6 +2318,110 @@ async def download_game_file_client(slug: str, file_id: str, request: Request):
         filename=safe_name,
         headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
     )
+
+# ── Game file versions ────────────────────────────────────────────────────────
+
+@api_router.get("/admin/projects/{slug}/versions")
+async def list_file_versions(slug: str, user=Depends(require_permission("view_projects"))):
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    pipeline = [
+        {"$match": {"project_slug": slug}},
+        {"$group": {"_id": "$version_tag"}},
+        {"$sort": {"_id": 1}},
+    ]
+    raw = await db.game_files.aggregate(pipeline).to_list(200)
+    tags = []
+    for r in raw:
+        t = r["_id"]
+        if t is None:
+            t = "default"
+        if t not in tags:
+            tags.append(t)
+    if "default" not in tags:
+        tags.insert(0, "default")
+    return {"versions": tags, "live_version": project.get("live_version") or "default"}
+
+class VersionCloneRequest(BaseModel):
+    new_tag: str
+
+@api_router.post("/admin/projects/{slug}/versions")
+async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(require_permission("view_projects"))):
+    new_tag = req.new_tag.strip()
+    if not new_tag:
+        raise HTTPException(status_code=400, detail="Version tag is required")
+    if not re.match(r"^[a-zA-Z0-9._\-]+$", new_tag):
+        raise HTTPException(status_code=400, detail="Version tag must be alphanumeric with dots, dashes or underscores")
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Check tag doesn't already exist
+    existing = await db.game_files.find_one({"project_slug": slug, "version_tag": new_tag})
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Version '{new_tag}' already exists")
+
+    # Get all files marked is_latest (or all files if none marked)
+    source_files = await db.game_files.find({"project_slug": slug, "is_latest": True}).to_list(500)
+    if not source_files:
+        source_files = await db.game_files.find({"project_slug": slug}).to_list(500)
+    if not source_files:
+        raise HTTPException(status_code=400, detail="No files to clone")
+
+    cloned = 0
+    project_dir = GAME_FILES_DIR / slug
+    project_dir.mkdir(exist_ok=True)
+
+    for src in source_files:
+        src_id = str(src["_id"])
+        src_path = _game_file_path(slug, src_id)
+        if not src_path.exists():
+            continue
+
+        new_id = ObjectId()
+        new_id_hex = str(new_id)
+        dest_path = _game_file_path(slug, new_id_hex)
+
+        import shutil
+        shutil.copy2(src_path, dest_path)
+
+        new_doc = {k: v for k, v in src.items() if k != "_id"}
+        new_doc["_id"] = new_id
+        new_doc["version_tag"] = new_tag
+        new_doc["download_count"] = 0
+        new_doc["uploaded_at"] = datetime.now(timezone.utc)
+        new_doc["cloned_from"] = src_id
+        await db.game_files.insert_one(new_doc)
+        cloned += 1
+
+    await log_action("website", f"Version '{new_tag}' cloned from existing files for project '{slug}' ({cloned} files)", user=user["username"])
+    return {"success": True, "version_tag": new_tag, "files_cloned": cloned}
+
+# ── Live version (public + admin) ─────────────────────────────────────────────
+
+@api_router.get("/game/{slug}/live-version")
+async def get_live_version_client(slug: str, request: Request):
+    await _verify_files_api_key(slug, request)
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"live_version": project.get("live_version") or "default"}
+
+class LiveVersionRequest(BaseModel):
+    live_version: str
+
+@api_router.put("/admin/projects/{slug}/live-version")
+async def set_live_version(slug: str, req: LiveVersionRequest, user=Depends(require_permission("view_projects"))):
+    tag = req.live_version.strip()
+    if not tag:
+        raise HTTPException(status_code=400, detail="Version tag required")
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    await db.projects.update_one({"slug": slug}, {"$set": {"live_version": tag}})
+    await log_action("website", f"Live version set to '{tag}' for project '{slug}'", user=user["username"])
+    return {"success": True, "live_version": tag}
 
 # ── Coupon campaign endpoints ────────────────────────────────────────────────
 
