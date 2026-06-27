@@ -44,7 +44,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const emptyUpload = { name: '', version: '', platform: 'all', file_type: 'build', description: '', version_tag: 'default' };
+const emptyUpload = { name: '', version: '', platform: 'all', file_type: 'build', description: '', version_tag: 'default', rotation_center_x: '', rotation_center_y: '' };
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -204,6 +204,8 @@ export const FilesManagement = () => {
     fd.append('file_type', form.file_type);
     fd.append('description', form.description.trim());
     fd.append('version_tag', form.version_tag || 'default');
+    if (form.rotation_center_x !== '') fd.append('rotation_center_x', form.rotation_center_x);
+    if (form.rotation_center_y !== '') fd.append('rotation_center_y', form.rotation_center_y);
     try {
       await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' },
@@ -251,6 +253,8 @@ export const FilesManagement = () => {
       file_type: file.file_type || 'build',
       description: file.description || '',
       is_latest: file.is_latest || false,
+      rotation_center_x: file.rotation_center_x ?? '',
+      rotation_center_y: file.rotation_center_y ?? '',
     });
   };
 
@@ -532,6 +536,31 @@ export const FilesManagement = () => {
                 <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
               </div>
             </div>
+            {/* Rotation center — SVG seulement */}
+            {isImageFile(selectedFile?.name || '') && (
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">
+                  Centre de rotation <span className="font-normal normal-case text-[#C9C3BB]">(SVG/PNG — laisser vide = centre auto)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    value={form.rotation_center_x}
+                    onChange={e => setForm(f => ({ ...f, rotation_center_x: e.target.value }))}
+                    placeholder="X (auto)"
+                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                  />
+                  <input
+                    type="number"
+                    value={form.rotation_center_y}
+                    onChange={e => setForm(f => ({ ...f, rotation_center_y: e.target.value }))}
+                    placeholder="Y (auto)"
+                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                  />
+                </div>
+                <p className="text-[9px] text-[#A8A29E] mt-1">Obtiens les valeurs avec le bloc TurboWarp <code className="bg-[#F9F7F4] px-1">centre rotation X costume [...] sprite [...]</code></p>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Description <span className="font-normal normal-case text-[#C9C3BB]">(optional)</span></label>
               <input
@@ -646,6 +675,28 @@ export const FilesManagement = () => {
                   >
                     {FILE_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
                   </select>
+                </div>
+              </div>
+              {/* Rotation center */}
+              <div>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">
+                  Centre de rotation <span className="font-normal normal-case text-[#C9C3BB]">(vide = centre auto)</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    value={editForm.rotation_center_x ?? ''}
+                    onChange={e => setEditForm(f => ({ ...f, rotation_center_x: e.target.value === '' ? '' : parseFloat(e.target.value) }))}
+                    placeholder="X (auto)"
+                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                  />
+                  <input
+                    type="number"
+                    value={editForm.rotation_center_y ?? ''}
+                    onChange={e => setEditForm(f => ({ ...f, rotation_center_y: e.target.value === '' ? '' : parseFloat(e.target.value) }))}
+                    placeholder="Y (auto)"
+                    className="px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                  />
                 </div>
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
