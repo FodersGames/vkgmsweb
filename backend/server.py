@@ -2141,6 +2141,8 @@ async def upload_game_file(
     version_tag: str = Form("1.0"),
     rotation_center_x: Optional[float] = Form(None),
     rotation_center_y: Optional[float] = Form(None),
+    group_id: Optional[str] = Form(None),
+    group_name: Optional[str] = Form(None),
     user=Depends(require_permission("manage_files")),
 ):
     project = await db.projects.find_one({"slug": slug})
@@ -2179,6 +2181,8 @@ async def upload_game_file(
         "is_latest": False,
         "rotation_center_x": rotation_center_x,
         "rotation_center_y": rotation_center_y,
+        "group_id":   group_id.strip()   if group_id   else None,
+        "group_name": group_name.strip() if group_name else None,
         "download_count": 0,
         "uploaded_by": user["username"],
         "uploaded_at": datetime.now(timezone.utc),
