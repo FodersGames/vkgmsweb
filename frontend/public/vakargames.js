@@ -295,6 +295,26 @@
                             SPRITE:  { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
                         }
                     },
+
+                    '---',
+
+                    {
+                        opcode:    'removeAllCostumes',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer tous les costumes du sprite [SPRITE]',
+                        arguments: {
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'removeCostumeByName',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer le costume [NOM] du sprite [SPRITE]',
+                        arguments: {
+                            NOM:    { type: Scratch.ArgumentType.STRING, defaultValue: 'chest' },
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
                 ]
             };
         }
@@ -511,7 +531,7 @@
                 if (cached && cached.updated_at === file.updated_at) return; // déjà à jour
                 // Fichier mis à jour : supprime l'ancien avant d'ajouter le nouveau
                 const idx = target.sprite.costumes_.indexOf(existing);
-                if (idx !== -1) vm.deleteCostume(target.id, idx);
+                if (idx !== -1) target.deleteCostume(idx);
             }
 
             let assetType, dataFormat, suffix;
@@ -694,6 +714,50 @@
         costumeCenterY({ COSTUME, SPRITE }) {
             const c = this._getCostumeCenter(SPRITE, COSTUME);
             return c != null ? c.rotationCenterY : '';
+        }
+
+        async removeAllCostumes({ SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            const vm      = Scratch.vm;
+            const storage = vm.runtime.storage;
+
+            // 1. Ajouter un costume SVG vide AVANT de supprimer (TurboWarp exige min 1)
+            const blankSVG = new TextEncoder().encode(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>'
+            );
+            const asset = storage.createAsset(
+                storage.AssetType.ImageVector, storage.DataFormat.SVG, blankSVG, null, true
+            );
+            const blank = {
+                asset,
+                assetId:          asset.assetId,
+                name:             '',
+                md5ext:           asset.assetId + '.svg',
+                bitmapResolution: 1,
+                rotationCenterX:  0,
+                rotationCenterY:  0,
+            };
+            const oldCount = target.sprite.costumes_.length;
+            await vm.addCostume(blank.md5ext, blank, target.id);
+
+            // Forcer le nom vide (TurboWarp renomme automatiquement à l'ajout)
+            const added = target.sprite.costumes_[target.sprite.costumes_.length - 1];
+            if (added) added.name = '';
+
+            // 2. Supprimer tous les anciens costumes (de la fin vers 0)
+            for (let i = oldCount - 1; i >= 0; i--) {
+                target.deleteCostume(i);
+            }
+        }
+
+        removeCostumeByName({ NOM, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            const idx = target.sprite.costumes_.findIndex(c => c.name === String(NOM));
+            if (idx !== -1 && target.sprite.costumes_.length > 1) {
+                target.deleteCostume(idx);
+            }
         }
     }
 

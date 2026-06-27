@@ -9,6 +9,8 @@ import logging
 import re
 import uuid
 import shutil
+import time
+import psutil
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Literal
@@ -3113,6 +3115,32 @@ async def delete_notification(notif_id: str, user=Depends(get_current_user)):
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Notification not found")
     return {"success": True}
+
+# ── System stats ─────────────────────────────────────────────────────────────
+
+@api_router.get("/api/admin/system/stats")
+async def get_system_stats(user=Depends(require_permission("manage_users"))):
+    cpu_percent = psutil.cpu_percent(interval=0.2)
+    cpu_count   = psutil.cpu_count(logical=True)
+
+    ram  = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+
+    uptime_seconds = time.time() - psutil.boot_time()
+
+    load_avg = None
+    try:
+        load_avg = list(psutil.getloadavg())
+    except Exception:
+        pass
+
+    return {
+        "cpu":    {"percent": cpu_percent, "count": cpu_count},
+        "ram":    {"total": ram.total,  "used": ram.used,  "free": ram.available, "percent": ram.percent},
+        "disk":   {"total": disk.total, "used": disk.used, "free": disk.free,     "percent": disk.percent},
+        "uptime_seconds": uptime_seconds,
+        "load_avg": load_avg,
+    }
 
 # ============== SETUP ==============
 app.include_router(api_router)

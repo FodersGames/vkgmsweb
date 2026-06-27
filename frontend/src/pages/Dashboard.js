@@ -6,7 +6,7 @@ import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
-  ArrowRight, Home, Ticket, UserCircle, Tag, ChevronRight, HardDrive,
+  ArrowRight, Home, Ticket, UserCircle, Tag, ChevronRight, HardDrive, Server,
 } from 'lucide-react';
 import { UserManagement } from '../components/UserManagement';
 import { SendItems } from '../components/SendItems';
@@ -23,6 +23,7 @@ import { WebsiteSettings } from '../components/WebsiteSettings';
 import { ShopManagement } from '../components/ShopManagement';
 import { MissionsManagement } from '../components/MissionsManagement';
 import { FilesManagement } from '../components/FilesManagement';
+import { VpsStats } from '../components/VpsStats';
 import TicketManagement from '../components/TicketManagement';
 import { AccountSettings } from '../components/AccountSettings';
 import { CouponManagement } from '../components/CouponManagement';
@@ -69,8 +70,9 @@ const SECTIONS = [
     label: 'Team',
     icon: Users,
     items: [
-      { id: 'users', label: 'Users',    icon: Users, permission: 'manage_users'    },
-      { id: 'api',   label: 'API Docs', icon: Code,  permission: 'view_api_docs'  },
+      { id: 'users',   label: 'Users',    icon: Users,  permission: 'manage_users'  },
+      { id: 'api',     label: 'API Docs', icon: Code,   permission: 'view_api_docs' },
+      { id: 'vps',     label: 'VPS',      icon: Server, permission: 'manage_users'  },
     ],
   },
   {
@@ -492,6 +494,7 @@ const DashboardContent = () => {
               {activeTab === 'projects'       && <ProjectManagement />}
               {activeTab === 'users'          && hasPermission('manage_users')    && <UserManagement />}
               {activeTab === 'api'            && hasPermission('view_api_docs')   && <ApiEndpoints />}
+              {activeTab === 'vps'            && hasPermission('manage_users')    && <VpsStats />}
 
               {needsProject && !selectedProject && (
                 <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
