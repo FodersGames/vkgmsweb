@@ -2073,6 +2073,7 @@ _GAME_FILE_EXTS = {
     ".apk", ".ipa",
     ".pak", ".dat", ".bin", ".unity3d",
     ".json", ".xml", ".yaml", ".toml", ".cfg", ".ini",
+    ".js", ".ts",
     ".svg", ".png", ".jpg", ".jpeg", ".webp",
     ".pdf",
     ".mp4", ".mov",
@@ -3129,8 +3130,8 @@ else:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_origins=["*"],
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Chat-Api-Key", "X-Files-Api-Key"],
 )
