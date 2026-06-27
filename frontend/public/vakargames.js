@@ -268,6 +268,16 @@
                         }
                     },
                     {
+                        opcode:    'loadTextEngine',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'charger text engine [LABEL] groupe [GROUP_ID] dans sprite [SPRITE]',
+                        arguments: {
+                            LABEL:    { type: Scratch.ArgumentType.STRING, defaultValue: 'ma police' },
+                            GROUP_ID: { type: Scratch.ArgumentType.STRING, defaultValue: '' },
+                            SPRITE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
                         opcode:    'fileDisplayName',
                         blockType: Scratch.BlockType.REPORTER,
                         text:      'nom du fichier [ID]',
@@ -688,6 +698,31 @@
             try {
                 await this._addCostumeToTarget(target, f);
             } catch (e) { this._filesError = e.message; }
+        }
+
+        async loadTextEngine({ GROUP_ID, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+
+            let files;
+            try { files = await this._fetchFileList(); } catch (e) { this._filesError = e.message; return; }
+
+            const gid   = String(GROUP_ID).trim();
+            const group = files.filter(f => f.group_id === gid);
+            if (!group.length) { this._filesError = 'Groupe text engine "' + gid + '" introuvable.'; return; }
+
+            this._filesReady = false;
+            this._filesError = '';
+            try {
+                for (const f of group) {
+                    if (fileExt(f.original_filename) === null) continue;
+                    try { await this._addCostumeToTarget(target, f); }
+                    catch (e) { console.warn('[VG] Text engine: ' + f.name + ' → ' + e.message); }
+                }
+                this._filesReady = true;
+            } catch (e) {
+                this._filesError = e.message;
+            }
         }
 
         fileDisplayName({ ID }) {

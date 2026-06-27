@@ -6,7 +6,7 @@ import { useProject } from '../context/ProjectContext';
 import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
-  HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn, Search,
+  HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn, Search, Type,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -20,9 +20,9 @@ function isImageFile(filename) {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const PLATFORMS = ['all', 'windows', 'mac', 'linux', 'android', 'ios'];
-const FILE_TYPES = ['build', 'patch', 'config', 'asset', 'other'];
+const FILE_TYPES = ['build', 'patch', 'config', 'asset', 'text_engine', 'other'];
 const PLATFORM_LABELS = { all: 'All', windows: 'Windows', mac: 'macOS', linux: 'Linux', android: 'Android', ios: 'iOS' };
-const TYPE_LABELS = { build: 'Build', patch: 'Patch', config: 'Config', asset: 'Asset', other: 'Other' };
+const TYPE_LABELS = { build: 'Build', patch: 'Patch', config: 'Config', asset: 'Asset', text_engine: 'Text Engine', other: 'Other' };
 
 const PLATFORM_COLORS = {
   windows: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -47,7 +47,7 @@ function formatDate(iso) {
 }
 
 // Paramètres partagés par tous les fichiers d'un lot d'upload
-const emptyShared = { platform: 'all', file_type: 'asset', description: '', version_tag: '1.0', rotation_center_x: '', rotation_center_y: '' };
+const emptyShared = { platform: 'all', file_type: 'asset', description: '', version_tag: '1.0', rotation_center_x: '', rotation_center_y: '', group_id: '', group_name: '' };
 // Entrée par fichier dans la liste multi-upload
 const makeFileEntry = (file) => ({
   file,
@@ -85,8 +85,9 @@ export const FilesManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting,    setDeleting]    = useState(null);
 
-  // Copy ID
-  const [copiedId, setCopiedId] = useState('');
+  // Copy ID / Group ID
+  const [copiedId,      setCopiedId]      = useState('');
+  const [copiedGroupId, setCopiedGroupId] = useState('');
 
   // Search + pagination
   const [search, setSearch] = useState('');
@@ -157,6 +158,17 @@ export const FilesManagement = () => {
   // Slice to current page
   const displayedFiles = useMemo(() => filteredFiles.slice(0, page * PAGE_SIZE), [filteredFiles, page]);
 
+  // Text engine groups derived from the full file list
+  const textEngineGroups = useMemo(() => {
+    const map = {};
+    files.forEach(f => {
+      if (!f.group_id) return;
+      if (!map[f.group_id]) map[f.group_id] = { group_id: f.group_id, group_name: f.group_name || '', files: [] };
+      map[f.group_id].files.push(f);
+    });
+    return Object.values(map).sort((a, b) => (a.group_name || '').localeCompare(b.group_name || ''));
+  }, [files]);
+
   // Auto-load previews only for visible files
   useEffect(() => {
     displayedFiles.forEach(f => { if (isImageFile(f.original_filename)) loadPreview(f); });
@@ -210,6 +222,8 @@ export const FilesManagement = () => {
     fd.append('version_tag', shared.version_tag || '1.0');
     if (shared.rotation_center_x !== '') fd.append('rotation_center_x', shared.rotation_center_x);
     if (shared.rotation_center_y !== '') fd.append('rotation_center_y', shared.rotation_center_y);
+    if (shared.group_id)   fd.append('group_id',   shared.group_id);
+    if (shared.group_name) fd.append('group_name', shared.group_name);
     await axios.post(`${API_URL}/api/admin/projects/${slug}/files`, fd, {
       headers: { ...headers, 'Content-Type': 'multipart/form-data' },
     });
@@ -628,6 +642,73 @@ export const FilesManagement = () => {
               <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Description <span className="font-normal normal-case text-[#C9C3BB]">(optionnel)</span></label>
               <input value={shared.description} onChange={e => setShared(s => ({ ...s, description: e.target.value }))} placeholder="Notes, changelog…" className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]" />
             </div>
+
+            {/* Text Engine group fields */}
+            {shared.file_type === 'text_engine' && (
+              <div className="sm:col-span-2 border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Type size={13} className="text-[#4ECDC4]" />
+                  <p className="text-[10px] font-bold text-[#4ECDC4] uppercase tracking-[0.12em]">Text Engine Group</p>
+                </div>
+
+                {/* Existing group selector */}
+                {textEngineGroups.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Ajouter à un groupe existant</label>
+                    <select
+                      value={shared.group_id}
+                      onChange={e => {
+                        const g = textEngineGroups.find(g => g.group_id === e.target.value);
+                        setShared(s => ({ ...s, group_id: e.target.value, group_name: g ? g.group_name : s.group_name }));
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                    >
+                      <option value="">— Nouveau groupe —</option>
+                      {textEngineGroups.map(g => (
+                        <option key={g.group_id} value={g.group_id}>{g.group_name || g.group_id} ({g.files.length} fichiers)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">Nom du groupe</label>
+                  <input
+                    value={shared.group_name}
+                    onChange={e => setShared(s => ({ ...s, group_name: e.target.value }))}
+                    placeholder="Arial 8pt, Police pixel…"
+                    className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.12em] uppercase mb-1">
+                    ID du groupe <span className="font-normal normal-case text-[#C9C3BB]">(à coller dans le bloc TurboWarp)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <code className="flex-1 px-3 py-2 text-xs font-mono bg-white border border-[#E8E3DB] text-[#1C1917] truncate">
+                      {shared.group_id || <span className="text-[#C9C3BB]">— générer ci-dessous —</span>}
+                    </code>
+                    {shared.group_id && (
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard.writeText(shared.group_id); setCopiedGroupId(shared.group_id); setTimeout(() => setCopiedGroupId(''), 2000); }}
+                        className="px-3 py-2 border border-[#E8E3DB] text-[#78716C] hover:text-[#4ECDC4] transition-colors"
+                      >
+                        {copiedGroupId === shared.group_id ? <Check size={13} className="text-[#4ECDC4]" /> : <Copy size={13} />}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShared(s => ({ ...s, group_id: crypto.randomUUID() }))}
+                      className="text-xs font-semibold px-3 py-2 bg-[#4ECDC4] text-white hover:bg-[#3db8b0] transition-colors whitespace-nowrap"
+                    >
+                      {shared.group_id ? 'Nouveau ID' : 'Générer ID'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {uploadErr && <p className="text-xs text-red-500">{uploadErr}</p>}
@@ -858,6 +939,60 @@ export const FilesManagement = () => {
         </div>
       )}
 
+      {/* Text Engine Groups */}
+      {textEngineGroups.length > 0 && (
+        <div className="border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Type size={14} className="text-[#4ECDC4]" />
+              <p className="text-xs font-bold text-[#1C1917]">Text Engine Groups</p>
+              <span className="text-[10px] text-[#A8A29E]">— {textEngineGroups.length} groupe{textEngineGroups.length > 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {textEngineGroups.map(group => (
+              <div key={group.group_id} className="bg-white border border-[#E8E3DB] p-3 space-y-2">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-[#1C1917]">{group.group_name || <span className="text-[#A8A29E] font-normal italic">Sans nom</span>}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="text-[10px] font-mono text-[#78716C] truncate max-w-[280px]">{group.group_id}</code>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(group.group_id); setCopiedGroupId(group.group_id); setTimeout(() => setCopiedGroupId(''), 2000); }}
+                        className="flex items-center gap-0.5 text-[10px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors shrink-0"
+                      >
+                        {copiedGroupId === group.group_id
+                          ? <><Check size={10} className="text-[#4ECDC4]" /><span className="text-[#4ECDC4]">copié</span></>
+                          : <><Copy size={10} /><span>copier ID</span></>}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShared(s => ({ ...s, file_type: 'text_engine', group_id: group.group_id, group_name: group.group_name }));
+                      setShowUpload(true);
+                    }}
+                    className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-2.5 py-1.5 hover:bg-[#4ECDC4]/10 transition-colors shrink-0"
+                  >
+                    <Plus size={10} /> Ajouter fichiers
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {group.files.map(f => (
+                    <span key={f.id} className="flex items-center gap-1 text-[10px] bg-[#F9F7F4] border border-[#E8E3DB] px-2 py-0.5 text-[#78716C]">
+                      {isImageFile(f.original_filename) && previews[f.id] && (
+                        <img src={previews[f.id]} alt="" className="w-3 h-3 object-contain" />
+                      )}
+                      {f.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       {files.length > 0 && (
         <div className="flex items-center gap-3">
@@ -977,6 +1112,11 @@ export const FilesManagement = () => {
                     <span className="text-[9px] text-[#A8A29E] border border-[#E8E3DB] px-1.5 py-0.5 font-semibold shrink-0">
                       {file.version_tag || 'default'}
                     </span>
+                    {file.group_id && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#4ECDC4] border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 px-1.5 py-0.5 shrink-0">
+                        <Type size={8} /> {file.group_name || 'TE'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
