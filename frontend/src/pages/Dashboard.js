@@ -49,7 +49,7 @@ const SECTIONS = [
       { id: 'logs',       label: 'Logs',           icon: FileText,      permission: 'view_logs',       requiresProject: true },
       { id: 'chat',       label: 'Chat',           icon: MessageSquare, permission: 'manage_chat',     requiresProject: true },
       { id: 'missions',   label: 'Missions',       icon: ClipboardList, permission: 'claim_missions',  requiresProject: true },
-      { id: 'files',      label: 'Files',          icon: HardDrive,     permission: 'view_projects',   requiresProject: true },
+      { id: 'files',      label: 'Files',          icon: HardDrive,     permission: 'manage_files',    requiresProject: true },
     ],
   },
   {
@@ -524,7 +524,7 @@ const DashboardContent = () => {
               {activeTab === 'logs'       && selectedProject && hasPermission('view_logs')                                           && <LogsViewer />}
               {activeTab === 'chat'       && selectedProject && hasPermission('manage_chat')                                         && <ChatManagement />}
               {activeTab === 'missions'   && selectedProject && (hasPermission('claim_missions') || hasPermission('create_missions')) && <MissionsManagement />}
-              {activeTab === 'files'      && selectedProject && hasPermission('view_projects')  && <FilesManagement />}
+              {activeTab === 'files'      && selectedProject && hasPermission('manage_files')   && <FilesManagement />}
 
               {activeTab === 'website-games'    &&                               <GamesManagement />}
               {activeTab === 'website-blog'     &&                               <BlogManagement />}
