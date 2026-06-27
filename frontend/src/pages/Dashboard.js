@@ -72,7 +72,7 @@ const SECTIONS = [
     items: [
       { id: 'users',   label: 'Users',    icon: Users,  permission: 'manage_users'  },
       { id: 'api',     label: 'API Docs', icon: Code,   permission: 'view_api_docs' },
-      { id: 'vps',     label: 'VPS',      icon: Server, permission: 'manage_users'  },
+      { id: 'vps',     label: 'VPS',      icon: Server, permission: 'view_vps'     },
     ],
   },
   {
@@ -494,7 +494,7 @@ const DashboardContent = () => {
               {activeTab === 'projects'       && <ProjectManagement />}
               {activeTab === 'users'          && hasPermission('manage_users')    && <UserManagement />}
               {activeTab === 'api'            && hasPermission('view_api_docs')   && <ApiEndpoints />}
-              {activeTab === 'vps'            && hasPermission('manage_users')    && <VpsStats />}
+              {activeTab === 'vps'            && hasPermission('view_vps')        && <VpsStats />}
 
               {needsProject && !selectedProject && (
                 <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">

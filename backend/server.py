@@ -315,11 +315,13 @@ ALL_PERMISSIONS = [
     "view_variables", "create_variables", "edit_variables", "delete_variables",
     "view_logs", "view_api_docs",
     "manage_users",
+    "view_vps",
     "manage_website",
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
     "manage_chat",
     "manage_shop",
+    "manage_files",
     "create_missions", "claim_missions", "manage_missions",
     "manage_tickets",
 ]
@@ -2109,14 +2111,14 @@ def _game_file_path(project_slug: str, file_id: str) -> Path:
 # ── Admin: get / regenerate files API key ────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files-api-key")
-async def get_files_api_key(slug: str, user=Depends(require_permission("view_projects"))):
+async def get_files_api_key(slug: str, user=Depends(require_permission("manage_files"))):
     project = await db.projects.find_one({"slug": slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"files_api_key": project.get("files_api_key") or None}
 
 @api_router.post("/admin/projects/{slug}/files-api-key/regenerate")
-async def regenerate_files_api_key(slug: str, user=Depends(require_permission("view_projects"))):
+async def regenerate_files_api_key(slug: str, user=Depends(require_permission("manage_files"))):
     project = await db.projects.find_one({"slug": slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -2139,7 +2141,7 @@ async def upload_game_file(
     version_tag: str = Form("1.0"),
     rotation_center_x: Optional[float] = Form(None),
     rotation_center_y: Optional[float] = Form(None),
-    user=Depends(require_permission("view_projects")),
+    user=Depends(require_permission("manage_files")),
 ):
     project = await db.projects.find_one({"slug": slug})
     if not project:
@@ -2192,7 +2194,7 @@ async def replace_game_file(
     slug: str,
     file_id: str,
     file: UploadFile = File(...),
-    user=Depends(require_permission("view_projects")),
+    user=Depends(require_permission("manage_files")),
 ):
     try:
         oid = ObjectId(file_id)
@@ -2235,7 +2237,7 @@ async def update_game_file_meta(
     slug: str,
     file_id: str,
     req: GameFileUpdateRequest,
-    user=Depends(require_permission("view_projects")),
+    user=Depends(require_permission("manage_files")),
 ):
     try:
         oid = ObjectId(file_id)
@@ -2260,7 +2262,7 @@ async def update_game_file_meta(
 # ── Admin: delete file ────────────────────────────────────────────────────────
 
 @api_router.delete("/admin/projects/{slug}/files/{file_id}")
-async def delete_game_file(slug: str, file_id: str, user=Depends(require_permission("view_projects"))):
+async def delete_game_file(slug: str, file_id: str, user=Depends(require_permission("manage_files"))):
     try:
         oid = ObjectId(file_id)
     except Exception:
@@ -2278,7 +2280,7 @@ async def delete_game_file(slug: str, file_id: str, user=Depends(require_permiss
 # ── Admin: preview image file ─────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files/{file_id}/preview")
-async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_permission("view_projects"))):
+async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_permission("manage_files"))):
     try:
         oid = ObjectId(file_id)
     except Exception:
@@ -2301,7 +2303,7 @@ async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_
 async def list_game_files_admin(
     slug: str,
     version_tag: Optional[str] = None,
-    user=Depends(require_permission("view_projects")),
+    user=Depends(require_permission("manage_files")),
 ):
     query: dict = {"project_slug": slug}
     if version_tag:
@@ -2365,7 +2367,7 @@ async def download_game_file_client(slug: str, file_id: str, request: Request):
 # ── Game file versions ────────────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/versions")
-async def list_file_versions(slug: str, user=Depends(require_permission("view_projects"))):
+async def list_file_versions(slug: str, user=Depends(require_permission("manage_files"))):
     project = await db.projects.find_one({"slug": slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -2390,7 +2392,7 @@ class VersionCloneRequest(BaseModel):
     new_tag: str
 
 @api_router.post("/admin/projects/{slug}/versions")
-async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(require_permission("view_projects"))):
+async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(require_permission("manage_files"))):
     new_tag = req.new_tag.strip()
     if not new_tag:
         raise HTTPException(status_code=400, detail="Version tag is required")
@@ -2455,7 +2457,7 @@ class LiveVersionRequest(BaseModel):
     live_version: str
 
 @api_router.put("/admin/projects/{slug}/live-version")
-async def set_live_version(slug: str, req: LiveVersionRequest, user=Depends(require_permission("view_projects"))):
+async def set_live_version(slug: str, req: LiveVersionRequest, user=Depends(require_permission("manage_files"))):
     tag = req.live_version.strip()
     if not tag:
         raise HTTPException(status_code=400, detail="Version tag required")
@@ -3119,7 +3121,7 @@ async def delete_notification(notif_id: str, user=Depends(get_current_user)):
 # ── System stats ─────────────────────────────────────────────────────────────
 
 @api_router.get("/admin/system/stats")
-async def get_system_stats(user=Depends(require_permission("manage_users"))):
+async def get_system_stats(user=Depends(require_permission("view_vps"))):
     cpu_percent = psutil.cpu_percent(interval=None)
     cpu_count   = psutil.cpu_count(logical=True)
 
