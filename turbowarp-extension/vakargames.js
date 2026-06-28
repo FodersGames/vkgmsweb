@@ -93,6 +93,10 @@
             this._filesError   = '';
             this._fileIndex    = {};
             this._filesCache   = null;
+
+            // HTML Overlay Text
+            this._overlayContainer = null;
+            this._overlayTexts     = new Map();
         }
 
         getInfo() {
@@ -102,6 +106,9 @@
                 color1: '#4ECDC4',
                 color2: '#2CB5AC',
                 color3: '#1aada6',
+                menus: {
+                    ouiNon: { acceptReporters: true, items: ['oui', 'non'] }
+                },
                 blocks: [
 
                     // ══════════════════════════════
@@ -323,6 +330,76 @@
                         arguments: {
                             NOM:    { type: Scratch.ArgumentType.STRING, defaultValue: 'chest' },
                             SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'removeUnnamedCostumes',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer les costumes sans nom du sprite [SPRITE]',
+                        arguments: {
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'removeCostumeByIndex',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer le costume numéro [NUM] du sprite [SPRITE]',
+                        arguments: {
+                            NUM:    { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+
+                    // ══════════════════════════════
+                    //  OVERLAY TEXTE HTML
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Overlay Texte —' },
+
+                    {
+                        opcode:    'afficherTexte',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'afficher texte id [ID] texte [TEXTE] x [X] y [Y] police [POLICE] taille [TAILLE] couleur [COULEUR] gras [GRAS] italique [ITALIQUE] visible [VISIBLE]',
+                        arguments: {
+                            ID:       { type: Scratch.ArgumentType.STRING, defaultValue: 'mon_texte' },
+                            TEXTE:    { type: Scratch.ArgumentType.STRING, defaultValue: 'Bonjour' },
+                            X:        { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                            Y:        { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                            POLICE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'Arial' },
+                            TAILLE:   { type: Scratch.ArgumentType.NUMBER, defaultValue: 24 },
+                            COULEUR:  { type: Scratch.ArgumentType.STRING, defaultValue: '#FFFFFF' },
+                            GRAS:     { type: Scratch.ArgumentType.STRING, menu: 'ouiNon', defaultValue: 'non' },
+                            ITALIQUE: { type: Scratch.ArgumentType.STRING, menu: 'ouiNon', defaultValue: 'non' },
+                            VISIBLE:  { type: Scratch.ArgumentType.STRING, menu: 'ouiNon', defaultValue: 'oui' }
+                        }
+                    },
+                    {
+                        opcode:    'changerVisibiliteTexte',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'texte id [ID] visible [VISIBLE]',
+                        arguments: {
+                            ID:      { type: Scratch.ArgumentType.STRING, defaultValue: 'mon_texte' },
+                            VISIBLE: { type: Scratch.ArgumentType.STRING, menu: 'ouiNon', defaultValue: 'oui' }
+                        }
+                    },
+                    {
+                        opcode:    'supprimerTexte',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer texte id [ID]',
+                        arguments: {
+                            ID: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon_texte' }
+                        }
+                    },
+                    {
+                        opcode:    'supprimerTousTextes',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer tous les textes'
+                    },
+                    {
+                        opcode:    'texteExiste',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'texte id [ID] existe ?',
+                        arguments: {
+                            ID: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon_texte' }
                         }
                     },
                 ]
@@ -796,6 +873,125 @@
             if (idx !== -1 && target.sprite.costumes_.length > 1) {
                 target.deleteCostume(idx);
             }
+        }
+
+        removeCostumeByIndex({ NUM, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            const idx = Math.round(Number(NUM)) - 1; // 1-based → 0-based
+            if (idx >= 0 && idx < target.sprite.costumes_.length && target.sprite.costumes_.length > 1) {
+                target.deleteCostume(idx);
+            }
+        }
+
+        removeUnnamedCostumes({ SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            for (let i = target.sprite.costumes_.length - 1; i >= 0; i--) {
+                if (!target.sprite.costumes_[i].name && target.sprite.costumes_.length > 1) {
+                    target.deleteCostume(i);
+                }
+            }
+        }
+
+        // ── HTML Overlay Text Engine ─────────────────────────────────────────
+
+        _ensureOverlay() {
+            if (this._overlayContainer && document.body.contains(this._overlayContainer)) return;
+            const canvas = Scratch.renderer && Scratch.renderer.canvas;
+            if (!canvas || typeof document === 'undefined') return;
+
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;pointer-events:none;overflow:hidden;z-index:9999;';
+            document.body.appendChild(div);
+            this._overlayContainer = div;
+
+            const sync = () => {
+                const r = canvas.getBoundingClientRect();
+                div.style.left   = r.left   + 'px';
+                div.style.top    = r.top    + 'px';
+                div.style.width  = r.width  + 'px';
+                div.style.height = r.height + 'px';
+                this._overlayTexts.forEach(el => {
+                    const pos = this._toCSS(
+                        parseFloat(el.dataset.sx || 0),
+                        parseFloat(el.dataset.sy || 0),
+                        parseFloat(el.dataset.sz || 24),
+                        r.width, r.height
+                    );
+                    el.style.left     = pos.left;
+                    el.style.top      = pos.top;
+                    el.style.fontSize = pos.fontSize;
+                });
+            };
+
+            sync();
+            new ResizeObserver(sync).observe(canvas);
+            window.addEventListener('resize', sync);
+        }
+
+        _toCSS(sx, sy, sz, w, h) {
+            w = w || parseFloat(this._overlayContainer.style.width)  || 480;
+            h = h || parseFloat(this._overlayContainer.style.height) || 360;
+            return {
+                left:     ((Number(sx) + 240) / 480 * w) + 'px',
+                top:      ((180 - Number(sy)) / 360 * h) + 'px',
+                fontSize: (Number(sz) * w / 480) + 'px',
+            };
+        }
+
+        afficherTexte({ ID, TEXTE, X, Y, POLICE, TAILLE, COULEUR, GRAS, ITALIQUE, VISIBLE }) {
+            this._ensureOverlay();
+            if (!this._overlayContainer) return;
+            const id = String(ID).trim();
+            if (!id) return;
+
+            let el = this._overlayTexts.get(id);
+            if (!el) {
+                el = document.createElement('div');
+                el.style.position   = 'absolute';
+                el.style.whiteSpace = 'pre';
+                el.style.userSelect = 'none';
+                el.style.transform  = 'translate(-50%, -50%)';
+                this._overlayContainer.appendChild(el);
+                this._overlayTexts.set(id, el);
+            }
+
+            el.dataset.sx = String(X);
+            el.dataset.sy = String(Y);
+            el.dataset.sz = String(TAILLE);
+
+            const pos = this._toCSS(X, Y, TAILLE);
+            el.style.left       = pos.left;
+            el.style.top        = pos.top;
+            el.style.fontSize   = pos.fontSize;
+            el.style.fontFamily = String(POLICE) || 'Arial';
+            el.style.color      = String(COULEUR) || '#FFFFFF';
+            el.style.fontWeight = String(GRAS).toLowerCase()     === 'oui' ? 'bold'   : 'normal';
+            el.style.fontStyle  = String(ITALIQUE).toLowerCase() === 'oui' ? 'italic' : 'normal';
+            el.style.display    = String(VISIBLE).toLowerCase()  === 'non' ? 'none'   : '';
+            el.textContent      = String(TEXTE);
+        }
+
+        changerVisibiliteTexte({ ID, VISIBLE }) {
+            const el = this._overlayTexts.get(String(ID).trim());
+            if (!el) return;
+            el.style.display = String(VISIBLE).toLowerCase() === 'non' ? 'none' : '';
+        }
+
+        supprimerTexte({ ID }) {
+            const id = String(ID).trim();
+            const el = this._overlayTexts.get(id);
+            if (el) { el.remove(); this._overlayTexts.delete(id); }
+        }
+
+        supprimerTousTextes() {
+            this._overlayTexts.forEach(el => el.remove());
+            this._overlayTexts.clear();
+        }
+
+        texteExiste({ ID }) {
+            return this._overlayTexts.has(String(ID).trim());
         }
     }
 

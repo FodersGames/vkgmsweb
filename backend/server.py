@@ -711,6 +711,15 @@ def require_permission(permission):
         return user
     return check
 
+def require_any_of(*permissions):
+    async def check(user=Depends(get_current_user)):
+        if user["is_super_admin"]:
+            return user
+        if not any(p in user.get("permissions", []) for p in permissions):
+            raise HTTPException(status_code=403, detail=f"Missing one of: {', '.join(permissions)}")
+        return user
+    return check
+
 async def get_project_or_404(slug):
     p = await db.projects.find_one({"slug": slug})
     if not p:
@@ -2403,7 +2412,7 @@ async def delete_file_group(slug: str, group_id: str, user=Depends(require_permi
 # ── Admin: preview image file ─────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files/{file_id}/preview")
-async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_permission("manage_files"))):
+async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_any_of("manage_files", "claim_missions"))):
     try:
         oid = ObjectId(file_id)
     except Exception:
@@ -2420,13 +2429,32 @@ async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_
         raise HTTPException(status_code=404, detail="File data missing on server")
     return FileResponse(dest, media_type=media_type)
 
+@api_router.get("/admin/projects/{slug}/files/{file_id}/download")
+async def download_game_file_admin(slug: str, file_id: str, user=Depends(require_any_of("manage_files", "claim_missions"))):
+    try:
+        oid = ObjectId(file_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file ID")
+    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    dest = _game_file_path(slug, file_id)
+    if not dest.exists():
+        raise HTTPException(status_code=404, detail="File data missing on server")
+    safe_name = re.sub(r"[^\w.\- ]", "_", doc.get("original_filename") or doc["name"])
+    return FileResponse(
+        dest,
+        filename=safe_name,
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
+
 # ── Admin: list files ─────────────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/files")
 async def list_game_files_admin(
     slug: str,
     version_tag: Optional[str] = None,
-    user=Depends(require_permission("manage_files")),
+    user=Depends(require_any_of("manage_files", "claim_missions")),
 ):
     query: dict = {"project_slug": slug}
     if version_tag:

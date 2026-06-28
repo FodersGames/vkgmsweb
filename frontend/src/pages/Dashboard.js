@@ -49,7 +49,7 @@ const SECTIONS = [
       { id: 'logs',       label: 'Logs',           icon: FileText,      permission: 'view_logs',       requiresProject: true },
       { id: 'chat',       label: 'Chat',           icon: MessageSquare, permission: 'manage_chat',     requiresProject: true },
       { id: 'missions',   label: 'Missions',       icon: ClipboardList, permission: 'claim_missions',  requiresProject: true },
-      { id: 'files',      label: 'Files',          icon: HardDrive,     permission: 'manage_files',    requiresProject: true },
+      { id: 'files',      label: 'Files',          icon: HardDrive,     anyPermission: ['manage_files', 'claim_missions'], requiresProject: true },
     ],
   },
   {
@@ -121,10 +121,11 @@ const DashboardContent = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const isVisible = (item) =>
-    item.permission === null || item.permission === undefined
-      ? true
-      : hasPermission(item.permission);
+  const isVisible = (item) => {
+    if (item.anyPermission) return item.anyPermission.some(p => hasPermission(p));
+    if (item.permission === null || item.permission === undefined) return true;
+    return hasPermission(item.permission);
+  };
 
   const canSeeSection = (section) => {
     if (section.directTab) return true;
@@ -524,7 +525,7 @@ const DashboardContent = () => {
               {activeTab === 'logs'       && selectedProject && hasPermission('view_logs')                                           && <LogsViewer />}
               {activeTab === 'chat'       && selectedProject && hasPermission('manage_chat')                                         && <ChatManagement />}
               {activeTab === 'missions'   && selectedProject && (hasPermission('claim_missions') || hasPermission('create_missions')) && <MissionsManagement />}
-              {activeTab === 'files'      && selectedProject && hasPermission('manage_files')   && <FilesManagement />}
+              {activeTab === 'files'      && selectedProject && (hasPermission('manage_files') || hasPermission('claim_missions')) && <FilesManagement />}
 
               {activeTab === 'website-games'    &&                               <GamesManagement />}
               {activeTab === 'website-blog'     &&                               <BlogManagement />}
