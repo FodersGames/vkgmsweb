@@ -59,8 +59,9 @@ const makeFileEntry = (file) => ({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export const FilesManagement = () => {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
   const { selectedProject } = useProject();
+  const isArtist = hasPermission('claim_missions') && !hasPermission('manage_files');
   const headers = { Authorization: `Bearer ${token}` };
   const slug = selectedProject?.slug;
 
@@ -130,18 +131,26 @@ export const FilesManagement = () => {
     setLoading(true);
     try {
       const params = activeVersionTag !== 'all' ? { version_tag: activeVersionTag } : {};
-      const [filesRes, keyRes] = await Promise.all([
-        axios.get(`${API_URL}/api/admin/projects/${slug}/files`, { headers, params }),
-        axios.get(`${API_URL}/api/admin/projects/${slug}/files-api-key`, { headers }),
-      ]);
-      setFiles(filesRes.data.files || []);
-      setApiKey(keyRes.data.files_api_key || null);
+      if (isArtist) {
+        const filesRes = await axios.get(`${API_URL}/api/admin/projects/${slug}/files`, { headers, params });
+        setFiles(filesRes.data.files || []);
+      } else {
+        const [filesRes, keyRes] = await Promise.all([
+          axios.get(`${API_URL}/api/admin/projects/${slug}/files`, { headers, params }),
+          axios.get(`${API_URL}/api/admin/projects/${slug}/files-api-key`, { headers }),
+        ]);
+        setFiles(filesRes.data.files || []);
+        setApiKey(keyRes.data.files_api_key || null);
+      }
     } catch { /* silent */ } finally {
       setLoading(false);
     }
-  }, [slug, token, activeVersionTag]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slug, token, activeVersionTag, isArtist]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { load(); loadVersions(); }, [load, loadVersions]);
+  useEffect(() => {
+    load();
+    if (!isArtist) loadVersions();
+  }, [load, loadVersions, isArtist]);
 
   // Reset page when search or version filter changes
   useEffect(() => { setPage(1); }, [search, activeVersionTag]);
@@ -430,27 +439,31 @@ export const FilesManagement = () => {
             GAME FILES — {selectedProject?.name?.toUpperCase()}
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            {files.length} file{files.length !== 1 ? 's' : ''} · stable ID per file
+            {files.length} file{files.length !== 1 ? 's' : ''}
+            {isArtist && <span className="ml-2 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-1.5 py-0.5">Vue artiste</span>}
+            {!isArtist && ' · stable ID per file'}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => { setShowCreateVersion(v => !v); setCreateVersionErr(''); setNewVersionTag(''); }}
-            className="flex items-center gap-1.5 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#78716C] hover:text-[#1C1917] text-xs font-semibold px-3 py-2.5 transition-colors"
-          >
-            <GitBranch size={12} /> New version
-          </button>
-          <button
-            onClick={() => { setShowUpload(v => !v); setUploadErr(''); }}
-            className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
-          >
-            <Upload size={13} /> Upload file
-          </button>
-        </div>
+        {!isArtist && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => { setShowCreateVersion(v => !v); setCreateVersionErr(''); setNewVersionTag(''); }}
+              className="flex items-center gap-1.5 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#78716C] hover:text-[#1C1917] text-xs font-semibold px-3 py-2.5 transition-colors"
+            >
+              <GitBranch size={12} /> New version
+            </button>
+            <button
+              onClick={() => { setShowUpload(v => !v); setUploadErr(''); }}
+              className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
+            >
+              <Upload size={13} /> Upload file
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Version filter bar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {!isArtist && <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.1em] uppercase">Version:</span>
         {['all', ...versions].map(tag => (
           <button
@@ -471,7 +484,7 @@ export const FilesManagement = () => {
         >
           <Plus size={10} /> add
         </button>
-      </div>
+      </div>}
 
       {/* Create version panel */}
       {(showCreateVersion || versionDropOpen) && (
@@ -507,7 +520,7 @@ export const FilesManagement = () => {
       )}
 
       {/* API Key section */}
-      <div className="bg-white border border-[#E8E3DB] p-4 space-y-3">
+      {!isArtist && <div className="bg-white border border-[#E8E3DB] p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Key size={14} className="text-[#4ECDC4]" />
           <p className="text-xs font-bold text-[#1C1917]">Files API Key</p>
@@ -545,7 +558,7 @@ export const FilesManagement = () => {
         <p className="text-[10px] text-[#A8A29E]">
           Endpoint: <code className="bg-[#F9F7F4] px-1">{API_URL}/api/game/{slug}/files</code>
         </p>
-      </div>
+      </div>}
 
       {/* Upload panel */}
       {showUpload && (
@@ -993,7 +1006,7 @@ export const FilesManagement = () => {
       )}
 
       {/* Text Engine Groups */}
-      {textEngineGroups.length > 0 && (
+      {!isArtist && textEngineGroups.length > 0 && (
         <div className="border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1158,59 +1171,88 @@ export const FilesManagement = () => {
                   {file.description && (
                     <p className="text-xs text-[#78716C] mt-1 truncate">{file.description}</p>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    <span className="text-[9px] text-[#C9C3BB] font-mono">{file.id}</span>
-                    <button
-                      onClick={() => copyFileId(file.id)}
-                      title="Copier l'ID"
-                      className="flex items-center gap-0.5 text-[9px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors shrink-0"
-                    >
-                      {copiedId === file.id
-                        ? <><Check size={9} className="text-[#4ECDC4]" /><span className="text-[#4ECDC4]">copié</span></>
-                        : <><Copy size={9} /><span>copier ID</span></>
-                      }
-                    </button>
-                    <span className="text-[9px] text-[#A8A29E] border border-[#E8E3DB] px-1.5 py-0.5 font-semibold shrink-0">
-                      {file.version_tag || 'default'}
-                    </span>
-                    {file.group_id && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#4ECDC4] border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 px-1.5 py-0.5 shrink-0">
-                        <Type size={8} /> {file.group_name || 'TE'}
+                  {!isArtist && (
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[9px] text-[#C9C3BB] font-mono">{file.id}</span>
+                      <button
+                        onClick={() => copyFileId(file.id)}
+                        title="Copier l'ID"
+                        className="flex items-center gap-0.5 text-[9px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors shrink-0"
+                      >
+                        {copiedId === file.id
+                          ? <><Check size={9} className="text-[#4ECDC4]" /><span className="text-[#4ECDC4]">copié</span></>
+                          : <><Copy size={9} /><span>copier ID</span></>
+                        }
+                      </button>
+                      <span className="text-[9px] text-[#A8A29E] border border-[#E8E3DB] px-1.5 py-0.5 font-semibold shrink-0">
+                        {file.version_tag || 'default'}
                       </span>
-                    )}
-                  </div>
+                      {file.group_id && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#4ECDC4] border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 px-1.5 py-0.5 shrink-0">
+                          <Type size={8} /> {file.group_name || 'TE'}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => toggleLatest(file)}
-                    title={file.is_latest ? 'Retirer du marquage "latest" (utilisé pour cloner les versions)' : 'Marquer comme latest (sera inclus dans le clone de version)'}
-                    className={`p-1.5 border transition-colors ${file.is_latest ? 'text-[#4ECDC4] border-[#4ECDC4]/30 bg-[#4ECDC4]/5' : 'text-[#A8A29E] border-[#E8E3DB] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/30'}`}
+                  <a
+                    href={`${API_URL}/api/admin/projects/${slug}/files/${file.id}/download`}
+                    download
+                    title="Télécharger"
+                    className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/40 transition-colors"
+                    onClick={e => {
+                      e.preventDefault();
+                      const a = document.createElement('a');
+                      a.href = `${API_URL}/api/admin/projects/${slug}/files/${file.id}/download`;
+                      a.setAttribute('download', '');
+                      const headers_obj = { Authorization: `Bearer ${token}` };
+                      fetch(a.href, { headers: headers_obj })
+                        .then(r => r.blob())
+                        .then(blob => {
+                          const url = URL.createObjectURL(blob);
+                          a.href = url;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        });
+                    }}
                   >
-                    <Star size={13} />
-                  </button>
-                  <button
-                    onClick={() => { setReplacing(file.id); setReplaceFile(null); }}
-                    title="Replace file content (ID stays the same)"
-                    className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-[#1C1917] hover:border-[#C9C3BB] transition-colors"
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                  <button
-                    onClick={() => startEdit(file)}
-                    title="Edit metadata"
-                    className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-[#1C1917] hover:border-[#C9C3BB] transition-colors"
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirm(file)}
-                    title="Delete"
-                    className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-red-500 hover:border-red-200 transition-colors"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                    <Download size={13} />
+                  </a>
+                  {!isArtist && <>
+                    <button
+                      onClick={() => toggleLatest(file)}
+                      title={file.is_latest ? 'Retirer du marquage "latest"' : 'Marquer comme latest'}
+                      className={`p-1.5 border transition-colors ${file.is_latest ? 'text-[#4ECDC4] border-[#4ECDC4]/30 bg-[#4ECDC4]/5' : 'text-[#A8A29E] border-[#E8E3DB] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/30'}`}
+                    >
+                      <Star size={13} />
+                    </button>
+                    <button
+                      onClick={() => { setReplacing(file.id); setReplaceFile(null); }}
+                      title="Replace file content (ID stays the same)"
+                      className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-[#1C1917] hover:border-[#C9C3BB] transition-colors"
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                    <button
+                      onClick={() => startEdit(file)}
+                      title="Edit metadata"
+                      className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-[#1C1917] hover:border-[#C9C3BB] transition-colors"
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(file)}
+                      title="Delete"
+                      className="p-1.5 border border-[#E8E3DB] text-[#A8A29E] hover:text-red-500 hover:border-red-200 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>}
                 </div>
               </div>
             </div>
