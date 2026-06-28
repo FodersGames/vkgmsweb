@@ -319,6 +319,12 @@ export const FilesManagement = () => {
       await axios.put(`${API_URL}/api/admin/projects/${slug}/files/${replacing}/replace`, fd, {
         headers: { ...headers, 'Content-Type': 'multipart/form-data' },
       });
+      // Invalider le preview en cache pour forcer le rechargement
+      setPreviews(prev => {
+        const next = { ...prev };
+        if (next[replacing]) { URL.revokeObjectURL(next[replacing]); delete next[replacing]; }
+        return next;
+      });
       setReplacing(null);
       setReplaceFile(null);
       load();
