@@ -215,6 +215,10 @@ def _sanitize_svg(content: bytes) -> bytes:
         text = re.sub(rf"<{_tag}[\s\S]*?</{_tag}\s*>", "", text, flags=re.IGNORECASE)
         text = re.sub(rf"<{_tag}\b[^>]*/?>", "", text, flags=re.IGNORECASE)
 
+    # Step 2.5 — strip <style> blocks entirely (can contain @import, url() exfiltration)
+    text = re.sub(r"<style[\s\S]*?</style\s*>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"<style\b[^>]*/?>", "", text, flags=re.IGNORECASE)  # self-closing <style/>
+
     # Step 3 — strip all on* event handlers
     text = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+on\w+\s*=\s*'[^']*'", "", text, flags=re.IGNORECASE)
@@ -1142,9 +1146,13 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
     # Prevent privilege escalation: non-super-admin can only grant permissions they themselves hold
+    # manage_users is super-admin-only to prevent lateral propagation of admin access
+    _SUPER_ADMIN_ONLY_PERMS = {"manage_users"}
     if not admin.get("is_super_admin") and admin.get("role") not in ("super_admin",):
         admin_perms = set(admin.get("permissions", []))
         for perm in req.permissions:
+            if perm in _SUPER_ADMIN_ONLY_PERMS:
+                raise HTTPException(status_code=403, detail=f"'{perm}' can only be granted by a super admin")
             if perm not in admin_perms:
                 raise HTTPException(status_code=403, detail=f"Cannot grant permission '{perm}' — you do not hold it yourself")
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
@@ -1668,7 +1676,7 @@ async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, us
         code_upper = req.coupon_code.strip().upper()
         coupon = await db.coupons.find_one({
             "code": code_upper,
-            "assigned_to_user_id": user["_id"],
+            "assigned_to_user_id": ObjectId(user["id"]),
             "used": False,
         })
         if coupon and coupon["valid_until"] > datetime.now(timezone.utc):
@@ -1764,7 +1772,7 @@ async def create_game_checkout(request: Request, game_slug: str, req: GamePurcha
         code_upper = req.coupon_code.strip().upper()
         coupon = await db.coupons.find_one({
             "code": code_upper,
-            "assigned_to_user_id": user["_id"],
+            "assigned_to_user_id": ObjectId(user["id"]),
             "used": False,
         })
         if coupon and coupon["valid_until"] > datetime.now(timezone.utc):
@@ -2199,6 +2207,12 @@ async def upload_game_file(
                     except KeyError:
                         continue
 
+                    if c_ext == '.svg':
+                        try:
+                            costume_bytes = _sanitize_svg(costume_bytes)
+                        except ValueError:
+                            continue  # costume SVG invalide → ignoré silencieusement
+
                     existing = await db.game_files.find_one({
                         "project_slug": slug, "group_id": gid_s3, "name": costume_name
                     })
@@ -2241,6 +2255,13 @@ async def upload_game_file(
 
     if ext not in _GAME_FILE_EXTS:
         raise HTTPException(status_code=400, detail=f"File type not allowed: {ext or '(none)'}")
+
+    # Sanitize SVG content before any write (covers main upload + text engine in-place replace)
+    if ext == '.svg':
+        try:
+            content = _sanitize_svg(content)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"SVG rejeté : {e}")
 
     display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
     now = datetime.now(timezone.utc)
@@ -2329,6 +2350,12 @@ async def replace_game_file(
         raise HTTPException(status_code=413, detail="File too large (max 500 MB)")
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Empty file")
+
+    if ext == '.svg':
+        try:
+            content = _sanitize_svg(content)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"SVG rejeté : {e}")
 
     dest = _game_file_path(slug, file_id)
     with open(dest, "wb") as f:
@@ -2732,7 +2759,7 @@ async def get_coupon_campaign_detail(campaign_id: str, user=Depends(require_perm
 @api_router.post("/coupons/validate")
 async def validate_coupon(req: CouponValidateRequest, user=Depends(get_current_user)):
     code = req.code.strip().upper()
-    coupon = await db.coupons.find_one({"code": code, "assigned_to_user_id": user["_id"]})
+    coupon = await db.coupons.find_one({"code": code, "assigned_to_user_id": ObjectId(user["id"])})
     if not coupon:
         raise HTTPException(status_code=404, detail="Invalid coupon code")
     if coupon["used"]:
@@ -3312,7 +3339,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=False,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Chat-Api-Key", "X-Files-Api-Key"],
 )
