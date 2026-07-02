@@ -33,7 +33,7 @@ export const PlayersManagement = () => {
   const [dialog,   setDialog]   = useState({ open: false, title: '', description: '', onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const canDelete = hasPermission('manage_users');
+  const canDelete = hasPermission('manage_play');
 
   const fetchPlayers = useCallback(async () => {
     if (!slug) return;

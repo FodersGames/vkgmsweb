@@ -376,6 +376,7 @@ ALL_PERMISSIONS = [
     "manage_files",
     "create_missions", "claim_missions", "manage_missions",
     "manage_tickets",
+    "manage_play",
 ]
 
 def is_valid_permission(p: str) -> bool:
@@ -3672,7 +3673,7 @@ async def play_load(request: Request, category: str, project_slug: str, play_use
 # ── Admin play routes ────────────────────────────────────────────────────────
 
 @api_router.get("/admin/projects/{slug}/play/players")
-async def admin_play_players(slug: str, user=Depends(require_permission("view_projects"))):
+async def admin_play_players(slug: str, user=Depends(require_permission("manage_play"))):
     saves   = await db.play_saves.find({"project_slug": slug}).to_list(None)
     p_ids   = list({s["user_id"] for s in saves})
     players = await db.users.find({"_id": {"$in": p_ids}}).to_list(None)
@@ -3690,7 +3691,7 @@ async def admin_play_players(slug: str, user=Depends(require_permission("view_pr
     return {"players": result}
 
 @api_router.get("/admin/projects/{slug}/play/players/{player_id}")
-async def admin_play_player_detail(slug: str, player_id: str, user=Depends(require_permission("view_projects"))):
+async def admin_play_player_detail(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
     try:
         oid = ObjectId(player_id)
     except Exception:
@@ -3709,7 +3710,7 @@ async def admin_play_player_detail(slug: str, player_id: str, user=Depends(requi
     }
 
 @api_router.patch("/admin/projects/{slug}/play/players/{player_id}/saves/{category}")
-async def admin_play_update_save(slug: str, player_id: str, category: str, request: Request, user=Depends(require_permission("view_projects"))):
+async def admin_play_update_save(slug: str, player_id: str, category: str, request: Request, user=Depends(require_permission("manage_play"))):
     if category not in PLAY_SAVE_CATEGORIES:
         raise HTTPException(400, "Catégorie invalide")
     try:
@@ -3730,7 +3731,7 @@ async def admin_play_update_save(slug: str, player_id: str, category: str, reque
     return {"ok": True}
 
 @api_router.delete("/admin/projects/{slug}/play/players/{player_id}/tokens")
-async def admin_play_revoke_tokens(slug: str, player_id: str, user=Depends(require_permission("view_projects"))):
+async def admin_play_revoke_tokens(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
     """Force-disconnect a player from all devices."""
     try:
         oid = ObjectId(player_id)
@@ -3740,7 +3741,7 @@ async def admin_play_revoke_tokens(slug: str, player_id: str, user=Depends(requi
     return {"ok": True}
 
 @api_router.delete("/admin/projects/{slug}/play/players/{player_id}")
-async def admin_play_delete_player(slug: str, player_id: str, user=Depends(require_permission("manage_users"))):
+async def admin_play_delete_player(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
     """Deletes play saves for this project + revokes play tokens. Does NOT delete the shared user account."""
     try:
         oid = ObjectId(player_id)
