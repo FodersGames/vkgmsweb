@@ -1142,6 +1142,17 @@
             const accent = this._playAccent;
             const title  = this._playTitle;
 
+            const LANGS = {
+                en: { flag:'🇬🇧', code:'EN', login:'Sign In',        register:'Create Account',  lPh:'Username or email',          pPh:'Password',                uPh:'Username (3-20 chars, letters/numbers/_)', ePh:'Email', rPPh:'Password (min 6 chars)',       lBtn:'Sign In',        rBtn:'Create Account',  eLo:'Login failed',             eRe:'Registration failed',     eNe:'Network error'  },
+                fr: { flag:'🇫🇷', code:'FR', login:'Connexion',      register:'Créer un compte', lPh:'Pseudo ou email',            pPh:'Mot de passe',            uPh:'Pseudo (3-20 car., lettres/chiffres/_)',   ePh:'Email', rPPh:'Mot de passe (min 6 car.)', lBtn:'Se connecter',   rBtn:'Créer le compte', eLo:'Erreur de connexion',      eRe:"Erreur d'inscription",    eNe:'Erreur réseau'  },
+                es: { flag:'🇪🇸', code:'ES', login:'Iniciar sesión', register:'Crear cuenta',    lPh:'Usuario o email',            pPh:'Contraseña',              uPh:'Usuario (3-20 car., letras/números/_)',    ePh:'Email', rPPh:'Contraseña (mín 6 car.)',   lBtn:'Iniciar sesión', rBtn:'Crear cuenta',    eLo:'Error de inicio de sesión',eRe:'Error de registro',       eNe:'Error de red'   },
+                de: { flag:'🇩🇪', code:'DE', login:'Anmelden',       register:'Konto erstellen', lPh:'Benutzername oder E-Mail',   pPh:'Passwort',                uPh:'Benutzername (3-20 Zeichen, a-z/0-9/_)',  ePh:'E-Mail',rPPh:'Passwort (mind. 6 Zeichen)', lBtn:'Anmelden',       rBtn:'Konto erstellen', eLo:'Anmeldefehler',            eRe:'Registrierungsfehler',    eNe:'Netzwerkfehler' },
+                pt: { flag:'🇧🇷', code:'PT', login:'Entrar',         register:'Criar conta',     lPh:'Usuário ou email',           pPh:'Senha',                   uPh:'Usuário (3-20 car., letras/números/_)',    ePh:'Email', rPPh:'Senha (mín 6 car.)',        lBtn:'Entrar',         rBtn:'Criar conta',     eLo:'Erro de login',            eRe:'Erro de registro',        eNe:'Erro de rede'   },
+                it: { flag:'🇮🇹', code:'IT', login:'Accedi',         register:'Crea account',    lPh:'Nome utente o email',        pPh:'Password',                uPh:'Nome utente (3-20 car., lettere/numeri/_)',ePh:'Email', rPPh:'Password (min 6 car.)',     lBtn:'Accedi',         rBtn:'Crea account',    eLo:'Errore di accesso',        eRe:'Errore di registrazione', eNe:'Errore di rete' },
+            };
+            const savedLang = (() => { try { return localStorage.getItem('vg_play_lang') || 'en'; } catch { return 'en'; } })();
+            let lang = LANGS[savedLang] ? savedLang : 'en';
+
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
             this._playPopup = overlay;
@@ -1150,10 +1161,17 @@
             card.style.cssText = 'background:#fff;border-radius:16px;padding:32px;width:340px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative';
             overlay.appendChild(card);
 
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = '✕';
-            closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;border:none;background:none;font-size:18px;cursor:pointer;color:#999;line-height:1;padding:0';
-            card.appendChild(closeBtn);
+            // Language selector (top-right, no close button)
+            const langSel = document.createElement('select');
+            langSel.style.cssText = 'position:absolute;top:12px;right:14px;padding:3px 6px;border:1.5px solid #e5e7eb;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;color:#444;outline:none';
+            for (const [code, l] of Object.entries(LANGS)) {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = l.flag + ' ' + l.code;
+                if (code === lang) opt.selected = true;
+                langSel.appendChild(opt);
+            }
+            card.appendChild(langSel);
 
             const header = document.createElement('div');
             header.style.cssText = 'text-align:center;margin-bottom:20px';
@@ -1167,8 +1185,6 @@
             const loginTab = document.createElement('button');
             const regTab   = document.createElement('button');
             const tabStyle = (active) => `flex:1;padding:6px 0;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;${active ? `background:#fff;color:${accent};box-shadow:0 1px 4px rgba(0,0,0,0.1)` : 'background:transparent;color:#666'}`;
-            loginTab.textContent = 'Connexion';
-            regTab.textContent   = 'Créer un compte';
             loginTab.style.cssText = tabStyle(true);
             regTab.style.cssText   = tabStyle(false);
             tabBar.appendChild(loginTab);
@@ -1181,41 +1197,61 @@
             errEl.style.cssText = 'font-size:12px;color:#e53e3e;text-align:center;min-height:16px;margin-top:6px';
             card.appendChild(errEl);
 
-            const mkInput = (placeholder, type = 'text') => {
+            const mkInput = (type = 'text') => {
                 const el = document.createElement('input');
-                el.type = type; el.placeholder = placeholder;
+                el.type = type;
                 el.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;margin-bottom:10px;transition:border 0.15s';
                 el.addEventListener('focus', () => el.style.borderColor = accent);
                 el.addEventListener('blur',  () => el.style.borderColor = '#e5e7eb');
                 return el;
             };
-            const mkBtn = (label) => {
+            const mkBtn = () => {
                 const b = document.createElement('button');
-                b.textContent = label;
                 b.style.cssText = `width:100%;padding:11px;background:${accent};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px`;
                 return b;
             };
 
+            const loginField = mkInput();
+            const loginPwd   = mkInput('password');
+            const loginBtn   = mkBtn();
             const loginForm  = document.createElement('div');
-            const loginField = mkInput('Pseudo ou email');
-            const loginPwd   = mkInput('Mot de passe', 'password');
-            const loginBtn   = mkBtn('Se connecter');
             loginForm.appendChild(loginField);
             loginForm.appendChild(loginPwd);
             loginForm.appendChild(loginBtn);
 
+            const regUser  = mkInput();
+            const regEmail = mkInput();
+            const regPwd   = mkInput('password');
+            const regBtn   = mkBtn();
             const regForm  = document.createElement('div');
             regForm.style.display = 'none';
-            const regUser  = mkInput('Pseudo (3-20 car., lettres/chiffres/_)');
-            const regEmail = mkInput('Email');
-            const regPwd   = mkInput('Mot de passe (min 6 caractères)', 'password');
-            const regBtn   = mkBtn('Créer le compte');
             regForm.appendChild(regUser);
             regForm.appendChild(regEmail);
             regForm.appendChild(regPwd);
             regForm.appendChild(regBtn);
             forms.appendChild(loginForm);
             forms.appendChild(regForm);
+
+            const applyLang = (l) => {
+                const t = LANGS[l];
+                loginTab.textContent   = t.login;
+                regTab.textContent     = t.register;
+                loginField.placeholder = t.lPh;
+                loginPwd.placeholder   = t.pPh;
+                loginBtn.textContent   = t.lBtn;
+                regUser.placeholder    = t.uPh;
+                regEmail.placeholder   = t.ePh;
+                regPwd.placeholder     = t.rPPh;
+                regBtn.textContent     = t.rBtn;
+            };
+            applyLang(lang);
+
+            langSel.addEventListener('change', () => {
+                lang = langSel.value;
+                try { localStorage.setItem('vg_play_lang', lang); } catch {}
+                errEl.textContent = '';
+                applyLang(lang);
+            });
 
             const setTab = (isLogin) => {
                 loginTab.style.cssText  = tabStyle(isLogin);
@@ -1239,14 +1275,14 @@
                         body: JSON.stringify({ login: loginField.value.trim(), password: loginPwd.value, project_slug: this._playSlug })
                     });
                     let d = {};
-                    try { d = await r.json(); } catch { /* réponse non-JSON */ }
-                    if (!r.ok) { errEl.textContent = d.detail || 'Erreur de connexion'; setLoading(loginBtn, false); return; }
+                    try { d = await r.json(); } catch {}
+                    if (!r.ok) { errEl.textContent = d.detail || LANGS[lang].eLo; setLoading(loginBtn, false); return; }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch (err) { errEl.textContent = 'Erreur réseau (' + (err && err.message ? err.message : 'inconnu') + ')'; setLoading(loginBtn, false); }
+                } catch (err) { errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')'; setLoading(loginBtn, false); }
             });
 
             regBtn.addEventListener('click', async () => {
@@ -1259,19 +1295,15 @@
                         body: JSON.stringify({ username: regUser.value.trim(), email: regEmail.value.trim(), password: regPwd.value, project_slug: this._playSlug })
                     });
                     let d = {};
-                    try { d = await r.json(); } catch { /* réponse non-JSON */ }
-                    if (!r.ok) { errEl.textContent = d.detail || "Erreur d'inscription"; setLoading(regBtn, false); return; }
+                    try { d = await r.json(); } catch {}
+                    if (!r.ok) { errEl.textContent = d.detail || LANGS[lang].eRe; setLoading(regBtn, false); return; }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch (err) { errEl.textContent = 'Erreur réseau (' + (err && err.message ? err.message : 'inconnu') + ')'; setLoading(regBtn, false); }
+                } catch (err) { errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')'; setLoading(regBtn, false); }
             });
-
-            const doClose = () => { this._closePlayPopup(); if (onClose) onClose(); };
-            closeBtn.addEventListener('click', doClose);
-            overlay.addEventListener('click', e => { if (e.target === overlay) doClose(); });
 
             document.body.appendChild(overlay);
         }
