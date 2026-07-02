@@ -688,6 +688,7 @@
             // Si le costume existe déjà avec la même version → skip (pas de doublon)
             const existing = target.sprite.costumes_.find(c => c.name === file.name);
             if (existing) {
+                await this._ensureFilesCache();
                 const cached = await this._filesCache.get(file.id).catch(() => null);
                 if (cached && cached.updated_at === fileVersion) return; // déjà à jour
                 // Fichier mis à jour : supprime l'ancien avant d'ajouter le nouveau
