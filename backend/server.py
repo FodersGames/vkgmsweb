@@ -114,6 +114,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
         return response
 
+class PlayCORSMiddleware(BaseHTTPMiddleware):
+    """Allow all origins for /api/play/* routes — game clients come from TurboWarp, file://, Electron, etc."""
+    _HEADERS = {
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Max-Age": "86400",
+    }
+    async def dispatch(self, request: Request, call_next):
+        if not request.url.path.startswith("/api/play/"):
+            return await call_next(request)
+        origin = request.headers.get("origin", "*")
+        if request.method == "OPTIONS":
+            from fastapi.responses import Response as _Resp
+            return _Resp(status_code=200, headers={**self._HEADERS, "Access-Control-Allow-Origin": origin})
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+        return response
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -3344,6 +3363,7 @@ app.add_middleware(
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(PlayCORSMiddleware)  # must be last — runs first, intercepts /api/play/* before CORSMiddleware
 
 TIER_THRESHOLDS = [("diamond", 25000), ("gold", 10000), ("silver", 2500), ("bronze", 0)]
 TIER_DISCOUNTS  = {"bronze": 0, "silver": 5, "gold": 10, "diamond": 15}
