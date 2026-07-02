@@ -1205,9 +1205,9 @@
 
             const regForm  = document.createElement('div');
             regForm.style.display = 'none';
-            const regUser  = mkInput('Pseudo (3-20 caractères)');
+            const regUser  = mkInput('Pseudo (3-20 car., lettres/chiffres/_)');
             const regEmail = mkInput('Email');
-            const regPwd   = mkInput('Mot de passe (min 6)', 'password');
+            const regPwd   = mkInput('Mot de passe (min 6 caractères)', 'password');
             const regBtn   = mkBtn('Créer le compte');
             regForm.appendChild(regUser);
             regForm.appendChild(regEmail);
