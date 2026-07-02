@@ -1237,14 +1237,15 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ login: loginField.value.trim(), password: loginPwd.value, project_slug: this._playSlug })
                     });
-                    const d = await r.json();
+                    let d = {};
+                    try { d = await r.json(); } catch { /* réponse non-JSON */ }
                     if (!r.ok) { errEl.textContent = d.detail || 'Erreur de connexion'; setLoading(loginBtn, false); return; }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch { errEl.textContent = 'Erreur réseau'; setLoading(loginBtn, false); }
+                } catch (err) { errEl.textContent = 'Erreur réseau (' + (err && err.message ? err.message : 'inconnu') + ')'; setLoading(loginBtn, false); }
             });
 
             regBtn.addEventListener('click', async () => {
@@ -1256,14 +1257,15 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: regUser.value.trim(), email: regEmail.value.trim(), password: regPwd.value, project_slug: this._playSlug })
                     });
-                    const d = await r.json();
+                    let d = {};
+                    try { d = await r.json(); } catch { /* réponse non-JSON */ }
                     if (!r.ok) { errEl.textContent = d.detail || "Erreur d'inscription"; setLoading(regBtn, false); return; }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch { errEl.textContent = 'Erreur réseau'; setLoading(regBtn, false); }
+                } catch (err) { errEl.textContent = 'Erreur réseau (' + (err && err.message ? err.message : 'inconnu') + ')'; setLoading(regBtn, false); }
             });
 
             const doClose = () => { this._closePlayPopup(); if (onClose) onClose(); };
