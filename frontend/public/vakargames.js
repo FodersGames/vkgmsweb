@@ -105,6 +105,9 @@
             this._playAccessToken = null;
             this._playPlayer      = null;
             this._playPopup       = null;
+            this._loadingPopup    = null;
+            this._loadingList     = null;
+            this._loadingCount    = 0;
         }
 
         getInfo() {
@@ -473,6 +476,17 @@
                             TITRE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'VakarGames Play' }
                         }
                     },
+                    '---',
+                    {
+                        opcode:    'playOuvrirChargement',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'ouvrir écran de chargement'
+                    },
+                    {
+                        opcode:    'playFermerChargement',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'fermer écran de chargement'
+                    },
                 ]
             };
         }
@@ -739,6 +753,7 @@
                 rotationCenterY:  rotY,
             };
             await vm.addCostume(costume.md5ext, costume, target.id);
+            this._updateLoadingScreen(file.name);
         }
 
         _findTarget(spriteName) {
@@ -1135,6 +1150,84 @@
         playPersonnaliser({ COULEUR, TITRE }) {
             this._playAccent = String(COULEUR).trim() || '#4ECDC4';
             this._playTitle  = String(TITRE).trim()   || 'VakarGames Play';
+        }
+
+        playOuvrirChargement() { this._showLoadingScreen(); }
+        playFermerChargement() { this._closeLoadingScreen(); }
+
+        _showLoadingScreen() {
+            if (this._loadingPopup) { this._loadingPopup.remove(); }
+            this._loadingCount = 0;
+            const accent = this._playAccent;
+            const title  = this._playTitle;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(15,20,30,0.72);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;backdrop-filter:blur(3px)';
+            this._loadingPopup = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#fff;border-radius:18px;padding:28px 30px 24px;width:320px;max-width:90vw;box-shadow:0 24px 64px rgba(0,0,0,0.32)';
+            overlay.appendChild(card);
+
+            // Header: icon + title + subtitle
+            const hdr = document.createElement('div');
+            hdr.style.cssText = 'display:flex;align-items:center;gap:13px;margin-bottom:18px';
+            hdr.innerHTML = `
+                <div style="width:42px;height:42px;border-radius:11px;background:${accent};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:15px;font-weight:700;color:#1a1a1a;line-height:1.2">${title}</div>
+                    <div style="font-size:11px;color:#aaa;margin-top:2px;letter-spacing:0.02em">Loading resources…</div>
+                </div>`;
+            card.appendChild(hdr);
+
+            // Spinner row
+            const spinRow = document.createElement('div');
+            spinRow.style.cssText = 'display:flex;align-items:center;gap:9px;margin-bottom:14px';
+            spinRow.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 16 16" style="animation:_vg_spin 0.75s linear infinite;flex-shrink:0">
+                    <style>@keyframes _vg_spin{to{transform:rotate(360deg)}}</style>
+                    <circle cx="8" cy="8" r="5.5" fill="none" stroke="#e5e7eb" stroke-width="2"/>
+                    <path d="M8 2.5A5.5 5.5 0 0 1 13.5 8" fill="none" stroke="${accent}" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span style="font-size:12px;color:#888">Please wait…</span>`;
+            card.appendChild(spinRow);
+
+            // Separator
+            const sep = document.createElement('div');
+            sep.style.cssText = `height:1px;background:linear-gradient(90deg,${accent}40,transparent);margin-bottom:12px;border-radius:1px`;
+            card.appendChild(sep);
+
+            // Resource list
+            const listWrap = document.createElement('div');
+            listWrap.style.cssText = 'max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:0';
+            card.appendChild(listWrap);
+            this._loadingList = listWrap;
+
+            document.body.appendChild(overlay);
+        }
+
+        _updateLoadingScreen(name) {
+            if (!this._loadingPopup || !this._loadingList) return;
+            this._loadingCount++;
+            const n = this._loadingCount;
+            const accent = this._playAccent;
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6';
+            row.innerHTML = `
+                <span style="font-size:10px;font-weight:700;color:${accent};min-width:18px;text-align:right;flex-shrink:0">${n}</span>
+                <span style="flex:1;font-size:12px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</span>
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="${accent}20"/><path d="M3.5 6.5l2 2 4-4" stroke="${accent}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            this._loadingList.appendChild(row);
+            this._loadingList.scrollTop = this._loadingList.scrollHeight;
+        }
+
+        _closeLoadingScreen() {
+            if (this._loadingPopup) { this._loadingPopup.remove(); this._loadingPopup = null; }
+            this._loadingList  = null;
+            this._loadingCount = 0;
         }
 
         _showPlayPopup(onClose) {
