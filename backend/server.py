@@ -115,12 +115,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 class PlayCORSMiddleware:
-    """Pure ASGI CORS middleware for /api/play/* — never buffers responses, safe for FileResponse/streaming."""
+    """Pure ASGI CORS middleware for /api/play/* and /api/game/* — never buffers responses, safe for FileResponse/streaming."""
+    _PREFIXES = ("/api/play/", "/api/game/")
+
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/play/"):
+        path = scope.get("path", "")
+        if scope["type"] != "http" or not any(path.startswith(p) for p in self._PREFIXES):
             await self.app(scope, receive, send)
             return
 
@@ -134,7 +137,7 @@ class PlayCORSMiddleware:
                 "headers": [
                     [b"access-control-allow-origin",  origin.encode()],
                     [b"access-control-allow-methods", b"GET, POST, OPTIONS"],
-                    [b"access-control-allow-headers", b"Authorization, Content-Type"],
+                    [b"access-control-allow-headers", b"Authorization, Content-Type, X-Files-Api-Key, X-Chat-Api-Key"],
                     [b"access-control-max-age",       b"86400"],
                     [b"content-length",               b"0"],
                 ],
