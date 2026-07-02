@@ -97,6 +97,14 @@
             // HTML Overlay Text
             this._overlayContainer = null;
             this._overlayTexts     = new Map();
+
+            // VakarGames Play
+            this._playSlug        = '';
+            this._playAccent      = '#4ECDC4';
+            this._playTitle       = 'VakarGames Play';
+            this._playAccessToken = null;
+            this._playPlayer      = null;
+            this._playPopup       = null;
         }
 
         getInfo() {
@@ -107,7 +115,8 @@
                 color2: '#2CB5AC',
                 color3: '#1aada6',
                 menus: {
-                    ouiNon: { acceptReporters: true, items: ['oui', 'non'] }
+                    ouiNon:        { acceptReporters: true, items: ['oui', 'non'] },
+                    categoriesSave: { acceptReporters: true, items: ['inventory', 'stats', 'craft', 'tech', 'others'] }
                 },
                 blocks: [
 
@@ -400,6 +409,68 @@
                         text:      'texte id [ID] existe ?',
                         arguments: {
                             ID: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon_texte' }
+                        }
+                    },
+
+                    // ══════════════════════════════
+                    //  VAKAR GAMES PLAY
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— VakarGames Play —' },
+                    {
+                        opcode:    'playConfigurer',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'configurer VakarGames Play projet [SLUG]',
+                        arguments: { SLUG: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon-jeu' } }
+                    },
+                    {
+                        opcode:    'playAfficherConnexion',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'afficher popup connexion VakarGames Play'
+                    },
+                    {
+                        opcode:    'playEstConnecte',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'joueur connecté ?'
+                    },
+                    {
+                        opcode:    'playNomJoueur',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'nom du joueur connecté'
+                    },
+                    {
+                        opcode:    'playIdJoueur',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'id du joueur connecté'
+                    },
+                    {
+                        opcode:    'playDeconnecter',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'déconnecter le joueur'
+                    },
+                    {
+                        opcode:    'playSauvegarder',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'sauvegarder [CATEGORIE] données [DONNEES]',
+                        arguments: {
+                            CATEGORIE: { type: Scratch.ArgumentType.STRING, menu: 'categoriesSave', defaultValue: 'stats' },
+                            DONNEES:   { type: Scratch.ArgumentType.STRING, defaultValue: '{}' }
+                        }
+                    },
+                    {
+                        opcode:    'playCharger',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'charger [CATEGORIE]',
+                        arguments: {
+                            CATEGORIE: { type: Scratch.ArgumentType.STRING, menu: 'categoriesSave', defaultValue: 'stats' }
+                        }
+                    },
+                    {
+                        opcode:    'playPersonnaliser',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'personnaliser popup couleur [COULEUR] titre [TITRE]',
+                        arguments: {
+                            COULEUR: { type: Scratch.ArgumentType.STRING, defaultValue: '#4ECDC4' },
+                            TITRE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'VakarGames Play' }
                         }
                     },
                 ]
@@ -992,6 +1063,218 @@
 
         texteExiste({ ID }) {
             return this._overlayTexts.has(String(ID).trim());
+        }
+
+        // ══════════════════════════════════════════
+        //  VAKAR GAMES PLAY
+        // ══════════════════════════════════════════
+
+        _playStorageKey() { return 'vg_play_refresh_' + this._playSlug; }
+
+        async _playRestoreSession() {
+            const stored = localStorage.getItem(this._playStorageKey());
+            if (!stored) return;
+            try {
+                const r = await _fetch(`${API_URL}/api/play/refresh`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ refresh_token: stored })
+                });
+                if (!r.ok) { localStorage.removeItem(this._playStorageKey()); return; }
+                const d = await r.json();
+                this._playAccessToken = d.access_token;
+                this._playPlayer      = d.player;
+            } catch { /* réseau indisponible — reste déconnecté */ }
+        }
+
+        async playConfigurer({ SLUG }) {
+            this._playSlug = String(SLUG).trim();
+            await this._playRestoreSession();
+        }
+
+        async playAfficherConnexion() {
+            if (this._playPlayer) return;
+            return new Promise(resolve => this._showPlayPopup(resolve));
+        }
+
+        playEstConnecte() { return !!this._playPlayer; }
+        playNomJoueur()   { return this._playPlayer ? this._playPlayer.username : ''; }
+        playIdJoueur()    { return this._playPlayer ? this._playPlayer.id : ''; }
+
+        playDeconnecter() {
+            this._playAccessToken = null;
+            this._playPlayer      = null;
+            localStorage.removeItem(this._playStorageKey());
+        }
+
+        async playSauvegarder({ CATEGORIE, DONNEES }) {
+            if (!this._playAccessToken) return;
+            try {
+                await _fetch(`${API_URL}/api/play/save`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this._playAccessToken}` },
+                    body:    JSON.stringify({ category: String(CATEGORIE), data: String(DONNEES), project_slug: this._playSlug })
+                });
+            } catch { /* noop */ }
+        }
+
+        async playCharger({ CATEGORIE }) {
+            if (!this._playAccessToken) return '{}';
+            try {
+                const r = await _fetch(
+                    `${API_URL}/api/play/load?category=${encodeURIComponent(CATEGORIE)}&project_slug=${encodeURIComponent(this._playSlug)}`,
+                    { headers: { 'Authorization': `Bearer ${this._playAccessToken}` } }
+                );
+                if (!r.ok) return '{}';
+                const d = await r.json();
+                return d.data || '{}';
+            } catch { return '{}'; }
+        }
+
+        playPersonnaliser({ COULEUR, TITRE }) {
+            this._playAccent = String(COULEUR).trim() || '#4ECDC4';
+            this._playTitle  = String(TITRE).trim()   || 'VakarGames Play';
+        }
+
+        _showPlayPopup(onClose) {
+            if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
+            const accent = this._playAccent;
+            const title  = this._playTitle;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._playPopup = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#fff;border-radius:16px;padding:32px;width:340px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative';
+            overlay.appendChild(card);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;border:none;background:none;font-size:18px;cursor:pointer;color:#999;line-height:1;padding:0';
+            card.appendChild(closeBtn);
+
+            const header = document.createElement('div');
+            header.style.cssText = 'text-align:center;margin-bottom:20px';
+            header.innerHTML = `<div style="width:44px;height:44px;border-radius:12px;background:${accent};margin:0 auto 10px;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div style="font-size:18px;font-weight:700;color:#1a1a1a">${title}</div>`;
+            card.appendChild(header);
+
+            const tabBar = document.createElement('div');
+            tabBar.style.cssText = 'display:flex;gap:4px;background:#f3f4f6;border-radius:8px;padding:4px;margin-bottom:20px';
+            card.appendChild(tabBar);
+
+            const loginTab = document.createElement('button');
+            const regTab   = document.createElement('button');
+            const tabStyle = (active) => `flex:1;padding:6px 0;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;${active ? `background:#fff;color:${accent};box-shadow:0 1px 4px rgba(0,0,0,0.1)` : 'background:transparent;color:#666'}`;
+            loginTab.textContent = 'Connexion';
+            regTab.textContent   = 'Créer un compte';
+            loginTab.style.cssText = tabStyle(true);
+            regTab.style.cssText   = tabStyle(false);
+            tabBar.appendChild(loginTab);
+            tabBar.appendChild(regTab);
+
+            const forms = document.createElement('div');
+            card.appendChild(forms);
+
+            const errEl = document.createElement('div');
+            errEl.style.cssText = 'font-size:12px;color:#e53e3e;text-align:center;min-height:16px;margin-top:6px';
+            card.appendChild(errEl);
+
+            const mkInput = (placeholder, type = 'text') => {
+                const el = document.createElement('input');
+                el.type = type; el.placeholder = placeholder;
+                el.style.cssText = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;margin-bottom:10px;transition:border 0.15s';
+                el.addEventListener('focus', () => el.style.borderColor = accent);
+                el.addEventListener('blur',  () => el.style.borderColor = '#e5e7eb');
+                return el;
+            };
+            const mkBtn = (label) => {
+                const b = document.createElement('button');
+                b.textContent = label;
+                b.style.cssText = `width:100%;padding:11px;background:${accent};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px`;
+                return b;
+            };
+
+            const loginForm  = document.createElement('div');
+            const loginField = mkInput('Pseudo ou email');
+            const loginPwd   = mkInput('Mot de passe', 'password');
+            const loginBtn   = mkBtn('Se connecter');
+            loginForm.appendChild(loginField);
+            loginForm.appendChild(loginPwd);
+            loginForm.appendChild(loginBtn);
+
+            const regForm  = document.createElement('div');
+            regForm.style.display = 'none';
+            const regUser  = mkInput('Pseudo (3-20 caractères)');
+            const regEmail = mkInput('Email');
+            const regPwd   = mkInput('Mot de passe (min 6)', 'password');
+            const regBtn   = mkBtn('Créer le compte');
+            regForm.appendChild(regUser);
+            regForm.appendChild(regEmail);
+            regForm.appendChild(regPwd);
+            regForm.appendChild(regBtn);
+            forms.appendChild(loginForm);
+            forms.appendChild(regForm);
+
+            const setTab = (isLogin) => {
+                loginTab.style.cssText  = tabStyle(isLogin);
+                regTab.style.cssText    = tabStyle(!isLogin);
+                loginForm.style.display = isLogin ? '' : 'none';
+                regForm.style.display   = isLogin ? 'none' : '';
+                errEl.textContent = '';
+            };
+            loginTab.addEventListener('click', () => setTab(true));
+            regTab.addEventListener('click',   () => setTab(false));
+
+            const setLoading = (btn, loading) => { btn.disabled = loading; btn.style.opacity = loading ? '0.7' : '1'; };
+
+            loginBtn.addEventListener('click', async () => {
+                errEl.textContent = '';
+                setLoading(loginBtn, true);
+                try {
+                    const r = await _fetch(`${API_URL}/api/play/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ login: loginField.value.trim(), password: loginPwd.value, project_slug: this._playSlug })
+                    });
+                    const d = await r.json();
+                    if (!r.ok) { errEl.textContent = d.detail || 'Erreur de connexion'; setLoading(loginBtn, false); return; }
+                    localStorage.setItem(this._playStorageKey(), d.refresh_token);
+                    this._playAccessToken = d.access_token;
+                    this._playPlayer      = d.player;
+                    this._closePlayPopup();
+                    if (onClose) onClose();
+                } catch { errEl.textContent = 'Erreur réseau'; setLoading(loginBtn, false); }
+            });
+
+            regBtn.addEventListener('click', async () => {
+                errEl.textContent = '';
+                setLoading(regBtn, true);
+                try {
+                    const r = await _fetch(`${API_URL}/api/play/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: regUser.value.trim(), email: regEmail.value.trim(), password: regPwd.value, project_slug: this._playSlug })
+                    });
+                    const d = await r.json();
+                    if (!r.ok) { errEl.textContent = d.detail || "Erreur d'inscription"; setLoading(regBtn, false); return; }
+                    localStorage.setItem(this._playStorageKey(), d.refresh_token);
+                    this._playAccessToken = d.access_token;
+                    this._playPlayer      = d.player;
+                    this._closePlayPopup();
+                    if (onClose) onClose();
+                } catch { errEl.textContent = 'Erreur réseau'; setLoading(regBtn, false); }
+            });
+
+            const doClose = () => { this._closePlayPopup(); if (onClose) onClose(); };
+            closeBtn.addEventListener('click', doClose);
+            overlay.addEventListener('click', e => { if (e.target === overlay) doClose(); });
+
+            document.body.appendChild(overlay);
+        }
+
+        _closePlayPopup() {
+            if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
         }
     }
 
