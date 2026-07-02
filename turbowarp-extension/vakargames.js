@@ -105,6 +105,7 @@
             this._playAccessToken = null;
             this._playPlayer      = null;
             this._playPopup       = null;
+            this._playSaveCache   = {};
             this._loadingPopup = null;
             this._loadingBarEl = null;
             this._loadingCount = 0;
@@ -1122,17 +1123,22 @@
         playDeconnecter() {
             this._playAccessToken = null;
             this._playPlayer      = null;
+            this._playSaveCache   = {};
             localStorage.removeItem(this._playStorageKey());
         }
 
         async playSauvegarder({ CATEGORIE, DONNEES }) {
             if (!this._playAccessToken) return;
+            const cat  = String(CATEGORIE);
+            const data = String(DONNEES);
+            if (this._playSaveCache[cat] === data) return; // rien changé → skip
             try {
-                await _fetch(`${API_URL}/api/play/save`, {
+                const r = await _fetch(`${API_URL}/api/play/save`, {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this._playAccessToken}` },
-                    body:    JSON.stringify({ category: String(CATEGORIE), data: String(DONNEES), project_slug: this._playSlug })
+                    body:    JSON.stringify({ category: cat, data: data, project_slug: this._playSlug })
                 });
+                if (r.ok) this._playSaveCache[cat] = data; // cache mis à jour uniquement si succès
             } catch { /* noop */ }
         }
 
