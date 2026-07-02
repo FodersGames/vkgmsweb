@@ -3429,6 +3429,268 @@ async def _ensure_super_admin():
     except Exception as e:
         logger.error(f"Super admin init error: {e}")
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  VAKAR GAMES PLAY — Player Auth + Cloud Saves
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PLAY_ACCESS_TOKEN_HOURS   = 1
+PLAY_REFRESH_TOKEN_DAYS   = 365
+PLAY_SAVE_CATEGORIES      = {"inventory", "stats", "craft", "tech", "others"}
+
+def _create_play_access_token(user_id: str, username: str) -> str:
+    payload = {
+        "sub": user_id, "username": username, "type": "play",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=PLAY_ACCESS_TOKEN_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def _create_play_refresh_token(user_id: str, username: str, jti: str) -> str:
+    payload = {
+        "sub": user_id, "username": username, "type": "play_refresh", "jti": jti,
+        "exp": datetime.now(timezone.utc) + timedelta(days=PLAY_REFRESH_TOKEN_DAYS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def _get_play_user_from_access(request: Request):
+    """Validates a play access token (1h, in-memory on client)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Token requis")
+    token = auth[7:]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(401, "Token invalide ou expiré")
+    if payload.get("type") != "play":
+        raise HTTPException(401, "Token invalide")
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(401, "Token invalide")
+    try:
+        user = await db.play_users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(401, "Token invalide")
+    if not user:
+        raise HTTPException(401, "Joueur introuvable")
+    return user
+
+# ── Public play routes ───────────────────────────────────────────────────────
+
+@api_router.post("/play/register")
+@limiter.limit("10/minute")
+async def play_register(request: Request):
+    body = await request.json()
+    username     = str(body.get("username", "")).strip()
+    email        = str(body.get("email", "")).strip().lower()
+    password     = str(body.get("password", ""))
+    project_slug = str(body.get("project_slug", "")).strip()
+
+    if not username or not email or not password:
+        raise HTTPException(400, "Champs requis manquants")
+    if len(username) < 3 or len(username) > 20:
+        raise HTTPException(400, "Nom d'utilisateur : 3 à 20 caractères")
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', username):
+        raise HTTPException(400, "Nom d'utilisateur : lettres, chiffres, _ et - uniquement")
+    if len(password) < 6:
+        raise HTTPException(400, "Mot de passe trop court (min 6 caractères)")
+    if "@" not in email:
+        raise HTTPException(400, "Email invalide")
+
+    if await db.play_users.find_one({"$or": [{"username": username}, {"email": email}]}):
+        raise HTTPException(400, "Nom d'utilisateur ou email déjà utilisé")
+
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    now = datetime.now(timezone.utc)
+    result = await db.play_users.insert_one({
+        "username": username, "email": email, "password_hash": pw_hash,
+        "project_slug": project_slug, "created_at": now, "last_seen": now,
+    })
+    user_id = str(result.inserted_id)
+    jti = secrets.token_urlsafe(32)
+    refresh_token = _create_play_refresh_token(user_id, username, jti)
+    access_token  = _create_play_access_token(user_id, username)
+    await db.play_refresh_tokens.insert_one({
+        "jti": jti, "user_id": ObjectId(user_id),
+        "created_at": now, "last_used": now,
+        "expires_at": now + timedelta(days=PLAY_REFRESH_TOKEN_DAYS),
+        "is_revoked": False,
+    })
+    return {"access_token": access_token, "refresh_token": refresh_token,
+            "player": {"id": user_id, "username": username}}
+
+@api_router.post("/play/login")
+@limiter.limit("15/minute")
+async def play_login(request: Request):
+    body = await request.json()
+    login    = str(body.get("login", "")).strip()
+    password = str(body.get("password", ""))
+    if not login or not password:
+        raise HTTPException(400, "Champs requis manquants")
+    user = await db.play_users.find_one({"$or": [{"username": login}, {"email": login.lower()}]})
+    if not user or not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+        raise HTTPException(400, "Identifiants incorrects")
+    user_id  = str(user["_id"])
+    username = user["username"]
+    now = datetime.now(timezone.utc)
+    await db.play_users.update_one({"_id": user["_id"]}, {"$set": {"last_seen": now}})
+    jti = secrets.token_urlsafe(32)
+    refresh_token = _create_play_refresh_token(user_id, username, jti)
+    access_token  = _create_play_access_token(user_id, username)
+    await db.play_refresh_tokens.insert_one({
+        "jti": jti, "user_id": user["_id"],
+        "created_at": now, "last_used": now,
+        "expires_at": now + timedelta(days=PLAY_REFRESH_TOKEN_DAYS),
+        "is_revoked": False,
+    })
+    return {"access_token": access_token, "refresh_token": refresh_token,
+            "player": {"id": user_id, "username": username}}
+
+@api_router.post("/play/refresh")
+@limiter.limit("30/minute")
+async def play_refresh(request: Request):
+    body = await request.json()
+    refresh_token = str(body.get("refresh_token", ""))
+    if not refresh_token:
+        raise HTTPException(401, "Refresh token manquant")
+    try:
+        payload = jwt.decode(refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(401, "Refresh token invalide ou expiré")
+    if payload.get("type") != "play_refresh":
+        raise HTTPException(401, "Token invalide")
+    jti     = payload.get("jti")
+    user_id = payload.get("sub")
+    if not jti or not user_id:
+        raise HTTPException(401, "Token invalide")
+    stored = await db.play_refresh_tokens.find_one({"jti": jti})
+    if not stored or stored.get("is_revoked"):
+        raise HTTPException(401, "Session révoquée")
+    try:
+        user = await db.play_users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(401, "Joueur introuvable")
+    if not user:
+        raise HTTPException(401, "Joueur introuvable")
+    now = datetime.now(timezone.utc)
+    await db.play_refresh_tokens.update_one({"jti": jti}, {"$set": {"last_used": now}})
+    await db.play_users.update_one({"_id": user["_id"]}, {"$set": {"last_seen": now}})
+    access_token = _create_play_access_token(user_id, user["username"])
+    return {"access_token": access_token, "player": {"id": user_id, "username": user["username"]}}
+
+@api_router.get("/play/me")
+async def play_me(request: Request, play_user=Depends(_get_play_user_from_access)):
+    return {"id": str(play_user["_id"]), "username": play_user["username"]}
+
+@api_router.post("/play/save")
+async def play_save(request: Request, play_user=Depends(_get_play_user_from_access)):
+    body = await request.json()
+    category     = str(body.get("category", "")).strip()
+    data         = str(body.get("data", "{}"))
+    project_slug = str(body.get("project_slug", "")).strip()
+    if category not in PLAY_SAVE_CATEGORIES:
+        raise HTTPException(400, f"Catégorie invalide. Valeurs: {', '.join(sorted(PLAY_SAVE_CATEGORIES))}")
+    if not project_slug:
+        raise HTTPException(400, "project_slug requis")
+    try:
+        json.loads(data)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Les données doivent être du JSON valide")
+    await db.play_saves.update_one(
+        {"user_id": play_user["_id"], "project_slug": project_slug, "category": category},
+        {"$set": {"data": data, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+    return {"ok": True}
+
+@api_router.get("/play/load")
+async def play_load(request: Request, category: str, project_slug: str, play_user=Depends(_get_play_user_from_access)):
+    if category not in PLAY_SAVE_CATEGORIES:
+        raise HTTPException(400, "Catégorie invalide")
+    save = await db.play_saves.find_one({
+        "user_id": play_user["_id"], "project_slug": project_slug, "category": category
+    })
+    return {"data": save["data"] if save else "{}"}
+
+# ── Admin play routes ────────────────────────────────────────────────────────
+
+@api_router.get("/admin/projects/{slug}/play/players")
+async def admin_play_players(slug: str, user=Depends(require_permission("view_projects"))):
+    saves   = await db.play_saves.find({"project_slug": slug}).to_list(None)
+    p_ids   = list({s["user_id"] for s in saves})
+    players = await db.play_users.find({"_id": {"$in": p_ids}}).to_list(None)
+    result  = []
+    for p in players:
+        p_saves = [s for s in saves if s["user_id"] == p["_id"]]
+        result.append({
+            "id":         str(p["_id"]),
+            "username":   p["username"],
+            "email":      p["email"],
+            "created_at": str(p.get("created_at", "")),
+            "last_seen":  str(p.get("last_seen", "")),
+            "categories": [s["category"] for s in p_saves],
+        })
+    return {"players": result}
+
+@api_router.get("/admin/projects/{slug}/play/players/{player_id}")
+async def admin_play_player_detail(slug: str, player_id: str, user=Depends(require_permission("view_projects"))):
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    player = await db.play_users.find_one({"_id": oid})
+    if not player:
+        raise HTTPException(404, "Joueur introuvable")
+    saves = await db.play_saves.find({"user_id": oid, "project_slug": slug}).to_list(None)
+    return {
+        "player": {
+            "id": str(player["_id"]), "username": player["username"], "email": player["email"],
+            "created_at": str(player.get("created_at", "")), "last_seen": str(player.get("last_seen", "")),
+        },
+        "saves": {s["category"]: s["data"] for s in saves}
+    }
+
+@api_router.patch("/admin/projects/{slug}/play/players/{player_id}/saves/{category}")
+async def admin_play_update_save(slug: str, player_id: str, category: str, request: Request, user=Depends(require_permission("view_projects"))):
+    if category not in PLAY_SAVE_CATEGORIES:
+        raise HTTPException(400, "Catégorie invalide")
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    body = await request.json()
+    data = str(body.get("data", "{}"))
+    try:
+        json.loads(data)
+    except Exception:
+        raise HTTPException(400, "JSON invalide")
+    await db.play_saves.update_one(
+        {"user_id": oid, "project_slug": slug, "category": category},
+        {"$set": {"data": data, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+    return {"ok": True}
+
+@api_router.delete("/admin/projects/{slug}/play/players/{player_id}/tokens")
+async def admin_play_revoke_tokens(slug: str, player_id: str, user=Depends(require_permission("view_projects"))):
+    """Force-disconnect a player from all devices."""
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    await db.play_refresh_tokens.update_many({"user_id": oid}, {"$set": {"is_revoked": True}})
+    return {"ok": True}
+
+@api_router.delete("/admin/projects/{slug}/play/players/{player_id}")
+async def admin_play_delete_player(slug: str, player_id: str, user=Depends(require_permission("manage_users"))):
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    await db.play_users.delete_one({"_id": oid})
+    await db.play_saves.delete_many({"user_id": oid})
+    await db.play_refresh_tokens.delete_many({"user_id": oid})
+    return {"ok": True}
+
 @app.on_event("startup")
 async def startup_event():
     try:
@@ -3458,6 +3720,11 @@ async def startup_event():
         await db.game_purchases.create_index("purchased_at")
         await db.user_points.create_index("email", unique=True)
         await db.website_shop_global_settings.create_index("_id")
+        await db.play_users.create_index("username", unique=True)
+        await db.play_users.create_index("email", unique=True)
+        await db.play_saves.create_index([("user_id", 1), ("project_slug", 1), ("category", 1)], unique=True)
+        await db.play_refresh_tokens.create_index("jti", unique=True)
+        await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
         logger.info("Database indexes initialized")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")

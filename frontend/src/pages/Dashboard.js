@@ -28,6 +28,7 @@ import { VpsStats }            from '../components/VpsStats';
 import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
 import { CouponManagement }    from '../components/CouponManagement';
+import { PlayersManagement }   from '../components/PlayersManagement';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ const NAV_GROUPS = [
       { id: 'chat',       label: 'Chat',           icon: MessageSquare, permission: 'manage_chat',     requiresProject: true },
       { id: 'missions',   label: 'Missions',       icon: ClipboardList, permission: 'claim_missions',  requiresProject: true },
       { id: 'files',      label: 'Files',          icon: HardDrive,     anyPermission: ['manage_files', 'claim_missions'], requiresProject: true },
+      { id: 'players',    label: 'Players',        icon: Users,         permission: 'view_projects',                       requiresProject: true },
     ],
   },
   {
@@ -74,7 +76,7 @@ const NAV_GROUPS = [
   },
 ];
 
-const PROJECT_TABS = new Set(['send-items', 'status', 'variables', 'logs', 'chat', 'missions', 'files']);
+const PROJECT_TABS = new Set(['send-items', 'status', 'variables', 'logs', 'chat', 'missions', 'files', 'players']);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -405,6 +407,7 @@ const DashboardContent = () => {
             {activeTab === 'chat'       && selectedProject && hasPermission('manage_chat')                                            && <ChatManagement />}
             {activeTab === 'missions'   && selectedProject && (hasPermission('claim_missions') || hasPermission('create_missions'))   && <MissionsManagement />}
             {activeTab === 'files'      && selectedProject && (hasPermission('manage_files')   || hasPermission('claim_missions'))    && <FilesManagement />}
+            {activeTab === 'players'    && selectedProject && hasPermission('view_projects')                                            && <PlayersManagement />}
 
             {activeTab === 'website-games'    &&                                <GamesManagement />}
             {activeTab === 'website-blog'     &&                                <BlogManagement />}
