@@ -114,24 +114,47 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
         return response
 
-class PlayCORSMiddleware(BaseHTTPMiddleware):
-    """Allow all origins for /api/play/* routes — game clients come from TurboWarp, file://, Electron, etc."""
-    _HEADERS = {
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Max-Age": "86400",
-    }
-    async def dispatch(self, request: Request, call_next):
-        if not request.url.path.startswith("/api/play/"):
-            return await call_next(request)
-        origin = request.headers.get("origin", "*")
-        if request.method == "OPTIONS":
-            from fastapi.responses import Response as _Resp
-            return _Resp(status_code=200, headers={**self._HEADERS, "Access-Control-Allow-Origin": origin})
-        response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Vary"] = "Origin"
-        return response
+class PlayCORSMiddleware:
+    """Pure ASGI CORS middleware for /api/play/* — never buffers responses, safe for FileResponse/streaming."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/play/"):
+            await self.app(scope, receive, send)
+            return
+
+        headers_dict = dict(scope.get("headers", []))
+        origin = headers_dict.get(b"origin", b"*").decode()
+
+        if scope.get("method") == "OPTIONS":
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [
+                    [b"access-control-allow-origin",  origin.encode()],
+                    [b"access-control-allow-methods", b"GET, POST, OPTIONS"],
+                    [b"access-control-allow-headers", b"Authorization, Content-Type"],
+                    [b"access-control-max-age",       b"86400"],
+                    [b"content-length",               b"0"],
+                ],
+            })
+            await send({"type": "http.response.body", "body": b""})
+            return
+
+        cors_pair = [b"access-control-allow-origin", origin.encode()]
+        injected  = False
+
+        async def send_with_cors(message):
+            nonlocal injected
+            if message["type"] == "http.response.start" and not injected:
+                injected = True
+                existing = [h for h in message.get("headers", [])
+                            if h[0].lower() != b"access-control-allow-origin"]
+                message = {**message, "headers": existing + [cors_pair, [b"vary", b"Origin"]]}
+            await send(message)
+
+        await self.app(scope, receive, send_with_cors)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
