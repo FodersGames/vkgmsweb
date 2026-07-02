@@ -105,10 +105,10 @@
             this._playAccessToken = null;
             this._playPlayer      = null;
             this._playPopup       = null;
-            this._loadingPopup    = null;
-            this._loadingStatusEl = null;
-            this._loadingBarEl    = null;
-            this._loadingCount    = 0;
+            this._loadingPopup = null;
+            this._loadingBarEl = null;
+            this._loadingCount = 0;
+            this._loadingMax   = 1;
         }
 
         getInfo() {
@@ -481,12 +481,13 @@
                     {
                         opcode:    'playOuvrirChargement',
                         blockType: Scratch.BlockType.COMMAND,
-                        text:      'ouvrir écran de chargement'
+                        text:      'ouvrir barre de chargement max [MAX]',
+                        arguments: { MAX: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 } }
                     },
                     {
                         opcode:    'playFermerChargement',
                         blockType: Scratch.BlockType.COMMAND,
-                        text:      'fermer écran de chargement'
+                        text:      'fermer barre de chargement'
                     },
                 ]
             };
@@ -1153,60 +1154,47 @@
             this._playTitle  = String(TITRE).trim()   || 'VakarGames Play';
         }
 
-        playOuvrirChargement() { this._showLoadingScreen(); }
-        playFermerChargement() { this._closeLoadingScreen(); }
+        playOuvrirChargement({ MAX }) { this._showLoadingScreen(MAX); }
+        playFermerChargement()        { this._closeLoadingScreen(); }
 
-        _showLoadingScreen() {
+        _showLoadingScreen(max) {
             if (this._loadingPopup) { this._loadingPopup.remove(); }
             this._loadingCount = 0;
+            this._loadingMax   = Math.max(1, parseInt(max) || 1);
             const accent = this._playAccent;
 
             const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(10,15,25,0.82);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;backdrop-filter:blur(6px)';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(10,15,25,0.88);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
             this._loadingPopup = overlay;
 
-            const card = document.createElement('div');
-            card.style.cssText = 'background:#fff;border-radius:20px;padding:52px 48px;width:min(640px,88vw);box-shadow:0 32px 80px rgba(0,0,0,0.38);display:flex;flex-direction:column;align-items:center;gap:28px';
-            overlay.appendChild(card);
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'width:min(620px,82vw)';
 
-            // Spinner
-            card.innerHTML = `
-                <svg width="56" height="56" viewBox="0 0 56 56" style="animation:_vg_spin 0.9s linear infinite">
-                    <style>@keyframes _vg_spin{to{transform:rotate(360deg)}}</style>
-                    <circle cx="28" cy="28" r="22" fill="none" stroke="#f0f0f0" stroke-width="4"/>
-                    <path d="M28 6A22 22 0 0 1 50 28" fill="none" stroke="${accent}" stroke-width="4" stroke-linecap="round"/>
-                </svg>
-                <div style="text-align:center">
-                    <div style="font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:10px">Loading resources</div>
-                    <div id="_vg_load_status" style="font-size:14px;color:#888;min-height:20px;transition:opacity 0.15s">Please wait…</div>
-                </div>
-                <div style="width:100%;height:3px;background:#f0f0f0;border-radius:2px;overflow:hidden">
-                    <div id="_vg_load_bar" style="height:100%;width:0%;background:${accent};border-radius:2px;transition:width 0.25s ease"></div>
-                </div>`;
+            const track = document.createElement('div');
+            track.style.cssText = 'width:100%;height:8px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden';
 
-            this._loadingStatusEl = card.querySelector('#_vg_load_status');
-            this._loadingBarEl    = card.querySelector('#_vg_load_bar');
+            const bar = document.createElement('div');
+            bar.style.cssText = `height:100%;width:0%;background:${accent};border-radius:4px;transition:width 0.3s ease`;
+            track.appendChild(bar);
+            wrap.appendChild(track);
+            overlay.appendChild(wrap);
+            this._loadingBarEl = bar;
+
             document.body.appendChild(overlay);
         }
 
         _updateLoadingScreen(name) {
-            if (!this._loadingPopup) return;
+            if (!this._loadingPopup || !this._loadingBarEl) return;
             this._loadingCount++;
-            if (this._loadingStatusEl) {
-                this._loadingStatusEl.textContent = 'Resource ' + this._loadingCount + ' loaded — ' + name;
-            }
-            // Progress bar pulses between 15% and 90% while loading
-            if (this._loadingBarEl) {
-                const w = Math.min(15 + this._loadingCount * 8, 90);
-                this._loadingBarEl.style.width = w + '%';
-            }
+            const pct = Math.min(this._loadingCount / this._loadingMax * 100, 100);
+            this._loadingBarEl.style.width = pct + '%';
         }
 
         _closeLoadingScreen() {
             if (this._loadingPopup) { this._loadingPopup.remove(); this._loadingPopup = null; }
-            this._loadingStatusEl = null;
-            this._loadingBarEl    = null;
-            this._loadingCount    = 0;
+            this._loadingBarEl = null;
+            this._loadingCount = 0;
+            this._loadingMax   = 1;
         }
 
         _showPlayPopup(onClose) {
