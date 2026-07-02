@@ -3322,8 +3322,7 @@ async def get_system_stats(user=Depends(require_permission("view_vps"))):
         "load_avg": load_avg,
     }
 
-# ============== SETUP ==============
-app.include_router(api_router)
+# ============== SETUP ==============  (include_router moved after play routes — see below)
 
 # CORS — reads CORS_ORIGINS from env; falls back to localhost only (never wildcard in prod)
 _cors_raw = os.environ.get('CORS_ORIGINS', '').strip()
@@ -3704,6 +3703,9 @@ async def admin_play_delete_player(slug: str, player_id: str, user=Depends(requi
     await db.play_saves.delete_many({"user_id": oid, "project_slug": slug})
     await db.play_refresh_tokens.delete_many({"user_id": oid})
     return {"ok": True}
+
+# All api_router routes (including Play) must be registered before include_router
+app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup_event():
