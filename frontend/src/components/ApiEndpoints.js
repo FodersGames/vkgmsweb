@@ -360,8 +360,8 @@ export const ApiEndpoints = () => {
         </CardBody>
 
         <div className="px-6 pb-6">
-          <div className="p-4 border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 rounded-lg">
-            <div className="text-sm font-medium text-[#6C5CE7] mb-2">Multi-Project Architecture</div>
+          <div className="p-4 border border-gray-200 bg-gray-50 rounded-xl">
+            <div className="text-sm font-semibold text-gray-700 mb-2">Multi-Project Architecture</div>
             <p className="text-sm text-gray-900/70">
               All game data (items, status, variables, logs) is isolated per project. Each project has its own set of endpoints prefixed with <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 text-brand-400">/api/projects/{'{'}&lt;slug&gt;{'}'}</code>.
               Users and authentication are shared globally across all projects.

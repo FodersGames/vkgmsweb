@@ -199,7 +199,7 @@ export const GamesManagement = () => {
                 </div>
 
                 <label className="flex items-center gap-3 px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg cursor-pointer hover:border-brand-400/30 transition-colors" data-testid="featured-toggle">
-                  <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
+                  <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-brand-400" />
                   <div>
                     <span className="text-sm text-gray-900 font-medium">Featured Game</span>
                     <p className="text-xs text-gray-500">Display this game on the homepage</p>

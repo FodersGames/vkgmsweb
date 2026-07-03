@@ -154,7 +154,7 @@ export const ServerStatus = () => {
             <button
               onClick={() => setVersionOpen(v => !v)}
               disabled={versionSaving}
-              className="flex items-center gap-2 border border-gray-200 bg-white hover:border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-colors disabled:opacity-50 min-w-[180px] justify-between"
+              className="flex items-center gap-2 border border-gray-200 rounded-lg bg-white hover:border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-colors disabled:opacity-50 min-w-[180px] justify-between"
             >
               <span className="flex items-center gap-2">
                 {versionSaving
@@ -166,7 +166,7 @@ export const ServerStatus = () => {
               <ChevronDown size={13} className={`text-gray-400 transition-transform ${versionOpen ? 'rotate-180' : ''}`} />
             </button>
             {versionOpen && (
-              <div className="absolute top-full left-0 mt-1 z-20 bg-white border border-gray-200 shadow-lg min-w-[180px]">
+              <div className="absolute top-full left-0 mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[180px] overflow-hidden">
                 {versions.map(tag => (
                   <button
                     key={tag}

@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Cpu, Database, HardDrive, RefreshCw, Clock, Loader2 } from 'lucide-react';
+import { Card, CardHeader, CardBody } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,17 +32,17 @@ const colorFor = (pct) => {
 const Gauge = ({ label, icon: Icon, percent, detail }) => {
   const { bar, text } = colorFor(percent);
   return (
-    <div className="bg-white border border-gray-200 p-5 space-y-3">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon size={15} className="text-gray-400" />
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-[0.1em]">{label}</span>
         </div>
-        <span className={`text-lg font-bold ${text}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+        <span className={`text-xl font-bold tabular-nums ${text}`}>
           {percent.toFixed(0)}%
         </span>
       </div>
-      <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: bar }}
@@ -56,9 +57,9 @@ export const VpsStats = () => {
   const { token } = useAuth();
   const headers = { Authorization: `Bearer ${token}` };
 
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [stats,      setStats]      = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
   const [lastUpdate, setLastUpdate] = useState(null);
 
   const load = useCallback(async () => {
@@ -83,93 +84,95 @@ export const VpsStats = () => {
 
   return (
     <div className="max-w-2xl space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
-            VPS MONITOR
-          </h2>
-          {lastUpdate && (
-            <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
-              <Clock size={10} />
-              Mis à jour à {lastUpdate.toLocaleTimeString('fr-FR')} — actualisation auto toutes les 10s
-            </p>
-          )}
-        </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 transition-colors disabled:opacity-50"
-        >
-          {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-          Actualiser
-        </button>
-      </div>
-
-      {error && (
-        <div className="bg-error-50 border border-error-200 text-red-600 text-sm px-4 py-3">
-          {error}
-        </div>
-      )}
-
-      {!stats && loading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-brand-400" />
-        </div>
-      )}
-
-      {stats && (
-        <>
-          {/* Gauges */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Gauge
-              label="CPU"
-              icon={Cpu}
-              percent={stats.cpu.percent}
-              detail={`${stats.cpu.count} cœurs logiques`}
-            />
-            <Gauge
-              label="RAM"
-              icon={Database}
-              percent={stats.ram.percent}
-              detail={`${fmt(stats.ram.used)} / ${fmt(stats.ram.total)} — ${fmt(stats.ram.free)} libre`}
-            />
-            <Gauge
-              label="Stockage"
-              icon={HardDrive}
-              percent={stats.disk.percent}
-              detail={`${fmt(stats.disk.used)} / ${fmt(stats.disk.total)} — ${fmt(stats.disk.free)} libre`}
-            />
-          </div>
-
-          {/* Infos complémentaires */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-white border border-gray-200 p-5">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">Uptime</p>
-              <p className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                {fmtUptime(stats.uptime_seconds)}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-1">Depuis le dernier redémarrage</p>
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-brand-50 border border-brand-400/20">
+              <Cpu size={16} className="text-brand-400" />
             </div>
-
-            {stats.load_avg && (
-              <div className="bg-white border border-gray-200 p-5">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">Charge système (load avg)</p>
-                <div className="flex items-end gap-4 mt-1">
-                  {['1 min', '5 min', '15 min'].map((label, i) => (
-                    <div key={i}>
-                      <p className="text-lg font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-                        {stats.load_avg[i].toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-gray-400">{label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">VPS Monitor</h3>
+              {lastUpdate && (
+                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                  <Clock size={10} />
+                  {lastUpdate.toLocaleTimeString('fr-FR')} — auto toutes les 10s
+                </p>
+              )}
+            </div>
           </div>
-        </>
-      )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            Actualiser
+          </button>
+        </CardHeader>
+
+        <CardBody className="space-y-4">
+          {error && (
+            <div className="bg-error-50 border border-error-200 text-error-600 text-sm px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
+
+          {!stats && loading && (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={24} className="animate-spin text-brand-400" />
+            </div>
+          )}
+
+          {stats && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Gauge
+                  label="CPU"
+                  icon={Cpu}
+                  percent={stats.cpu.percent}
+                  detail={`${stats.cpu.count} cœurs logiques`}
+                />
+                <Gauge
+                  label="RAM"
+                  icon={Database}
+                  percent={stats.ram.percent}
+                  detail={`${fmt(stats.ram.used)} / ${fmt(stats.ram.total)} — ${fmt(stats.ram.free)} libre`}
+                />
+                <Gauge
+                  label="Stockage"
+                  icon={HardDrive}
+                  percent={stats.disk.percent}
+                  detail={`${fmt(stats.disk.used)} / ${fmt(stats.disk.total)} — ${fmt(stats.disk.free)} libre`}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">Uptime</p>
+                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{fmtUptime(stats.uptime_seconds)}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Depuis le dernier redémarrage</p>
+                </div>
+
+                {stats.load_avg && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-2">Load avg</p>
+                    <div className="flex items-end gap-5">
+                      {['1 min', '5 min', '15 min'].map((label, i) => (
+                        <div key={i}>
+                          <p className="text-xl font-bold text-gray-900 tabular-nums">
+                            {stats.load_avg[i].toFixed(2)}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 };
