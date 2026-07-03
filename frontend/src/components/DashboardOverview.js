@@ -153,8 +153,9 @@ export const DashboardOverview = ({ setActiveTab }) => {
     <div className="max-w-5xl space-y-8">
 
       {/* Greeting */}
-      <div className="pb-6 border-b border-gray-100">
-        <p className="text-xs font-semibold text-brand-400 tracking-[0.14em] uppercase mb-2">{dateStr}</p>
+      <div className="relative rounded-2xl border border-brand-400/20 bg-gradient-to-br from-brand-50 to-white px-6 py-5 overflow-hidden">
+        <div className="absolute -right-8 -top-8 w-36 h-36 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, #4ECDC422 0%, transparent 65%)' }} />
+        <p className="text-[11px] font-bold text-brand-400 tracking-[0.15em] uppercase mb-1.5">{dateStr}</p>
         <h1 className="text-2xl font-bold text-gray-900">{greeting}</h1>
         <p className="text-sm text-gray-500 mt-1">Here's what's happening across your studio.</p>
       </div>

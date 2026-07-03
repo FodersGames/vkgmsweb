@@ -175,7 +175,7 @@ export const SendItems = () => {
                       </div>
                     )}
                     <div className="absolute top-1.5 left-1.5 hidden group-hover:flex gap-1">
-                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90/90 flex items-center justify-center text-gray-500 hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90/90 flex items-center justify-center text-gray-500 hover:text-brand-400 transition-colors"><Edit2 size={10} /></button>
                       <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90/90 flex items-center justify-center text-gray-500 hover:text-error-400 transition-colors"><Trash2 size={10} /></button>
                     </div>
                   </div>

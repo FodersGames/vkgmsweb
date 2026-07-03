@@ -494,7 +494,7 @@ export const FilesManagement = () => {
 
       {/* Create version panel */}
       {(showCreateVersion || versionDropOpen) && (
-        <div className="bg-white border border-gray-200 p-4 space-y-3">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
             <GitBranch size={14} className="text-brand-400" /> Create a new version
           </h3>
@@ -507,17 +507,17 @@ export const FilesManagement = () => {
               onChange={e => setNewVersionTag(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && createVersion()}
               placeholder="e.g. v1.1, v2.0-beta"
-              className="flex-1 px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-white text-gray-900"
             />
             <button
               onClick={createVersion}
               disabled={creatingVersion || !newVersionTag.trim()}
-              className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 disabled:opacity-50 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg disabled:opacity-50 transition-colors whitespace-nowrap"
             >
               {creatingVersion ? <Loader2 size={12} className="animate-spin" /> : <GitBranch size={12} />}
               Create
             </button>
-            <button onClick={() => { setShowCreateVersion(false); setVersionDropOpen(false); }} className="text-xs text-gray-500 px-3 py-2.5 border border-gray-200 transition-colors">
+            <button onClick={() => { setShowCreateVersion(false); setVersionDropOpen(false); }} className="text-xs text-gray-500 px-3 py-2.5 border border-gray-200 rounded-lg transition-colors">
               Cancel
             </button>
           </div>
@@ -526,27 +526,27 @@ export const FilesManagement = () => {
       )}
 
       {/* API Key section */}
-      {!isArtist && <div className="bg-white border border-gray-200 p-4 space-y-3">
+      {!isArtist && <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Key size={14} className="text-brand-400" />
           <p className="text-xs font-bold text-gray-900">Files API Key</p>
-          <span className="text-[10px] text-gray-400">— used by the game client in header <code className="bg-gray-50 px-1">X-Files-Api-Key</code></span>
+          <span className="text-[10px] text-gray-400">— used by the game client in header <code className="bg-gray-50 px-1 rounded">X-Files-Api-Key</code></span>
         </div>
         {apiKey ? (
           <div className="flex items-center gap-2 flex-wrap">
-            <code className="flex-1 min-w-0 bg-gray-50 border border-gray-200 px-3 py-2 text-xs font-mono text-gray-900 truncate">
+            <code className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-900 truncate">
               {showKey ? apiKey : '•'.repeat(40)}
             </code>
-            <button onClick={() => setShowKey(v => !v)} className="p-2 text-gray-500 hover:text-gray-900 border border-gray-200 transition-colors">
+            <button onClick={() => setShowKey(v => !v)} className="p-2 text-gray-500 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors">
               {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
             </button>
-            <button onClick={copyKey} className="p-2 text-gray-500 hover:text-brand-400 border border-gray-200 transition-colors">
+            <button onClick={copyKey} className="p-2 text-gray-500 hover:text-brand-400 border border-gray-200 rounded-lg transition-colors">
               {copied ? <Check size={13} className="text-brand-400" /> : <Copy size={13} />}
             </button>
             <button
               onClick={regenKey}
               disabled={regenLoading}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-error-500 border border-gray-200 px-2.5 py-2 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-error-500 border border-gray-200 rounded-lg px-2.5 py-2 transition-colors disabled:opacity-50"
             >
               {regenLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Regen
             </button>
@@ -555,7 +555,7 @@ export const FilesManagement = () => {
           <button
             onClick={regenKey}
             disabled={regenLoading}
-            className="flex items-center gap-2 text-xs font-semibold text-brand-400 border border-brand-400/30 px-3 py-2 hover:bg-brand-400/5 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 text-xs font-semibold text-brand-400 border border-brand-400/30 rounded-lg px-3 py-2 hover:bg-brand-400/5 transition-colors disabled:opacity-50"
           >
             {regenLoading ? <Loader2 size={12} className="animate-spin" /> : <Key size={12} />}
             Generate API key
@@ -568,7 +568,7 @@ export const FilesManagement = () => {
 
       {/* Upload panel */}
       {showUpload && (
-        <div className="bg-white border border-gray-200 p-5 space-y-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-gray-900 border-b border-gray-200 pb-3">Importer des fichiers</h3>
 
           {/* Drop zone — accepte plusieurs fichiers */}
@@ -577,7 +577,7 @@ export const FilesManagement = () => {
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-200 hover:border-brand-400 bg-gray-50 hover:bg-brand-400/5 transition-colors cursor-pointer p-8 text-center"
+            className="border-2 border-dashed border-gray-200 rounded-xl hover:border-brand-400 bg-gray-50 hover:bg-brand-400/5 transition-colors cursor-pointer p-8 text-center"
           >
             <Upload size={24} className="text-gray-300 mx-auto mb-2" />
             {fileEntries.length > 0 ? (
@@ -806,12 +806,12 @@ export const FilesManagement = () => {
               <button
                 onClick={handleReplace}
                 disabled={!replaceFile || replaceSaving}
-                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {replaceSaving ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                 {replaceSaving ? 'Replacing…' : 'Replace'}
               </button>
-              <button onClick={() => { setReplacing(null); setReplaceFile(null); }} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 hover:border-gray-300 transition-colors">
+              <button onClick={() => { setReplacing(null); setReplaceFile(null); }} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                 Cancel
               </button>
             </div>
@@ -822,10 +822,10 @@ export const FilesManagement = () => {
       {/* Edit modal */}
       {editingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white border border-gray-200 p-6 w-full max-w-md space-y-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-gray-900">Edit file metadata</h3>
-              <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-900"><X size={15} /></button>
+              <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-900 p-1 rounded-lg hover:bg-gray-100 transition-colors"><X size={15} /></button>
             </div>
             <div className="space-y-3">
               {[
@@ -840,7 +840,7 @@ export const FilesManagement = () => {
                     value={editForm[key] || ''}
                     onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
                     placeholder={placeholder}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-white text-gray-900"
                   />
                 </div>
               ))}
@@ -902,12 +902,12 @@ export const FilesManagement = () => {
               <button
                 onClick={saveEdit}
                 disabled={editSaving}
-                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {editSaving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                 {editSaving ? 'Saving…' : 'Save changes'}
               </button>
-              <button onClick={() => setEditingId(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 hover:border-gray-300 transition-colors">
+              <button onClick={() => setEditingId(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
                 Cancel
               </button>
             </div>
@@ -922,7 +922,7 @@ export const FilesManagement = () => {
           onClick={() => setPreviewModal(null)}
         >
           <div
-            className="bg-white border border-gray-200 w-full max-w-3xl max-h-[90vh] flex flex-col"
+            className="bg-white border border-gray-200 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal header */}
@@ -958,7 +958,7 @@ export const FilesManagement = () => {
       {/* Delete group confirm */}
       {confirmGroupDel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white border border-gray-200 p-6 w-full max-w-sm space-y-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-sm space-y-4">
             <div className="flex items-center gap-3">
               <AlertTriangle size={18} className="text-error-500 shrink-0" />
               <h3 className="text-sm font-bold text-gray-900">Supprimer le groupe ?</h3>
@@ -970,12 +970,12 @@ export const FilesManagement = () => {
               <button
                 onClick={() => deleteGroup(confirmGroupDel)}
                 disabled={deletingGroupId === confirmGroupDel.group_id}
-                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {deletingGroupId === confirmGroupDel.group_id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 Supprimer le groupe
               </button>
-              <button onClick={() => setConfirmGroupDel(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 transition-colors">
+              <button onClick={() => setConfirmGroupDel(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-lg transition-colors hover:border-gray-300">
                 Annuler
               </button>
             </div>
@@ -986,7 +986,7 @@ export const FilesManagement = () => {
       {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white border border-gray-200 p-6 w-full max-w-sm space-y-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-sm space-y-4">
             <div className="flex items-center gap-3">
               <AlertTriangle size={18} className="text-error-500 shrink-0" />
               <h3 className="text-sm font-bold text-gray-900">Delete file?</h3>
@@ -998,12 +998,12 @@ export const FilesManagement = () => {
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 disabled={deleting === deleteConfirm.id}
-                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg disabled:opacity-50 transition-colors"
               >
                 {deleting === deleteConfirm.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 Delete permanently
               </button>
-              <button onClick={() => setDeleteConfirm(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 transition-colors">
+              <button onClick={() => setDeleteConfirm(null)} className="text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-lg transition-colors hover:border-gray-300">
                 Cancel
               </button>
             </div>
@@ -1013,7 +1013,7 @@ export const FilesManagement = () => {
 
       {/* Text Engine Groups */}
       {!isArtist && textEngineGroups.length > 0 && (
-        <div className="border border-brand-400/40 bg-brand-400/5 p-4 space-y-3">
+        <div className="border border-brand-400/40 bg-brand-400/5 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Type size={14} className="text-brand-400" />
@@ -1023,7 +1023,7 @@ export const FilesManagement = () => {
           </div>
           <div className="space-y-2">
             {textEngineGroups.map(group => (
-              <div key={group.group_id} className="bg-white border border-gray-200 p-3 space-y-2">
+              <div key={group.group_id} className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-gray-900">{group.group_name || <span className="text-gray-400 font-normal italic">Sans nom</span>}</p>
@@ -1045,13 +1045,13 @@ export const FilesManagement = () => {
                         setShared(s => ({ ...s, file_type: 'text_engine', group_id: group.group_id, group_name: group.group_name }));
                         setShowUpload(true);
                       }}
-                      className="flex items-center gap-1.5 text-[10px] font-semibold text-brand-400 border border-brand-400/40 px-2.5 py-1.5 hover:bg-brand-50 transition-colors"
+                      className="flex items-center gap-1.5 text-[10px] font-semibold text-brand-400 border border-brand-400/40 rounded-lg px-2.5 py-1.5 hover:bg-brand-50 transition-colors"
                     >
                       <Plus size={10} /> Ajouter
                     </button>
                     <button
                       onClick={() => setConfirmGroupDel(group)}
-                      className="flex items-center gap-1 text-[10px] font-semibold text-error-400 border border-error-200 px-2.5 py-1.5 hover:bg-error-50 transition-colors"
+                      className="flex items-center gap-1 text-[10px] font-semibold text-error-400 border border-error-200 rounded-lg px-2.5 py-1.5 hover:bg-error-50 transition-colors"
                     >
                       <Trash2 size={10} /> Supprimer
                     </button>
@@ -1059,7 +1059,7 @@ export const FilesManagement = () => {
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {group.files.map(f => (
-                    <span key={f.id} className="flex items-center gap-1 text-[10px] bg-gray-50 border border-gray-200 px-2 py-0.5 text-gray-500">
+                    <span key={f.id} className="flex items-center gap-1 text-[10px] bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 text-gray-500">
                       {isImageFile(f.original_filename) && previews[f.id] && (
                         <img src={previews[f.id]} alt="" className="w-3 h-3 object-contain" />
                       )}
@@ -1082,7 +1082,7 @@ export const FilesManagement = () => {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={`Rechercher parmi ${files.length} fichier${files.length !== 1 ? 's' : ''}…`}
-              className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+              className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white text-gray-900"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900">

@@ -18,6 +18,7 @@ const S = {
 };
 
 export const Button = ({
+  as: Tag = 'button',
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -28,16 +29,17 @@ export const Button = ({
   ...props
 }) => {
   const iconSize = size === 'sm' ? 12 : 14;
+  const isBtn = Tag === 'button';
   return (
-    <button
-      disabled={disabled || loading}
-      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
+    <Tag
+      {...(isBtn ? { disabled: disabled || loading } : {})}
+      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 ${isBtn ? 'disabled:opacity-50 disabled:cursor-not-allowed' : (loading || disabled ? 'opacity-50 pointer-events-none' : '')} ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
       {...props}
     >
       {loading
         ? <Loader2 size={iconSize} className="animate-spin shrink-0" />
         : Icon && <Icon size={iconSize} className="shrink-0" />}
       {children}
-    </button>
+    </Tag>
   );
 };
