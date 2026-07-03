@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,8 +7,8 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
-        <div className="text-[#78716C] text-sm">Loading…</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-500 text-sm">Loading…</div>
       </div>
     );
   }
@@ -23,10 +23,10 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
 
   if (permission && !hasPermission(permission)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
-        <div className="max-w-md p-8 border border-[#E8E3DB] bg-white rounded-xl text-center">
-          <h2 className="text-2xl font-bold mb-2 text-[#1C1917]">Access Denied</h2>
-          <p className="text-[#78716C] text-sm">You don't have permission to access this page.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md p-8 border border-gray-200 bg-white rounded-xl text-center">
+          <h2 className="text-2xl font-bold mb-2 text-gray-900">Access Denied</h2>
+          <p className="text-gray-500 text-sm">You don't have permission to access this page.</p>
         </div>
       </div>
     );

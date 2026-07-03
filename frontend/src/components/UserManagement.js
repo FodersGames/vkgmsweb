@@ -13,18 +13,18 @@ import { Button, Card, CardHeader, CardBody, EmptyState } from '../ui';
 
 const STATIC_GROUPS = [
   {
-    label: 'Items', icon: Package, color: '#F2994A',
+    label: 'Items', icon: Package, color: '#F79009',
     permissions: [
       { id: 'send_items', label: 'Send Items' },
       { id: 'delete_items', label: 'Delete Items' },
     ]
   },
   {
-    label: 'Server', icon: Activity, color: '#27AE60',
+    label: 'Server', icon: Activity, color: '#12B76A',
     permissions: [{ id: 'change_status', label: 'Change Status' }]
   },
   {
-    label: 'Variables', icon: Database, color: '#2F80ED',
+    label: 'Variables', icon: Database, color: '#4361EE',
     permissions: [
       { id: 'view_variables', label: 'View Variables' },
       { id: 'create_variables', label: 'Create Variables' },
@@ -40,15 +40,15 @@ const STATIC_GROUPS = [
     ]
   },
   {
-    label: 'Users', icon: Shield, color: '#EB5757',
+    label: 'Users', icon: Shield, color: '#F04438',
     permissions: [{ id: 'manage_users', label: 'Manage Users' }]
   },
   {
-    label: 'Files', icon: FolderOpen, color: '#E67E22',
+    label: 'Files', icon: FolderOpen, color: '#DC6803',
     permissions: [{ id: 'manage_files', label: 'Manage Project Files' }]
   },
   {
-    label: 'Infrastructure', icon: Server, color: '#16A085',
+    label: 'Infrastructure', icon: Server, color: '#039855',
     permissions: [{ id: 'view_vps', label: 'View VPS Stats' }]
   },
   {
@@ -284,7 +284,7 @@ export const UserManagement = () => {
       const p = group.permissions.find(pp => pp.id === permId);
       if (p) return { label: p.label, color: group.color };
     }
-    return { label: permId, color: '#8A8A9A' };
+    return { label: permId, color: '#98A2B3' };
   };
 
   const renderPermissionGrid = (selectedPerms, onToggle) => (
@@ -293,8 +293,8 @@ export const UserManagement = () => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
-          <div key={group.label} className="border border-[#E8E3DB] overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#F9F7F4] border-b border-[#E8E3DB]">
+          <div key={group.label} className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-100">
               <Icon size={13} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1" />
@@ -307,7 +307,7 @@ export const UserManagement = () => {
                     group.permissions.forEach(p => { if (!selectedPerms.includes(p.id)) onToggle(p.id); });
                   }
                 }}
-                className="text-[10px] font-semibold text-[#A8A29E] hover:text-[#1C1917] uppercase"
+                className="text-[10px] font-semibold text-gray-400 hover:text-gray-900 uppercase"
               >
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
@@ -316,10 +316,10 @@ export const UserManagement = () => {
               {group.permissions.map((perm) => (
                 <label
                   key={perm.id}
-                  className={`flex items-center gap-2 px-3 py-2 border cursor-pointer transition-all text-sm ${
+                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-all text-sm ${
                     selectedPerms.includes(perm.id)
-                      ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                      : 'border-[#E8E3DB] bg-[#F9F7F4] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                      ? 'border-brand-400 bg-brand-50 text-brand-400'
+                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:text-gray-900'
                   }`}
                 >
                   <input
@@ -345,12 +345,12 @@ export const UserManagement = () => {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
-                  <Users size={16} style={{ color: '#F2994A' }} />
+                <div className="w-9 h-9 rounded-xl bg-warning-50 flex items-center justify-center">
+                  <Users size={16} className="text-warning-500" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#1C1917]">User Management</h3>
-                  <p className="text-xs text-[#A8A29E]">Manage accounts, permissions, and suspension</p>
+                  <h3 className="text-sm font-semibold text-gray-900">User Management</h3>
+                  <p className="text-xs text-gray-400">Manage accounts, permissions, and suspension</p>
                 </div>
               </div>
               <Button
@@ -364,59 +364,59 @@ export const UserManagement = () => {
 
             {/* Create user panel */}
             {showCreateUser && (
-              <div className="mt-4 p-4 bg-[#F9F7F4] border border-[#E8E3DB]">
-                <p className="text-xs font-bold text-[#1C1917] mb-3">Create user account</p>
+              <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                <p className="text-xs font-bold text-gray-900 mb-3">Create user account</p>
                 {createResult?.success ? (
                   <div className="text-xs space-y-1">
-                    <p className="font-semibold text-[#22C55E]">✓ User created — @{createResult.username}</p>
+                    <p className="font-semibold text-success-600">✓ User created — @{createResult.username}</p>
                     {createResult.generated_password && (
-                      <p className="text-[#78716C]">Generated password: <strong className="text-[#1C1917] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
+                      <p className="text-gray-500">Generated password: <strong className="text-gray-900 font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
                     )}
-                    <button onClick={() => setCreateResult(null)} className="text-[#4ECDC4] hover:underline mt-1">Create another</button>
+                    <button onClick={() => setCreateResult(null)} className="text-brand-400 hover:underline mt-1">Create another</button>
                   </div>
                 ) : (
                   <form onSubmit={handleCreateUser} className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Email *</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">Email *</label>
                         <input type="email" required value={createForm.email}
                           onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 bg-white text-gray-900"
                           placeholder="user@example.com" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Password (leave blank = auto-generate)</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">Password (leave blank = auto-generate)</label>
                         <input type="text" value={createForm.password}
                           onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] font-mono"
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 bg-white text-gray-900 font-mono"
                           placeholder="auto-generated" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">First name</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">First name</label>
                         <input type="text" maxLength={50} value={createForm.firstName}
                           onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 bg-white text-gray-900"
                           placeholder="Optional" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Last name</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">Last name</label>
                         <input type="text" maxLength={50} value={createForm.lastName}
                           onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 bg-white text-gray-900"
                           placeholder="Optional" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Username (leave blank = auto)</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">Username (leave blank = auto)</label>
                         <input type="text" maxLength={32} value={createForm.username}
                           onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 bg-white text-gray-900"
                           placeholder="auto-generated" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A8A29E] mb-1">Role</label>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1">Role</label>
                         <select value={createForm.role}
                           onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]">
+                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-400 bg-white text-gray-900">
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
                         </select>
@@ -424,25 +424,25 @@ export const UserManagement = () => {
                     </div>
                     {/* Permissions */}
                     <div>
-                      <label className="block text-[10px] font-semibold text-[#A8A29E] mb-2">Permissions</label>
+                      <label className="block text-[10px] font-semibold text-gray-400 mb-2">Permissions</label>
                       <div className="flex flex-wrap gap-1.5">
                         {permissionGroups.flatMap(g => g.permissions).map(p => (
                           <button
                             key={p.id}
                             type="button"
                             onClick={() => toggleCreatePermission(p.id)}
-                            className={`text-[10px] px-2 py-0.5 border transition-colors ${
+                            className={`text-[10px] px-2 py-0.5 border rounded-md transition-colors ${
                               createForm.permissions.includes(p.id)
-                                ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/40 text-[#4ECDC4]'
-                                : 'bg-white border-[#E8E3DB] text-[#A8A29E] hover:border-[#C9C3BB]'
+                                ? 'bg-brand-50 border-brand-200 text-brand-400'
+                                : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'
                             }`}>
                             {p.label}
                           </button>
                         ))}
                       </div>
                     </div>
-                    {createResult?.error && <p className="text-xs text-red-500">{createResult.error}</p>}
-                    <Button type="submit" size="sm" disabled={createLoading}>
+                    {createResult?.error && <p className="text-xs text-error-500">{createResult.error}</p>}
+                    <Button type="submit" variant="accent" size="sm" disabled={createLoading}>
                       {createLoading ? 'Creating…' : 'Create account'}
                     </Button>
                   </form>
@@ -455,21 +455,21 @@ export const UserManagement = () => {
             {/* Search + filter bar */}
             <div className="flex items-center gap-3 mb-4">
               <div className="relative flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by name, username, or email…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400/20 focus:border-brand-400 transition-all placeholder:text-gray-400"
                 />
               </div>
               <button
                 onClick={() => setOnlyWithPerms(v => !v)}
                 className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
                   onlyWithPerms
-                    ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/30 text-[#4ECDC4]'
-                    : 'bg-[#F9F7F4] border-[#E8E3DB] text-[#78716C] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
+                    ? 'bg-brand-50 border-brand-200 text-brand-400'
+                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
                 }`}
               >
                 <SlidersHorizontal size={12} />
@@ -477,7 +477,7 @@ export const UserManagement = () => {
               </button>
             </div>
 
-            <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">
+            <p className="text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-4">
               Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
             <div className="space-y-3" data-testid="users-list">
@@ -493,48 +493,48 @@ export const UserManagement = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`bg-white border transition-all ${
+                    className={`bg-white border rounded-xl transition-all ${
                       user.isSuspended
-                        ? 'border-red-200'
-                        : 'border-[#E8E3DB] hover:border-[#C9C3BB]'
+                        ? 'border-error-200'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
                     data-testid={`user-card-${user.username}`}
                   >
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold shrink-0 ${
-                            user.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0 ${
+                            user.isSuspended ? 'bg-error-50 text-error-400' : 'bg-brand-50 text-brand-400'
                           }`}>
                             {initials}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-[#1C1917] text-sm">
+                              <span className="font-semibold text-gray-900 text-sm">
                                 {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
                               </span>
-                              <span className="text-xs text-[#A8A29E]">@{user.username}</span>
+                              <span className="text-xs text-gray-400">@{user.username}</span>
                               {isSuperAdmin && (
-                                <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5">
+                                <span className="text-[10px] font-semibold text-brand-400 bg-brand-50 px-2 py-0.5 rounded-md">
                                   Super Admin
                                 </span>
                               )}
                               {user.isSuspended && (
-                                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5">
+                                <span className="text-[10px] font-semibold text-error-500 bg-error-50 px-2 py-0.5 rounded-md">
                                   Suspended
                                 </span>
                               )}
                               {isSelf && (
-                                <span className="text-[10px] font-semibold text-[#A8A29E] bg-[#F9F7F4] px-1.5 py-0.5">
+                                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
                                   You
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <Mail size={10} className="text-[#A8A29E]" />
-                              <span className="text-xs text-[#78716C] truncate">{user.email}</span>
+                              <Mail size={10} className="text-gray-400" />
+                              <span className="text-xs text-gray-500 truncate">{user.email}</span>
                             </div>
-                            <div className="text-xs text-[#A8A29E] mt-0.5">
+                            <div className="text-xs text-gray-400 mt-0.5">
                               {user.permissions?.length || 0} permission(s)
                               {user.lastLogin && ` · Last login ${new Date(user.lastLogin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                             </div>
@@ -596,23 +596,23 @@ export const UserManagement = () => {
 
                       {isEditing ? (
                         <div>
-                          <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">
+                          <p className="text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-3">
                             Edit Permissions ({editingUser.permissions.length}/{ALL_PERMISSIONS.length})
                           </p>
                           {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}
                           <div className="flex gap-2 mt-4">
-                            <Button icon={Save} loading={loading} onClick={() => handleUpdatePermissions(user.id)}>Save</Button>
+                            <Button variant="accent" icon={Save} loading={loading} onClick={() => handleUpdatePermissions(user.id)}>Save</Button>
                             <Button variant="secondary" icon={X} onClick={() => setEditingUser(null)}>Cancel</Button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {isSuperAdmin ? (
-                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[#4ECDC4]/10 text-[#4ECDC4]">
+                            <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-400">
                               All permissions
                             </span>
                           ) : (user.permissions || []).length === 0 ? (
-                            <span className="text-xs text-[#A8A29E]">No permissions assigned</span>
+                            <span className="text-xs text-gray-400">No permissions assigned</span>
                           ) : (
                             (user.permissions || []).map((perm) => {
                               const { label, color } = getPermLabel(perm);
@@ -632,21 +632,21 @@ export const UserManagement = () => {
                     </div>
 
                     {loyaltyUser?.id === user.id && (
-                      <div className="mt-3 pt-3 border-t border-[#E8E3DB]">
+                      <div className="mx-4 mb-4 pt-3 border-t border-gray-100">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-semibold text-[#F59E0B] tracking-widest uppercase flex items-center gap-1.5">
+                          <p className="text-[10px] font-semibold text-warning-500 tracking-widest uppercase flex items-center gap-1.5">
                             <Trophy size={10} /> Loyalty Adjustment
                           </p>
-                          <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-[#A8A29E] hover:text-[#1C1917]">✕ Close</button>
+                          <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-gray-400 hover:text-gray-900">✕ Close</button>
                         </div>
                         {loyaltyResult && (
-                          <div className="text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
+                          <div className="text-xs bg-success-50 text-success-600 px-3 py-2 mb-2 border border-success-100 rounded-lg">
                             {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: ${(loyaltyResult.new_total_cents / 100).toFixed(2)}
                           </div>
                         )}
                         <form onSubmit={handleLoyaltyAdjust} className="flex flex-wrap gap-2 items-end">
                           <div>
-                            <label className="block text-[10px] text-[#A8A29E] mb-1">Amount ($) — use − for removal</label>
+                            <label className="block text-[10px] text-gray-400 mb-1">Amount ($) — use − for removal</label>
                             <input
                               type="number"
                               step="0.01"
@@ -654,23 +654,23 @@ export const UserManagement = () => {
                               value={loyaltyAmount}
                               onChange={e => setLoyaltyAmount(e.target.value)}
                               placeholder="+10.00 or -5.00"
-                              className="w-32 px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1C1917]"
+                              className="w-32 px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-warning-500 bg-white text-gray-900"
                             />
                           </div>
                           <div className="flex-1 min-w-32">
-                            <label className="block text-[10px] text-[#A8A29E] mb-1">Reason (optional)</label>
+                            <label className="block text-[10px] text-gray-400 mb-1">Reason (optional)</label>
                             <input
                               type="text"
                               value={loyaltyReason}
                               onChange={e => setLoyaltyReason(e.target.value)}
                               placeholder="e.g. compensation"
-                              className="w-full px-2 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1C1917]"
+                              className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-warning-500 bg-white text-gray-900"
                             />
                           </div>
                           <button
                             type="submit"
                             disabled={loyaltyLoading || !loyaltyAmount}
-                            className="flex items-center gap-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-white px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 bg-warning-500 hover:bg-warning-600 text-white px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                           >
                             {loyaltyLoading ? <Loader2 size={11} className="animate-spin" /> : <Trophy size={11} />}
                             Apply

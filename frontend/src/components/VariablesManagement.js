@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
@@ -70,12 +70,12 @@ export const VariablesManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Database size={16} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Variables</h3>
-              <p className="text-xs text-[#71717a]">Manage project variables</p>
+              <h3 className="text-sm font-semibold text-gray-900">Variables</h3>
+              <p className="text-xs text-gray-500">Manage project variables</p>
             </div>
           </div>
           {hasPermission('create_variables') && (
@@ -86,7 +86,7 @@ export const VariablesManagement = () => {
         </CardHeader>
 
         {showForm && (
-          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
             <form onSubmit={handleCreate} data-testid="create-variable-form">
               <div className="space-y-4">
                 <Input
@@ -97,7 +97,7 @@ export const VariablesManagement = () => {
                   data-testid="variable-name-input"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Values</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Values</p>
                   {form.values.map((v, i) => (
                     <div key={i} className="flex gap-2 mb-2">
                       <Input
@@ -111,7 +111,7 @@ export const VariablesManagement = () => {
                       )}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-[#4ECDC4] flex items-center gap-1.5 mt-1 hover:text-[#45b8b0] transition-colors">
+                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-brand-400 flex items-center gap-1.5 mt-1 hover:text-[#45b8b0] transition-colors">
                     <Plus size={13} />Add value
                   </button>
                 </div>
@@ -124,7 +124,7 @@ export const VariablesManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
             Variables ({variables.length})
           </p>
           {variables.length === 0 ? (
@@ -134,11 +134,11 @@ export const VariablesManagement = () => {
               {variables.map(v => {
                 const isEditing = editingVar?.variable_name === v.variable_name;
                 return (
-                  <div key={v.variable_name} className="bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl p-4 hover:border-[#4ECDC4]/20 transition-colors">
+                  <div key={v.variable_name} className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:border-brand-400/20 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <code className="text-sm font-semibold text-[#2F80ED] font-mono">{v.variable_name}</code>
-                        <p className="text-xs text-[#71717a] mt-0.5">{v.values.length} value(s)</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{v.values.length} value(s)</p>
                       </div>
                       {!isEditing && (
                         <div className="flex gap-1.5">
@@ -165,7 +165,7 @@ export const VariablesManagement = () => {
                             )}
                           </div>
                         ))}
-                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-[#4ECDC4] flex items-center gap-1.5 hover:text-[#45b8b0] transition-colors">
+                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-brand-400 flex items-center gap-1.5 hover:text-[#45b8b0] transition-colors">
                           <Plus size={13} />Add
                         </button>
                         <div className="flex gap-2 mt-3">
@@ -176,7 +176,7 @@ export const VariablesManagement = () => {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {v.values.map((val, i) => (
-                          <span key={i} className="px-3 py-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono">
+                          <span key={i} className="px-3 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-900 font-mono">
                             {val}
                           </span>
                         ))}
