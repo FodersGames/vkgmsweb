@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Cpu, Database, HardDrive, RefreshCw, Clock, Loader2 } from 'lucide-react';
@@ -23,31 +23,31 @@ const fmtUptime = (seconds) => {
 };
 
 const colorFor = (pct) => {
-  if (pct >= 90) return { bar: '#EB5757', text: 'text-red-500' };
+  if (pct >= 90) return { bar: '#EB5757', text: 'text-error-500' };
   if (pct >= 70) return { bar: '#F2994A', text: 'text-orange-400' };
-  return { bar: '#4ECDC4', text: 'text-[#4ECDC4]' };
+  return { bar: '#4ECDC4', text: 'text-brand-400' };
 };
 
 const Gauge = ({ label, icon: Icon, percent, detail }) => {
   const { bar, text } = colorFor(percent);
   return (
-    <div className="bg-white border border-[#E8E3DB] p-5 space-y-3">
+    <div className="bg-white border border-gray-200 p-5 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon size={15} className="text-[#A8A29E]" />
-          <span className="text-xs font-semibold text-[#78716C] uppercase tracking-[0.1em]">{label}</span>
+          <Icon size={15} className="text-gray-400" />
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-[0.1em]">{label}</span>
         </div>
         <span className={`text-lg font-bold ${text}`} style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
           {percent.toFixed(0)}%
         </span>
       </div>
-      <div className="h-2 bg-[#F9F7F4] rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: bar }}
         />
       </div>
-      <p className="text-[11px] text-[#A8A29E]">{detail}</p>
+      <p className="text-[11px] text-gray-400">{detail}</p>
     </div>
   );
 };
@@ -86,11 +86,11 @@ export const VpsStats = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
+          <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.05em' }}>
             VPS MONITOR
           </h2>
           {lastUpdate && (
-            <p className="text-[11px] text-[#A8A29E] mt-0.5 flex items-center gap-1">
+            <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
               <Clock size={10} />
               Mis à jour à {lastUpdate.toLocaleTimeString('fr-FR')} — actualisation auto toutes les 10s
             </p>
@@ -99,7 +99,7 @@ export const VpsStats = () => {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] px-3 py-1.5 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 border border-gray-200 px-3 py-1.5 transition-colors disabled:opacity-50"
         >
           {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
           Actualiser
@@ -107,14 +107,14 @@ export const VpsStats = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3">
+        <div className="bg-error-50 border border-error-200 text-red-600 text-sm px-4 py-3">
           {error}
         </div>
       )}
 
       {!stats && loading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-[#4ECDC4]" />
+          <Loader2 size={24} className="animate-spin text-brand-400" />
         </div>
       )}
 
@@ -144,24 +144,24 @@ export const VpsStats = () => {
 
           {/* Infos complémentaires */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-white border border-[#E8E3DB] p-5">
-              <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-[0.12em] mb-1">Uptime</p>
-              <p className="text-xl font-bold text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+            <div className="bg-white border border-gray-200 p-5">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">Uptime</p>
+              <p className="text-xl font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                 {fmtUptime(stats.uptime_seconds)}
               </p>
-              <p className="text-[11px] text-[#A8A29E] mt-1">Depuis le dernier redémarrage</p>
+              <p className="text-[11px] text-gray-400 mt-1">Depuis le dernier redémarrage</p>
             </div>
 
             {stats.load_avg && (
-              <div className="bg-white border border-[#E8E3DB] p-5">
-                <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-[0.12em] mb-1">Charge système (load avg)</p>
+              <div className="bg-white border border-gray-200 p-5">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.12em] mb-1">Charge système (load avg)</p>
                 <div className="flex items-end gap-4 mt-1">
                   {['1 min', '5 min', '15 min'].map((label, i) => (
                     <div key={i}>
-                      <p className="text-lg font-bold text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                      <p className="text-lg font-bold text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                         {stats.load_avg[i].toFixed(2)}
                       </p>
-                      <p className="text-[10px] text-[#A8A29E]">{label}</p>
+                      <p className="text-[10px] text-gray-400">{label}</p>
                     </div>
                   ))}
                 </div>

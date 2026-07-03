@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import { toast } from 'sonner';
@@ -110,12 +110,12 @@ export const ChatManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
               <MessageSquare size={16} style={{ color: '#9B51E0' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Game Chat</h3>
-              <p className="text-xs text-[#71717a]">In-game chat for {selectedProject?.name || 'this project'}</p>
+              <h3 className="text-sm font-semibold text-gray-900">Game Chat</h3>
+              <p className="text-xs text-gray-500">In-game chat for {selectedProject?.name || 'this project'}</p>
             </div>
           </div>
         </CardHeader>
@@ -127,21 +127,21 @@ export const ChatManagement = () => {
         ) : (
           <>
             {canManage && (
-              <div className="px-6 py-4 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Key size={12} style={{ color: '#9B51E0' }} />
-                  <span className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
                     Chat API Key — {selectedProject.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono truncate">
+                  <code className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-900 font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
                   <Button variant="secondary" size="sm" icon={Copy} onClick={copyKey} disabled={!selectedProject.chat_api_key} data-testid="copy-chat-key" />
                   <Button variant="secondary" size="sm" icon={RefreshCw} onClick={handleRegenerateKey} loading={loading} data-testid="regenerate-chat-key" />
                 </div>
-                <p className="text-[11px] text-[#71717a] mt-2">
+                <p className="text-[11px] text-gray-500 mt-2">
                   Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.
                 </p>
               </div>
@@ -149,11 +149,11 @@ export const ChatManagement = () => {
 
             <CardBody>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
                   Messages ({messages.length})
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#71717a]">Show last</span>
+                  <span className="text-xs text-gray-500">Show last</span>
                   <Select
                     value={messageLimit}
                     onChange={e => setMessageLimit(Number(e.target.value))}
@@ -170,19 +170,19 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-1.5 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg group hover:border-zinc-300 dark:hover:border-[#3a3a50] transition-colors">
+                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg group hover:border-gray-300 transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
+                          <span className="text-sm font-semibold text-brand-400">{m.username}</span>
                           {m.level != null && (
                             <span className="text-[10px] font-semibold bg-[#9B51E0]/10 text-[#BB6BD9] border border-[#9B51E0]/20 rounded px-1.5 py-0.5">Lv.{m.level}</span>
                           )}
-                          <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
+                          <span className="text-[10px] text-gray-400">{formatTime(m.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-zinc-900 dark:text-[#e4e4e7] break-words">{m.message}</p>
+                        <p className="text-sm text-gray-900 break-words">{m.message}</p>
                       </div>
                       {canManage && (
-                        <button onClick={() => handleDeleteMessage(m.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-[#71717a] hover:text-red-400 transition-all shrink-0" data-testid={`delete-message-${m.id}`}>
+                        <button onClick={() => handleDeleteMessage(m.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-error-400 transition-all shrink-0" data-testid={`delete-message-${m.id}`}>
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -199,26 +199,26 @@ export const ChatManagement = () => {
         <Card className="overflow-hidden">
           <button
             onClick={() => setShowBannedWords(!showBannedWords)}
-            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#111118] transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors"
             data-testid="toggle-banned-words"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
                 <ShieldAlert size={16} style={{ color: '#EB5757' }} />
               </div>
               <div className="text-left">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Banned Words</h3>
-                <p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p>
+                <h3 className="text-sm font-semibold text-gray-900">Banned Words</h3>
+                <p className="text-xs text-gray-500">Global list, applies to every project's chat</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#71717a]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
-              {showBannedWords ? <ChevronUp size={14} className="text-[#71717a]" /> : <ChevronDown size={14} className="text-[#71717a]" />}
+              <span className="text-xs text-gray-500">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
+              {showBannedWords ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
             </div>
           </button>
 
           {showBannedWords && (
-            <CardBody className="border-t border-zinc-200 dark:border-[#2a2a3c]">
+            <CardBody className="border-t border-gray-200">
               <div className="flex gap-2 mb-4">
                 <Input
                   value={newWord}
@@ -231,18 +231,18 @@ export const ChatManagement = () => {
                 <Button icon={Plus} onClick={addBannedWord} data-testid="add-banned-word">Add</Button>
               </div>
               {bannedWords.length === 0 ? (
-                <p className="text-sm text-[#71717a]">No banned words yet.</p>
+                <p className="text-sm text-gray-500">No banned words yet.</p>
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="banned-words-list">
                   {bannedWords.map(w => (
-                    <span key={w} className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-zinc-900 dark:text-[#e4e4e7]">
+                    <span key={w} className="inline-flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-full pl-3 pr-1.5 py-1 text-xs text-gray-900">
                       {w}
-                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-colors"><X size={11} /></button>
+                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-error-400 text-gray-500 transition-colors"><X size={11} /></button>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-[#71717a] mt-3 leading-relaxed">
+              <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
                 Matching is case-insensitive and whole-word. A detected word is replaced with asterisks (e.g. <code className="text-[#9B51E0]">con</code> → <code className="text-[#9B51E0]">***</code>).
               </p>
             </CardBody>

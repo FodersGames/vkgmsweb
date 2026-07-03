@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 
 export const SiteFooter = ({ onAbout }) => (
-  <footer className="bg-[#1C1917]">
+  <footer className="bg-gray-900">
     <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 pt-16 pb-10">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 mb-14">
         <div>
@@ -12,12 +12,12 @@ export const SiteFooter = ({ onAbout }) => (
           >
             VAKAR GAMES
           </span>
-          <p className="mt-4 text-sm text-[#78716C] leading-relaxed">
+          <p className="mt-4 text-sm text-gray-500 leading-relaxed">
             Independent game studio.<br />Based in France.
           </p>
           <a
             href="mailto:support@vakargames.com"
-            className="inline-block mt-5 text-xs text-[#4ECDC4] hover:text-[#45b8b0] transition-colors"
+            className="inline-block mt-5 text-xs text-brand-400 hover:text-[#45b8b0] transition-colors"
           >
             support@vakargames.com
           </a>
@@ -32,35 +32,35 @@ export const SiteFooter = ({ onAbout }) => (
               {onAbout ? (
                 <button
                   onClick={onAbout}
-                  className="text-sm text-[#78716C] hover:text-white transition-colors"
+                  className="text-sm text-gray-500 hover:text-white transition-colors"
                 >
                   About
                 </button>
               ) : (
-                <Link to="/" className="text-sm text-[#78716C] hover:text-white transition-colors">
+                <Link to="/" className="text-sm text-gray-500 hover:text-white transition-colors">
                   About
                 </Link>
               )}
             </li>
             <li>
-              <Link to="/games" className="text-sm text-[#78716C] hover:text-white transition-colors">
+              <Link to="/games" className="text-sm text-gray-500 hover:text-white transition-colors">
                 Games
               </Link>
             </li>
             <li>
-              <Link to="/shop" className="text-sm text-[#78716C] hover:text-white transition-colors">
+              <Link to="/shop" className="text-sm text-gray-500 hover:text-white transition-colors">
                 Shop
               </Link>
             </li>
             <li>
-              <Link to="/blog" className="text-sm text-[#78716C] hover:text-white transition-colors">
+              <Link to="/blog" className="text-sm text-gray-500 hover:text-white transition-colors">
                 Blog
               </Link>
             </li>
             <li>
               <a
                 href="mailto:support@vakargames.com"
-                className="text-sm text-[#78716C] hover:text-white transition-colors"
+                className="text-sm text-gray-500 hover:text-white transition-colors"
               >
                 Contact
               </a>
@@ -74,12 +74,12 @@ export const SiteFooter = ({ onAbout }) => (
           </h4>
           <ul className="space-y-3">
             <li>
-              <Link to="/privacy" className="text-sm text-[#78716C] hover:text-white transition-colors">
+              <Link to="/privacy" className="text-sm text-gray-500 hover:text-white transition-colors">
                 Privacy Policy
               </Link>
             </li>
             <li>
-              <Link to="/terms" className="text-sm text-[#78716C] hover:text-white transition-colors">
+              <Link to="/terms" className="text-sm text-gray-500 hover:text-white transition-colors">
                 Terms of Service
               </Link>
             </li>

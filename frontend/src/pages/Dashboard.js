@@ -52,7 +52,7 @@ const NAV_GROUPS = [
       { id: 'chat',       label: 'Chat',           icon: MessageSquare, permission: 'manage_chat',     requiresProject: true },
       { id: 'missions',   label: 'Missions',       icon: ClipboardList, permission: 'claim_missions',  requiresProject: true },
       { id: 'files',      label: 'Files',          icon: HardDrive,     anyPermission: ['manage_files', 'claim_missions'], requiresProject: true },
-      { id: 'players',    label: 'Players',        icon: Users,         permission: 'manage_play',                         requiresProject: true },
+      { id: 'players',    label: 'Players',        icon: Users,         permission: 'manage_play',     requiresProject: true },
     ],
   },
   {
@@ -148,16 +148,16 @@ const DashboardContent = () => {
         data-testid={`sidebar-nav-${item.id}`}
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
           isActive
-            ? 'bg-[#4ECDC4]/10 text-[#1a2e2d] font-semibold'
+            ? 'bg-brand-50 text-gray-900 font-semibold'
             : disabled
             ? 'text-gray-300 cursor-not-allowed'
-            : 'text-[#637381] hover:bg-gray-50 hover:text-[#2A3547]'
+            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
         }`}
       >
         <Icon
           size={16}
           className={`shrink-0 transition-colors ${
-            isActive ? 'text-[#4ECDC4]' : disabled ? 'text-gray-300' : 'text-gray-400'
+            isActive ? 'text-brand-400' : disabled ? 'text-gray-200' : 'text-gray-400'
           }`}
         />
         <span className="text-[13px] leading-none">{item.label}</span>
@@ -172,11 +172,11 @@ const DashboardContent = () => {
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ECDC4]/25 to-[#4ECDC4]/10 flex items-center justify-center shrink-0">
-          <Gamepad2 size={18} className="text-[#4ECDC4]" />
+        <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+          <Gamepad2 size={18} className="text-brand-400" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold text-[#2A3547] leading-tight">Vakar Games</p>
+          <p className="text-[14px] font-bold text-gray-900 leading-tight">Vakar Games</p>
           <p className="text-[11px] text-gray-400 leading-tight">Admin Panel</p>
         </div>
         {onClose && (
@@ -206,8 +206,8 @@ const DashboardContent = () => {
                     data-testid="project-selector"
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-left transition-colors"
                   >
-                    <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                    <span className="flex-1 text-[12px] font-medium text-[#2A3547] truncate">
+                    <Gamepad2 size={13} className="text-brand-400 shrink-0" />
+                    <span className="flex-1 text-[12px] font-medium text-gray-700 truncate">
                       {selectedProject?.name || 'Select project…'}
                     </span>
                     <ChevronDown
@@ -217,7 +217,7 @@ const DashboardContent = () => {
                   </button>
                   {showProject && (
                     <div
-                      className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg shadow-black/5 overflow-hidden"
+                      className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-theme-md overflow-hidden"
                       data-testid="project-dropdown"
                     >
                       {projects.map(p => (
@@ -227,12 +227,12 @@ const DashboardContent = () => {
                           data-testid={`project-option-${p.slug}`}
                           className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
                             selectedProject?.slug === p.slug
-                              ? 'bg-[#4ECDC4]/10 text-[#2A3547] font-semibold'
-                              : 'text-gray-500 hover:bg-gray-50 hover:text-[#2A3547]'
+                              ? 'bg-brand-50 text-gray-800 font-semibold'
+                              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                           }`}
                         >
                           <span className="flex-1 truncate">{p.name}</span>
-                          {selectedProject?.slug === p.slug && <Check size={11} className="text-[#4ECDC4]" />}
+                          {selectedProject?.slug === p.slug && <Check size={11} className="text-brand-400" />}
                         </button>
                       ))}
                     </div>
@@ -248,12 +248,12 @@ const DashboardContent = () => {
 
       {/* User card */}
       <div className="shrink-0 border-t border-gray-100 p-3">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#F5F7FB]">
-          <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
+          <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-[11px] font-bold text-brand-400 shrink-0">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-[#2A3547] truncate leading-tight">{displayName}</p>
+            <p className="text-[12px] font-semibold text-gray-800 truncate leading-tight">{displayName}</p>
             <p className="text-[11px] text-gray-400 leading-tight">
               {user?.is_super_admin ? 'Super Admin' : 'Admin'}
             </p>
@@ -262,7 +262,7 @@ const DashboardContent = () => {
             onClick={logout}
             title="Sign out"
             data-testid="logout-button"
-            className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+            className="text-gray-400 hover:text-error-500 transition-colors shrink-0"
           >
             <LogOut size={15} />
           </button>
@@ -274,12 +274,10 @@ const DashboardContent = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#F5F7FB] overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex shrink-0 w-64 h-full border-r border-gray-100"
-        style={{ boxShadow: '2px 0 12px rgba(0,0,0,0.04)' }}
-      >
+      <aside className="hidden lg:flex shrink-0 w-64 h-full border-r border-gray-100 shadow-theme-sm">
         <SidebarContent />
       </aside>
 
@@ -291,7 +289,7 @@ const DashboardContent = () => {
             style={{ backdropFilter: 'blur(2px)' }}
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative z-10 w-72 h-full shadow-2xl">
+          <aside className="relative z-10 w-72 h-full shadow-theme-xl">
             <SidebarContent onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
@@ -301,10 +299,7 @@ const DashboardContent = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header
-          className="h-16 shrink-0 bg-white border-b border-gray-100 flex items-center px-5 gap-4 z-20"
-          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-        >
+        <header className="h-16 shrink-0 bg-white border-b border-gray-100 shadow-theme-sm flex items-center px-5 gap-4 z-20">
           {/* Mobile burger */}
           <button
             className="lg:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
@@ -314,7 +309,7 @@ const DashboardContent = () => {
           </button>
 
           {/* Mobile brand */}
-          <span className="lg:hidden text-[14px] font-bold text-[#2A3547]">Vakar Games</span>
+          <span className="lg:hidden text-[14px] font-bold text-gray-900">Vakar Games</span>
 
           {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2">
@@ -324,7 +319,7 @@ const DashboardContent = () => {
             {currentItem && currentGroup && (
               <>
                 <ChevronRight size={14} className="text-gray-300" />
-                <span className="text-sm font-semibold text-[#2A3547]">{currentItem.label}</span>
+                <span className="text-sm font-semibold text-gray-800">{currentItem.label}</span>
               </>
             )}
           </div>
@@ -342,22 +337,22 @@ const DashboardContent = () => {
             <Link
               to="/"
               title="Back to site"
-              className="p-2 rounded-xl text-gray-500 hover:text-[#2A3547] hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"
             >
               <Home size={17} />
             </Link>
             <div className="w-px h-5 bg-gray-100 mx-1" />
             <div className="flex items-center gap-2.5 pr-1">
-              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+              <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-[11px] font-bold text-brand-400 shrink-0">
                 {initials}
               </div>
-              <span className="hidden md:block text-[13px] font-semibold text-[#2A3547]">{displayName}</span>
+              <span className="hidden md:block text-[13px] font-semibold text-gray-800">{displayName}</span>
             </div>
             <button
               onClick={logout}
               title="Sign out"
               data-testid="logout-button"
-              className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="p-2 rounded-xl text-gray-400 hover:text-error-500 hover:bg-error-50 transition-colors"
             >
               <LogOut size={16} />
             </button>
@@ -376,24 +371,20 @@ const DashboardContent = () => {
 
             {needsProject && !selectedProject && (
               <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
-                <div
-                  className="w-14 h-14 rounded-2xl bg-white border border-gray-100 flex items-center justify-center mb-5"
-                  style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
-                >
+                <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 shadow-theme-sm flex items-center justify-center mb-5">
                   <Gamepad2 size={22} className="text-gray-300" />
                 </div>
                 <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">
                   No project selected
                 </p>
-                <h3 className="text-lg font-bold text-[#2A3547] mb-2">Select a Project</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Select a Project</h3>
                 <p className="text-sm text-gray-500 mb-6 leading-relaxed">
                   Choose a project from the sidebar to access its data.
                 </p>
                 <button
                   onClick={() => setActiveTab('projects')}
                   data-testid="go-to-projects-button"
-                  className="inline-flex items-center gap-2 bg-[#4ECDC4] hover:bg-[#45b8b0] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                  style={{ boxShadow: '0 4px 14px rgba(78,205,196,0.35)' }}
+                  className="inline-flex items-center gap-2 bg-brand-400 hover:bg-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-theme-sm"
                 >
                   View Projects <ArrowRight size={14} />
                 </button>

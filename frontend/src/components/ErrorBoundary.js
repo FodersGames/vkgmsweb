@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -26,7 +26,7 @@ class ErrorBoundary extends React.Component {
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle size={28} className="text-red-400" />
+            <AlertTriangle size={28} className="text-error-400" />
           </div>
 
           <h1 className="text-xl font-bold text-white mb-2">Something went wrong</h1>
@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component {
 
           {process.env.NODE_ENV === 'development' && this.state.error && (
             <details className="text-left mb-6 p-4 bg-[#151520] rounded-xl border border-[#2a2a3c] text-xs text-[#71717a] font-mono overflow-auto max-h-40">
-              <summary className="cursor-pointer text-red-400 mb-2 font-semibold">
+              <summary className="cursor-pointer text-error-400 mb-2 font-semibold">
                 Error details (dev only)
               </summary>
               {this.state.error.toString()}
@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component {
             </button>
             <button
               onClick={this.handleReset}
-              className="px-4 py-2.5 bg-[#4ECDC4] text-[#0a0a0f] rounded-xl text-sm font-semibold hover:bg-[#45b8b0] transition-all flex items-center gap-2"
+              className="px-4 py-2.5 bg-brand-400 text-[#0a0a0f] rounded-xl text-sm font-semibold hover:bg-brand-500 transition-all flex items-center gap-2"
             >
               <RefreshCw size={14} />
               Refresh page

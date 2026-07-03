@@ -1,22 +1,22 @@
-import React from 'react';
+﻿import React from 'react';
 
 const BASE_INPUT =
-  'w-full bg-zinc-50 dark:bg-[#0d0d14] border text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 focus:outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-[#52525b]';
+  'w-full bg-gray-50 border text-gray-900 rounded-lg text-sm px-3 focus:outline-none transition-colors placeholder:text-gray-400 dark:placeholder:text-[#52525b]';
 
 const borderClass = (error) =>
   error
     ? 'border-red-500/50 focus:border-red-500'
-    : 'border-zinc-200 dark:border-[#2a2a3c] focus:border-[#4ECDC4]';
+    : 'border-gray-200 focus:border-brand-400';
 
 const Label = ({ children }) =>
   children ? (
-    <label className="block text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">
+    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
       {children}
     </label>
   ) : null;
 
 const FieldError = ({ children }) =>
-  children ? <p className="mt-1 text-xs text-red-400">{children}</p> : null;
+  children ? <p className="mt-1 text-xs text-error-400">{children}</p> : null;
 
 export const Input = React.forwardRef(function Input(
   { label, error, className = '', wrapperClassName = '', ...props },
