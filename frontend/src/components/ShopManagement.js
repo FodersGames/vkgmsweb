@@ -51,17 +51,17 @@ const IconPicker = ({ value, onChange }) => {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm text-gray-900 hover:border-gray-300 transition-all w-full">
+        className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 hover:border-gray-300 transition-all w-full">
         <Comp size={14} className="text-brand-400 shrink-0" />
         <span className="flex-1 text-left capitalize text-gray-500">{value || 'Icon…'}</span>
         <ChevronDown size={12} className="text-gray-400 shrink-0" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-200 shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
+        <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-200 rounded-xl shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
-              className={`p-2 flex items-center justify-center hover:bg-gray-50 transition-all ${value === name ? 'bg-brand-50 text-brand-400' : 'text-gray-500'}`}>
+              className={`p-2 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all ${value === name ? 'bg-brand-50 text-brand-400' : 'text-gray-500'}`}>
               <IC size={15} />
             </button>
           ))}
@@ -79,7 +79,7 @@ const defaultForm = {
 };
 
 // ── Shared input class ────────────────────────────────────────────────────────
-const IN = 'w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm px-3 py-2.5 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-all placeholder:text-gray-400';
+const IN = 'w-full bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm px-3 py-2.5 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-all placeholder:text-gray-400';
 const LBL = 'block text-[10px] font-semibold text-gray-400 uppercase tracking-[0.14em] mb-1.5';
 
 // ── Categories state (per game) ───────────────────────────────────────────────
@@ -288,7 +288,7 @@ export const ShopManagement = () => {
       </div>
 
       {/* Game selector */}
-      <div className="bg-white border border-gray-200 p-4">
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
         <p className={LBL}>Select game</p>
         <div className="flex flex-wrap gap-2 mt-1">
           {games.map(g => (
@@ -317,7 +317,7 @@ export const ShopManagement = () => {
                 key={t.id}
                 onClick={() => setSubTab(t.id)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
-                  subTab === t.id ? 'border-[#1C1917] text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-900'
+                  subTab === t.id ? 'border-brand-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-900'
                 }`}
               >
                 <t.icon size={13} />{t.label}
@@ -327,7 +327,7 @@ export const ShopManagement = () => {
 
           {/* ── PRODUCTS TAB ───────────────────────────────────────────────── */}
           {subTab === 'products' && (
-            <div className="bg-white border border-gray-200">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               {/* Toolbar */}
               <div className="px-5 py-3.5 flex items-center justify-between border-b border-gray-200">
                 <div className="flex items-center gap-2">
@@ -364,7 +364,7 @@ export const ShopManagement = () => {
                         <label className={LBL}>Product Image</label>
                         <div className="flex gap-2">
                           <input type="text" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} className={IN} placeholder="https://... or upload" />
-                          <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors">
+                          <label className="shrink-0 cursor-pointer px-3 py-2.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors">
                             {uploading ? '…' : 'Upload'}
                             <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setForm(f => ({ ...f, image_url: url })))} />
                           </label>
@@ -387,9 +387,9 @@ export const ShopManagement = () => {
                               key={b.value}
                               type="button"
                               onClick={() => setForm(f => ({ ...f, badge: b.value }))}
-                              className={`px-2.5 py-1 text-[10px] font-bold border transition-all ${
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
                                 form.badge === b.value
-                                  ? 'border-[#1C1917] bg-gray-900 text-white'
+                                  ? 'border-gray-900 bg-gray-900 text-white'
                                   : 'border-gray-200 text-gray-500 hover:border-gray-300'
                               }`}
                               style={form.badge === b.value && b.color ? { backgroundColor: b.color, borderColor: b.color } : {}}
@@ -458,9 +458,9 @@ export const ShopManagement = () => {
                             <button
                               type="button"
                               onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
-                              className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-brand-400' : 'bg-[#E8E3DB]'}`}
+                              className={`w-9 h-5 relative rounded-full transition-colors ${form[key] ? 'bg-brand-400' : 'bg-gray-200'}`}
                             >
-                              <span className={`absolute top-0.5 w-4 h-4 bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
+                              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
                             </button>
                             <span className="text-xs font-semibold text-gray-500">{label}</span>
                           </div>
@@ -490,7 +490,7 @@ export const ShopManagement = () => {
                       return (
                         <div
                           key={p.id}
-                          className={`flex items-center gap-3 p-3 border transition-all ${
+                          className={`flex items-center gap-3 p-3 border rounded-xl transition-all ${
                             p.active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-60'
                           }`}
                         >
@@ -528,13 +528,13 @@ export const ShopManagement = () => {
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => toggleActive(p)}
-                              className="p-2 border border-gray-200 hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"
+                              className="p-2 border border-gray-200 rounded-lg hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"
                               title={p.active ? 'Hide' : 'Show'}
                             >
                               {p.active ? <Eye size={13} /> : <EyeOff size={13} />}
                             </button>
-                            <button onClick={() => openEdit(p)} className="p-2 border border-gray-200 hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"><Edit2 size={13} /></button>
-                            <button onClick={() => handleDelete(p)} className="p-2 border border-gray-200 hover:border-error-200 text-gray-400 hover:text-error-500 transition-all"><Trash2 size={13} /></button>
+                            <button onClick={() => openEdit(p)} className="p-2 border border-gray-200 rounded-lg hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"><Edit2 size={13} /></button>
+                            <button onClick={() => handleDelete(p)} className="p-2 border border-gray-200 rounded-lg hover:border-error-200 text-gray-400 hover:text-error-500 transition-all"><Trash2 size={13} /></button>
                           </div>
                         </div>
                       );
@@ -547,7 +547,7 @@ export const ShopManagement = () => {
 
           {/* ── CATEGORIES TAB ────────────────────────────────────────────── */}
           {subTab === 'categories' && (
-            <div className="bg-white border border-gray-200 p-5 space-y-5">
+            <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
               <p className="text-xs text-gray-500">
                 Categories group products in the shop. Each category can have optional sub-categories for finer filtering.
               </p>
@@ -558,14 +558,14 @@ export const ShopManagement = () => {
               ) : (
                 <div className="space-y-2">
                   {categories.map(c => (
-                    <div key={c.id} className="border border-gray-200">
+                    <div key={c.id} className="border border-gray-200 rounded-xl overflow-hidden">
                       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50">
                         <CategoryIcon name={c.icon} size={13} className="text-brand-400" />
                         <span className="font-semibold text-gray-900 text-sm flex-1">{c.label}</span>
                         <span className="text-gray-400 text-xs">{(c.subcategories || []).length} sub</span>
                         <button
                           onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
-                          className="text-xs text-gray-500 hover:text-gray-900 px-2 py-0.5 border border-gray-200 bg-white transition-colors"
+                          className="text-xs text-gray-500 hover:text-gray-900 px-2 py-0.5 rounded-lg border border-gray-200 bg-white transition-colors"
                         >
                           {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
                         </button>
@@ -580,7 +580,7 @@ export const ShopManagement = () => {
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
                               {(c.subcategories || []).map(s => (
-                                <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-xs">
+                                <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded-full text-xs">
                                   <span className="text-gray-900 font-medium">{s.label}</span>
                                   <button onClick={() => removeSubcategory(c.id, s.id)} className="text-gray-400 hover:text-error-500 transition-colors ml-0.5">
                                     <X size={10} />
@@ -631,7 +631,7 @@ export const ShopManagement = () => {
           )}
 
           {/* Public shop link */}
-          <div className="bg-white border border-gray-200 px-5 py-4 flex items-center justify-between gap-4">
+          <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between gap-4">
             <div>
               <p className={LBL}>Public Shop URL</p>
               <code className="text-sm text-brand-400 font-mono">/shop?game={selectedGame.slug}</code>
@@ -640,7 +640,7 @@ export const ShopManagement = () => {
               href={`/shop?game=${selectedGame.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="px-4 py-2 border border-gray-200 hover:border-gray-300 text-gray-500 hover:text-gray-900 text-sm font-semibold transition-all"
+              className="px-4 py-2 border border-gray-200 rounded-lg hover:border-gray-300 text-gray-500 hover:text-gray-900 text-sm font-semibold transition-all"
             >
               Open Shop ↗
             </a>
