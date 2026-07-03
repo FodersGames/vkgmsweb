@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { FileText, Plus, Trash2, Edit2, Save, X, Upload, Eye, EyeOff } from 'lucide-react';
@@ -77,12 +77,12 @@ export const BlogManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
               <FileText size={16} style={{ color: '#F2994A' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Blog Management</h3>
-              <p className="text-xs text-gray-500">Create and manage blog posts</p>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Blog Management</h3>
+              <p className="text-xs text-[#71717a]">Create and manage blog posts</p>
             </div>
           </div>
           {hasPermission('create_blog') && (
@@ -93,7 +93,7 @@ export const BlogManagement = () => {
         </CardHeader>
 
         {showForm && (
-          <div className="px-6 py-5 bg-gray-50 border-b border-gray-200">
+          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <form onSubmit={handleSubmit} data-testid="blog-form">
               <div className="space-y-4">
                 <Input
@@ -112,10 +112,10 @@ export const BlogManagement = () => {
                   data-testid="blog-content-input"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Cover Image</p>
+                  <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Cover Image</p>
                   <div className="flex items-center gap-3">
                     {form.image_url && (
-                      <img src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url} alt="" className="w-20 h-14 rounded-lg object-cover border border-gray-200" />
+                      <img src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url} alt="" className="w-20 h-14 rounded-lg object-cover border border-zinc-200 dark:border-[#2a2a3c]" />
                     )}
                     <label className="cursor-pointer">
                       <Button variant="secondary" size="sm" icon={Upload} loading={uploading} as="span">
@@ -125,7 +125,7 @@ export const BlogManagement = () => {
                     </label>
                   </div>
                 </div>
-                <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
+                <label className="flex items-center gap-2.5 text-sm text-zinc-700 dark:text-[#a1a1aa] cursor-pointer select-none">
                   <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
                   Publish immediately
                 </label>
@@ -138,7 +138,7 @@ export const BlogManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
             Posts ({posts.length})
           </p>
           {posts.length === 0 ? (
@@ -146,18 +146,18 @@ export const BlogManagement = () => {
           ) : (
             <div className="space-y-2" data-testid="blog-list">
               {posts.map(p => (
-                <div key={p.slug} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#F2994A]/20 transition-colors">
+                <div key={p.slug} className="flex items-center gap-4 p-4 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#F2994A]/20 transition-colors">
                   {p.image_url
-                    ? <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt="" className="w-16 h-12 rounded-lg object-cover border border-gray-200 shrink-0" />
-                    : <div className="w-16 h-12 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0"><FileText size={16} className="text-gray-500" /></div>}
+                    ? <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt="" className="w-16 h-12 rounded-lg object-cover border border-zinc-200 dark:border-[#2a2a3c] shrink-0" />
+                    : <div className="w-16 h-12 rounded-lg bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><FileText size={16} className="text-[#71717a]" /></div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-semibold text-gray-900 truncate">{p.title}</h4>
+                      <h4 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7] truncate">{p.title}</h4>
                       <Badge variant={p.published ? 'success' : 'default'} dot>
                         {p.published ? 'Published' : 'Draft'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">by {p.author} · {new Date(p.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-[#71717a] mt-0.5">by {p.author} · {new Date(p.created_at).toLocaleDateString()}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     {hasPermission('edit_blog') && <Button variant="secondary" size="sm" icon={Edit2} onClick={() => startEdit(p)} data-testid={`edit-blog-${p.slug}`} />}

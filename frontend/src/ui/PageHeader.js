@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 export const PageHeader = ({ icon: Icon, iconColor = '#4ECDC4', title, description, children, className = '' }) => (
   <div className={`flex items-center justify-between gap-3 ${className}`}>
@@ -12,9 +12,9 @@ export const PageHeader = ({ icon: Icon, iconColor = '#4ECDC4', title, descripti
         </div>
       )}
       <div className="min-w-0">
-        <h3 className="text-sm font-semibold text-gray-900 leading-tight">{title}</h3>
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7] leading-tight">{title}</h3>
         {description && (
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{description}</p>
+          <p className="text-xs text-[#71717a] mt-0.5 truncate">{description}</p>
         )}
       </div>
     </div>
@@ -25,7 +25,7 @@ export const PageHeader = ({ icon: Icon, iconColor = '#4ECDC4', title, descripti
 );
 
 export const SectionLabel = ({ children, className = '' }) => (
-  <p className={`text-[11px] font-semibold text-gray-400 uppercase tracking-widest ${className}`}>
+  <p className={`text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest ${className}`}>
     {children}
   </p>
 );

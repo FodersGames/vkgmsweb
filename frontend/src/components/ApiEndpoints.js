@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Copy, CheckCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProject } from '../context/ProjectContext';
@@ -254,12 +254,12 @@ export const ApiEndpoints = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#71717a18' }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#71717a18' }}>
               <FileText size={16} style={{ color: '#71717a' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">API Documentation</h3>
-              <p className="text-xs text-gray-500">All endpoints scoped per project</p>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">API Documentation</h3>
+              <p className="text-xs text-[#71717a]">All endpoints scoped per project</p>
             </div>
           </div>
         </CardHeader>
@@ -268,9 +268,9 @@ export const ApiEndpoints = () => {
           {endpoints.map((section, sectionIdx) => (
             <div key={sectionIdx}>
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-px flex-1 bg-gray-200"></div>
-                <div className="text-xs font-bold text-gray-500 px-3">{section.category}</div>
-                <div className="h-px flex-1 bg-gray-200"></div>
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-[#2a2a3c]"></div>
+                <div className="text-xs font-bold text-[#71717a] px-3">{section.category}</div>
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-[#2a2a3c]"></div>
               </div>
 
               <div className="space-y-4">
@@ -279,51 +279,51 @@ export const ApiEndpoints = () => {
                   const methodStyle = methodColors[endpoint.method];
 
                   return (
-                    <div key={endpointIdx} className="border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="p-4 border-b border-gray-200 bg-white">
+                    <div key={endpointIdx} className="border border-zinc-200 dark:border-[#2a2a3c] rounded-lg bg-zinc-50 dark:bg-[#111118]">
+                      <div className="p-4 border-b border-zinc-200 dark:border-[#2a2a3c] bg-white dark:bg-[#151520]">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 flex-1">
                             <span className="px-3 py-1 text-xs font-bold rounded-lg"
                               style={{ backgroundColor: methodStyle.bg, color: methodStyle.color, border: `1px solid ${methodStyle.border}` }}>
                               {endpoint.method}
                             </span>
-                            <code className="text-sm font-mono text-gray-900 flex-1">{endpoint.path}</code>
+                            <code className="text-sm font-mono text-zinc-900 dark:text-[#e4e4e7] flex-1">{endpoint.path}</code>
                             {endpoint.auth && (
                               <span className="text-xs px-2 py-1 bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 rounded-lg font-medium">AUTH</span>
                             )}
                           </div>
                           <button onClick={() => copyToClipboard(endpoint.example, `url-${uniqueId}`)}
-                            className="ml-3 p-2 border border-gray-200 hover:border-brand-400/30 rounded-lg transition-colors"
+                            className="ml-3 p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg transition-colors"
                             data-testid={`copy-endpoint-${uniqueId}`}>
-                            {copied === `url-${uniqueId}` ? <CheckCircle size={16} className="text-brand-400" /> : <Copy size={16} className="text-gray-500" />}
+                            {copied === `url-${uniqueId}` ? <CheckCircle size={16} className="text-[#4ECDC4]" /> : <Copy size={16} className="text-[#71717a]" />}
                           </button>
                         </div>
-                        <p className="mt-2 text-sm text-gray-500">{endpoint.description}</p>
+                        <p className="mt-2 text-sm text-[#71717a]">{endpoint.description}</p>
                         {endpoint.note && (
-                          <div className="mt-2 p-2 bg-brand-400/5 border border-brand-400/20 rounded-lg">
-                            <p className="text-xs text-brand-400">{endpoint.note}</p>
+                          <div className="mt-2 p-2 bg-[#4ECDC4]/5 border border-[#4ECDC4]/20 rounded-lg">
+                            <p className="text-xs text-[#4ECDC4]">{endpoint.note}</p>
                           </div>
                         )}
                       </div>
 
                       <div className="p-4 space-y-4">
                         <div>
-                          <div className="text-xs font-semibold text-gray-500 mb-2">ENDPOINT URL</div>
-                          <code className="block p-2 bg-gray-100 border border-gray-200 text-gray-900 text-sm font-mono rounded-lg break-all">
+                          <div className="text-xs font-semibold text-[#71717a] mb-2">ENDPOINT URL</div>
+                          <code className="block p-2 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg break-all">
                             {endpoint.example}
                           </code>
                         </div>
 
                         {endpoint.body && (
                           <div>
-                            <div className="text-xs font-semibold text-gray-500 mb-2">REQUEST BODY</div>
+                            <div className="text-xs font-semibold text-[#71717a] mb-2">REQUEST BODY</div>
                             <div className="flex items-start gap-2">
-                              <pre className="flex-1 p-3 bg-gray-100 border border-gray-200 text-gray-900 text-sm font-mono rounded-lg overflow-x-auto">
+                              <pre className="flex-1 p-3 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
                                 {endpoint.body}
                               </pre>
                               <button onClick={() => copyToClipboard(endpoint.body, `body-${uniqueId}`)}
-                                className="p-2 border border-gray-200 hover:border-brand-400/30 rounded-lg transition-colors">
-                                {copied === `body-${uniqueId}` ? <CheckCircle size={16} className="text-brand-400" /> : <Copy size={16} className="text-gray-500" />}
+                                className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg transition-colors">
+                                {copied === `body-${uniqueId}` ? <CheckCircle size={16} className="text-[#4ECDC4]" /> : <Copy size={16} className="text-[#71717a]" />}
                               </button>
                             </div>
                           </div>
@@ -331,22 +331,22 @@ export const ApiEndpoints = () => {
 
                         {endpoint.auth && (
                           <div>
-                            <div className="text-xs font-semibold text-gray-500 mb-2">AUTHORIZATION</div>
-                            <code className="block p-2 bg-gray-100 border border-gray-200 text-gray-900 text-sm font-mono rounded-lg">
+                            <div className="text-xs font-semibold text-[#71717a] mb-2">AUTHORIZATION</div>
+                            <code className="block p-2 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg">
                               Authorization: Bearer YOUR_JWT_TOKEN
                             </code>
                           </div>
                         )}
 
                         <div>
-                          <div className="text-xs font-semibold text-gray-500 mb-2">RESPONSE</div>
+                          <div className="text-xs font-semibold text-[#71717a] mb-2">RESPONSE</div>
                           <div className="flex items-start gap-2">
-                            <pre className="flex-1 p-3 bg-gray-100 border border-gray-200 text-gray-900 text-sm font-mono rounded-lg overflow-x-auto">
+                            <pre className="flex-1 p-3 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] text-sm font-mono rounded-lg overflow-x-auto">
                               {endpoint.response}
                             </pre>
                             <button onClick={() => copyToClipboard(endpoint.response, `resp-${uniqueId}`)}
-                              className="p-2 border border-gray-200 hover:border-brand-400/30 rounded-lg transition-colors">
-                              {copied === `resp-${uniqueId}` ? <CheckCircle size={16} className="text-brand-400" /> : <Copy size={16} className="text-gray-500" />}
+                              className="p-2 border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30 rounded-lg transition-colors">
+                              {copied === `resp-${uniqueId}` ? <CheckCircle size={16} className="text-[#4ECDC4]" /> : <Copy size={16} className="text-[#71717a]" />}
                             </button>
                           </div>
                         </div>
@@ -362,8 +362,8 @@ export const ApiEndpoints = () => {
         <div className="px-6 pb-6">
           <div className="p-4 border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 rounded-lg">
             <div className="text-sm font-medium text-[#6C5CE7] mb-2">Multi-Project Architecture</div>
-            <p className="text-sm text-gray-900/70">
-              All game data (items, status, variables, logs) is isolated per project. Each project has its own set of endpoints prefixed with <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 text-brand-400">/api/projects/{'{'}&lt;slug&gt;{'}'}</code>.
+            <p className="text-sm text-zinc-900 dark:text-[#e4e4e7]/70">
+              All game data (items, status, variables, logs) is isolated per project. Each project has its own set of endpoints prefixed with <code className="text-xs bg-zinc-100 dark:bg-[#0d0d14] px-1.5 py-0.5 rounded border border-zinc-200 dark:border-[#2a2a3c] text-[#4ECDC4]">/api/projects/{'{'}&lt;slug&gt;{'}'}</code>.
               Users and authentication are shared globally across all projects.
             </p>
           </div>

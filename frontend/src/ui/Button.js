@@ -2,19 +2,19 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 const V = {
-  primary:     'bg-gray-900 hover:bg-gray-800 text-white',
-  accent:      'bg-brand-400 hover:bg-brand-500 text-white',
-  purple:      'bg-purple-600 hover:bg-purple-700 text-white',
-  secondary:   'border border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-900 bg-white',
-  ghost:       'text-gray-500 hover:bg-gray-100 hover:text-gray-900',
-  destructive: 'bg-error-500 hover:bg-error-600 text-white',
-  danger:      'border border-error-300 text-error-500 hover:bg-error-50 hover:border-error-400',
+  primary:     'bg-[#1C1917] hover:bg-[#2D2926] text-white',
+  accent:      'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]',
+  purple:      'bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white',
+  secondary:   'border border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917] bg-white',
+  ghost:       'text-[#78716C] hover:bg-[#F9F7F4] hover:text-[#1C1917]',
+  destructive: 'bg-red-500 hover:bg-red-600 text-white',
+  danger:      'border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400',
 };
 
 const S = {
-  sm: 'h-8  px-3 text-xs  gap-1.5 rounded-lg',
-  md: 'h-9  px-4 text-sm  gap-2   rounded-lg',
-  lg: 'h-10 px-5 text-sm  gap-2   rounded-lg',
+  sm: 'h-8  px-3 text-xs  gap-1.5',
+  md: 'h-9  px-4 text-sm  gap-2',
+  lg: 'h-10 px-5 text-sm  gap-2',
 };
 
 export const Button = ({

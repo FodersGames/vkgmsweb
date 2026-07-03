@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Tag, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2, Users, Gamepad2, ShoppingBag } from 'lucide-react';
@@ -134,19 +134,19 @@ export const CouponManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-50 flex items-center justify-center">
-            <Tag size={16} className="text-brand-400" />
+          <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+            <Tag size={16} className="text-[#4ECDC4]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em' }}>
+            <h2 className="text-base font-black text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em' }}>
               PROMO COUPONS
             </h2>
-            <p className="text-xs text-gray-500">Send unique discount codes to users or tiers</p>
+            <p className="text-xs text-[#78716C]">Send unique discount codes to users or tiers</p>
           </div>
         </div>
         <button
           onClick={() => { setShowCreate(v => !v); setCreateResult(null); setCreateError(''); }}
-          className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold px-3 py-2 transition-colors"
+          className="flex items-center gap-1.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-semibold px-3 py-2 transition-colors"
         >
           <Plus size={13} /> New campaign
         </button>
@@ -154,54 +154,54 @@ export const CouponManagement = () => {
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white border border-gray-200 p-6 space-y-5">
-          <h3 className="text-sm font-bold text-gray-900 border-b border-gray-200 pb-3">Create coupon campaign</h3>
+        <div className="bg-white border border-[#E8E3DB] p-6 space-y-5">
+          <h3 className="text-sm font-bold text-[#1C1917] border-b border-[#E8E3DB] pb-3">Create coupon campaign</h3>
 
           {createResult ? (
             <div className="text-center py-6 space-y-2">
-              <CheckCircle size={32} className="text-brand-400 mx-auto" />
-              <p className="text-sm font-bold text-gray-900">Campaign created!</p>
-              <p className="text-xs text-gray-500"><strong>{createResult.codes_sent}</strong> unique codes sent to users' inboxes.</p>
-              <button onClick={() => { setShowCreate(false); setCreateResult(null); }} className="text-xs text-brand-400 hover:underline mt-2">Close</button>
+              <CheckCircle size={32} className="text-[#4ECDC4] mx-auto" />
+              <p className="text-sm font-bold text-[#1C1917]">Campaign created!</p>
+              <p className="text-xs text-[#78716C]"><strong>{createResult.codes_sent}</strong> unique codes sent to users' inboxes.</p>
+              <button onClick={() => { setShowCreate(false); setCreateResult(null); }} className="text-xs text-[#4ECDC4] hover:underline mt-2">Close</button>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-1">Campaign name</label>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1">Campaign name</label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Summer promo, Gold exclusive…"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                  className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                 />
               </div>
 
               {/* Discount & validity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-1">Discount %</label>
+                  <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1">Discount %</label>
                   <input
                     type="number" min={1} max={99}
                     value={form.discount_pct}
                     onChange={e => setForm(f => ({ ...f, discount_pct: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                    className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-1">Valid for (days)</label>
+                  <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1">Valid for (days)</label>
                   <input
                     type="number" min={1}
                     value={form.valid_days}
                     onChange={e => setForm(f => ({ ...f, valid_days: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                    className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                   />
                 </div>
               </div>
 
               {/* Scope */}
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-2">Applicable to</label>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-2">Applicable to</label>
                 <div className="flex gap-2 flex-wrap">
                   {[
                     { value: 'all', label: 'All purchases' },
@@ -211,7 +211,7 @@ export const CouponManagement = () => {
                     <button
                       key={opt.value}
                       onClick={() => handleScopeChange(opt.value)}
-                      className={`text-xs px-3 py-1.5 border font-semibold transition-colors ${form.scope === opt.value ? 'border-brand-400 bg-brand-50 text-gray-900' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                      className={`text-xs px-3 py-1.5 border font-semibold transition-colors ${form.scope === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1C1917]' : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'}`}
                     >
                       {opt.label}
                     </button>
@@ -219,7 +219,7 @@ export const CouponManagement = () => {
                 </div>
                 {form.scope === 'product' && (
                   <select
-                    className="mt-2 w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                    className="mt-2 w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                     value={form.scope_id}
                     onChange={e => {
                       const p = products.find(x => x.id === e.target.value);
@@ -234,7 +234,7 @@ export const CouponManagement = () => {
                 )}
                 {form.scope === 'game' && (
                   <select
-                    className="mt-2 w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                    className="mt-2 w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                     value={form.scope_id}
                     onChange={e => {
                       const g = games.find(x => x.slug === e.target.value);
@@ -251,7 +251,7 @@ export const CouponManagement = () => {
 
               {/* Target */}
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 tracking-[0.14em] uppercase mb-2">Target</label>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-2">Target</label>
                 <div className="flex gap-2 mb-3">
                   {[
                     { value: 'tier', label: 'By loyalty tier', icon: <Tag size={12} /> },
@@ -260,7 +260,7 @@ export const CouponManagement = () => {
                     <button
                       key={opt.value}
                       onClick={() => setForm(f => ({ ...f, target_type: opt.value, target_tiers: [], target_user_ids: [] }))}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 border font-semibold transition-colors ${form.target_type === opt.value ? 'border-brand-400 bg-brand-50 text-gray-900' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 border font-semibold transition-colors ${form.target_type === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1C1917]' : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'}`}
                     >
                       {opt.icon} {opt.label}
                     </button>
@@ -273,10 +273,10 @@ export const CouponManagement = () => {
                       <button
                         key={tier}
                         onClick={() => toggleTier(tier)}
-                        className={`text-xs px-3 py-1.5 border font-semibold capitalize transition-colors ${form.target_tiers.includes(tier) ? 'border-brand-400 bg-brand-50 text-gray-900' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                        className={`text-xs px-3 py-1.5 border font-semibold capitalize transition-colors ${form.target_tiers.includes(tier) ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1C1917]' : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'}`}
                       >
                         {TIER_LABELS[tier]}
-                        {form.target_tiers.includes(tier) && <CheckCircle size={10} className="inline ml-1 text-brand-400" />}
+                        {form.target_tiers.includes(tier) && <CheckCircle size={10} className="inline ml-1 text-[#4ECDC4]" />}
                       </button>
                     ))}
                   </div>
@@ -288,44 +288,44 @@ export const CouponManagement = () => {
                       value={userSearch}
                       onChange={e => setUserSearch(e.target.value)}
                       placeholder="Search by email or username…"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                      className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                     />
-                    <div className="max-h-40 overflow-y-auto border border-gray-200 divide-y divide-[#F3F0EC]">
+                    <div className="max-h-40 overflow-y-auto border border-[#E8E3DB] divide-y divide-[#F3F0EC]">
                       {filteredUsers.slice(0, 50).map(u => (
-                        <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#F9F7F4] cursor-pointer">
                           <input
                             type="checkbox"
                             checked={form.target_user_ids.includes(u.id)}
                             onChange={() => toggleUser(u.id)}
                             className="accent-[#4ECDC4]"
                           />
-                          <span className="text-xs text-gray-900 truncate">{u.email}</span>
-                          {u.username && <span className="text-[10px] text-gray-400">@{u.username}</span>}
+                          <span className="text-xs text-[#1C1917] truncate">{u.email}</span>
+                          {u.username && <span className="text-[10px] text-[#A8A29E]">@{u.username}</span>}
                         </label>
                       ))}
-                      {filteredUsers.length === 0 && <p className="text-xs text-gray-400 p-3">No users found</p>}
+                      {filteredUsers.length === 0 && <p className="text-xs text-[#A8A29E] p-3">No users found</p>}
                     </div>
                     {form.target_user_ids.length > 0 && (
-                      <p className="text-xs text-brand-400 font-semibold">{form.target_user_ids.length} user(s) selected</p>
+                      <p className="text-xs text-[#4ECDC4] font-semibold">{form.target_user_ids.length} user(s) selected</p>
                     )}
                   </div>
                 )}
               </div>
 
-              {createError && <p className="text-xs text-error-500">{createError}</p>}
+              {createError && <p className="text-xs text-red-500">{createError}</p>}
 
-              <div className="flex gap-2 pt-2 border-t border-gray-200">
+              <div className="flex gap-2 pt-2 border-t border-[#E8E3DB]">
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-5 py-2.5 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white text-sm font-semibold px-5 py-2.5 transition-colors disabled:opacity-50"
                 >
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
                   {creating ? 'Creating…' : 'Send coupons'}
                 </button>
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="text-sm text-gray-500 hover:text-gray-900 px-4 py-2.5 transition-colors"
+                  className="text-sm text-[#78716C] hover:text-[#1C1917] px-4 py-2.5 transition-colors"
                 >
                   Cancel
                 </button>
@@ -337,24 +337,24 @@ export const CouponManagement = () => {
 
       {/* Campaign list */}
       {loading ? (
-        <div className="text-center py-10 text-gray-400 text-sm">Loading…</div>
+        <div className="text-center py-10 text-[#A8A29E] text-sm">Loading…</div>
       ) : campaigns.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-gray-200 text-gray-400 text-sm">
+        <div className="text-center py-12 border border-dashed border-[#E8E3DB] text-[#A8A29E] text-sm">
           No campaigns yet. Create one to start sending promo codes.
         </div>
       ) : (
         <div className="space-y-2">
           {campaigns.map(c => (
-            <div key={c.id} className="bg-white border border-gray-200">
+            <div key={c.id} className="bg-white border border-[#E8E3DB]">
               <button
                 onClick={() => loadDetail(c.id)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F9F7F4] transition-colors text-left"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <Tag size={16} className="text-brand-400 shrink-0" />
+                  <Tag size={16} className="text-[#4ECDC4] shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 truncate">{c.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-bold text-[#1C1917] truncate">{c.name}</p>
+                    <p className="text-xs text-[#78716C]">
                       {c.discount_pct}% off ·{' '}
                       {c.target_type === 'tier'
                         ? (c.target_tiers || []).map(t => TIER_LABELS[t]).join(', ')
@@ -368,43 +368,43 @@ export const CouponManagement = () => {
                 </div>
                 <div className="flex items-center gap-4 shrink-0 ml-4">
                   <div className="text-right hidden sm:block">
-                    <p className="text-xs font-semibold text-gray-900">{c.codes_count} codes</p>
-                    <p className="text-[10px] text-gray-400">until {new Date(c.valid_until).toLocaleDateString()}</p>
+                    <p className="text-xs font-semibold text-[#1C1917]">{c.codes_count} codes</p>
+                    <p className="text-[10px] text-[#A8A29E]">until {new Date(c.valid_until).toLocaleDateString()}</p>
                   </div>
-                  {expandedCampaign === c.id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                  {expandedCampaign === c.id ? <ChevronUp size={14} className="text-[#A8A29E]" /> : <ChevronDown size={14} className="text-[#A8A29E]" />}
                 </div>
               </button>
 
               {expandedCampaign === c.id && (
-                <div className="border-t border-gray-200 px-5 pb-5">
+                <div className="border-t border-[#E8E3DB] px-5 pb-5">
                   {detailLoading ? (
-                    <div className="flex items-center gap-2 py-4 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 py-4 text-xs text-[#A8A29E]">
                       <Loader2 size={12} className="animate-spin" /> Loading codes…
                     </div>
                   ) : campaignDetail ? (
                     <div className="mt-4">
                       <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                        <div className="bg-gray-50 px-3 py-2">
-                          <p className="text-lg font-black text-gray-900">{campaignDetail.codes.length}</p>
-                          <p className="text-[10px] text-gray-400">Total codes</p>
+                        <div className="bg-[#F9F7F4] px-3 py-2">
+                          <p className="text-lg font-black text-[#1C1917]">{campaignDetail.codes.length}</p>
+                          <p className="text-[10px] text-[#A8A29E]">Total codes</p>
                         </div>
-                        <div className="bg-gray-50 px-3 py-2">
-                          <p className="text-lg font-black text-brand-400">{campaignDetail.codes.filter(x => x.used).length}</p>
-                          <p className="text-[10px] text-gray-400">Used</p>
+                        <div className="bg-[#F9F7F4] px-3 py-2">
+                          <p className="text-lg font-black text-[#4ECDC4]">{campaignDetail.codes.filter(x => x.used).length}</p>
+                          <p className="text-[10px] text-[#A8A29E]">Used</p>
                         </div>
-                        <div className="bg-gray-50 px-3 py-2">
-                          <p className="text-lg font-black text-gray-900">{campaignDetail.codes.filter(x => !x.used).length}</p>
-                          <p className="text-[10px] text-gray-400">Remaining</p>
+                        <div className="bg-[#F9F7F4] px-3 py-2">
+                          <p className="text-lg font-black text-[#1C1917]">{campaignDetail.codes.filter(x => !x.used).length}</p>
+                          <p className="text-[10px] text-[#A8A29E]">Remaining</p>
                         </div>
                       </div>
-                      <div className="max-h-60 overflow-y-auto border border-gray-200 divide-y divide-[#F3F0EC]">
+                      <div className="max-h-60 overflow-y-auto border border-[#E8E3DB] divide-y divide-[#F3F0EC]">
                         {campaignDetail.codes.map(code => (
                           <div key={code.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                            <span className="font-mono font-semibold text-gray-900">{code.code}</span>
-                            <span className="text-gray-500 truncate mx-4 hidden sm:block">{code.assigned_to_email}</span>
+                            <span className="font-mono font-semibold text-[#1C1917]">{code.code}</span>
+                            <span className="text-[#78716C] truncate mx-4 hidden sm:block">{code.assigned_to_email}</span>
                             {code.used
-                              ? <span className="flex items-center gap-1 text-gray-400 shrink-0"><XCircle size={11} /> Used</span>
-                              : <span className="flex items-center gap-1 text-brand-400 shrink-0"><CheckCircle size={11} /> Available</span>
+                              ? <span className="flex items-center gap-1 text-[#A8A29E] shrink-0"><XCircle size={11} /> Used</span>
+                              : <span className="flex items-center gap-1 text-[#4ECDC4] shrink-0"><CheckCircle size={11} /> Available</span>
                             }
                           </div>
                         ))}

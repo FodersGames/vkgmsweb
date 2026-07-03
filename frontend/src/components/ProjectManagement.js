@@ -50,23 +50,23 @@ export const ProjectManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
               <Gamepad2 size={16} style={{ color: '#6C5CE7' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Projects / Games</h3>
-              <p className="text-xs text-gray-400">Manage your API projects</p>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Projects / Games</h3>
+              <p className="text-xs text-[#71717a]">Manage your API projects</p>
             </div>
           </div>
           {hasPermission('create_projects') && (
-            <Button variant="accent" icon={showForm ? X : Plus} onClick={() => setShowForm(!showForm)} data-testid="create-project-button">
+            <Button icon={showForm ? X : Plus} onClick={() => setShowForm(!showForm)} data-testid="create-project-button">
               {showForm ? 'Cancel' : 'New Project'}
             </Button>
           )}
         </CardHeader>
 
         {showForm && (
-          <div className="px-6 py-5 bg-gray-50 border-b border-gray-100">
+          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <form onSubmit={handleCreate} data-testid="create-project-form">
               <div className="flex gap-3 items-end">
                 <Input
@@ -78,7 +78,7 @@ export const ProjectManagement = () => {
                   wrapperClassName="flex-1"
                   data-testid="project-name-input"
                 />
-                <Button type="submit" variant="accent" loading={loading} data-testid="submit-project-button">
+                <Button type="submit" loading={loading} data-testid="submit-project-button">
                   Create
                 </Button>
               </div>
@@ -87,7 +87,7 @@ export const ProjectManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
             Projects ({projects.length})
           </p>
           {projects.length === 0 ? (
@@ -97,20 +97,20 @@ export const ProjectManagement = () => {
               {projects.map(p => (
                 <div
                   key={p.slug}
-                  className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors"
+                  className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#6C5CE7]/20 transition-colors"
                   data-testid={`project-card-${p.slug}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
                       <Gamepad2 size={16} style={{ color: '#A29BFE' }} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">slug: {p.slug}</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-[#e4e4e7]">{p.name}</p>
+                      <p className="text-xs text-[#71717a] font-mono">slug: {p.slug}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400">by {p.created_by}</span>
+                    <span className="text-xs text-[#71717a]">by {p.created_by}</span>
                     {hasPermission('delete_projects') && (
                       <Button
                         variant="danger"

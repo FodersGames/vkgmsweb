@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Ticket, ChevronLeft, Send, Loader2, RefreshCw, Filter } from 'lucide-react';
 import axios from 'axios';
 
@@ -12,17 +12,17 @@ api.interceptors.request.use(cfg => {
 });
 
 const STATUS_COLORS = {
-  open: 'bg-brand-50 text-brand-400 border-brand-400/30',
+  open: 'bg-[#4ECDC4]/10 text-[#4ECDC4] border-[#4ECDC4]/30',
   in_progress: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30',
   resolved: 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30',
-  closed: 'bg-[#A8A29E]/10 text-gray-400 border-[#A8A29E]/30',
+  closed: 'bg-[#A8A29E]/10 text-[#A8A29E] border-[#A8A29E]/30',
 };
 const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
 
 const PRIORITY_COLORS = {
-  normal: 'text-gray-500',
+  normal: 'text-[#78716C]',
   high: 'text-[#F59E0B]',
-  urgent: 'text-error-500',
+  urgent: 'text-red-500',
 };
 
 const CATEGORY_LABELS = { general: 'General', technical: 'Technical', billing: 'Billing', account: 'Account' };
@@ -117,41 +117,41 @@ const TicketManagement = () => {
       <div>
         <button
           onClick={() => { setActiveTicket(null); fetchTickets(); }}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+          className="flex items-center gap-2 text-sm text-[#78716C] hover:text-[#1C1917] mb-6 transition-colors"
         >
           <ChevronLeft size={14} /> Back to tickets
         </button>
 
-        <div className="bg-white border border-gray-200 p-6 mb-6">
+        <div className="bg-white border border-[#E8E3DB] p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold text-brand-400 tracking-widest uppercase mb-1">{activeTicket.ticket_number}</p>
-              <h2 className="text-xl font-bold text-gray-900">{activeTicket.subject}</h2>
+              <p className="text-xs font-semibold text-[#4ECDC4] tracking-widest uppercase mb-1">{activeTicket.ticket_number}</p>
+              <h2 className="text-xl font-bold text-[#1C1917]">{activeTicket.subject}</h2>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
-                <span className="text-xs text-gray-400">From: <strong className="text-gray-500">{activeTicket.username}</strong> ({activeTicket.user_email})</span>
-                <span className="text-xs text-gray-400">{CATEGORY_LABELS[activeTicket.category] || activeTicket.category}</span>
-                <span className="text-xs text-gray-400">{fmtDate(activeTicket.created_at)}</span>
+                <span className="text-xs text-[#A8A29E]">From: <strong className="text-[#78716C]">{activeTicket.username}</strong> ({activeTicket.user_email})</span>
+                <span className="text-xs text-[#A8A29E]">{CATEGORY_LABELS[activeTicket.category] || activeTicket.category}</span>
+                <span className="text-xs text-[#A8A29E]">{fmtDate(activeTicket.created_at)}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Status</label>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] uppercase mb-1">Status</label>
                 <select
                   value={activeTicket.status}
                   onChange={e => updateTicket('status', e.target.value)}
                   disabled={updatingStatus}
-                  className="text-xs border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                  className="text-xs border border-[#E8E3DB] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                 >
                   {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 uppercase mb-1">Priority</label>
+                <label className="block text-[10px] font-semibold text-[#A8A29E] uppercase mb-1">Priority</label>
                 <select
                   value={activeTicket.priority || 'normal'}
                   onChange={e => updateTicket('priority', e.target.value)}
                   disabled={updatingStatus}
-                  className="text-xs border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+                  className="text-xs border border-[#E8E3DB] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
                 >
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
@@ -162,12 +162,12 @@ const TicketManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 p-6 mb-4">
+        <div className="bg-white border border-[#E8E3DB] p-6 mb-4">
           <div className="space-y-4 mb-6" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {(activeTicket.messages || []).map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-gray-50 border border-gray-200 text-gray-900' : 'bg-gray-900 text-white'}`}>
-                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-gray-400' : 'text-brand-400'}`}>
+                <div className={`max-w-[75%] px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917]' : 'bg-[#1C1917] text-white'}`}>
+                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A8A29E]' : 'text-[#4ECDC4]'}`}>
                     {msg.sender === 'support' ? `⚡ ${msg.author_name} (Support)` : msg.author_name}
                     <span className="ml-2 font-normal opacity-60">{fmtDate(msg.timestamp)}</span>
                   </p>
@@ -177,23 +177,23 @@ const TicketManagement = () => {
             ))}
           </div>
 
-          {loadingTicket && <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-400" size={18} /></div>}
+          {loadingTicket && <div className="flex justify-center py-4"><Loader2 className="animate-spin text-[#A8A29E]" size={18} /></div>}
 
           {activeTicket.status !== 'closed' && (
-            <form onSubmit={sendReply} className="border-t border-gray-200 pt-4">
-              <label className="block text-xs font-semibold text-gray-900 mb-2">Reply as support</label>
+            <form onSubmit={sendReply} className="border-t border-[#E8E3DB] pt-4">
+              <label className="block text-xs font-semibold text-[#1C1917] mb-2">Reply as support</label>
               <textarea
                 rows={3}
                 value={reply}
                 onChange={e => setReply(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 focus:outline-none focus:border-brand-400 bg-white text-gray-900 resize-none mb-2"
+                className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] resize-none mb-2"
                 placeholder="Type your reply…"
               />
-              {replyError && <p className="text-xs text-error-500 mb-2">{replyError}</p>}
+              {replyError && <p className="text-xs text-red-500 mb-2">{replyError}</p>}
               <button
                 type="submit"
                 disabled={sendingReply || !reply.trim()}
-                className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 Send reply
@@ -201,7 +201,7 @@ const TicketManagement = () => {
             </form>
           )}
           {activeTicket.status === 'closed' && (
-            <p className="text-center text-xs text-gray-400 pt-4 border-t border-gray-200">This ticket is closed.</p>
+            <p className="text-center text-xs text-[#A8A29E] pt-4 border-t border-[#E8E3DB]">This ticket is closed.</p>
           )}
         </div>
       </div>
@@ -212,21 +212,21 @@ const TicketManagement = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-black text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SUPPORT TICKETS</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
+          <h2 className="text-2xl font-black text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>SUPPORT TICKETS</h2>
+          <p className="text-xs text-[#A8A29E] mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
         </div>
-        <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-900 transition-colors">
+        <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-[#78716C] hover:text-[#1C1917] transition-colors">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-gray-500"><Filter size={12} /> Filters:</div>
+        <div className="flex items-center gap-1.5 text-xs text-[#78716C]"><Filter size={12} /> Filters:</div>
         <select
           value={filterStatus}
           onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-          className="text-xs border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+          className="text-xs border border-[#E8E3DB] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
         >
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -234,7 +234,7 @@ const TicketManagement = () => {
         <select
           value={filterPriority}
           onChange={e => { setFilterPriority(e.target.value); setPage(1); }}
-          className="text-xs border border-gray-200 px-2 py-1.5 focus:outline-none focus:border-brand-400 bg-white text-gray-900"
+          className="text-xs border border-[#E8E3DB] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
         >
           <option value="">All priorities</option>
           <option value="normal">Normal</option>
@@ -244,24 +244,24 @@ const TicketManagement = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-gray-400" size={24} /></div>
+        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#A8A29E]" size={24} /></div>
       ) : tickets.length === 0 ? (
-        <div className="bg-white border border-gray-200 p-16 text-center">
+        <div className="bg-white border border-[#E8E3DB] p-16 text-center">
           <Ticket size={32} className="text-[#E8E3DB] mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No tickets found.</p>
+          <p className="text-sm text-[#A8A29E]">No tickets found.</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 divide-y divide-[#E8E3DB]">
+        <div className="bg-white border border-[#E8E3DB] divide-y divide-[#E8E3DB]">
           {tickets.map(t => (
             <button
               key={t.id}
               onClick={() => openTicket(t)}
-              className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+              className="w-full px-6 py-4 text-left hover:bg-[#F9F7F4] transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-xs font-mono text-gray-400">{t.ticket_number}</span>
+                    <span className="text-xs font-mono text-[#A8A29E]">{t.ticket_number}</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 border ${STATUS_COLORS[t.status] || STATUS_COLORS.open}`}>
                       {STATUS_LABELS[t.status] || t.status}
                     </span>
@@ -271,12 +271,12 @@ const TicketManagement = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 truncate">{t.subject}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{t.username} · {t.user_email} · {CATEGORY_LABELS[t.category] || t.category}</p>
+                  <p className="text-sm font-semibold text-[#1C1917] truncate">{t.subject}</p>
+                  <p className="text-xs text-[#A8A29E] mt-0.5">{t.username} · {t.user_email} · {CATEGORY_LABELS[t.category] || t.category}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-[10px] text-gray-400">{fmtDate(t.updated_at)}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{(t.messages || []).length} message{(t.messages || []).length !== 1 ? 's' : ''}</p>
+                  <p className="text-[10px] text-[#A8A29E]">{fmtDate(t.updated_at)}</p>
+                  <p className="text-[10px] text-[#A8A29E] mt-0.5">{(t.messages || []).length} message{(t.messages || []).length !== 1 ? 's' : ''}</p>
                 </div>
               </div>
             </button>
@@ -286,9 +286,9 @@ const TicketManagement = () => {
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3 mt-6">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-xs text-gray-500 hover:text-gray-900 disabled:opacity-40 transition-colors">← Prev</button>
-          <span className="text-xs text-gray-400">Page {page} / {pages}</span>
-          <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages} className="text-xs text-gray-500 hover:text-gray-900 disabled:opacity-40 transition-colors">Next →</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-xs text-[#78716C] hover:text-[#1C1917] disabled:opacity-40 transition-colors">← Prev</button>
+          <span className="text-xs text-[#A8A29E]">Page {page} / {pages}</span>
+          <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages} className="text-xs text-[#78716C] hover:text-[#1C1917] disabled:opacity-40 transition-colors">Next →</button>
         </div>
       )}
     </div>

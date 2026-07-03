@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
@@ -119,11 +119,11 @@ export const PlayersManagement = () => {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
-              <Users size={20} className="text-brand-400" />
+            <div className="w-10 h-10 rounded-xl bg-[#4ECDC4]/10 flex items-center justify-center">
+              <Users size={20} className="text-[#4ECDC4]" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Players</h1>
+              <h1 className="text-lg font-bold text-[#2A3547]">Players</h1>
               <p className="text-xs text-gray-400">{players.length} joueur{players.length !== 1 ? 's' : ''} — {selectedProject.name}</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export const PlayersManagement = () => {
             placeholder="Rechercher un joueur..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 bg-white"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
           />
         </div>
 
@@ -178,11 +178,11 @@ export const PlayersManagement = () => {
                   onClick={() => openPlayer(player)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center text-xs font-bold text-brand-400 shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/10 flex items-center justify-center text-xs font-bold text-[#4ECDC4] shrink-0">
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{player.username}</p>
+                      <p className="text-sm font-semibold text-[#2A3547] truncate">{player.username}</p>
                       <p className="text-xs text-gray-400">{player.categories?.length || 0} catégorie{player.categories?.length !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export const PlayersManagement = () => {
                       <button
                         onClick={e => { e.stopPropagation(); deletePlayer(player); }}
                         title="Supprimer"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-error-500 hover:bg-error-50 transition-colors"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -226,11 +226,11 @@ export const PlayersManagement = () => {
                         {CATEGORIES.map(cat => (
                           <div key={cat} className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-brand-400 uppercase tracking-wide">{cat}</span>
+                              <span className="text-xs font-bold text-[#4ECDC4] uppercase tracking-wide">{cat}</span>
                               <button
                                 onClick={() => saveCat(player.id, cat)}
                                 disabled={saving[cat]}
-                                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-brand-50 text-brand-400 hover:bg-brand-100 transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-[#4ECDC4]/10 text-[#4ECDC4] hover:bg-[#4ECDC4]/20 transition-colors disabled:opacity-50"
                               >
                                 {saving[cat] ? <RefreshCw size={10} className="animate-spin" /> : <Save size={10} />}
                                 Enregistrer
@@ -241,7 +241,7 @@ export const PlayersManagement = () => {
                               onChange={e => setSaves(s => ({ ...s, [cat]: e.target.value }))}
                               rows={6}
                               spellCheck={false}
-                              className="w-full text-xs font-mono bg-gray-50 border border-gray-100 rounded-lg p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 text-gray-700"
+                              className="w-full text-xs font-mono bg-gray-50 border border-gray-100 rounded-lg p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] text-gray-700"
                             />
                           </div>
                         ))}

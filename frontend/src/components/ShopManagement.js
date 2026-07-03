@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -51,17 +51,17 @@ const IconPicker = ({ value, onChange }) => {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 text-sm text-gray-900 hover:border-gray-300 transition-all w-full">
-        <Comp size={14} className="text-brand-400 shrink-0" />
-        <span className="flex-1 text-left capitalize text-gray-500">{value || 'Icon…'}</span>
-        <ChevronDown size={12} className="text-gray-400 shrink-0" />
+        className="flex items-center gap-2 px-3 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-sm text-[#1C1917] hover:border-[#C9C3BB] transition-all w-full">
+        <Comp size={14} className="text-[#4ECDC4] shrink-0" />
+        <span className="flex-1 text-left capitalize text-[#78716C]">{value || 'Icon…'}</span>
+        <ChevronDown size={12} className="text-[#A8A29E] shrink-0" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-gray-200 shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
+        <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-[#E8E3DB] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
-              className={`p-2 flex items-center justify-center hover:bg-gray-50 transition-all ${value === name ? 'bg-brand-50 text-brand-400' : 'text-gray-500'}`}>
+              className={`p-2 flex items-center justify-center hover:bg-[#F9F7F4] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#78716C]'}`}>
               <IC size={15} />
             </button>
           ))}
@@ -79,8 +79,8 @@ const defaultForm = {
 };
 
 // ── Shared input class ────────────────────────────────────────────────────────
-const IN = 'w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm px-3 py-2.5 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20 transition-all placeholder:text-gray-400';
-const LBL = 'block text-[10px] font-semibold text-gray-400 uppercase tracking-[0.14em] mb-1.5';
+const IN = 'w-full bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A8A29E]';
+const LBL = 'block text-[10px] font-semibold text-[#A8A29E] uppercase tracking-[0.14em] mb-1.5';
 
 // ── Categories state (per game) ───────────────────────────────────────────────
 const defaultCategories = [];
@@ -282,13 +282,13 @@ export const ShopManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Shop Management</h2>
-          <p className="text-xs text-gray-400">Manage in-app purchase products for each game</p>
+          <h2 className="text-sm font-bold text-[#1C1917]">Shop Management</h2>
+          <p className="text-xs text-[#A8A29E]">Manage in-app purchase products for each game</p>
         </div>
       </div>
 
       {/* Game selector */}
-      <div className="bg-white border border-gray-200 p-4">
+      <div className="bg-white border border-[#E8E3DB] p-4">
         <p className={LBL}>Select game</p>
         <div className="flex flex-wrap gap-2 mt-1">
           {games.map(g => (
@@ -297,27 +297,27 @@ export const ShopManagement = () => {
               onClick={() => { setSelectedGame(g); setShowForm(false); }}
               className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold border transition-colors ${
                 selectedGame?.slug === g.slug
-                  ? 'bg-gray-900 text-white border-[#1C1917]'
-                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-900'
+                  ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                  : 'bg-[#F9F7F4] text-[#78716C] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#1C1917]'
               }`}
             >
               <Gamepad2 size={12} />{g.name}
             </button>
           ))}
-          {games.length === 0 && <span className="text-sm text-gray-400">No games found — create a game first.</span>}
+          {games.length === 0 && <span className="text-sm text-[#A8A29E]">No games found — create a game first.</span>}
         </div>
       </div>
 
       {selectedGame && (
         <>
           {/* Sub-tabs */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-[#E8E3DB]">
             {[{ id: 'products', label: 'Products', icon: Package }, { id: 'categories', label: 'Categories', icon: Tag }].map(t => (
               <button
                 key={t.id}
                 onClick={() => setSubTab(t.id)}
                 className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all ${
-                  subTab === t.id ? 'border-[#1C1917] text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-900'
+                  subTab === t.id ? 'border-[#1C1917] text-[#1C1917]' : 'border-transparent text-[#78716C] hover:text-[#1C1917]'
                 }`}
               >
                 <t.icon size={13} />{t.label}
@@ -327,12 +327,12 @@ export const ShopManagement = () => {
 
           {/* ── PRODUCTS TAB ───────────────────────────────────────────────── */}
           {subTab === 'products' && (
-            <div className="bg-white border border-gray-200">
+            <div className="bg-white border border-[#E8E3DB]">
               {/* Toolbar */}
-              <div className="px-5 py-3.5 flex items-center justify-between border-b border-gray-200">
+              <div className="px-5 py-3.5 flex items-center justify-between border-b border-[#E8E3DB]">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag size={14} className="text-brand-400" />
-                  <span className="text-sm font-semibold text-gray-900">
+                  <ShoppingBag size={14} className="text-[#4ECDC4]" />
+                  <span className="text-sm font-semibold text-[#1C1917]">
                     {selectedGame.name} — {products.length} product{products.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -343,7 +343,7 @@ export const ShopManagement = () => {
 
               {/* Product form */}
               {showForm && (
-                <div className="p-5 bg-gray-50 border-b border-gray-200">
+                <div className="p-5 bg-[#F9F7F4] border-b border-[#E8E3DB]">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -364,7 +364,7 @@ export const ShopManagement = () => {
                         <label className={LBL}>Product Image</label>
                         <div className="flex gap-2">
                           <input type="text" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} className={IN} placeholder="https://... or upload" />
-                          <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold transition-colors">
+                          <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-sm font-semibold transition-colors">
                             {uploading ? '…' : 'Upload'}
                             <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setForm(f => ({ ...f, image_url: url })))} />
                           </label>
@@ -373,7 +373,7 @@ export const ShopManagement = () => {
                           <img
                             src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url}
                             alt="preview"
-                            className="mt-2 h-16 w-16 object-cover border border-gray-200"
+                            className="mt-2 h-16 w-16 object-cover border border-[#E8E3DB]"
                           />
                         )}
                       </div>
@@ -389,8 +389,8 @@ export const ShopManagement = () => {
                               onClick={() => setForm(f => ({ ...f, badge: b.value }))}
                               className={`px-2.5 py-1 text-[10px] font-bold border transition-all ${
                                 form.badge === b.value
-                                  ? 'border-[#1C1917] bg-gray-900 text-white'
-                                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                                  ? 'border-[#1C1917] bg-[#1C1917] text-white'
+                                  : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'
                               }`}
                               style={form.badge === b.value && b.color ? { backgroundColor: b.color, borderColor: b.color } : {}}
                             >
@@ -405,7 +405,7 @@ export const ShopManagement = () => {
                         <div>
                           <label className={LBL}>Display Discount %</label>
                           <input type="number" min="1" max="99" value={form.discount_pct} onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))} className={IN} placeholder="20" />
-                          <p className="text-[10px] text-gray-400 mt-1">Shown on badge label only — does not affect price.</p>
+                          <p className="text-[10px] text-[#A8A29E] mt-1">Shown on badge label only — does not affect price.</p>
                         </div>
                       )}
 
@@ -458,11 +458,11 @@ export const ShopManagement = () => {
                             <button
                               type="button"
                               onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
-                              className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-brand-400' : 'bg-[#E8E3DB]'}`}
+                              className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-[#4ECDC4]' : 'bg-[#E8E3DB]'}`}
                             >
                               <span className={`absolute top-0.5 w-4 h-4 bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
                             </button>
-                            <span className="text-xs font-semibold text-gray-500">{label}</span>
+                            <span className="text-xs font-semibold text-[#78716C]">{label}</span>
                           </div>
                         ))}
                       </div>
@@ -491,19 +491,19 @@ export const ShopManagement = () => {
                         <div
                           key={p.id}
                           className={`flex items-center gap-3 p-3 border transition-all ${
-                            p.active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-60'
+                            p.active ? 'bg-white border-[#E8E3DB]' : 'bg-[#F9F7F4] border-[#E8E3DB] opacity-60'
                           }`}
                         >
                           {p.image_url && (
                             <img
                               src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url}
                               alt={p.name}
-                              className="w-11 h-11 object-cover shrink-0 border border-gray-200"
+                              className="w-11 h-11 object-cover shrink-0 border border-[#E8E3DB]"
                             />
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm text-gray-900">{p.name}</span>
+                              <span className="font-semibold text-sm text-[#1C1917]">{p.name}</span>
                               {p.featured && <Star size={11} className="text-[#F59E0B] fill-[#F59E0B]" />}
                               {badge?.value && (
                                 <span
@@ -514,27 +514,27 @@ export const ShopManagement = () => {
                                 </span>
                               )}
                               {cat && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-gray-50 border border-gray-200 text-gray-500">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#78716C]">
                                   <CategoryIcon name={cat.icon} size={9} />{cat.label}
                                 </span>
                               )}
-                              {!p.active && <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5">Hidden</span>}
+                              {!p.active && <span className="text-[10px] font-bold text-[#A8A29E] bg-[#F9F7F4] border border-[#E8E3DB] px-1.5 py-0.5">Hidden</span>}
                             </div>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-sm font-black text-gray-900">${(p.price / 100).toFixed(2)}</span>
-                              <span className="text-xs text-gray-400">→ {p.amount}× {p.variable} ({p.project_slug})</span>
+                              <span className="text-sm font-black text-[#1C1917]">${(p.price / 100).toFixed(2)}</span>
+                              <span className="text-xs text-[#A8A29E]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => toggleActive(p)}
-                              className="p-2 border border-gray-200 hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"
+                              className="p-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#A8A29E] hover:text-[#1C1917] transition-all"
                               title={p.active ? 'Hide' : 'Show'}
                             >
                               {p.active ? <Eye size={13} /> : <EyeOff size={13} />}
                             </button>
-                            <button onClick={() => openEdit(p)} className="p-2 border border-gray-200 hover:border-gray-300 text-gray-400 hover:text-gray-900 transition-all"><Edit2 size={13} /></button>
-                            <button onClick={() => handleDelete(p)} className="p-2 border border-gray-200 hover:border-error-200 text-gray-400 hover:text-error-500 transition-all"><Trash2 size={13} /></button>
+                            <button onClick={() => openEdit(p)} className="p-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#A8A29E] hover:text-[#1C1917] transition-all"><Edit2 size={13} /></button>
+                            <button onClick={() => handleDelete(p)} className="p-2 border border-[#E8E3DB] hover:border-red-200 text-[#A8A29E] hover:text-red-500 transition-all"><Trash2 size={13} /></button>
                           </div>
                         </div>
                       );
@@ -547,42 +547,42 @@ export const ShopManagement = () => {
 
           {/* ── CATEGORIES TAB ────────────────────────────────────────────── */}
           {subTab === 'categories' && (
-            <div className="bg-white border border-gray-200 p-5 space-y-5">
-              <p className="text-xs text-gray-500">
+            <div className="bg-white border border-[#E8E3DB] p-5 space-y-5">
+              <p className="text-xs text-[#78716C]">
                 Categories group products in the shop. Each category can have optional sub-categories for finer filtering.
               </p>
 
               {/* Existing categories with sub-category management */}
               {categories.length === 0 ? (
-                <p className="text-sm text-gray-400">No categories yet. Add one below.</p>
+                <p className="text-sm text-[#A8A29E]">No categories yet. Add one below.</p>
               ) : (
                 <div className="space-y-2">
                   {categories.map(c => (
-                    <div key={c.id} className="border border-gray-200">
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50">
-                        <CategoryIcon name={c.icon} size={13} className="text-brand-400" />
-                        <span className="font-semibold text-gray-900 text-sm flex-1">{c.label}</span>
-                        <span className="text-gray-400 text-xs">{(c.subcategories || []).length} sub</span>
+                    <div key={c.id} className="border border-[#E8E3DB]">
+                      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F9F7F4]">
+                        <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
+                        <span className="font-semibold text-[#1C1917] text-sm flex-1">{c.label}</span>
+                        <span className="text-[#A8A29E] text-xs">{(c.subcategories || []).length} sub</span>
                         <button
                           onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
-                          className="text-xs text-gray-500 hover:text-gray-900 px-2 py-0.5 border border-gray-200 bg-white transition-colors"
+                          className="text-xs text-[#78716C] hover:text-[#1C1917] px-2 py-0.5 border border-[#E8E3DB] bg-white transition-colors"
                         >
                           {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
                         </button>
-                        <button onClick={() => removeCategory(c.id)} className="text-gray-400 hover:text-error-500 transition-colors">
+                        <button onClick={() => removeCategory(c.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors">
                           <X size={13} />
                         </button>
                       </div>
                       {expandedCat === c.id && (
-                        <div className="px-4 py-3 border-t border-gray-200 space-y-2">
+                        <div className="px-4 py-3 border-t border-[#E8E3DB] space-y-2">
                           {(c.subcategories || []).length === 0 ? (
-                            <p className="text-xs text-gray-400">No sub-categories yet.</p>
+                            <p className="text-xs text-[#A8A29E]">No sub-categories yet.</p>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
                               {(c.subcategories || []).map(s => (
-                                <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-xs">
-                                  <span className="text-gray-900 font-medium">{s.label}</span>
-                                  <button onClick={() => removeSubcategory(c.id, s.id)} className="text-gray-400 hover:text-error-500 transition-colors ml-0.5">
+                                <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-[#E8E3DB] text-xs">
+                                  <span className="text-[#1C1917] font-medium">{s.label}</span>
+                                  <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors ml-0.5">
                                     <X size={10} />
                                   </button>
                                 </div>
@@ -631,16 +631,16 @@ export const ShopManagement = () => {
           )}
 
           {/* Public shop link */}
-          <div className="bg-white border border-gray-200 px-5 py-4 flex items-center justify-between gap-4">
+          <div className="bg-white border border-[#E8E3DB] px-5 py-4 flex items-center justify-between gap-4">
             <div>
               <p className={LBL}>Public Shop URL</p>
-              <code className="text-sm text-brand-400 font-mono">/shop?game={selectedGame.slug}</code>
+              <code className="text-sm text-[#4ECDC4] font-mono">/shop?game={selectedGame.slug}</code>
             </div>
             <a
               href={`/shop?game=${selectedGame.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="px-4 py-2 border border-gray-200 hover:border-gray-300 text-gray-500 hover:text-gray-900 text-sm font-semibold transition-all"
+              className="px-4 py-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#78716C] hover:text-[#1C1917] text-sm font-semibold transition-all"
             >
               Open Shop ↗
             </a>

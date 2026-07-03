@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
@@ -106,12 +106,12 @@ export const SendItems = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Package size={14} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Predefined Items</p>
-              <p className="text-xs text-gray-500">Click to pre-fill the form</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Predefined Items</p>
+              <p className="text-xs text-[#71717a]">Click to pre-fill the form</p>
             </div>
           </div>
           <Button variant="secondary" size="sm" icon={Plus} onClick={openAddTemplate}>
@@ -120,14 +120,14 @@ export const SendItems = () => {
         </CardHeader>
 
         {showAddTpl && (
-          <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="px-5 py-4 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2 flex items-start gap-3">
                 <div className="shrink-0">
-                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center bg-gray-100 relative group cursor-pointer">
+                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-zinc-300 dark:border-[#2a2a3c] overflow-hidden flex items-center justify-center bg-zinc-100 dark:bg-[#0d0d14] relative group cursor-pointer">
                     {tplForm.image_url
                       ? <img src={tplForm.image_url.startsWith('/') ? `${API_URL}${tplForm.image_url}` : tplForm.image_url} alt="" className="w-full h-full object-cover" />
-                      : <Upload size={16} className="text-gray-400" />}
+                      : <Upload size={16} className="text-zinc-400" />}
                     <label className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 flex items-center justify-center bg-black/40 transition-opacity rounded-xl">
                       <Upload size={14} className="text-white" />
                       <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setTplForm(f => ({ ...f, image_url: url })))} />
@@ -158,25 +158,25 @@ export const SendItems = () => {
                 const isSelected = selectedTpl?.id === tpl.id;
                 return (
                   <div key={tpl.id}
-                    className={`relative group rounded-xl border-2 cursor-pointer overflow-hidden transition-all ${isSelected ? 'border-brand-400 shadow-[0_0_0_3px_rgba(78,205,196,0.1)]' : 'border-gray-200 hover:border-brand-400/50'}`}
+                    className={`relative group rounded-xl border-2 cursor-pointer overflow-hidden transition-all ${isSelected ? 'border-[#4ECDC4] shadow-[0_0_0_3px_rgba(78,205,196,0.1)]' : 'border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50'}`}
                     onClick={() => isSelected ? clearTemplate() : selectTemplate(tpl)}>
-                    <div className="h-20 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <div className="h-20 bg-zinc-100 dark:bg-[#111118] flex items-center justify-center overflow-hidden">
                       {tpl.image_url
                         ? <img src={tpl.image_url.startsWith('/') ? `${API_URL}${tpl.image_url}` : tpl.image_url} alt={tpl.name} className="w-full h-full object-cover" />
-                        : <Package size={22} className="text-gray-300" />}
+                        : <Package size={22} className="text-zinc-300 dark:text-[#2a2a3c]" />}
                     </div>
                     <div className="px-2.5 py-2">
-                      <p className="text-xs font-semibold text-gray-900 truncate">{tpl.name}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{tpl.amount}× {tpl.variable}</p>
+                      <p className="text-xs font-semibold text-zinc-900 dark:text-[#e4e4e7] truncate">{tpl.name}</p>
+                      <p className="text-[11px] text-[#71717a] truncate">{tpl.amount}× {tpl.variable}</p>
                     </div>
                     {isSelected && (
-                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-400 flex items-center justify-center">
+                      <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#4ECDC4] flex items-center justify-center">
                         <span className="text-[10px] text-[#0a0a0f] font-black">✓</span>
                       </div>
                     )}
                     <div className="absolute top-1.5 left-1.5 hidden group-hover:flex gap-1">
-                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90/90 flex items-center justify-center text-gray-500 hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
-                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90/90 flex items-center justify-center text-gray-500 hover:text-error-400 transition-colors"><Trash2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-zinc-500 hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-zinc-500 hover:text-red-400 transition-colors"><Trash2 size={10} /></button>
                     </div>
                   </div>
                 );
@@ -190,15 +190,15 @@ export const SendItems = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
               <Send size={14} style={{ color: '#F2994A' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Send to Player</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Send to Player</p>
               {selectedTpl && (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[11px] text-brand-400 font-medium">Template: {selectedTpl.name}</span>
-                  <button onClick={clearTemplate} className="text-gray-500 hover:text-gray-700 transition-colors"><X size={10} /></button>
+                  <span className="text-[11px] text-[#4ECDC4] font-medium">Template: {selectedTpl.name}</span>
+                  <button onClick={clearTemplate} className="text-[#71717a] hover:text-zinc-700 dark:hover:text-white transition-colors"><X size={10} /></button>
                 </div>
               )}
             </div>

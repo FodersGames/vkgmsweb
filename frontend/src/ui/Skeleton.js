@@ -1,7 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 
 export const Skeleton = ({ className = '' }) => (
-  <div className={`animate-pulse rounded-md bg-gray-200 ${className}`} />
+  <div className={`animate-pulse rounded-md bg-zinc-200 dark:bg-[#2a2a3c] ${className}`} />
 );
 
 export const SkeletonText = ({ lines = 1, className = '' }) => (
@@ -24,7 +24,7 @@ export const SkeletonRow = ({ cols = 4, className = '' }) => (
 );
 
 export const SkeletonCard = ({ className = '' }) => (
-  <div className={`bg-white border border-gray-200 rounded-xl p-5 ${className}`}>
+  <div className={`bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl p-5 ${className}`}>
     <div className="flex items-center gap-3 mb-4">
       <Skeleton className="w-9 h-9 rounded-lg" />
       <div className="flex-1 space-y-1.5">
