@@ -146,7 +146,7 @@ const DashboardContent = () => {
         onClick={() => { if (!disabled) { setActiveTab(item.id); setMobileOpen(false); } }}
         disabled={disabled}
         data-testid={`sidebar-nav-${item.id}`}
-        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
           isActive
             ? 'bg-brand-50 text-gray-900 font-semibold'
             : disabled
@@ -154,19 +154,13 @@ const DashboardContent = () => {
             : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
         }`}
       >
-        {isActive && (
-          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-brand-400" />
-        )}
         <Icon
           size={16}
           className={`shrink-0 transition-colors ${
             isActive ? 'text-brand-400' : disabled ? 'text-gray-200' : 'text-gray-400'
           }`}
         />
-        <span className="text-[13px] leading-none flex-1">{item.label}</span>
-        {isActive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" />
-        )}
+        <span className="text-[13px] leading-none">{item.label}</span>
       </button>
     );
   };
