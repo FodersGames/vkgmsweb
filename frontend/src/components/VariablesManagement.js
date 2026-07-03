@@ -111,7 +111,7 @@ export const VariablesManagement = () => {
                       )}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-brand-400 flex items-center gap-1.5 mt-1 hover:text-brand-500 transition-colors">
+                  <button type="button" onClick={() => setForm(p => ({ ...p, values: [...p.values, ''] }))} className="text-sm text-brand-400 flex items-center gap-1.5 mt-1 hover:text-[#45b8b0] transition-colors">
                     <Plus size={13} />Add value
                   </button>
                 </div>
@@ -137,7 +137,7 @@ export const VariablesManagement = () => {
                   <div key={v.variable_name} className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:border-brand-400/20 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <code className="text-sm font-semibold text-brand-400 font-mono">{v.variable_name}</code>
+                        <code className="text-sm font-semibold text-[#2F80ED] font-mono">{v.variable_name}</code>
                         <p className="text-xs text-gray-500 mt-0.5">{v.values.length} value(s)</p>
                       </div>
                       {!isEditing && (
@@ -165,7 +165,7 @@ export const VariablesManagement = () => {
                             )}
                           </div>
                         ))}
-                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-brand-400 flex items-center gap-1.5 hover:text-brand-500 transition-colors">
+                        <button onClick={() => setEditingVar(p => ({...p, values: [...p.values, '']}))} className="text-sm text-brand-400 flex items-center gap-1.5 hover:text-[#45b8b0] transition-colors">
                           <Plus size={13} />Add
                         </button>
                         <div className="flex gap-2 mt-3">

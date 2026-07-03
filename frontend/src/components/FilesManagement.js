@@ -441,8 +441,8 @@ export const FilesManagement = () => {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">
-            Game Files — {selectedProject?.name}
+          <h2 className="text-lg font-black text-gray-900" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.04em' }}>
+            GAME FILES — {selectedProject?.name?.toUpperCase()}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
             {files.length} file{files.length !== 1 ? 's' : ''}
@@ -477,7 +477,7 @@ export const FilesManagement = () => {
             onClick={() => setActiveVersionTag(tag)}
             className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
               activeVersionTag === tag
-                ? 'bg-gray-900 text-white border-gray-900'
+                ? 'bg-gray-900 text-white border-[#1C1917]'
                 : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-900'
             }`}
           >
@@ -599,7 +599,7 @@ export const FilesManagement = () => {
 
           {/* Liste des fichiers avec nom éditable */}
           {fileEntries.length > 0 && (
-            <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+            <div className="border border-gray-200 divide-y divide-[#E8E3DB]">
               {fileEntries.map((entry) => {
                 const st = uploadStates[entry.id] || 'pending';
                 const isErr  = st.startsWith('error:');
@@ -745,7 +745,7 @@ export const FilesManagement = () => {
                     <button
                       type="button"
                       onClick={() => setShared(s => ({ ...s, group_id: crypto.randomUUID() }))}
-                      className="text-xs font-semibold px-3 py-2 rounded-lg bg-brand-400 text-white hover:bg-brand-500 transition-colors whitespace-nowrap"
+                      className="text-xs font-semibold px-3 py-2 bg-brand-400 text-white hover:bg-[#3db8b0] transition-colors whitespace-nowrap"
                     >
                       {shared.group_id ? 'Nouveau ID' : 'Générer ID'}
                     </button>
@@ -893,7 +893,7 @@ export const FilesManagement = () => {
                   type="checkbox"
                   checked={editForm.is_latest || false}
                   onChange={e => setEditForm(f => ({ ...f, is_latest: e.target.checked }))}
-                  className="accent-brand-400"
+                  className="accent-[#4ECDC4]"
                 />
                 <span className="text-xs text-gray-900 font-semibold">Mark as latest version</span>
               </label>

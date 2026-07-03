@@ -126,7 +126,7 @@ export const BlogManagement = () => {
                   </div>
                 </div>
                 <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
-                  <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 rounded accent-brand-400" />
+                  <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
                   Publish immediately
                 </label>
                 <Button type="submit" loading={loading} icon={editing ? Save : Plus} data-testid="submit-blog-button">
@@ -146,7 +146,7 @@ export const BlogManagement = () => {
           ) : (
             <div className="space-y-2" data-testid="blog-list">
               {posts.map(p => (
-                <div key={p.slug} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
+                <div key={p.slug} className="flex items-center gap-4 p-4 bg-gray-50 border border-gray-200 rounded-xl hover:border-[#F2994A]/20 transition-colors">
                   {p.image_url
                     ? <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt="" className="w-16 h-12 rounded-lg object-cover border border-gray-200 shrink-0" />
                     : <div className="w-16 h-12 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0"><FileText size={16} className="text-gray-500" /></div>}

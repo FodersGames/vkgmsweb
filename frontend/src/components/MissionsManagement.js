@@ -363,8 +363,8 @@ export const MissionsManagement = () => {
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize flex items-center gap-1.5 ${
                 filter === f
-                  ? 'bg-brand-400 text-white'
-                  : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-400/40'
+                  ? 'bg-[#6C5CE7] text-white'
+                  : 'bg-white border border-gray-200 text-gray-500 hover:border-[#6C5CE7]/40'
               }`}>
               {f === 'all' ? 'All' : STATUS[f]?.label}
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f ? 'bg-white/20 text-white' : 'bg-gray-100 bg-gray-200 text-gray-500'}`}>
@@ -374,7 +374,7 @@ export const MissionsManagement = () => {
           ))}
         </div>
         {canCreate && (
-          <Button variant="accent" icon={Plus} onClick={openCreate}>
+          <Button variant="purple" icon={Plus} onClick={openCreate}>
             New Mission
           </Button>
         )}
@@ -382,17 +382,17 @@ export const MissionsManagement = () => {
 
       {/* ── CREATE / EDIT FORM ── */}
       {showForm && (
-        <Card className="overflow-hidden border-brand-400/20">
+        <Card className="overflow-hidden border-[#6C5CE7]/30">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-brand-50 border border-brand-400/20">
-                <ClipboardList size={13} className="text-brand-400" />
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+                <ClipboardList size={13} style={{ color: '#6C5CE7' }} />
               </div>
               <span className="text-sm font-semibold text-gray-900">
                 {editingMission ? 'Edit Mission' : 'New Mission Request'}
               </span>
             </div>
-            <Button variant="secondary" size="sm" icon={X} onClick={() => setShowForm(false)} />
+            <Button variant="ghost" size="sm" icon={X} onClick={() => setShowForm(false)} />
           </CardHeader>
           <CardBody className="space-y-4">
             <div className="flex gap-3">
@@ -432,7 +432,7 @@ export const MissionsManagement = () => {
                     </button>
                   </div>
                 ))}
-                <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-gray-400 ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-gray-300 border-gray-200 hover:border-brand-400/50 hover:text-brand-400'}`}>
+                <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-gray-400 ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-gray-300 border-gray-200 hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
                   <Upload size={16} />
                   <span className="text-[10px] mt-1">{uploadingRef ? '…' : 'Add'}</span>
                   <input type="file" accept="image/*,.svg" className="hidden" onChange={uploadRefImage} disabled={uploadingRef} />
@@ -440,7 +440,7 @@ export const MissionsManagement = () => {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <Button variant="accent" icon={Save} onClick={submitForm}>
+              <Button variant="purple" icon={Save} onClick={submitForm}>
                 {editingMission ? 'Save Changes' : 'Post Mission'}
               </Button>
               <Button variant="secondary" icon={X} onClick={() => setShowForm(false)}>Cancel</Button>
@@ -458,7 +458,7 @@ export const MissionsManagement = () => {
             icon={ClipboardList}
             title={filter === 'all' ? 'No missions yet' : `No ${STATUS[filter]?.label.toLowerCase()} missions`}
             description={filter === 'all' ? 'Create a mission to request assets or tasks from your team.' : undefined}
-            action={canCreate && filter === 'all' ? <Button variant="accent" icon={Plus} onClick={openCreate}>Post first mission</Button> : undefined}
+            action={canCreate && filter === 'all' ? <Button variant="purple" icon={Plus} onClick={openCreate}>Post first mission</Button> : undefined}
           />
         </Card>
       ) : (
@@ -549,7 +549,7 @@ export const MissionsManagement = () => {
                       )}
                       {canEditThis && m.status !== 'completed' && m.status !== 'cancelled' && (
                         <button onClick={() => openEdit(m)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-400 hover:bg-brand-50 transition-all">
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
                           <Edit2 size={13} />
                         </button>
                       )}

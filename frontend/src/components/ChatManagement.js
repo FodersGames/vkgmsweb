@@ -142,7 +142,7 @@ export const ChatManagement = () => {
                   <Button variant="secondary" size="sm" icon={RefreshCw} onClick={handleRegenerateKey} loading={loading} data-testid="regenerate-chat-key" />
                 </div>
                 <p className="text-[11px] text-gray-500 mt-2">
-                  Send this key in the <code className="text-brand-400">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.
+                  Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.
                 </p>
               </div>
             )}
@@ -175,7 +175,7 @@ export const ChatManagement = () => {
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-brand-400">{m.username}</span>
                           {m.level != null && (
-                            <span className="text-[10px] font-semibold bg-brand-50 text-brand-400 border border-brand-400/20 rounded px-1.5 py-0.5">Lv.{m.level}</span>
+                            <span className="text-[10px] font-semibold bg-[#9B51E0]/10 text-[#BB6BD9] border border-[#9B51E0]/20 rounded px-1.5 py-0.5">Lv.{m.level}</span>
                           )}
                           <span className="text-[10px] text-gray-400">{formatTime(m.timestamp)}</span>
                         </div>
@@ -243,7 +243,7 @@ export const ChatManagement = () => {
                 </div>
               )}
               <p className="text-[11px] text-gray-500 mt-3 leading-relaxed">
-                Matching is case-insensitive and whole-word. A detected word is replaced with asterisks (e.g. <code className="text-brand-400">con</code> → <code className="text-brand-400">***</code>).
+                Matching is case-insensitive and whole-word. A detected word is replaced with asterisks (e.g. <code className="text-[#9B51E0]">con</code> → <code className="text-[#9B51E0]">***</code>).
               </p>
             </CardBody>
           )}
