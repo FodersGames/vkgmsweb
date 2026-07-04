@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard, Camera } from 'lucide-react';
+import { User, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard, Camera, Gamepad2, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -71,7 +71,7 @@ const LoyaltyWidget = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="bg-[#1C1917] p-6">
+    <div className="bg-white border border-[#E8E3DB] p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Icon size={13} style={{ color: cfg.color }} />
@@ -79,11 +79,11 @@ const LoyaltyWidget = ({ loyalty }) => {
             {cfg.label} rank
           </h2>
         </div>
-        <span className="text-xs text-[#44403C] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
+        <span className="text-xs text-[#A8A29E] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
       </div>
 
       {/* Track */}
-      <div className="relative h-px bg-[#292524] mb-2">
+      <div className="relative h-px bg-[#E8E3DB] mb-2">
         <div
           className="absolute top-0 left-0 h-full transition-all duration-700"
           style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
@@ -92,7 +92,7 @@ const LoyaltyWidget = ({ loyalty }) => {
           <div
             key={t}
             className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#292524' }}
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }}
           />
         ))}
       </div>
@@ -102,7 +102,7 @@ const LoyaltyWidget = ({ loyalty }) => {
           <span
             key={t}
             className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-            style={{ color: i <= tierIdx ? TIERS[t].color : '#292524' }}
+            style={{ color: i <= tierIdx ? TIERS[t].color : '#C9C3BB' }}
           >
             {TIERS[t].label}
           </span>
@@ -110,16 +110,16 @@ const LoyaltyWidget = ({ loyalty }) => {
       </div>
 
       {next_threshold_cents && next_tier ? (
-        <p className="text-[10px] text-[#44403C]">
+        <p className="text-[10px] text-[#A8A29E]">
           ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
-          <span style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
+          <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
         </p>
       ) : (
-        <p className="text-[10px]" style={{ color: cfg.color }}>Maximum rank achieved.</p>
+        <p className="text-[10px] font-semibold" style={{ color: cfg.color }}>Maximum rank achieved.</p>
       )}
 
       {cfg.discount > 0 && (
-        <p className="text-[10px] mt-1" style={{ color: cfg.color }}>
+        <p className="text-[10px] mt-1 text-[#78716C]">
           {cfg.discount}% discount applied on all in-app purchases.
         </p>
       )}
@@ -492,8 +492,23 @@ const Profile = () => {
               }
             </div>
 
-            {/* Right column — Notifications + Password */}
+            {/* Right column — Vakar Play + Notifications + Password */}
             <div className="lg:col-span-2 space-y-6">
+
+              {/* Vakar Play access */}
+              <Link
+                to="/play"
+                className="flex items-center gap-4 bg-white border border-[#E8E3DB] hover:border-[#A7F3D0] p-5 transition-colors group"
+              >
+                <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ background: '#D1FAE5' }}>
+                  <Gamepad2 size={17} style={{ color: '#059669' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[#1C1917]">Vakar Play</p>
+                  <p className="text-xs text-[#78716C]">Your game library and last sessions</p>
+                </div>
+                <ChevronRight size={15} className="text-[#C9C3BB] group-hover:text-[#059669] transition-colors shrink-0" />
+              </Link>
 
               {/* Notifications */}
               <Card>

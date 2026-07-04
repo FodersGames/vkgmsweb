@@ -17,7 +17,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+        className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
       />
       {isPassword && (
         <button
@@ -56,9 +56,9 @@ const ChangePasswordModal = ({ onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-[#E8E3DB] rounded-xl max-w-md w-full p-8 shadow-xl">
+      <div className="bg-white border border-[#E8E3DB] max-w-md w-full p-8 shadow-xl">
         <div className="mb-6">
-          <div className="w-11 h-11 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center mb-4">
+          <div className="w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <AlertTriangle size={18} className="text-amber-600" />
           </div>
           <h2 className="text-xl font-bold text-[#1C1917] mb-1">Change your password</h2>
@@ -96,7 +96,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -104,7 +104,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? 'Saving…' : 'Set new password'}
           </button>
@@ -186,7 +186,7 @@ export const Login = () => {
           </p>
         </div>
 
-        <div className="bg-white border border-[#E8E3DB] rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-[#E8E3DB] shadow-sm overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b border-[#E8E3DB]">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
@@ -236,7 +236,7 @@ export const Login = () => {
               </div>
 
               {loginError && (
-                <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg" data-testid="login-error">
+                <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="login-error">
                   {loginError}
                 </div>
               )}
@@ -244,7 +244,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
@@ -254,7 +254,7 @@ export const Login = () => {
             <div className="px-7 py-7">
               {regSuccess ? (
                 <div className="text-center py-4">
-                  <div className="w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle size={18} className="text-[#4ECDC4]" />
                   </div>
                   <h3 className="text-base font-bold text-[#1C1917] mb-1">Account created</h3>
@@ -263,7 +263,7 @@ export const Login = () => {
                   </p>
                   <button
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
+                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors"
                   >
                     Go to Sign In
                   </button>
@@ -342,7 +342,7 @@ export const Login = () => {
                   </div>
 
                   {regError && (
-                    <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg" data-testid="register-error">
+                    <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="register-error">
                       {regError}
                     </div>
                   )}
@@ -350,7 +350,7 @@ export const Login = () => {
                   <button
                     type="submit"
                     disabled={regLoading}
-                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
@@ -362,7 +362,8 @@ export const Login = () => {
         </div>
 
         <p className="mt-5 text-center text-xs text-[#A8A29E]">
-          Protected with JWT authentication
+          By creating an account you agree to our{' '}
+          <Link to="/terms" className="underline hover:text-[#78716C] transition-colors">Terms of Service</Link>.
         </p>
       </div>
     </div>

@@ -50,7 +50,7 @@ const LoyaltyBar = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="bg-[#1C1917] p-5">
+    <div className="bg-white border border-[#E8E3DB] p-5">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <Icon size={14} style={{ color: cfg.color }} />
@@ -60,16 +60,16 @@ const LoyaltyBar = ({ loyalty }) => {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#44403C] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
+          <span className="text-xs text-[#A8A29E] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
           <button
             onClick={() => setShowInfo(v => !v)}
-            className="w-4 h-4 border border-[#44403C] text-[#44403C] hover:border-[#78716C] hover:text-[#78716C] flex items-center justify-center text-[10px] font-bold transition-colors"
+            className="w-4 h-4 border border-[#C9C3BB] text-[#A8A29E] hover:border-[#78716C] hover:text-[#78716C] flex items-center justify-center text-[10px] font-bold transition-colors"
           >?</button>
         </div>
       </div>
 
       {/* Track */}
-      <div className="relative h-px bg-[#292524] mb-1">
+      <div className="relative h-px bg-[#E8E3DB] mb-1">
         <div
           className="absolute top-0 left-0 h-full transition-all duration-700"
           style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
@@ -79,7 +79,7 @@ const LoyaltyBar = ({ loyalty }) => {
           <div
             key={t}
             className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#292524' }}
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }}
           />
         ))}
       </div>
@@ -93,7 +93,7 @@ const LoyaltyBar = ({ loyalty }) => {
             <span
               key={t}
               className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-              style={{ color: reached ? tc.color : '#292524' }}
+              style={{ color: reached ? tc.color : '#C9C3BB' }}
             >
               {tc.label}
             </span>
@@ -102,17 +102,17 @@ const LoyaltyBar = ({ loyalty }) => {
       </div>
 
       {next_tier && next_threshold_cents ? (
-        <p className="text-[10px] text-[#44403C]">
+        <p className="text-[10px] text-[#A8A29E]">
           ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
-          <span style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
+          <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
         </p>
       ) : (
-        <p className="text-[10px]" style={{ color: cfg.color }}>Maximum rank achieved.</p>
+        <p className="text-[10px] font-semibold" style={{ color: cfg.color }}>Maximum rank achieved.</p>
       )}
 
       {showInfo && (
-        <div className="mt-4 pt-4 border-t border-[#292524] text-xs text-[#78716C] space-y-3">
-          <p className="font-semibold text-[#A8A29E]">Loyalty program</p>
+        <div className="mt-4 pt-4 border-t border-[#E8E3DB] text-xs text-[#78716C] space-y-3">
+          <p className="font-semibold text-[#1C1917]">Loyalty program</p>
           <p>Every dollar you spend adds to your loyalty total. The more you spend, the higher your rank and the bigger your discount on future purchases.</p>
           <div className="grid grid-cols-2 gap-1">
             {TIER_ORDER.map(t => {
@@ -120,14 +120,17 @@ const LoyaltyBar = ({ loyalty }) => {
               const TIcon = tc.icon;
               const reached = TIER_ORDER.indexOf(t) <= tierIdx;
               return (
-                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#292524]">
+                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#F9F7F4] border" style={{ borderColor: reached ? `${tc.color}55` : '#E8E3DB' }}>
                   <TIcon size={10} style={{ color: tc.color }} />
                   <span className="font-semibold text-[10px]" style={{ color: tc.color }}>{tc.label}</span>
-                  <span className="text-[#44403C] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
+                  <span className="text-[#A8A29E] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
                 </div>
               );
             })}
           </div>
+          <p className="text-[#A8A29E] pt-1 border-t border-[#E8E3DB]">
+            Silver, Gold and Diamond members receive exclusive coupons and bonus offers.
+          </p>
         </div>
       )}
     </div>

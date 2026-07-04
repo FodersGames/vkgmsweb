@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 
 const Section = ({ title, children }) => (
   <div>
-    <h2 className="text-xl font-bold text-white mb-3" style={{ fontFamily: "'Inter', sans-serif" }}>{title}</h2>
-    <div className="text-white/60 leading-relaxed space-y-3" style={{ fontFamily: "'Inter', sans-serif" }}>{children}</div>
+    <h2 className="text-lg font-bold text-[#1C1917] mb-3">{title}</h2>
+    <div className="text-sm text-[#78716C] leading-relaxed space-y-3">{children}</div>
   </div>
 );
 
@@ -14,35 +13,39 @@ const TermsOfService = () => {
   useEffect(() => { document.title = 'Terms of Service — Vakar Games'; }, []);
 
   return (
-    <div className="bg-[#0a0a0f] text-white min-h-screen">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="text-xl font-black tracking-[0.2em] text-white hover:text-white/80 transition-colors" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
-            VAKAR GAMES
-          </Link>
-          <Link to="/" className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
-            <ArrowLeft size={15} /> Back to Home
-          </Link>
+    <div className="bg-[#F9F7F4] min-h-screen">
+      <PublicNav />
+
+      <div className="pt-16">
+        <div className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-12">
+          <div className="max-w-3xl mx-auto">
+            <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Legal</p>
+            <h1
+              className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight mb-3"
+              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            >
+              TERMS OF SERVICE
+            </h1>
+            <p className="text-sm text-[#A8A29E]">Last updated: June 21, 2026</p>
+          </div>
         </div>
-      </nav>
 
-      <div className="max-w-3xl mx-auto px-6 pt-32 pb-24">
-        <p className="text-xs font-bold tracking-[0.2em] text-[#9B51E0] uppercase mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>Legal</p>
-        <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>TERMS OF SERVICE</h1>
-        <p className="text-sm text-white/30 mb-16" style={{ fontFamily: "'Inter', sans-serif" }}>Last updated: June 21, 2026</p>
-
-        <div className="space-y-12">
+        <div className="max-w-3xl mx-auto px-6 py-14 space-y-10">
           <Section title="1. Acceptance of Terms">
-            <p>By accessing or using the Vakar Games website (<strong className="text-white/80">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
+            <p>By accessing or using the Vakar Games website (<strong className="text-[#1C1917]">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
           </Section>
 
           <Section title="2. Our Services">
-            <p>Vakar Games provides a public website to showcase our game catalogue, a development blog, and backend tools that support in-game features such as real-time global chat. Our games are primarily distributed through platforms such as TurboWarp.</p>
+            <p>Vakar Games provides a public website to showcase our game catalogue, a development blog, an online shop for games and in-game items, and backend tools that support in-game features such as real-time global chat. Our games are primarily distributed through platforms such as TurboWarp.</p>
           </Section>
 
-          <Section title="3. Chat System">
+          <Section title="3. Accounts & Purchases">
+            <p>Some features require a free account. You are responsible for keeping your credentials secure. Purchases are processed by Stripe; in-game items are delivered to the player ID you provide at checkout. Except where required by law, purchases of digital items are final and non-refundable once delivered.</p>
+          </Section>
+
+          <Section title="4. Chat System">
             <p>Some of our games include a real-time in-game chat. By using the chat system, you agree to the following:</p>
-            <ul className="list-disc list-inside space-y-1 text-white/50 mt-2">
+            <ul className="list-disc list-inside space-y-1 mt-2">
               <li>Use an appropriate, non-offensive username</li>
               <li>Not post hateful, discriminatory, threatening, or sexually explicit content</li>
               <li>Understand that messages are visible to all players of the same game in real time</li>
@@ -51,9 +54,9 @@ const TermsOfService = () => {
             </ul>
           </Section>
 
-          <Section title="4. Prohibited Conduct">
+          <Section title="5. Prohibited Conduct">
             <p>When using any Vakar Games service, you agree not to:</p>
-            <ul className="list-disc list-inside space-y-1 text-white/50 mt-2">
+            <ul className="list-disc list-inside space-y-1 mt-2">
               <li>Harass, threaten, or intimidate other players</li>
               <li>Impersonate Vakar Games staff or other players</li>
               <li>Spam, advertise third-party services, or distribute malicious links</li>
@@ -63,29 +66,29 @@ const TermsOfService = () => {
             </ul>
           </Section>
 
-          <Section title="5. Intellectual Property">
+          <Section title="6. Intellectual Property">
             <p>All content on this website and in our games — including but not limited to artwork, source code, music, logos, and written content — is the property of Vakar Games and is protected by applicable copyright and intellectual property laws. You may not copy, redistribute, modify, or use our content without explicit written permission from Vakar Games.</p>
           </Section>
 
-          <Section title="6. Disclaimer of Warranties">
-            <p>Our website and games are provided <strong className="text-white/80">"as is"</strong> and <strong className="text-white/80">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
+          <Section title="7. Disclaimer of Warranties">
+            <p>Our website and games are provided <strong className="text-[#1C1917]">"as is"</strong> and <strong className="text-[#1C1917]">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
           </Section>
 
-          <Section title="7. Limitation of Liability">
+          <Section title="8. Limitation of Liability">
             <p>To the fullest extent permitted by applicable law, Vakar Games shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of — or inability to use — our services, even if we have been advised of the possibility of such damages.</p>
           </Section>
 
-          <Section title="8. Changes to These Terms">
+          <Section title="9. Changes to These Terms">
             <p>We may revise these Terms of Service at any time. When we do, we will update the date at the top of this page. Continued use of our services after any changes constitutes your acceptance of the updated terms.</p>
           </Section>
 
-          <Section title="9. Governing Law">
-            <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-white/80">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
+          <Section title="10. Governing Law">
+            <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-[#1C1917]">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
           </Section>
 
-          <Section title="10. Contact">
+          <Section title="11. Contact">
             <p>If you have questions about these Terms of Service, please contact us at:</p>
-            <a href="mailto:support@vakargames.com" className="text-[#9B51E0] hover:text-white transition-colors font-medium">support@vakargames.com</a>
+            <a href="mailto:support@vakargames.com" className="text-[#4ECDC4] hover:underline font-medium">support@vakargames.com</a>
           </Section>
         </div>
       </div>

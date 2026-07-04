@@ -143,16 +143,16 @@ const GamesPage = () => {
                       <img
                         src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
                         alt={game.name}
-                        className="w-full max-w-md mx-auto rounded-lg shadow-md"
+                        className="w-full max-w-md mx-auto shadow-md"
                       />
                     ) : game.screenshots?.length > 0 ? (
                       <img
                         src={game.screenshots[0].startsWith('/') ? `${API_URL}${game.screenshots[0]}` : game.screenshots[0]}
                         alt={game.name}
-                        className="w-full rounded-lg shadow-md"
+                        className="w-full shadow-md"
                       />
                     ) : (
-                      <div className="w-full aspect-video bg-white border border-[#E8E3DB] rounded-lg flex items-center justify-center">
+                      <div className="w-full aspect-video bg-white border border-[#E8E3DB] flex items-center justify-center">
                         <span className="text-[#A8A29E] text-2xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
                           {game.name}
                         </span>
@@ -187,7 +187,7 @@ const GamesPage = () => {
                             key={i}
                             src={s.startsWith('/') ? `${API_URL}${s}` : s}
                             alt=""
-                            className="h-16 sm:h-20 rounded object-cover flex-shrink-0 border border-[#E8E3DB]"
+                            className="h-16 sm:h-20 object-cover flex-shrink-0 border border-[#E8E3DB]"
                           />
                         ))}
                       </div>

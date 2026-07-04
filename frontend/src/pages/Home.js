@@ -206,16 +206,16 @@ const Home = () => {
                     <img
                       src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
                       alt={featuredGame.name}
-                      className="w-full max-w-lg mx-auto rounded-lg shadow-lg"
+                      className="w-full max-w-lg mx-auto shadow-lg"
                     />
                   ) : featuredGame.screenshots?.[0] ? (
                     <img
                       src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
                       alt={featuredGame.name}
-                      className="w-full rounded-lg shadow-lg"
+                      className="w-full shadow-lg"
                     />
                   ) : (
-                    <div className="w-full aspect-video bg-white border border-[#E8E3DB] rounded-lg flex items-center justify-center">
+                    <div className="w-full aspect-video bg-white border border-[#E8E3DB] flex items-center justify-center">
                       <span
                         className="text-[#A8A29E] text-3xl font-black"
                         style={{ fontFamily: "'Bebas Neue', sans-serif" }}
