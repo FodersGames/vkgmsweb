@@ -1179,13 +1179,13 @@ export const FilesManagement = () => {
                   )}
                   {!isArtist && (
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className="text-[9px] text-[#C9C3BB] font-mono">{file.id}</span>
+                      <span className="text-[9px] text-[#C9C3BB] font-mono">{file.stable_id || file.id}</span>
                       <button
-                        onClick={() => copyFileId(file.id)}
+                        onClick={() => copyFileId(file.stable_id || file.id)}
                         title="Copier l'ID"
                         className="flex items-center gap-0.5 text-[9px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors shrink-0"
                       >
-                        {copiedId === file.id
+                        {copiedId === (file.stable_id || file.id)
                           ? <><Check size={9} className="text-[#4ECDC4]" /><span className="text-[#4ECDC4]">copié</span></>
                           : <><Copy size={9} /><span>copier ID</span></>
                         }

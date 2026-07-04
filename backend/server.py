@@ -2628,7 +2628,10 @@ async def list_game_files_client(slug: str, request: Request, version: Optional[
     result = []
     for f in files:
         doc = serialize_doc(f)
-        doc["download_url"] = f"{base_url}/api/game/{slug}/files/{doc['id']}/download"
+        # Stable asset ID — identical across all cloned versions of the asset
+        asset_id = doc.get("stable_id") or doc["id"]
+        doc["asset_id"] = asset_id
+        doc["download_url"] = f"{base_url}/api/game/{slug}/files/{asset_id}/download"
         doc["resolved_version"] = resolved_version
         result.append(doc)
     return {"files": result, "resolved_version": resolved_version}
@@ -2636,19 +2639,48 @@ async def list_game_files_client(slug: str, request: Request, version: Optional[
 # ── Game client: download file (API key auth) ─────────────────────────────────
 
 @api_router.get("/game/{slug}/files/{file_id}/download")
-async def download_game_file_client(slug: str, file_id: str, request: Request):
-    await _verify_files_api_key(slug, request)
+async def download_game_file_client(slug: str, file_id: str, request: Request, version: Optional[str] = None):
+    project = await _verify_files_api_key(slug, request)
+
     try:
         oid = ObjectId(file_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid file ID")
-    doc = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+
+    # Resolve target version ("live" or explicit ?version= param)
+    resolved_version = version
+    if version == "live" or not version:
+        resolved_version = project.get("live_version") or "default"
+
+    exact = await db.game_files.find_one({"_id": oid, "project_slug": slug})
+
+    # Stable asset ID resolution: the requested ID identifies the asset across
+    # all versions (clones share the original's ID via stable_id). Serve the
+    # file belonging to the resolved version when a counterpart exists.
+    stable = (exact.get("stable_id") if exact else None) or file_id
+    stable_or = [{"stable_id": stable}]
+    try:
+        stable_or.append({"_id": ObjectId(stable)})
+    except Exception:
+        pass
+    if resolved_version == "default":
+        version_or = [{"version_tag": "default"}, {"version_tag": {"$exists": False}}]
+    else:
+        version_or = [{"version_tag": resolved_version}]
+
+    doc = await db.game_files.find_one({
+        "project_slug": slug,
+        "$and": [{"$or": version_or}, {"$or": stable_or}],
+    })
+    if not doc:
+        doc = exact  # no counterpart in the resolved version — serve the exact file
     if not doc:
         raise HTTPException(status_code=404, detail="File not found")
-    dest = _game_file_path(slug, file_id)
+
+    dest = _game_file_path(slug, str(doc["_id"]))
     if not dest.exists():
         raise HTTPException(status_code=404, detail="File data missing on server")
-    await db.game_files.update_one({"_id": oid}, {"$inc": {"download_count": 1}})
+    await db.game_files.update_one({"_id": doc["_id"]}, {"$inc": {"download_count": 1}})
     safe_name = re.sub(r"[^\w.\- ]", "_", doc.get("original_filename") or doc["name"])
     return FileResponse(
         dest,
@@ -2729,6 +2761,9 @@ async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(r
         new_doc["download_count"] = 0
         new_doc["uploaded_at"] = datetime.now(timezone.utc)
         new_doc["cloned_from"] = src_id
+        # Stable asset ID: clones keep the original asset's ID so the game
+        # can reference the same ID across all versions
+        new_doc["stable_id"] = src.get("stable_id") or src_id
         await db.game_files.insert_one(new_doc)
         cloned += 1
 
