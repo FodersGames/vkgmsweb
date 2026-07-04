@@ -2770,6 +2770,30 @@ async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(r
     await log_action("website", f"Version '{new_tag}' cloned from existing files for project '{slug}' ({cloned} files)", user=user["username"])
     return {"success": True, "version_tag": new_tag, "files_cloned": cloned}
 
+@api_router.delete("/admin/projects/{slug}/versions/{tag}")
+async def delete_file_version(slug: str, tag: str, user=Depends(require_permission("manage_files"))):
+    tag = tag.strip()
+    if not tag or tag == "default":
+        raise HTTPException(status_code=400, detail="The default version cannot be deleted")
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if (project.get("live_version") or "default") == tag:
+        raise HTTPException(status_code=400, detail="Cannot delete the live version. Switch the live version first.")
+
+    files = await db.game_files.find({"project_slug": slug, "version_tag": tag}).to_list(1000)
+    if not files:
+        raise HTTPException(status_code=404, detail=f"Version '{tag}' not found")
+
+    for f in files:
+        path = _game_file_path(slug, str(f["_id"]))
+        if path.exists():
+            path.unlink(missing_ok=True)
+    result = await db.game_files.delete_many({"project_slug": slug, "version_tag": tag})
+
+    await log_action("website", f"Version '{tag}' deleted for project '{slug}' ({result.deleted_count} files)", user=user["username"])
+    return {"success": True, "version_tag": tag, "files_deleted": result.deleted_count}
+
 # ── Live version (public + admin) ─────────────────────────────────────────────
 
 @api_router.get("/game/{slug}/live-version")
@@ -3956,6 +3980,31 @@ async def startup_event():
         await db.careers.create_index("created_at")
         await db.careers.create_index("is_open")
         logger.info("Database indexes initialized")
+
+        # Migration: backfill stable_id on files cloned before the stable-ID
+        # system existed, so every version shares the original asset's ID.
+        legacy = await db.game_files.find(
+            {"cloned_from": {"$exists": True}, "stable_id": {"$exists": False}}
+        ).to_list(2000)
+        for f in legacy:
+            root_id = f["cloned_from"]
+            seen = set()
+            while root_id not in seen:
+                seen.add(root_id)
+                try:
+                    src = await db.game_files.find_one({"_id": ObjectId(root_id)})
+                except Exception:
+                    src = None
+                if src and src.get("stable_id"):
+                    root_id = src["stable_id"]
+                    break
+                if src and src.get("cloned_from"):
+                    root_id = src["cloned_from"]
+                else:
+                    break
+            await db.game_files.update_one({"_id": f["_id"]}, {"$set": {"stable_id": root_id}})
+        if legacy:
+            logger.info(f"Backfilled stable_id on {len(legacy)} cloned game files")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
 

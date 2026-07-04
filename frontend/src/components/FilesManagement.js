@@ -113,6 +113,8 @@ export const FilesManagement = () => {
   const [newVersionTag,     setNewVersionTag]     = useState('');
   const [creatingVersion,   setCreatingVersion]   = useState(false);
   const [createVersionErr,  setCreateVersionErr]  = useState('');
+  const [confirmVersionDel, setConfirmVersionDel] = useState(null);
+  const [deletingVersion,   setDeletingVersion]   = useState(false);
 
   const fileInputRef    = useRef(null);
   const replaceInputRef = useRef(null);
@@ -407,6 +409,21 @@ export const FilesManagement = () => {
     }
   };
 
+  const deleteVersion = async (tag) => {
+    setDeletingVersion(true);
+    try {
+      await axios.delete(`${API_URL}/api/admin/projects/${slug}/versions/${encodeURIComponent(tag)}`, { headers });
+      setConfirmVersionDel(null);
+      if (activeVersionTag === tag) setActiveVersionTag('all');
+      loadVersions();
+      load();
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Delete version failed.');
+    } finally {
+      setDeletingVersion(false);
+    }
+  };
+
   const deleteGroup = async (group) => {
     setDeletingGroupId(group.group_id);
     try {
@@ -471,19 +488,36 @@ export const FilesManagement = () => {
       {/* Version filter bar */}
       {!isArtist && <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.1em] uppercase">Version:</span>
-        {['all', ...versions].map(tag => (
-          <button
-            key={tag}
-            onClick={() => setActiveVersionTag(tag)}
-            className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
-              activeVersionTag === tag
-                ? 'bg-[#1C1917] text-white border-[#1C1917]'
-                : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917]'
-            }`}
-          >
-            {tag}
-          </button>
-        ))}
+        {['all', ...versions].map(tag => {
+          const deletable = tag !== 'all' && tag !== 'default';
+          return (
+            <span key={tag} className="inline-flex items-stretch group">
+              <button
+                onClick={() => setActiveVersionTag(tag)}
+                className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
+                  activeVersionTag === tag
+                    ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                    : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                }`}
+              >
+                {tag}
+              </button>
+              {deletable && (
+                <button
+                  onClick={() => setConfirmVersionDel(tag)}
+                  title={`Supprimer la version ${tag}`}
+                  className={`px-1 border border-l-0 transition-colors ${
+                    activeVersionTag === tag
+                      ? 'border-[#1C1917] text-[#78716C] hover:text-red-500'
+                      : 'border-[#E8E3DB] text-[#C9C3BB] hover:text-red-500 hover:border-[#C9C3BB]'
+                  }`}
+                >
+                  <X size={10} />
+                </button>
+              )}
+            </span>
+          );
+        })}
         <button
           onClick={() => setVersionDropOpen(v => !v)}
           className="flex items-center gap-1 text-[10px] text-[#A8A29E] hover:text-[#4ECDC4] transition-colors"
@@ -950,6 +984,34 @@ export const FilesManagement = () => {
                   <p className="text-xs">Chargement…</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete version confirm */}
+      {confirmVersionDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white border border-[#E8E3DB] p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={18} className="text-red-500 shrink-0" />
+              <h3 className="text-sm font-bold text-[#1C1917]">Supprimer la version ?</h3>
+            </div>
+            <p className="text-xs text-[#78716C]">
+              La version <strong className="text-[#1C1917]">{confirmVersionDel}</strong> et tous ses fichiers seront supprimés définitivement du serveur. Les autres versions ne seront pas touchées.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteVersion(confirmVersionDel)}
+                disabled={deletingVersion}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+              >
+                {deletingVersion ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Supprimer la version
+              </button>
+              <button onClick={() => setConfirmVersionDel(null)} className="text-sm text-[#78716C] px-4 py-2.5 border border-[#E8E3DB] transition-colors">
+                Annuler
+              </button>
             </div>
           </div>
         </div>
