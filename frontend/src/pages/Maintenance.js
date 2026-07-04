@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -52,6 +53,16 @@ const MaintenancePage = () => (
           >
             support@vakargames.com
           </a>
+        </div>
+
+        <div className="mt-10 pt-8 border-t border-[#E8E3DB]">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] bg-white px-4 py-2.5 transition-all"
+          >
+            <LogIn size={12} />
+            Staff sign in
+          </Link>
         </div>
       </div>
     </div>

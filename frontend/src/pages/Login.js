@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+const hasDashboardAccess = (u) =>
+  !!u && (u.is_super_admin || u.role === 'admin' || (u.permissions?.length > 0));
 
 const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoComplete, required = true }) => {
   const [show, setShow] = useState(false);
@@ -117,6 +123,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
 export const Login = () => {
   const [tab, setTab] = useState('login');
   const [mustChange, setMustChange] = useState(false);
+  const [maintenance, setMaintenance] = useState(false);
 
   // Login state
   const [email, setEmail] = useState('');
@@ -130,10 +137,15 @@ export const Login = () => {
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
-  const { login, register } = useAuth();
+  const { login, register, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => { document.title = 'Sign In — Vakar Games'; }, []);
+  useEffect(() => {
+    document.title = 'Sign In — Vakar Games';
+    axios.get(`${API_URL}/api/website/settings`)
+      .then(r => setMaintenance(!!r.data.maintenance_mode))
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -142,6 +154,12 @@ export const Login = () => {
     const result = await login(email, password);
     setLoginLoading(false);
     if (result.success) {
+      // During maintenance, only accounts with dashboard access may sign in
+      if (maintenance && !hasDashboardAccess(result.user)) {
+        logout();
+        setLoginError('The site is under maintenance. Only staff accounts can sign in right now.');
+        return;
+      }
       if (result.first_login) {
         setMustChange(true);
       } else {
@@ -185,6 +203,13 @@ export const Login = () => {
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
+
+        {maintenance && (
+          <div className="mb-4 flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs leading-relaxed">
+            <Wrench size={13} className="shrink-0 mt-0.5" />
+            <span>The site is under maintenance. Only staff accounts with dashboard access can sign in.</span>
+          </div>
+        )}
 
         <div className="bg-white border border-[#E8E3DB] shadow-sm overflow-hidden">
           {/* Tabs */}

@@ -847,9 +847,15 @@ async def login(request: Request, body: LoginEmailRequest):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.get("isSuspended"):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
-    await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": datetime.now(timezone.utc)}})
     is_super = user.get("role") == "super_admin"
     permissions = ALL_PERMISSIONS if is_super else user.get("permissions", [])
+    # During maintenance, only accounts with dashboard access (staff) may sign in
+    settings = await db.website_settings.find_one({}, {"_id": 0})
+    if settings and settings.get("maintenance_mode"):
+        has_dashboard_access = is_super or user.get("role") == "admin" or len(permissions) > 0
+        if not has_dashboard_access:
+            raise HTTPException(status_code=403, detail="The site is under maintenance. Only staff accounts can sign in right now.")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": datetime.now(timezone.utc)}})
     token = create_access_token(str(user["_id"]), user["username"], is_super, permissions, email)
     await log_action("auth", f"User '{user['username']}' logged in", user=user["username"])
     return {
