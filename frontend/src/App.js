@@ -16,6 +16,7 @@ import ShopSuccess from './pages/ShopSuccess';
 import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
+import Careers from './pages/Careers';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
@@ -58,6 +59,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/careers" element={<Careers />} />
       <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

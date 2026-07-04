@@ -58,6 +58,11 @@ export const SiteFooter = ({ onAbout }) => (
               </Link>
             </li>
             <li>
+              <Link to="/careers" className="text-sm text-[#78716C] hover:text-white transition-colors">
+                Careers
+              </Link>
+            </li>
+            <li>
               <a
                 href="mailto:support@vakargames.com"
                 className="text-sm text-[#78716C] hover:text-white transition-colors"
@@ -91,7 +96,7 @@ export const SiteFooter = ({ onAbout }) => (
         <p className="text-xs text-[#44403C]">
           &copy; {new Date().getFullYear()} Vakar Games. All rights reserved.
         </p>
-        <p className="text-xs text-[#44403C]">Made with intention in France.</p>
+        <p className="text-xs text-[#44403C]">Made with ❤️ in France.</p>
       </div>
     </div>
   </footer>

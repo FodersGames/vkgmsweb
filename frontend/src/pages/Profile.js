@@ -4,10 +4,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem } from 'lucide-react';
+import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
 
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
@@ -23,7 +22,7 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           autoComplete={autoComplete}
           placeholder={placeholder}
           required
-          className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+          className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
         />
         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#78716C] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
           {show ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -45,100 +44,153 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
         placeholder={placeholder}
         autoComplete={autoComplete}
         required
-        className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]`}
+        className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]`}
       />
     </div>
   </div>
 );
 
-// ── Grade system ──────────────────────────────────────────────────────────────
+// ── Loyalty system ────────────────────────────────────────────────────────────
+
 const TIERS = {
-  bronze:  { label: 'Bronze',  color: '#CD7F32', bg: '#CD7F3215', icon: Shield,  discount: 0,  min: 0,    next: 2500  },
-  silver:  { label: 'Silver',  color: '#94A3B8', bg: '#94A3B815', icon: Star,    discount: 5,  min: 2500,  next: 10000 },
-  gold:    { label: 'Gold',    color: '#F59E0B', bg: '#F59E0B15', icon: Trophy,  discount: 10, min: 10000, next: 25000 },
-  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Gem,     discount: 15, min: 25000, next: null  },
+  bronze:  { label: 'Bronze',  color: '#CD7F32', icon: Shield,  discount: 0,  min: 0,    next: 2500,  gradient: 'from-[#CD7F32] to-[#E8A454]' },
+  silver:  { label: 'Silver',  color: '#94A3B8', icon: Star,    discount: 5,  min: 2500,  next: 10000, gradient: 'from-[#94A3B8] to-[#CBD5E1]' },
+  gold:    { label: 'Gold',    color: '#F59E0B', icon: Trophy,  discount: 10, min: 10000, next: 25000, gradient: 'from-[#F59E0B] to-[#FCD34D]' },
+  diamond: { label: 'Diamond', color: '#22D3EE', icon: Gem,     discount: 15, min: 25000, next: null,  gradient: 'from-[#22D3EE] to-[#818CF8]' },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
+
+// Gradient stops for the cartoon progress bar
+const BAR_GRADIENT = 'linear-gradient(90deg, #CD7F32 0%, #94A3B8 33%, #F59E0B 66%, #22D3EE 100%)';
 
 const LoyaltyWidget = ({ loyalty }) => {
   if (!loyalty) return null;
   const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
   const cfg = TIERS[tier] || TIERS.bronze;
-  const Icon = cfg.icon;
   const tierIdx = TIER_ORDER.indexOf(tier);
   const progressPct = next_threshold_cents
     ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
     : 100;
 
   return (
-    <div className="bg-white border border-[#E8E3DB] rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-[#1C1917] uppercase tracking-wider flex items-center gap-2">
-          <Icon size={14} style={{ color: cfg.color }} />Loyalty Grade
-        </h2>
-        <span className="text-xs font-bold px-2.5 py-1 rounded" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
-          {cfg.label}{cfg.discount > 0 ? ` · −${cfg.discount}% off` : ''}
+    <div className="bg-white border border-[#E8E3DB] p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xs font-bold text-[#1C1917] uppercase tracking-[0.12em]">Loyalty Grade</h2>
+        <span
+          className="text-xs font-bold px-3 py-1 rounded-full"
+          style={{ background: `${cfg.color}22`, color: cfg.color }}
+        >
+          {cfg.label}{cfg.discount > 0 ? ` · −${cfg.discount}%` : ''}
         </span>
       </div>
 
-      <div className="mb-4">
-        <div className="flex justify-between text-[10px] text-[#A8A29E] mb-1.5">
-          <span>${(total_spent_cents / 100).toFixed(2)} spent</span>
-          {next_threshold_cents && <span>Next: {TIERS[next_tier]?.label} at ${(next_threshold_cents / 100).toFixed(0)}</span>}
-        </div>
-        <div className="relative h-2.5 bg-[#F0EDE8] rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progressPct}%`, backgroundColor: cfg.color }} />
-          {TIER_ORDER.map((t, i) => {
-            if (i === 0) return null;
-            const pct = (TIERS[t].min / 25000) * 100;
-            return (
-              <div key={t} className="absolute top-0 bottom-0 w-0.5 rounded-full" style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }} />
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex justify-between">
-        {TIER_ORDER.map(t => {
+      {/* Tier badges */}
+      <div className="flex items-end justify-between mb-3 px-1">
+        {TIER_ORDER.map((t, i) => {
           const tc = TIERS[t];
           const TIcon = tc.icon;
-          const reached = TIER_ORDER.indexOf(t) <= tierIdx;
+          const reached = i <= tierIdx;
+          const isCurrent = t === tier;
           return (
-            <div key={t} className="flex flex-col items-center gap-1">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: reached ? tc.bg : '#F9F7F4' }}>
-                <TIcon size={13} style={{ color: reached ? tc.color : '#C9C3BB' }} />
+            <div key={t} className="flex flex-col items-center gap-1.5" style={{ width: '22%' }}>
+              <div
+                className={`flex items-center justify-center rounded-full transition-all duration-500 ${isCurrent ? 'ring-2 ring-offset-2' : ''}`}
+                style={{
+                  width: isCurrent ? 44 : 34,
+                  height: isCurrent ? 44 : 34,
+                  background: reached ? `linear-gradient(135deg, ${tc.color}cc, ${tc.color})` : '#F0EDE8',
+                  ringColor: tc.color,
+                  boxShadow: isCurrent ? `0 4px 14px ${tc.color}55` : 'none',
+                }}
+              >
+                <TIcon size={isCurrent ? 20 : 15} style={{ color: reached ? 'white' : '#C9C3BB' }} />
               </div>
-              <span className="text-[9px] font-bold" style={{ color: reached ? tc.color : '#C9C3BB' }}>{tc.label}</span>
-              {tc.discount > 0 && <span className="text-[8px] text-[#A8A29E]">−{tc.discount}%</span>}
+              <span className="text-[9px] font-bold tracking-wide" style={{ color: reached ? tc.color : '#C9C3BB' }}>
+                {tc.label.toUpperCase()}
+              </span>
             </div>
           );
         })}
       </div>
 
+      {/* Cartoon progress bar */}
+      <div className="relative mb-4 mx-1">
+        {/* Track */}
+        <div
+          className="h-5 rounded-full overflow-hidden relative"
+          style={{ background: '#F0EDE8', border: '2px solid #E8E3DB' }}
+        >
+          {/* Rainbow fill */}
+          <div
+            className="h-full rounded-full transition-all duration-700 relative overflow-hidden"
+            style={{
+              width: `${progressPct}%`,
+              background: BAR_GRADIENT,
+              backgroundSize: '300px 100%',
+            }}
+          >
+            {/* Shine overlay */}
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%)' }}
+            />
+          </div>
+          {/* Tier dividers */}
+          {[33, 66, 89].map((pct, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 w-0.5 bg-white/50"
+              style={{ left: `${pct}%` }}
+            />
+          ))}
+        </div>
+
+        {/* Bouncing star at tip */}
+        {progressPct < 100 && progressPct > 5 && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center"
+            style={{ left: `${progressPct}%`, borderColor: cfg.color, boxShadow: `0 2px 8px ${cfg.color}66` }}
+          >
+            <Star size={9} fill={cfg.color} style={{ color: cfg.color }} />
+          </div>
+        )}
+      </div>
+
+      {/* Spent / next */}
+      <div className="flex justify-between items-center text-xs text-[#A8A29E]">
+        <span className="font-semibold" style={{ color: cfg.color }}>
+          ${(total_spent_cents / 100).toFixed(2)} spent
+        </span>
+        {next_threshold_cents && next_tier ? (
+          <span>
+            ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to {TIERS[next_tier]?.label}
+          </span>
+        ) : (
+          <span className="font-semibold text-[#22D3EE]">Max tier reached!</span>
+        )}
+      </div>
+
       {cfg.discount > 0 && (
-        <p className="text-xs text-[#4ECDC4] mt-4 font-medium text-center">
-          Your {cfg.label} grade gives you {cfg.discount}% off all in-app purchases
-        </p>
-      )}
-      {!cfg.discount && next_tier && (
-        <p className="text-xs text-[#A8A29E] mt-4 text-center">
-          Spend ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} more to unlock {TIERS[next_tier]?.discount}% off with {TIERS[next_tier]?.label}
-        </p>
+        <div
+          className="mt-4 rounded-lg px-3 py-2 text-xs font-semibold text-center"
+          style={{ background: `${cfg.color}18`, color: cfg.color }}
+        >
+          {cfg.label} grade · {cfg.discount}% off all in-app purchases
+        </div>
       )}
     </div>
   );
 };
 
-const SectionCard = ({ children, className = '' }) => (
-  <div className={`bg-white border border-[#E8E3DB] rounded-xl p-6 ${className}`}>
-    {children}
-  </div>
+const Card = ({ children, className = '' }) => (
+  <div className={`bg-white border border-[#E8E3DB] p-6 ${className}`}>{children}</div>
 );
 
-const SectionTitle = ({ icon: Icon, children, action }) => (
+const CardTitle = ({ icon: Icon, children, action }) => (
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-sm font-bold text-[#1C1917] uppercase tracking-wider flex items-center gap-2">
-      <Icon size={14} className="text-[#4ECDC4]" />
+    <h2 className="text-xs font-bold text-[#1C1917] uppercase tracking-[0.12em] flex items-center gap-2">
+      <Icon size={13} className="text-[#4ECDC4]" />
       {children}
     </h2>
     {action}
@@ -146,27 +198,23 @@ const SectionTitle = ({ icon: Icon, children, action }) => (
 );
 
 const Profile = () => {
-  const { user, logout, updateProfile, changePassword, token } = useAuth();
+  const { user, logout, updateProfile, changePassword, token, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Loyalty
   const DEFAULT_LOYALTY = { total_spent_cents: 0, tier: 'bronze', discount_pct: 0, next_tier: 'silver', next_threshold_cents: 2500 };
   const [loyalty, setLoyalty] = useState(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(true);
 
-  // Notifications
   const [notifications, setNotifications] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
 
-  // Profile editing
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Password change
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -271,188 +319,253 @@ const Profile = () => {
   if (!user) return null;
 
   const initials = ((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
+  const displayName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;
+  const currentTier = TIERS[loyalty?.tier] || TIERS.bronze;
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F9F7F4] min-h-screen flex flex-col">
       <PublicNav />
 
-      <div className="pt-16">
-        {/* Header */}
-        <div className="bg-white border-b border-[#E8E3DB] py-12 px-6">
-          <div className="max-w-3xl mx-auto flex items-center gap-5">
-            <div className="w-14 h-14 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-xl font-bold text-[#4ECDC4] shrink-0">
-              {initials}
+      <div className="pt-16 flex-1">
+
+        {/* Hero banner */}
+        <div className="bg-[#1C1917] relative overflow-hidden">
+          {/* Decorative circles */}
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-5" style={{ background: '#4ECDC4' }} />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full opacity-5" style={{ background: '#4ECDC4' }} />
+
+          <div className="max-w-5xl mx-auto px-6 py-10 relative">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+              {/* Avatar */}
+              <div
+                className="relative w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-black"
+                style={{
+                  background: loyalty ? `linear-gradient(135deg, ${currentTier.color}44, ${currentTier.color}22)` : 'rgba(78,205,196,0.15)',
+                  border: `2px solid ${loyalty ? currentTier.color + '55' : '#4ECDC422'}`,
+                  color: loyalty ? currentTier.color : '#4ECDC4',
+                  fontFamily: "'Bebas Neue', sans-serif",
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {initials}
+                {loyalty && (
+                  <div
+                    className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ background: currentTier.color, boxShadow: `0 2px 8px ${currentTier.color}66` }}
+                  >
+                    {React.createElement(currentTier.icon, { size: 12, color: 'white' })}
+                  </div>
+                )}
+              </div>
+
+              {/* Name + email */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h1
+                    className="text-3xl font-black text-white"
+                    style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.06em' }}
+                  >
+                    {displayName}
+                  </h1>
+                  {user.is_super_admin && (
+                    <span className="text-[10px] font-bold bg-[#4ECDC4]/20 text-[#4ECDC4] px-2 py-0.5 rounded">
+                      SUPER ADMIN
+                    </span>
+                  )}
+                </div>
+                <p className="text-[#78716C] text-sm">{user.email}</p>
+                {loyalty && (
+                  <p className="text-xs mt-1.5" style={{ color: currentTier.color }}>
+                    {currentTier.label} grade
+                    {currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isAdmin && isAdmin() && (
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-white border border-[#292524] hover:border-[#44403C] px-3 py-2 transition-all"
+                  >
+                    <LayoutDashboard size={12} />
+                    Dashboard
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-red-400 border border-[#292524] hover:border-red-800 px-3 py-2 transition-all"
+                >
+                  <LogOut size={12} />
+                  Sign Out
+                </button>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-[#1C1917]">
-                {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
-              </h1>
-              <p className="text-sm text-[#78716C]">{user.email}</p>
-              {user.is_super_admin && (
-                <span className="inline-block mt-1 text-xs font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-2 py-0.5 rounded">
-                  Super Admin
-                </span>
-              )}
-            </div>
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#78716C] hover:text-red-600 border border-[#E8E3DB] hover:border-red-200 rounded-lg transition-all shrink-0"
-            >
-              <LogOut size={14} />
-              Sign Out
-            </button>
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto px-6 py-12 space-y-6">
+        {/* Main content — 2-column on desktop */}
+        <div className="max-w-5xl mx-auto px-6 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-          {/* Account Info */}
-          <SectionCard>
-            <SectionTitle
-              icon={User}
-              action={
-                !editingProfile ? (
-                  <button
-                    onClick={() => setEditingProfile(true)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] rounded px-2.5 py-1.5 transition-all"
-                  >
-                    <Edit2 size={11} />
-                    Edit
-                  </button>
-                ) : null
+            {/* Left column — Account + Loyalty */}
+            <div className="lg:col-span-3 space-y-6">
+
+              {/* Account Info */}
+              <Card>
+                <CardTitle
+                  icon={User}
+                  action={
+                    !editingProfile ? (
+                      <button
+                        onClick={() => setEditingProfile(true)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-2.5 py-1.5 transition-all"
+                      >
+                        <Edit2 size={11} />Edit
+                      </button>
+                    ) : null
+                  }
+                >
+                  Account Details
+                </CardTitle>
+
+                {editingProfile ? (
+                  <form onSubmit={handleProfileSave} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <TextField label="First Name" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jane" icon={User} autoComplete="given-name" />
+                      <TextField label="Last Name" value={profileForm.lastName} onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Doe" icon={User} autoComplete="family-name" />
+                    </div>
+                    <TextField label="Username" value={profileForm.username} onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))} placeholder="jane_doe" autoComplete="username" />
+                    <div>
+                      <p className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wider mb-1">Email</p>
+                      <p className="text-sm text-[#78716C]">{user.email} <span className="text-[#A8A29E] text-xs">(cannot be changed)</span></p>
+                    </div>
+                    {profileError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
+                        <AlertTriangle size={13} className="shrink-0" />{profileError}
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <button type="submit" disabled={profileLoading} className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
+                        <Save size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
+                      </button>
+                      <button type="button" onClick={handleProfileCancel} className="inline-flex items-center gap-2 text-sm font-medium text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-4 py-2 transition-all">
+                        <X size={13} />Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {profileSuccess && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-sm mb-4">
+                        <CheckCircle size={13} className="shrink-0" />Profile updated successfully.
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                      {[
+                        { label: 'First Name', value: user.firstName || '—' },
+                        { label: 'Last Name',  value: user.lastName  || '—' },
+                        { label: 'Username',   value: '@' + user.username  },
+                        { label: 'Email',      value: user.email           },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-0.5">{label}</p>
+                          <p className="text-sm text-[#1C1917] break-all">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </Card>
+
+              {/* Loyalty */}
+              {loyaltyLoading
+                ? <div className="bg-white border border-[#E8E3DB] p-6 h-[200px] animate-pulse" />
+                : <LoyaltyWidget loyalty={loyalty} />
               }
-            >
-              Account Details
-            </SectionTitle>
+            </div>
 
-            {editingProfile ? (
-              <form onSubmit={handleProfileSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <TextField label="First Name" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jane" icon={User} autoComplete="given-name" />
-                  <TextField label="Last Name" value={profileForm.lastName} onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Doe" icon={User} autoComplete="family-name" />
-                </div>
-                <TextField label="Username" value={profileForm.username} onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))} placeholder="jane_doe" autoComplete="username" />
-                <div>
-                  <p className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wider mb-1.5">Email</p>
-                  <p className="text-sm text-[#78716C]">{user.email} <span className="text-[#A8A29E]">(cannot be changed)</span></p>
-                </div>
-                {profileError && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
-                    <AlertTriangle size={13} className="shrink-0" />{profileError}
+            {/* Right column — Notifications + Password */}
+            <div className="lg:col-span-2 space-y-6">
+
+              {/* Notifications */}
+              <Card>
+                <CardTitle
+                  icon={Bell}
+                  action={notifUnread > 0 ? (
+                    <button onClick={markAllRead} className="text-xs text-[#78716C] hover:text-[#1C1917] transition-colors">
+                      Mark all read
+                    </button>
+                  ) : null}
+                >
+                  Notifications
+                  {notifUnread > 0 && (
+                    <span className="ml-1.5 bg-[#4ECDC4] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                      {notifUnread}
+                    </span>
+                  )}
+                </CardTitle>
+
+                {notifLoading ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map(i => <div key={i} className="h-12 bg-[#F9F7F4] animate-pulse" />)}
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-[#A8A29E]">No notifications yet.</div>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
+                    {notifications.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => !n.read && markRead(n.id)}
+                        className={`p-3 border transition-all cursor-pointer ${
+                          n.read ? 'border-[#F0EDE8] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs leading-snug ${n.read ? 'text-[#78716C]' : 'text-[#1C1917] font-semibold'}`}>{n.title}</p>
+                            {n.message && <p className="text-[10px] text-[#A8A29E] mt-0.5 leading-relaxed">{n.message}</p>}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />}
+                            <time className="text-[9px] text-[#A8A29E] whitespace-nowrap">
+                              {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </time>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className="flex gap-2 pt-1">
-                  <button type="submit" disabled={profileLoading} className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
-                    <Save size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
-                  </button>
-                  <button type="button" onClick={handleProfileCancel} className="inline-flex items-center gap-2 text-sm font-medium text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] rounded-lg px-4 py-2 transition-all">
-                    <X size={13} />Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                {profileSuccess && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-sm rounded-lg mb-4">
-                    <CheckCircle size={13} className="shrink-0" />Profile updated successfully.
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[
-                    { label: 'First Name', value: user.firstName || '—' },
-                    { label: 'Last Name',  value: user.lastName  || '—' },
-                    { label: 'Username',   value: '@' + user.username  },
-                    { label: 'Email',      value: user.email           },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <p className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wider mb-0.5">{label}</p>
-                      <p className="text-sm text-[#1C1917]">{value}</p>
+              </Card>
+
+              {/* Change Password */}
+              <Card>
+                <CardTitle icon={Lock}>Change Password</CardTitle>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
+                  <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
+                  <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
+                  {pwError && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
+                      <AlertTriangle size={12} className="shrink-0" />{pwError}
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </SectionCard>
-
-          {/* Loyalty */}
-          {loyaltyLoading
-            ? <div className="bg-white border border-[#E8E3DB] rounded-xl p-6 h-[150px] animate-pulse" />
-            : <LoyaltyWidget loyalty={loyalty} />
-          }
-
-          {/* Notifications */}
-          <SectionCard>
-            <SectionTitle
-              icon={Bell}
-              action={notifUnread > 0 ? (
-                <button onClick={markAllRead} className="text-xs text-[#78716C] hover:text-[#1C1917] transition-colors">
-                  Mark all read
-                </button>
-              ) : null}
-            >
-              Notifications
-              {notifUnread > 0 && (
-                <span className="ml-1.5 bg-[#4ECDC4] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {notifUnread}
-                </span>
-              )}
-            </SectionTitle>
-
-            {notifLoading ? (
-              <div className="py-6 text-center text-sm text-[#A8A29E]">Loading…</div>
-            ) : notifications.length === 0 ? (
-              <div className="py-6 text-center text-sm text-[#A8A29E]">No notifications yet.</div>
-            ) : (
-              <div className="space-y-2">
-                {notifications.map(n => (
-                  <div
-                    key={n.id}
-                    onClick={() => !n.read && markRead(n.id)}
-                    className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                      n.read ? 'border-[#F0EDE8] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${n.read ? 'text-[#78716C]' : 'text-[#1C1917] font-semibold'}`}>{n.title}</p>
-                        {n.message && <p className="text-xs text-[#A8A29E] mt-0.5 leading-relaxed">{n.message}</p>}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!n.read && <div className="w-2 h-2 rounded-full bg-[#4ECDC4]" />}
-                        <time className="text-[10px] text-[#A8A29E]">
-                          {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </time>
-                      </div>
+                  )}
+                  {pwSuccess && (
+                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-xs">
+                      <CheckCircle size={12} className="shrink-0" />Password updated successfully.
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
+                  )}
+                  <button type="submit" disabled={pwLoading} className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
+                    {pwLoading ? 'Saving…' : 'Update Password'}
+                  </button>
+                </form>
+              </Card>
 
-          {/* Change Password */}
-          <SectionCard>
-            <SectionTitle icon={Lock}>Change Password</SectionTitle>
-            <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
-              <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
-              <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars, 1 letter, 1 number" />
-              <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
-              {pwError && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
-                  <AlertTriangle size={13} className="shrink-0" />{pwError}
-                </div>
-              )}
-              {pwSuccess && (
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-sm rounded-lg">
-                  <CheckCircle size={13} className="shrink-0" />Password updated successfully.
-                </div>
-              )}
-              <button type="submit" disabled={pwLoading} className="bg-[#1C1917] hover:bg-[#2D2926] text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
-                {pwLoading ? 'Saving…' : 'Update Password'}
-              </button>
-            </form>
-          </SectionCard>
-
+            </div>
+          </div>
         </div>
       </div>
 

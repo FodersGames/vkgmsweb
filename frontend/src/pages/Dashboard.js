@@ -7,7 +7,7 @@ import {
   Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  Search, ChevronRight,
+  Search, ChevronRight, Briefcase,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { SendItems }           from '../components/SendItems';
@@ -29,6 +29,7 @@ import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
 import { CouponManagement }    from '../components/CouponManagement';
 import { PlayersManagement }   from '../components/PlayersManagement';
+import CareersManagement      from '../components/CareersManagement';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 
@@ -63,7 +64,8 @@ const NAV_GROUPS = [
       { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag, permission: 'manage_shop'    },
       { id: 'coupons',          label: 'Coupons',  icon: Tag,         permission: 'manage_shop'    },
       { id: 'support',          label: 'Support',  icon: Ticket,      permission: 'manage_tickets' },
-      { id: 'website-settings', label: 'Settings', icon: Settings,    permission: 'manage_website' },
+      { id: 'website-settings', label: 'Settings',  icon: Settings,    permission: 'manage_website'  },
+      { id: 'careers',          label: 'Careers',   icon: Briefcase,   permission: 'manager_careers' },
     ],
   },
   {
@@ -414,7 +416,8 @@ const DashboardContent = () => {
             {activeTab === 'website-settings' &&                                <WebsiteSettings />}
             {activeTab === 'website-shop'     && hasPermission('manage_shop')   && <ShopManagement />}
             {activeTab === 'coupons'          && hasPermission('manage_shop')   && <CouponManagement />}
-            {activeTab === 'support'          && hasPermission('manage_tickets') && <TicketManagement />}
+            {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
+            {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

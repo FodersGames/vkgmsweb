@@ -377,6 +377,7 @@ ALL_PERMISSIONS = [
     "create_missions", "claim_missions", "manage_missions",
     "manage_tickets",
     "manage_play",
+    "manager_careers",
 ]
 
 def is_valid_permission(p: str) -> bool:
@@ -3751,6 +3752,70 @@ async def admin_play_delete_player(slug: str, player_id: str, user=Depends(requi
     await db.play_refresh_tokens.delete_many({"user_id": oid})
     return {"ok": True}
 
+# ============================================================
+# CAREERS
+# ============================================================
+
+class CareerCreateRequest(BaseModel):
+    title: str
+    department: str
+    contract_type: str
+    location: str
+    description: str
+    requirements: List[str] = []
+    tools: List[str] = []
+    is_open: bool = True
+
+class CareerUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    department: Optional[str] = None
+    contract_type: Optional[str] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
+    requirements: Optional[List[str]] = None
+    tools: Optional[List[str]] = None
+    is_open: Optional[bool] = None
+
+@api_router.get("/careers")
+async def list_careers_public():
+    """Public — returns only open positions."""
+    docs = await db.careers.find({"is_open": True}).sort("created_at", -1).to_list(100)
+    return {"careers": [{**{k: str(v) if k == "_id" else v for k, v in d.items()}} for d in docs]}
+
+@api_router.get("/admin/careers")
+async def list_careers_admin(user=Depends(require_any_of("manager_careers"))):
+    """Admin — returns all positions (open and closed)."""
+    docs = await db.careers.find().sort("created_at", -1).to_list(200)
+    return {"careers": [{**{k: str(v) if k == "_id" else v for k, v in d.items()}} for d in docs]}
+
+@api_router.post("/admin/careers")
+async def create_career(body: CareerCreateRequest, user=Depends(require_any_of("manager_careers"))):
+    now = datetime.now(timezone.utc)
+    doc = {**body.dict(), "created_at": now, "updated_at": now, "author": user["username"]}
+    result = await db.careers.insert_one(doc)
+    await log_action("careers", f"Career '{body.title}' created", user=user["username"])
+    return {"id": str(result.inserted_id)}
+
+@api_router.put("/admin/careers/{career_id}")
+async def update_career(career_id: str, body: CareerUpdateRequest, user=Depends(require_any_of("manager_careers"))):
+    try:
+        oid = ObjectId(career_id)
+    except Exception:
+        raise HTTPException(400, "Invalid ID")
+    update = {k: v for k, v in body.dict().items() if v is not None}
+    update["updated_at"] = datetime.now(timezone.utc)
+    await db.careers.update_one({"_id": oid}, {"$set": update})
+    return {"ok": True}
+
+@api_router.delete("/admin/careers/{career_id}")
+async def delete_career(career_id: str, user=Depends(require_any_of("manager_careers"))):
+    try:
+        oid = ObjectId(career_id)
+    except Exception:
+        raise HTTPException(400, "Invalid ID")
+    await db.careers.delete_one({"_id": oid})
+    return {"ok": True}
+
 # All api_router routes (including Play) must be registered before include_router
 app.include_router(api_router)
 
@@ -3786,6 +3851,8 @@ async def startup_event():
         await db.play_saves.create_index([("user_id", 1), ("project_slug", 1), ("category", 1)], unique=True)
         await db.play_refresh_tokens.create_index("jti", unique=True)
         await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
+        await db.careers.create_index("created_at")
+        await db.careers.create_index("is_open")
         logger.info("Database indexes initialized")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")

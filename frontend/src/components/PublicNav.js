@@ -17,9 +17,10 @@ export const PublicNav = ({ onAbout }) => {
   }, []);
 
   const links = [
-    { to: '/games', label: 'Games' },
-    { to: '/shop',  label: 'Shop'  },
-    { to: '/blog',  label: 'Blog'  },
+    { to: '/games',   label: 'Games'   },
+    { to: '/shop',    label: 'Shop'    },
+    { to: '/blog',    label: 'Blog'    },
+    { to: '/careers', label: 'Careers' },
   ];
 
   const active = (to) => pathname === to || pathname.startsWith(to + '/');
