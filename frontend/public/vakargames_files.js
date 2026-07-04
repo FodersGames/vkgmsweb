@@ -197,7 +197,7 @@
       if (cached && cached.updated_at === updatedAt) {
         return cached.data; // Uint8Array from IndexedDB
       }
-      const url = `${this._base()}/api/game/${this._slug}/files/${fileId}/download`;
+      const url = `${this._base()}/api/game/${this._slug}/files/${fileId}/download?version=${encodeURIComponent(this._resolvedVersion)}`;
       const res  = await this._fetch(url);
       const buf  = await res.arrayBuffer();
       const data = new Uint8Array(buf);
@@ -308,9 +308,14 @@
         const data = await res.json();
         const imageFiles = (data.files || []).filter(f => isImage(f.original_filename));
 
-        // Build index
+        // Build index — keyed by stable asset ID (same across all versions)
+        // AND by per-version doc id, so both kinds of IDs resolve
         this._fileIndex = {};
-        for (const f of imageFiles) this._fileIndex[f.id] = f;
+        for (const f of imageFiles) {
+          this._fileIndex[f.id] = f;
+          if (f.asset_id)  this._fileIndex[f.asset_id]  = f;
+          if (f.stable_id) this._fileIndex[f.stable_id] = f;
+        }
 
         // Load each image as a costume
         for (const f of imageFiles) {
@@ -342,7 +347,11 @@
           const url  = `${this._base()}/api/game/${this._slug}/files?version=${encodeURIComponent(this._resolvedVersion)}`;
           const res  = await this._fetch(url);
           const data = await res.json();
-          for (const file of (data.files || [])) this._fileIndex[file.id] = file;
+          for (const file of (data.files || [])) {
+            this._fileIndex[file.id] = file;
+            if (file.asset_id)  this._fileIndex[file.asset_id]  = file;
+            if (file.stable_id) this._fileIndex[file.stable_id] = file;
+          }
           f = this._fileIndex[String(ID)];
         } catch (e) { this._error = e.message; return; }
       }
