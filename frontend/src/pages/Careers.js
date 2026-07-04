@@ -36,23 +36,23 @@ export default function Careers() {
       <PublicNav />
 
       {/* Hero */}
-      <section className="bg-[#1C1917] py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-semibold tracking-[0.2em] text-[#4ECDC4] uppercase mb-4">Join the Studio</p>
+      <section className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-12">
+        <div className="max-w-screen-xl mx-auto">
+          <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Join the Studio</p>
           <h1
-            className="text-5xl md:text-6xl font-black text-white mb-5"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.06em' }}
+            className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight mb-4"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
           >
             CAREERS
           </h1>
-          <p className="text-[#78716C] text-base leading-relaxed max-w-xl mx-auto">
+          <p className="text-[#78716C] text-base leading-relaxed max-w-xl">
             We're a small independent studio building games we love. If you want to contribute
             to something creative and ambitious, we'd love to hear from you.
           </p>
         </div>
       </section>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-14">
+      <main className="flex-1 max-w-screen-xl mx-auto w-full px-6 md:px-10 lg:px-16 py-12">
 
         {/* Filter tabs */}
         {!loading && careers.length > 0 && (

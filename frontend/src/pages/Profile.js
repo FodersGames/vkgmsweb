@@ -329,31 +329,27 @@ const Profile = () => {
       <div className="pt-16 flex-1">
 
         {/* Hero banner */}
-        <div className="bg-[#1C1917] relative overflow-hidden">
-          {/* Decorative circles */}
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-5" style={{ background: '#4ECDC4' }} />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full opacity-5" style={{ background: '#4ECDC4' }} />
-
-          <div className="max-w-5xl mx-auto px-6 py-10 relative">
+        <div className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-10">
+          <div className="max-w-5xl mx-auto">
+            <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">My Account</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               {/* Avatar */}
               <div
-                className="relative w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-black"
+                className="relative w-16 h-16 flex items-center justify-center shrink-0 text-xl font-black"
                 style={{
-                  background: loyalty ? `linear-gradient(135deg, ${currentTier.color}44, ${currentTier.color}22)` : 'rgba(78,205,196,0.15)',
-                  border: `2px solid ${loyalty ? currentTier.color + '55' : '#4ECDC422'}`,
+                  background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
+                  border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
                   color: loyalty ? currentTier.color : '#4ECDC4',
                   fontFamily: "'Bebas Neue', sans-serif",
-                  letterSpacing: '0.04em',
                 }}
               >
                 {initials}
                 {loyalty && (
                   <div
-                    className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ background: currentTier.color, boxShadow: `0 2px 8px ${currentTier.color}66` }}
+                    className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: currentTier.color }}
                   >
-                    {React.createElement(currentTier.icon, { size: 12, color: 'white' })}
+                    {React.createElement(currentTier.icon, { size: 10, color: 'white' })}
                   </div>
                 )}
               </div>
@@ -362,22 +358,21 @@ const Profile = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <h1
-                    className="text-3xl font-black text-white"
-                    style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.06em' }}
+                    className="text-4xl sm:text-5xl font-black text-[#1C1917] leading-tight"
+                    style={{ fontFamily: "'Bebas Neue', sans-serif" }}
                   >
                     {displayName}
                   </h1>
                   {user.is_super_admin && (
-                    <span className="text-[10px] font-bold bg-[#4ECDC4]/20 text-[#4ECDC4] px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5">
                       SUPER ADMIN
                     </span>
                   )}
                 </div>
                 <p className="text-[#78716C] text-sm">{user.email}</p>
                 {loyalty && (
-                  <p className="text-xs mt-1.5" style={{ color: currentTier.color }}>
-                    {currentTier.label} grade
-                    {currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
+                  <p className="text-xs mt-1" style={{ color: currentTier.color }}>
+                    {currentTier.label} grade{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
                   </p>
                 )}
               </div>
@@ -387,7 +382,7 @@ const Profile = () => {
                 {isAdmin && isAdmin() && (
                   <Link
                     to="/dashboard"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-white border border-[#292524] hover:border-[#44403C] px-3 py-2 transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-2 transition-all"
                   >
                     <LayoutDashboard size={12} />
                     Dashboard
@@ -395,7 +390,7 @@ const Profile = () => {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-red-400 border border-[#292524] hover:border-red-800 px-3 py-2 transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-red-500 border border-[#E8E3DB] hover:border-red-200 px-3 py-2 transition-all"
                 >
                   <LogOut size={12} />
                   Sign Out
