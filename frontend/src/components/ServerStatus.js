@@ -80,11 +80,11 @@ export const ServerStatus = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Activity size={16} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Server Status</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Server Status</h3>
               <p className="text-xs text-[#71717a]">Control your server state</p>
             </div>
           </div>
@@ -92,7 +92,7 @@ export const ServerStatus = () => {
 
         <CardBody className="space-y-6">
           <div>
-            <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-3">
+            <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest mb-3">
               Current Status
             </p>
             <div className="flex items-center gap-2" data-testid="current-status">
@@ -102,7 +102,7 @@ export const ServerStatus = () => {
           </div>
 
           <div>
-            <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-3">
+            <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest mb-3">
               Change Status
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -113,10 +113,10 @@ export const ServerStatus = () => {
                     key={s}
                     onClick={() => changeStatus(s)}
                     disabled={loading || isActive}
-                    className={`py-2.5 px-4 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 ${
+                    className={`py-2.5 px-4 text-sm font-semibold transition-all disabled:opacity-50 ${
                       isActive
                         ? 'text-white'
-                        : 'bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20'
+                        : 'bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20'
                     }`}
                     style={isActive ? { backgroundColor: c.color, color: '#fff' } : { color: c.color }}
                     data-testid={`status-${s}-button`}
@@ -134,11 +134,11 @@ export const ServerStatus = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Tag size={16} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Live Game Version</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Live Game Version</h3>
               <p className="text-xs text-[#71717a]">
                 The version your players download. Change it when releasing an update.
               </p>
@@ -147,7 +147,7 @@ export const ServerStatus = () => {
         </CardHeader>
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-3">
+          <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest mb-3">
             Current live version
           </p>
           <div className="relative inline-block">

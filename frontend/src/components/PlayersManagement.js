@@ -119,18 +119,18 @@ export const PlayersManagement = () => {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#4ECDC4]/10 flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
               <Users size={20} className="text-[#4ECDC4]" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-[#2A3547]">Players</h1>
-              <p className="text-xs text-gray-400">{players.length} joueur{players.length !== 1 ? 's' : ''} — {selectedProject.name}</p>
+              <h1 className="text-lg font-bold text-[#1C1917]">Players</h1>
+              <p className="text-xs text-[#A8A29E]">{players.length} joueur{players.length !== 1 ? 's' : ''} — {selectedProject.name}</p>
             </div>
           </div>
           <button
             onClick={fetchPlayers}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#E8E3DB] text-[#78716C] hover:bg-[#F9F7F4] transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Actualiser
           </button>
@@ -138,43 +138,43 @@ export const PlayersManagement = () => {
 
         {/* Search */}
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
           <input
             type="text"
             placeholder="Rechercher un joueur..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
           />
         </div>
 
         {/* Player list */}
         {loading && players.length === 0 ? (
-          <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
+          <div className="flex items-center justify-center py-16 text-[#A8A29E] text-sm">
             <RefreshCw size={16} className="animate-spin mr-2" /> Chargement…
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Users size={40} className="text-gray-200 mb-3" />
-            <p className="text-sm text-gray-400 font-medium">Aucun joueur trouvé</p>
-            <p className="text-xs text-gray-300 mt-1">Les joueurs apparaîtront ici après leur première sauvegarde en jeu.</p>
+            <Users size={40} className="text-[#D6D0C7] mb-3" />
+            <p className="text-sm text-[#A8A29E] font-medium">Aucun joueur trouvé</p>
+            <p className="text-xs text-[#C9C3BB] mt-1">Les joueurs apparaîtront ici après leur première sauvegarde en jeu.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white border border-[#E8E3DB] overflow-hidden">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Joueur</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inscrit</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Vu</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</span>
+            <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#E8E3DB] bg-[#F9F7F4]">
+              <span className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wide">Joueur</span>
+              <span className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wide">Email</span>
+              <span className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wide">Inscrit</span>
+              <span className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wide">Vu</span>
+              <span className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wide">Actions</span>
             </div>
 
             {filtered.map(player => (
-              <div key={player.id} className="border-b border-gray-50 last:border-0">
+              <div key={player.id} className="border-b border-[#F0EDE8] last:border-0">
                 {/* Row */}
                 <div
-                  className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                  className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#F9F7F4] cursor-pointer transition-colors"
                   onClick={() => openPlayer(player)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -182,22 +182,22 @@ export const PlayersManagement = () => {
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#2A3547] truncate">{player.username}</p>
-                      <p className="text-xs text-gray-400">{player.categories?.length || 0} catégorie{player.categories?.length !== 1 ? 's' : ''}</p>
+                      <p className="text-sm font-semibold text-[#1C1917] truncate">{player.username}</p>
+                      <p className="text-xs text-[#A8A29E]">{player.categories?.length || 0} catégorie{player.categories?.length !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">{player.email}</p>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <p className="text-sm text-[#78716C] truncate">{player.email}</p>
+                  <div className="flex items-center gap-1 text-xs text-[#A8A29E]">
                     <Calendar size={11} /> {fmt(player.created_at)}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-1 text-xs text-[#A8A29E]">
                     <Clock size={11} /> {fmt(player.last_seen)}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={e => { e.stopPropagation(); revokeTokens(player); }}
                       title="Déconnecter"
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                      className="p-1.5 text-[#A8A29E] hover:text-orange-500 hover:bg-orange-50 transition-colors"
                     >
                       <ShieldOff size={14} />
                     </button>
@@ -205,32 +205,32 @@ export const PlayersManagement = () => {
                       <button
                         onClick={e => { e.stopPropagation(); deletePlayer(player); }}
                         title="Supprimer"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 text-[#A8A29E] hover:text-red-500 hover:bg-red-50 transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>
                     )}
-                    {expanded === player.id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    {expanded === player.id ? <ChevronUp size={14} className="text-[#A8A29E]" /> : <ChevronDown size={14} className="text-[#A8A29E]" />}
                   </div>
                 </div>
 
                 {/* Expanded saves editor */}
                 {expanded === player.id && (
-                  <div className="px-5 pb-5 bg-gray-50/30 border-t border-gray-100">
+                  <div className="px-5 pb-5 bg-[#F9F7F4] border-t border-[#E8E3DB]">
                     {detailLoading ? (
-                      <div className="flex items-center justify-center py-8 text-gray-400 text-sm">
+                      <div className="flex items-center justify-center py-8 text-[#A8A29E] text-sm">
                         <RefreshCw size={14} className="animate-spin mr-2" /> Chargement…
                       </div>
                     ) : (
                       <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {CATEGORIES.map(cat => (
-                          <div key={cat} className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+                          <div key={cat} className="bg-white border border-[#E8E3DB] p-4 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-[#4ECDC4] uppercase tracking-wide">{cat}</span>
                               <button
                                 onClick={() => saveCat(player.id, cat)}
                                 disabled={saving[cat]}
-                                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-[#4ECDC4]/10 text-[#4ECDC4] hover:bg-[#4ECDC4]/20 transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 bg-[#4ECDC4]/10 text-[#4ECDC4] hover:bg-[#4ECDC4]/20 transition-colors disabled:opacity-50"
                               >
                                 {saving[cat] ? <RefreshCw size={10} className="animate-spin" /> : <Save size={10} />}
                                 Enregistrer
@@ -241,7 +241,7 @@ export const PlayersManagement = () => {
                               onChange={e => setSaves(s => ({ ...s, [cat]: e.target.value }))}
                               rows={6}
                               spellCheck={false}
-                              className="w-full text-xs font-mono bg-gray-50 border border-gray-100 rounded-lg p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] text-gray-700"
+                              className="w-full text-xs font-mono bg-[#F9F7F4] border border-[#E8E3DB] p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] text-[#44403C]"
                             />
                           </div>
                         ))}

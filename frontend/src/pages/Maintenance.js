@@ -61,7 +61,7 @@ const MaintenancePage = () => (
             className="inline-flex items-center gap-2 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] bg-white px-4 py-2.5 transition-all"
           >
             <LogIn size={12} />
-            Staff sign in
+            Sign in
           </Link>
         </div>
       </div>
@@ -80,7 +80,7 @@ export const useMaintenanceCheck = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const bypassPaths = ['/login', '/dashboard'];
+    const bypassPaths = ['/login', '/dashboard', '/terms', '/privacy'];
     if (bypassPaths.some(p => location.pathname.startsWith(p))) {
       setChecked(true);
       setMaintenance(false);

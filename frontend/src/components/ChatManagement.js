@@ -110,11 +110,11 @@ export const ChatManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
               <MessageSquare size={16} style={{ color: '#9B51E0' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Game Chat</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Game Chat</h3>
               <p className="text-xs text-[#71717a]">In-game chat for {selectedProject?.name || 'this project'}</p>
             </div>
           </div>
@@ -127,15 +127,15 @@ export const ChatManagement = () => {
         ) : (
           <>
             {canManage && (
-              <div className="px-6 py-4 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+              <div className="px-6 py-4 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
                 <div className="flex items-center gap-2 mb-2">
                   <Key size={12} style={{ color: '#9B51E0' }} />
-                  <span className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                  <span className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">
                     Chat API Key — {selectedProject.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg px-3 py-2 text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono truncate">
+                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] px-3 py-2 text-xs text-[#1C1917] dark:text-[#e4e4e7] font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
                   <Button variant="secondary" size="sm" icon={Copy} onClick={copyKey} disabled={!selectedProject.chat_api_key} data-testid="copy-chat-key" />
@@ -149,7 +149,7 @@ export const ChatManagement = () => {
 
             <CardBody>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+                <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">
                   Messages ({messages.length})
                 </p>
                 <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-1.5 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg group hover:border-zinc-300 dark:hover:border-[#3a3a50] transition-colors">
+                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] group hover:border-[#D6D0C7] dark:hover:border-[#3a3a50] transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
@@ -179,7 +179,7 @@ export const ChatManagement = () => {
                           )}
                           <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-zinc-900 dark:text-[#e4e4e7] break-words">{m.message}</p>
+                        <p className="text-sm text-[#1C1917] dark:text-[#e4e4e7] break-words">{m.message}</p>
                       </div>
                       {canManage && (
                         <button onClick={() => handleDeleteMessage(m.id)} className="opacity-0 group-hover:opacity-100 p-1.5 text-[#71717a] hover:text-red-400 transition-all shrink-0" data-testid={`delete-message-${m.id}`}>
@@ -199,15 +199,15 @@ export const ChatManagement = () => {
         <Card className="overflow-hidden">
           <button
             onClick={() => setShowBannedWords(!showBannedWords)}
-            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-[#111118] transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors"
             data-testid="toggle-banned-words"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
+              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
                 <ShieldAlert size={16} style={{ color: '#EB5757' }} />
               </div>
               <div className="text-left">
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Banned Words</h3>
+                <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Banned Words</h3>
                 <p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p>
               </div>
             </div>
@@ -218,7 +218,7 @@ export const ChatManagement = () => {
           </button>
 
           {showBannedWords && (
-            <CardBody className="border-t border-zinc-200 dark:border-[#2a2a3c]">
+            <CardBody className="border-t border-[#E8E3DB] dark:border-[#2a2a3c]">
               <div className="flex gap-2 mb-4">
                 <Input
                   value={newWord}
@@ -235,7 +235,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="banned-words-list">
                   {bannedWords.map(w => (
-                    <span key={w} className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-zinc-900 dark:text-[#e4e4e7]">
+                    <span key={w} className="inline-flex items-center gap-1.5 bg-[#F0EDE8] dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-[#1C1917] dark:text-[#e4e4e7]">
                       {w}
                       <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-colors"><X size={11} /></button>
                     </span>

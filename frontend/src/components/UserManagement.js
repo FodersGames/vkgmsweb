@@ -466,7 +466,7 @@ export const UserManagement = () => {
               </div>
               <button
                 onClick={() => setOnlyWithPerms(v => !v)}
-                className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all shrink-0 ${
+                className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold border transition-all shrink-0 ${
                   onlyWithPerms
                     ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/30 text-[#4ECDC4]'
                     : 'bg-[#F9F7F4] border-[#E8E3DB] text-[#78716C] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'

@@ -50,11 +50,11 @@ export const ProjectManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
               <Gamepad2 size={16} style={{ color: '#6C5CE7' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Projects / Games</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Projects / Games</h3>
               <p className="text-xs text-[#71717a]">Manage your API projects</p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export const ProjectManagement = () => {
         </CardHeader>
 
         {showForm && (
-          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div className="px-6 py-5 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
             <form onSubmit={handleCreate} data-testid="create-project-form">
               <div className="flex gap-3 items-end">
                 <Input
@@ -87,7 +87,7 @@ export const ProjectManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest mb-4">
             Projects ({projects.length})
           </p>
           {projects.length === 0 ? (
@@ -97,15 +97,15 @@ export const ProjectManagement = () => {
               {projects.map(p => (
                 <div
                   key={p.slug}
-                  className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl hover:border-[#6C5CE7]/20 transition-colors"
+                  className="flex items-center justify-between p-4 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/20 transition-colors"
                   data-testid={`project-card-${p.slug}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+                    <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
                       <Gamepad2 size={16} style={{ color: '#A29BFE' }} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-zinc-900 dark:text-[#e4e4e7]">{p.name}</p>
+                      <p className="text-sm font-medium text-[#1C1917] dark:text-[#e4e4e7]">{p.name}</p>
                       <p className="text-xs text-[#71717a] font-mono">slug: {p.slug}</p>
                     </div>
                   </div>

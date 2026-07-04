@@ -48,11 +48,11 @@ export const LogsViewer = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
               <FileText size={16} style={{ color: '#9B51E0' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Activity Logs</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Activity Logs</h3>
               <p className="text-xs text-[#71717a]">View project activity</p>
             </div>
           </div>
@@ -61,10 +61,10 @@ export const LogsViewer = () => {
           </Button>
         </CardHeader>
 
-        <div className="px-6 py-4 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+        <div className="px-6 py-4 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
           <div className="flex items-center gap-2 mb-3">
             <Filter size={13} className="text-[#71717a]" />
-            <span className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">Filters</span>
+            <span className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">Filters</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Select
@@ -89,8 +89,8 @@ export const LogsViewer = () => {
         </div>
 
         <CardBody className="p-0">
-          <div className="px-6 py-3 border-b border-zinc-100 dark:border-[#1c1c2e]">
-            <span className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest">
+          <div className="px-6 py-3 border-b border-[#F0EDE8] dark:border-[#1c1c2e]">
+            <span className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">
               {logs.length} result{logs.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -101,9 +101,9 @@ export const LogsViewer = () => {
             <div className="overflow-x-auto">
               <table className="w-full" data-testid="logs-table">
                 <thead>
-                  <tr className="bg-zinc-50 dark:bg-[#111118]">
+                  <tr className="bg-[#F9F7F4] dark:bg-[#111118]">
                     {['Type', 'Time', 'User', 'Message'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest border-b border-zinc-200 dark:border-[#2a2a3c]">
+                      <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
                         {h}
                       </th>
                     ))}
@@ -111,15 +111,15 @@ export const LogsViewer = () => {
                 </thead>
                 <tbody>
                   {logs.map((l, i) => (
-                    <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-[#111118] border-b border-zinc-100 dark:border-[#1c1c2e] last:border-0 transition-colors">
+                    <tr key={i} className="hover:bg-[#F9F7F4] dark:hover:bg-[#111118] border-b border-[#F0EDE8] dark:border-[#1c1c2e] last:border-0 transition-colors">
                       <td className="px-4 py-3">
                         <Badge variant={logVariant(l.type)}>{l.type}</Badge>
                       </td>
                       <td className="px-4 py-3 text-xs text-[#71717a] font-mono whitespace-nowrap">
                         {new Date(l.timestamp).toLocaleString('fr-FR', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="px-4 py-3 text-sm text-zinc-900 dark:text-[#e4e4e7]">{l.user || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-900 dark:text-[#e4e4e7]">{l.message}</td>
+                      <td className="px-4 py-3 text-sm text-[#1C1917] dark:text-[#e4e4e7]">{l.user || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[#1C1917] dark:text-[#e4e4e7]">{l.message}</td>
                     </tr>
                   ))}
                 </tbody>

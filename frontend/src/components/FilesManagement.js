@@ -26,10 +26,10 @@ const TYPE_LABELS = { build: 'Build', patch: 'Patch', config: 'Config', asset: '
 
 const PLATFORM_COLORS = {
   windows: 'bg-blue-50 text-blue-700 border-blue-200',
-  mac:     'bg-zinc-100 text-zinc-700 border-zinc-200',
+  mac:     'bg-[#F0EDE8] text-[#44403C] border-[#E8E3DB]',
   linux:   'bg-orange-50 text-orange-700 border-orange-200',
   android: 'bg-green-50 text-green-700 border-green-200',
-  ios:     'bg-zinc-100 text-zinc-600 border-zinc-200',
+  ios:     'bg-[#F0EDE8] text-[#57534E] border-[#E8E3DB]',
   all:     'bg-[#4ECDC4]/10 text-[#4ECDC4] border-[#4ECDC4]/30',
 };
 

@@ -12,11 +12,11 @@ import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Button, Card, CardHeader, CardBody, EmptyState } from '../ui';
 
-const inputClass = 'w-full bg-zinc-50 dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-900 dark:text-[#e4e4e7] rounded-lg text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-[#52525b]';
-const labelClass = 'block text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] mb-1.5 uppercase tracking-widest';
+const inputClass = 'w-full bg-[#F9F7F4] dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#1C1917] dark:text-[#e4e4e7] text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-[#A8A29E] dark:placeholder:text-[#52525b]';
+const labelClass = 'block text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] mb-1.5 uppercase tracking-widest';
 
 const PRIORITY = {
-  low:    { label: 'Low',    color: '#71717a', bg: 'bg-zinc-100 dark:bg-[#1c1c2e]', Icon: Minus },
+  low:    { label: 'Low',    color: '#71717a', bg: 'bg-[#F0EDE8] dark:bg-[#1c1c2e]', Icon: Minus },
   medium: { label: 'Medium', color: '#2F80ED', bg: 'bg-blue-50 dark:bg-blue-950/30', Icon: ArrowUp },
   high:   { label: 'High',   color: '#F2994A', bg: 'bg-orange-50 dark:bg-orange-950/20', Icon: Flame },
   urgent: { label: 'Urgent', color: '#EB5757', bg: 'bg-red-50 dark:bg-red-950/20', Icon: Zap },
@@ -97,16 +97,16 @@ const RefImageCard = ({ url, onZoom }) => {
   const filename = url.split('/').pop();
   const ext = filename.split('.').pop()?.toUpperCase();
   return (
-    <div className="relative group rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] flex-shrink-0">
+    <div className="relative group overflow-hidden border border-[#E8E3DB] dark:border-[#2a2a3c] bg-[#F0EDE8] dark:bg-[#0d0d14] flex-shrink-0">
       <img src={src} alt="" className="h-28 w-auto max-w-[140px] object-contain block" />
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
         <button onClick={() => onZoom(src)}
-          className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title="Zoom">
+          className="p-2 bg-white/15 hover:bg-white/25 text-white transition-colors" title="Zoom">
           <ZoomIn size={14} />
         </button>
         <button onClick={() => downloadFile(url, filename)}
-          className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title={`Download .${ext}`}>
+          className="p-2 bg-white/15 hover:bg-white/25 text-white transition-colors" title={`Download .${ext}`}>
           <Download size={14} />
         </button>
       </div>
@@ -132,17 +132,17 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
             const filename = f.filename || f.url.split('/').pop();
             const ext = filename.split('.').pop()?.toUpperCase();
             return (
-              <div key={i} className="relative group rounded-xl overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14] aspect-square">
+              <div key={i} className="relative group overflow-hidden border border-[#E8E3DB] dark:border-[#2a2a3c] bg-[#F0EDE8] dark:bg-[#0d0d14] aspect-square">
                 <img src={src} alt={filename} className="w-full h-full object-contain" />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
                   <div className="flex gap-2">
                     <button onClick={() => onZoom(src)}
-                      className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title="Zoom">
+                      className="p-2 bg-white/15 hover:bg-white/25 text-white transition-colors" title="Zoom">
                       <ZoomIn size={16} />
                     </button>
                     <button onClick={() => downloadFile(f.url, filename)}
-                      className="p-2 bg-white/15 hover:bg-white/25 rounded-lg text-white transition-colors" title={`Download .${ext}`}>
+                      className="p-2 bg-white/15 hover:bg-white/25 text-white transition-colors" title={`Download .${ext}`}>
                       <Download size={16} />
                     </button>
                   </div>
@@ -166,9 +166,9 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
         const filename = f.filename || f.url?.split('/').pop() || 'file';
         return (
           <button key={i} onClick={() => downloadFile(f.url, filename)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
+            className="w-full flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-[#151520] border border-[#E8E3DB] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
             <FileText size={13} className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0" />
-            <span className="text-xs font-medium text-zinc-700 dark:text-[#e4e4e7] flex-1 truncate">{filename}</span>
+            <span className="text-xs font-medium text-[#44403C] dark:text-[#e4e4e7] flex-1 truncate">{filename}</span>
             {f.size && <span className="text-[10px] text-[#71717a] shrink-0">{fmtSize(f.size)}</span>}
             <Download size={12} className="text-[#71717a] group-hover:text-[#27AE60] transition-colors shrink-0" />
           </button>
@@ -361,13 +361,13 @@ export const MissionsManagement = () => {
         <div className="flex flex-wrap gap-1.5">
           {FILTERS.map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-semibold transition-all capitalize flex items-center gap-1.5 ${
                 filter === f
                   ? 'bg-[#6C5CE7] text-white'
-                  : 'bg-white dark:bg-[#151520] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] hover:border-[#6C5CE7]/40'
+                  : 'bg-white dark:bg-[#151520] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#57534E] dark:text-[#71717a] hover:border-[#6C5CE7]/40'
               }`}>
               {f === 'all' ? 'All' : STATUS[f]?.label}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-[#2a2a3c] text-[#71717a]'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${filter === f ? 'bg-white/20 text-white' : 'bg-[#F0EDE8] dark:bg-[#2a2a3c] text-[#71717a]'}`}>
                 {counts[f] ?? 0}
               </span>
             </button>
@@ -385,10 +385,10 @@ export const MissionsManagement = () => {
         <Card className="overflow-hidden border-[#6C5CE7]/30">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+              <div className="w-7 h-7 flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
                 <ClipboardList size={13} style={{ color: '#6C5CE7' }} />
               </div>
-              <span className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">
+              <span className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">
                 {editingMission ? 'Edit Mission' : 'New Mission Request'}
               </span>
             </div>
@@ -424,7 +424,7 @@ export const MissionsManagement = () => {
               <label className={labelClass}>Reference Files <span className="text-[#71717a] normal-case font-normal">(images, SVG…)</span></label>
               <div className="flex flex-wrap gap-2">
                 {form.reference_images.map((url, idx) => (
-                  <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-[#2a2a3c] bg-zinc-100 dark:bg-[#0d0d14]">
+                  <div key={idx} className="relative group w-20 h-20 overflow-hidden border border-[#E8E3DB] dark:border-[#2a2a3c] bg-[#F0EDE8] dark:bg-[#0d0d14]">
                     <img src={resolveUrl(url)} alt="" className="w-full h-full object-contain" />
                     <button onClick={() => setForm(f => ({ ...f, reference_images: f.reference_images.filter((_, i) => i !== idx) }))}
                       className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,7 +432,7 @@ export const MissionsManagement = () => {
                     </button>
                   </div>
                 ))}
-                <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-zinc-400 dark:text-[#71717a] ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-zinc-300 dark:border-[#2a2a3c] hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
+                <label className={`w-20 h-20 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-[#A8A29E] dark:text-[#71717a] ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-[#D6D0C7] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
                   <Upload size={16} />
                   <span className="text-[10px] mt-1">{uploadingRef ? '…' : 'Add'}</span>
                   <input type="file" accept="image/*,.svg" className="hidden" onChange={uploadRefImage} disabled={uploadingRef} />
@@ -478,11 +478,11 @@ export const MissionsManagement = () => {
 
             return (
               <div key={m.id}
-                className={`bg-white dark:bg-[#151520] rounded-xl border transition-all overflow-hidden ${
+                className={`bg-white dark:bg-[#151520] border transition-all overflow-hidden ${
                   m.status === 'completed'   ? 'border-[#27AE60]/30' :
-                  m.status === 'cancelled'   ? 'border-zinc-200 dark:border-[#2a2a3c] opacity-60' :
+                  m.status === 'cancelled'   ? 'border-[#E8E3DB] dark:border-[#2a2a3c] opacity-60' :
                   m.status === 'in_progress' ? 'border-[#F2994A]/40' :
-                  'border-zinc-200 dark:border-[#2a2a3c]'
+                  'border-[#E8E3DB] dark:border-[#2a2a3c]'
                 }`}>
 
                 {/* ── Card header ── */}
@@ -491,7 +491,7 @@ export const MissionsManagement = () => {
                     <div className="w-1 self-stretch rounded-full shrink-0 mt-0.5" style={{ backgroundColor: PRIORITY[m.priority]?.color || '#71717a' }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">{m.title}</h3>
+                        <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">{m.title}</h3>
                         <PriorityBadge p={m.priority} />
                         <StatusBadge s={m.status} />
                         {m.revisions?.length > 0 && (
@@ -501,13 +501,13 @@ export const MissionsManagement = () => {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#71717a]">
-                        <span>by <span className="font-medium text-zinc-600 dark:text-[#a1a1aa]">{m.created_by}</span></span>
+                        <span>by <span className="font-medium text-[#57534E] dark:text-[#a1a1aa]">{m.created_by}</span></span>
                         <span>{timeAgo(m.created_at)}</span>
                         {m.claimed_by && <span>· <span className="text-[#F2994A] font-medium">{m.claimed_by}</span></span>}
                         {m.completed_at && <span>· done {timeAgo(m.completed_at)}</span>}
                       </div>
                       {m.description && (
-                        <p className="mt-1.5 text-xs text-zinc-500 dark:text-[#71717a] line-clamp-2">{m.description}</p>
+                        <p className="mt-1.5 text-xs text-[#78716C] dark:text-[#71717a] line-clamp-2">{m.description}</p>
                       )}
                     </div>
 
@@ -515,7 +515,7 @@ export const MissionsManagement = () => {
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                       {hasDetails && (
                         <button onClick={() => { setExpandedMission(isExpanded ? null : m.id); resetCompletionForm(); resetReopenForm(); }}
-                          className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium rounded-lg bg-zinc-100 dark:bg-[#1c1c2e] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white transition-all">
+                          className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium bg-[#F0EDE8] dark:bg-[#1c1c2e] text-[#78716C] dark:text-[#71717a] hover:text-[#1C1917] dark:hover:text-white transition-all">
                           <ImageIcon size={11} />
                           {m.reference_images?.length > 0 && m.reference_images.length}
                           <ChevronDown size={10} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -523,7 +523,7 @@ export const MissionsManagement = () => {
                       )}
                       {m.status === 'open' && canClaim && (
                         <button onClick={() => claimMission(m.id)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] border border-[#4ECDC4]/30 transition-all">
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] border border-[#4ECDC4]/30 transition-all">
                           <UserCheck size={12} />Claim
                         </button>
                       )}
@@ -531,31 +531,31 @@ export const MissionsManagement = () => {
                         <>
                           {!isCompleting && (
                             <button onClick={() => { setCompletingId(m.id); setPendingFiles([]); resetReopenForm(); setExpandedMission(m.id); }}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[#27AE60]/10 hover:bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30 transition-all">
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#27AE60]/10 hover:bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30 transition-all">
                               <CheckCircle size={12} />Submit Work
                             </button>
                           )}
                           <button onClick={() => unclaimMission(m.id)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-[#111118] text-zinc-500 dark:text-[#71717a] hover:text-zinc-900 dark:hover:text-white border border-zinc-200 dark:border-[#2a2a3c] transition-all">
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#F0EDE8] dark:bg-[#111118] text-[#78716C] dark:text-[#71717a] hover:text-[#1C1917] dark:hover:text-white border border-[#E8E3DB] dark:border-[#2a2a3c] transition-all">
                             <Undo2 size={12} />Unclaim
                           </button>
                         </>
                       )}
                       {m.status === 'completed' && canReopenThis && !isReopening && (
                         <button onClick={() => { setReopeningId(m.id); setReopenFeedback(''); setKeepAssigned(true); resetCompletionForm(); setExpandedMission(m.id); }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-[#EB5757]/10 hover:bg-[#EB5757]/20 text-[#EB5757] border border-[#EB5757]/30 transition-all">
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#EB5757]/10 hover:bg-[#EB5757]/20 text-[#EB5757] border border-[#EB5757]/30 transition-all">
                           <RotateCcw size={12} />Reopen
                         </button>
                       )}
                       {canEditThis && m.status !== 'completed' && m.status !== 'cancelled' && (
                         <button onClick={() => openEdit(m)}
-                          className="p-1.5 rounded-lg text-zinc-400 dark:text-[#71717a] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
+                          className="p-1.5 text-[#A8A29E] dark:text-[#71717a] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
                           <Edit2 size={13} />
                         </button>
                       )}
                       {canDeleteThis && (
                         <button onClick={() => deleteMission(m)}
-                          className="p-1.5 rounded-lg text-zinc-400 dark:text-[#71717a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
+                          className="p-1.5 text-[#A8A29E] dark:text-[#71717a] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -565,18 +565,18 @@ export const MissionsManagement = () => {
 
                 {/* ── Expanded panel ── */}
                 {isExpanded && (
-                  <div className="border-t border-zinc-100 dark:border-[#1c1c2e] bg-zinc-50 dark:bg-[#111118]">
+                  <div className="border-t border-[#F0EDE8] dark:border-[#1c1c2e] bg-[#F9F7F4] dark:bg-[#111118]">
 
                     {/* Submit Work form */}
                     {isCompleting && (
-                      <div className="px-4 py-4 border-b border-zinc-200 dark:border-[#1c1c2e] bg-[#27AE60]/5">
+                      <div className="px-4 py-4 border-b border-[#E8E3DB] dark:border-[#1c1c2e] bg-[#27AE60]/5">
                         <p className="text-xs font-semibold text-[#27AE60] mb-3 flex items-center gap-1.5">
                           <CheckCircle size={13} />Submit your work files
                         </p>
-                        <label className={`flex flex-col items-center justify-center gap-2 w-full py-5 rounded-xl border-2 border-dashed cursor-pointer transition-all ${uploadingDelivery ? 'opacity-50 cursor-wait border-[#27AE60]/30' : 'border-zinc-300 dark:border-[#2a2a3c] hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5'}`}>
-                          <Upload size={20} className="text-zinc-400 dark:text-[#71717a]" />
+                        <label className={`flex flex-col items-center justify-center gap-2 w-full py-5 border-2 border-dashed cursor-pointer transition-all ${uploadingDelivery ? 'opacity-50 cursor-wait border-[#27AE60]/30' : 'border-[#D6D0C7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5'}`}>
+                          <Upload size={20} className="text-[#A8A29E] dark:text-[#71717a]" />
                           <div className="text-center">
-                            <p className="text-xs font-semibold text-zinc-700 dark:text-[#e4e4e7]">{uploadingDelivery ? 'Uploading…' : 'Click to add files'}</p>
+                            <p className="text-xs font-semibold text-[#44403C] dark:text-[#e4e4e7]">{uploadingDelivery ? 'Uploading…' : 'Click to add files'}</p>
                             <p className="text-[10px] text-[#71717a] mt-0.5">PNG, SVG, PSD, ZIP, PDF… up to 50 MB per file · Multiple allowed</p>
                           </div>
                           <input type="file" multiple className="hidden" onChange={uploadDelivery} disabled={uploadingDelivery} />
@@ -599,11 +599,11 @@ export const MissionsManagement = () => {
                         )}
                         <div className="flex gap-2 mt-3">
                           <button onClick={submitCompletion}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#27AE60] hover:bg-[#219a52] text-white rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#27AE60] hover:bg-[#219a52] text-white text-sm font-semibold transition-all">
                             <CheckCircle size={13} />Mark as Done
                           </button>
                           <button onClick={resetCompletionForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-[#F0EDE8] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#57534E] dark:text-[#71717a] text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>
@@ -612,24 +612,24 @@ export const MissionsManagement = () => {
 
                     {/* Reopen form */}
                     {isReopening && (
-                      <div className="px-4 py-4 border-b border-zinc-200 dark:border-[#1c1c2e] bg-[#EB5757]/5">
+                      <div className="px-4 py-4 border-b border-[#E8E3DB] dark:border-[#1c1c2e] bg-[#EB5757]/5">
                         <p className="text-xs font-semibold text-[#EB5757] mb-3 flex items-center gap-1.5">
                           <AlertCircle size={13} />Reopen — describe what needs to be corrected
                         </p>
                         <textarea value={reopenFeedback} onChange={e => setReopenFeedback(e.target.value)}
                           className={`${inputClass} resize-none`} rows={3}
                           placeholder="The stone texture is too smooth. Please add more shading detail…" />
-                        <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-700 dark:text-[#e4e4e7] select-none mt-2.5">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-[#44403C] dark:text-[#e4e4e7] select-none mt-2.5">
                           <input type="checkbox" checked={keepAssigned} onChange={e => setKeepAssigned(e.target.checked)} className="w-3.5 h-3.5 rounded" />
                           Keep assigned to <span className="font-semibold text-[#F2994A]">{m.claimed_by}</span>
                         </label>
                         <div className="flex gap-2 mt-3">
                           <button onClick={submitReopen} disabled={!reopenFeedback.trim()}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#EB5757] hover:bg-[#d44] disabled:opacity-40 text-white rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#EB5757] hover:bg-[#d44] disabled:opacity-40 text-white text-sm font-semibold transition-all">
                             <RotateCcw size={13} />Reopen Mission
                           </button>
                           <button onClick={resetReopenForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] text-zinc-600 dark:text-[#71717a] rounded-lg text-sm font-semibold transition-all">
+                            className="flex items-center gap-1.5 px-3 py-2 bg-[#F0EDE8] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#57534E] dark:text-[#71717a] text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>
@@ -638,11 +638,11 @@ export const MissionsManagement = () => {
 
                     {/* Style notes + reference files */}
                     {(m.style_description || m.reference_images?.length > 0) && (
-                      <div className="px-4 py-3 space-y-3 border-b border-zinc-100 dark:border-[#1c1c2e]">
+                      <div className="px-4 py-3 space-y-3 border-b border-[#F0EDE8] dark:border-[#1c1c2e]">
                         {m.style_description && (
                           <div>
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#71717a] mb-1">Visual Style</p>
-                            <p className="text-xs text-zinc-700 dark:text-[#a1a1aa] whitespace-pre-wrap">{m.style_description}</p>
+                            <p className="text-xs text-[#44403C] dark:text-[#a1a1aa] whitespace-pre-wrap">{m.style_description}</p>
                           </div>
                         )}
                         {m.reference_images?.length > 0 && (
@@ -662,7 +662,7 @@ export const MissionsManagement = () => {
 
                     {/* Latest delivery files */}
                     {m.delivery_files?.length > 0 && (
-                      <div className="px-4 py-3 border-b border-zinc-100 dark:border-[#1c1c2e]">
+                      <div className="px-4 py-3 border-b border-[#F0EDE8] dark:border-[#1c1c2e]">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[#27AE60] mb-2 flex items-center gap-1.5">
                           <Download size={10} />Delivered Work
                         </p>
@@ -698,7 +698,7 @@ export const MissionsManagement = () => {
                                     </span>
                                     <span className="text-[#71717a] text-[10px]">{timeAgo(rev.feedback_at)}</span>
                                   </div>
-                                  <p className="text-zinc-700 dark:text-[#a1a1aa] whitespace-pre-wrap leading-relaxed">{rev.feedback}</p>
+                                  <p className="text-[#44403C] dark:text-[#a1a1aa] whitespace-pre-wrap leading-relaxed">{rev.feedback}</p>
                                 </div>
                               )}
                             </div>
@@ -717,7 +717,7 @@ export const MissionsManagement = () => {
       {/* ── LIGHTBOX ── */}
       {expandedImg && (
         <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={() => setExpandedImg(null)}>
-          <img src={expandedImg} alt="" className="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl" />
+          <img src={expandedImg} alt="" className="max-w-full max-h-[90vh] object-contain shadow-2xl" />
           <div className="absolute top-4 right-4 flex gap-2">
             <button onClick={e => { e.stopPropagation(); downloadFile(expandedImg, expandedImg.split('/').pop()); }}
               className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors" title="Download">

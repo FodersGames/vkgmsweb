@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -203,13 +203,6 @@ export const Login = () => {
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
-
-        {maintenance && (
-          <div className="mb-4 flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 text-amber-700 text-xs leading-relaxed">
-            <Wrench size={13} className="shrink-0 mt-0.5" />
-            <span>The site is under maintenance. Only staff accounts with dashboard access can sign in.</span>
-          </div>
-        )}
 
         <div className="bg-white border border-[#E8E3DB] shadow-sm overflow-hidden">
           {/* Tabs */}

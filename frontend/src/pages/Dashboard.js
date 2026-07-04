@@ -4,10 +4,10 @@ import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
   Users, Package, Activity, FileText, Database, LogOut, Code,
-  Gamepad2, ChevronDown, Check, Globe, Settings, PenTool,
+  Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  Search, ChevronRight, Briefcase,
+  ChevronRight, Briefcase,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { SendItems }           from '../components/SendItems';
@@ -148,18 +148,18 @@ const DashboardContent = () => {
         onClick={() => { if (!disabled) { setActiveTab(item.id); setMobileOpen(false); } }}
         disabled={disabled}
         data-testid={`sidebar-nav-${item.id}`}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 ${
+        className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors duration-150 border-l-2 ${
           isActive
-            ? 'bg-[#4ECDC4]/10 text-[#1a2e2d] font-semibold'
+            ? 'border-[#4ECDC4] bg-white/[0.06] text-white font-medium'
             : disabled
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-[#637381] hover:bg-gray-50 hover:text-[#2A3547]'
+            ? 'border-transparent text-[#44403C] cursor-not-allowed'
+            : 'border-transparent text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
         }`}
       >
         <Icon
-          size={16}
+          size={15}
           className={`shrink-0 transition-colors ${
-            isActive ? 'text-[#4ECDC4]' : disabled ? 'text-gray-300' : 'text-gray-400'
+            isActive ? 'text-[#4ECDC4]' : disabled ? 'text-[#44403C]' : 'text-[#78716C]'
           }`}
         />
         <span className="text-[13px] leading-none">{item.label}</span>
@@ -170,56 +170,58 @@ const DashboardContent = () => {
   // ── Sidebar ───────────────────────────────────────────────────────────────
 
   const SidebarContent = ({ onClose }) => (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[#1C1917]">
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4ECDC4]/25 to-[#4ECDC4]/10 flex items-center justify-center shrink-0">
-          <Gamepad2 size={18} className="text-[#4ECDC4]" />
-        </div>
+      <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#292524]">
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold text-[#2A3547] leading-tight">Vakar Games</p>
-          <p className="text-[11px] text-gray-400 leading-tight">Admin Panel</p>
+          <p
+            className="text-[15px] font-black tracking-[0.16em] text-white leading-tight"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            VAKAR GAMES
+          </p>
+          <p className="text-[10px] text-[#78716C] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors ml-1">
+          <button onClick={onClose} className="text-[#78716C] hover:text-white transition-colors ml-1">
             <X size={18} />
           </button>
         )}
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3" data-testid="sidebar-nav">
+      <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
         {NAV_GROUPS.map((group, gi) => {
           const visibleItems = group.items.filter(i => itemVisible(i, hasPermission));
           if (!visibleItems.length) return null;
 
           return (
-            <div key={group.label} className={gi > 0 ? 'mt-5' : ''}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-gray-400 px-3 mb-1.5">
+            <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534E] px-5 mb-2">
                 {group.label}
               </p>
 
               {/* Project selector — Studio only */}
               {group.id === 'studio' && projects.length > 0 && (
-                <div className="relative mb-2" ref={projectDropRef}>
+                <div className="relative mb-2 mx-3" ref={projectDropRef}>
                   <button
                     onClick={() => setShowProject(v => !v)}
                     data-testid="project-selector"
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-left transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-[#292524] hover:bg-[#33302C] text-left transition-colors"
                   >
                     <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                    <span className="flex-1 text-[12px] font-medium text-[#2A3547] truncate">
+                    <span className="flex-1 text-[12px] font-medium text-white truncate">
                       {selectedProject?.name || 'Select project…'}
                     </span>
                     <ChevronDown
                       size={12}
-                      className={`text-gray-400 shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
+                      className={`text-[#78716C] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {showProject && (
                     <div
-                      className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg shadow-black/5 overflow-hidden"
+                      className="absolute z-50 left-0 right-0 mt-1 bg-[#292524] border border-[#33302C] shadow-lg overflow-hidden"
                       data-testid="project-dropdown"
                     >
                       {projects.map(p => (
@@ -229,8 +231,8 @@ const DashboardContent = () => {
                           data-testid={`project-option-${p.slug}`}
                           className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
                             selectedProject?.slug === p.slug
-                              ? 'bg-[#4ECDC4]/10 text-[#2A3547] font-semibold'
-                              : 'text-gray-500 hover:bg-gray-50 hover:text-[#2A3547]'
+                              ? 'bg-white/[0.06] text-white font-medium'
+                              : 'text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
                           }`}
                         >
                           <span className="flex-1 truncate">{p.name}</span>
@@ -242,21 +244,23 @@ const DashboardContent = () => {
                 </div>
               )}
 
-              {visibleItems.map(item => <NavItem key={item.id} item={item} />)}
+              <div className="px-2">
+                {visibleItems.map(item => <NavItem key={item.id} item={item} />)}
+              </div>
             </div>
           );
         })}
       </nav>
 
       {/* User card */}
-      <div className="shrink-0 border-t border-gray-100 p-3">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#F5F7FB]">
-          <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+      <div className="shrink-0 border-t border-[#292524] p-3">
+        <div className="flex items-center gap-3 px-2 py-2">
+          <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-[#2A3547] truncate leading-tight">{displayName}</p>
-            <p className="text-[11px] text-gray-400 leading-tight">
+            <p className="text-[12px] font-semibold text-white truncate leading-tight">{displayName}</p>
+            <p className="text-[11px] text-[#78716C] leading-tight">
               {user?.is_super_admin ? 'Super Admin' : 'Admin'}
             </p>
           </div>
@@ -264,7 +268,7 @@ const DashboardContent = () => {
             onClick={logout}
             title="Sign out"
             data-testid="logout-button"
-            className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+            className="p-1.5 text-[#78716C] hover:text-red-400 transition-colors shrink-0"
           >
             <LogOut size={15} />
           </button>
@@ -276,12 +280,10 @@ const DashboardContent = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#F5F7FB] overflow-hidden">
+    <div className="flex h-screen bg-[#F9F7F4] overflow-hidden">
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex shrink-0 w-64 h-full border-r border-gray-100"
-        style={{ boxShadow: '2px 0 12px rgba(0,0,0,0.04)' }}
-      >
+      <aside className="hidden lg:flex shrink-0 w-64 h-full">
         <SidebarContent />
       </aside>
 
@@ -289,8 +291,7 @@ const DashboardContent = () => {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40"
-            style={{ backdropFilter: 'blur(2px)' }}
+            className="absolute inset-0 bg-black/50"
             onClick={() => setMobileOpen(false)}
           />
           <aside className="relative z-10 w-72 h-full shadow-2xl">
@@ -303,66 +304,53 @@ const DashboardContent = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header
-          className="h-16 shrink-0 bg-white border-b border-gray-100 flex items-center px-5 gap-4 z-20"
-          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
-        >
+        <header className="h-16 shrink-0 bg-white border-b border-[#E8E3DB] flex items-center px-5 gap-4 z-20">
           {/* Mobile burger */}
           <button
-            className="lg:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
+            className="lg:hidden p-2 -ml-1 text-[#78716C] hover:text-[#1C1917] transition-colors"
             onClick={() => setMobileOpen(true)}
           >
             <Menu size={18} />
           </button>
 
           {/* Mobile brand */}
-          <span className="lg:hidden text-[14px] font-bold text-[#2A3547]">Vakar Games</span>
+          <span
+            className="lg:hidden text-[14px] font-black tracking-[0.14em] text-[#1C1917]"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            VAKAR GAMES
+          </span>
 
           {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2">
-            <span className="text-sm text-gray-400 font-medium">
+            <span className="text-sm text-[#A8A29E]">
               {currentGroup?.label || 'Dashboard'}
             </span>
             {currentItem && currentGroup && (
               <>
-                <ChevronRight size={14} className="text-gray-300" />
-                <span className="text-sm font-semibold text-[#2A3547]">{currentItem.label}</span>
+                <ChevronRight size={13} className="text-[#C9C3BB]" />
+                <span className="text-sm font-semibold text-[#1C1917]">{currentItem.label}</span>
               </>
             )}
           </div>
 
           <div className="flex-1" />
 
-          {/* Search (decorative) */}
-          <div className="hidden md:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2 w-48 select-none">
-            <Search size={13} className="text-gray-400 shrink-0" />
-            <span className="text-[12px] text-gray-400">Search…</span>
-          </div>
-
           {/* Right actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-4">
             <Link
               to="/"
-              title="Back to site"
-              className="p-2 rounded-xl text-gray-500 hover:text-[#2A3547] hover:bg-gray-50 transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-2 transition-all"
             >
-              <Home size={17} />
+              <Home size={12} />
+              View site
             </Link>
-            <div className="w-px h-5 bg-gray-100 mx-1" />
-            <div className="flex items-center gap-2.5 pr-1">
-              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
                 {initials}
               </div>
-              <span className="hidden md:block text-[13px] font-semibold text-[#2A3547]">{displayName}</span>
+              <span className="hidden md:block text-[13px] font-semibold text-[#1C1917]">{displayName}</span>
             </div>
-            <button
-              onClick={logout}
-              title="Sign out"
-              data-testid="logout-button"
-              className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <LogOut size={16} />
-            </button>
           </div>
         </header>
 
@@ -378,24 +366,20 @@ const DashboardContent = () => {
 
             {needsProject && !selectedProject && (
               <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
-                <div
-                  className="w-14 h-14 rounded-2xl bg-white border border-gray-100 flex items-center justify-center mb-5"
-                  style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
-                >
-                  <Gamepad2 size={22} className="text-gray-300" />
+                <div className="w-14 h-14 bg-white border border-[#E8E3DB] flex items-center justify-center mb-5">
+                  <Gamepad2 size={22} className="text-[#C9C3BB]" />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A8A29E] mb-2">
                   No project selected
                 </p>
-                <h3 className="text-lg font-bold text-[#2A3547] mb-2">Select a Project</h3>
-                <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                <h3 className="text-lg font-bold text-[#1C1917] mb-2">Select a Project</h3>
+                <p className="text-sm text-[#78716C] mb-6 leading-relaxed">
                   Choose a project from the sidebar to access its data.
                 </p>
                 <button
                   onClick={() => setActiveTab('projects')}
                   data-testid="go-to-projects-button"
-                  className="inline-flex items-center gap-2 bg-[#4ECDC4] hover:bg-[#45b8b0] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                  style={{ boxShadow: '0 4px 14px rgba(78,205,196,0.35)' }}
+                  className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
                 >
                   View Projects <ArrowRight size={14} />
                 </button>

@@ -70,11 +70,11 @@ export const VariablesManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Database size={16} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7]">Variables</h3>
+              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Variables</h3>
               <p className="text-xs text-[#71717a]">Manage project variables</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export const VariablesManagement = () => {
         </CardHeader>
 
         {showForm && (
-          <div className="px-6 py-5 bg-zinc-50 dark:bg-[#111118] border-b border-zinc-200 dark:border-[#2a2a3c]">
+          <div className="px-6 py-5 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
             <form onSubmit={handleCreate} data-testid="create-variable-form">
               <div className="space-y-4">
                 <Input
@@ -124,7 +124,7 @@ export const VariablesManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-zinc-400 dark:text-[#52525b] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest mb-4">
             Variables ({variables.length})
           </p>
           {variables.length === 0 ? (
@@ -134,7 +134,7 @@ export const VariablesManagement = () => {
               {variables.map(v => {
                 const isEditing = editingVar?.variable_name === v.variable_name;
                 return (
-                  <div key={v.variable_name} className="bg-zinc-50 dark:bg-[#111118] border border-zinc-200 dark:border-[#2a2a3c] rounded-xl p-4 hover:border-[#4ECDC4]/20 transition-colors">
+                  <div key={v.variable_name} className="bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] p-4 hover:border-[#4ECDC4]/20 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <code className="text-sm font-semibold text-[#2F80ED] font-mono">{v.variable_name}</code>
@@ -176,7 +176,7 @@ export const VariablesManagement = () => {
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {v.values.map((val, i) => (
-                          <span key={i} className="px-3 py-1 bg-white dark:bg-[#0d0d14] border border-zinc-200 dark:border-[#2a2a3c] rounded-lg text-xs text-zinc-900 dark:text-[#e4e4e7] font-mono">
+                          <span key={i} className="px-3 py-1 bg-white dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] text-xs text-[#1C1917] dark:text-[#e4e4e7] font-mono">
                             {val}
                           </span>
                         ))}
