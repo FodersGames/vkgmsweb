@@ -617,7 +617,7 @@ class MissionReopenRequest(BaseModel):
 
 class TicketCreateRequest(BaseModel):
     subject: str
-    category: Literal["general", "technical", "billing", "account"] = "general"
+    category: Literal["general", "technical", "billing", "account", "recruitment"] = "general"
     message: str
 
 class TicketReplyRequest(BaseModel):
@@ -729,6 +729,7 @@ async def get_current_user(request: Request):
         "is_super_admin": is_super,
         "permissions": ALL_PERMISSIONS if is_super else user.get("permissions", []),
         "mustChangePassword": user.get("mustChangePassword", False),
+        "avatar_url": user.get("avatar_url"),
     }
 
 async def get_optional_user(request: Request):
@@ -915,6 +916,30 @@ async def register(request: Request, body: RegisterRequest):
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
     return user
+
+@api_router.post("/user/avatar")
+@limiter.limit("10/minute")
+async def upload_avatar(request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
+    ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".svg"}
+    MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_EXTS:
+        raise HTTPException(400, "File type not allowed. Use JPG, PNG or SVG.")
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(400, "File too large. Maximum size is 5 MB.")
+    # Delete previous avatar file if it exists
+    for old_ext in ALLOWED_EXTS:
+        old_path = UPLOADS_DIR / f"avatar_{user['id']}{old_ext}"
+        if old_path.exists():
+            old_path.unlink(missing_ok=True)
+    filename = f"avatar_{user['id']}{ext}"
+    filepath = UPLOADS_DIR / filename
+    with open(filepath, "wb") as f:
+        f.write(content)
+    avatar_url = f"/api/uploads/{filename}"
+    await db.users.update_one({"_id": ObjectId(user["id"])}, {"$set": {"avatar_url": avatar_url}})
+    return {"avatar_url": avatar_url}
 
 @api_router.patch("/auth/profile")
 async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_user)):
@@ -1694,6 +1719,42 @@ async def get_user_loyalty(user=Depends(get_current_user)):
         "next_tier": next_tier,
         "next_threshold_cents": next_threshold,
     }
+
+# ── Player game stats ─────────────────────────────────────────────────────────
+@api_router.get("/user/play-stats")
+async def get_play_stats(user=Depends(get_current_user)):
+    uid = ObjectId(user["id"])
+    saves = await db.play_saves.find({"user_id": uid}).to_list(None)
+    by_game: dict = {}
+    for s in saves:
+        slug = s["project_slug"]
+        if slug not in by_game:
+            by_game[slug] = {"slug": slug, "categories": [], "last_updated": None, "saves_count": 0}
+        by_game[slug]["categories"].append(s["category"])
+        by_game[slug]["saves_count"] += 1
+        upd = s.get("updated_at")
+        if upd and (by_game[slug]["last_updated"] is None or upd > by_game[slug]["last_updated"]):
+            by_game[slug]["last_updated"] = upd
+    slugs = list(by_game.keys())
+    games = await db.website_games.find({"slug": {"$in": slugs}}).to_list(None) if slugs else []
+    projects = await db.projects.find({"slug": {"$in": slugs}}).to_list(None) if slugs else []
+    game_map = {g["slug"]: g for g in games}
+    project_map = {p["slug"]: p for p in projects}
+    result = []
+    for slug, data in by_game.items():
+        wg = game_map.get(slug, {})
+        pr = project_map.get(slug, {})
+        result.append({
+            "slug": slug,
+            "name": wg.get("title") or pr.get("name") or slug,
+            "cover_image": wg.get("cover_image_url") or wg.get("image_url"),
+            "platform_links": wg.get("platform_links") or [],
+            "categories": list(set(data["categories"])),
+            "saves_count": data["saves_count"],
+            "last_updated": data["last_updated"].isoformat() if data["last_updated"] else None,
+        })
+    result.sort(key=lambda x: x["last_updated"] or "", reverse=True)
+    return {"games": result, "total_games": len(result)}
 
 # ── Unified shop checkout (auth required, applies loyalty discount) ────────────
 @api_router.post("/shop/checkout")

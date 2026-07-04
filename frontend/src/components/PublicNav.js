@@ -17,10 +17,9 @@ export const PublicNav = ({ onAbout }) => {
   }, []);
 
   const links = [
-    { to: '/games',   label: 'Games'   },
-    { to: '/shop',    label: 'Shop'    },
-    { to: '/blog',    label: 'Blog'    },
-    { to: '/careers', label: 'Careers' },
+    { to: '/games', label: 'Games' },
+    { to: '/shop',  label: 'Shop'  },
+    { to: '/blog',  label: 'Blog'  },
   ];
 
   const active = (to) => pathname === to || pathname.startsWith(to + '/');
@@ -72,6 +71,14 @@ export const PublicNav = ({ onAbout }) => {
 
           {user ? (
             <div className="flex items-center gap-3">
+              <Link
+                to="/play"
+                className={`text-sm font-medium transition-colors ${
+                  active('/play') ? 'text-[#1C1917]' : 'text-[#78716C] hover:text-[#1C1917]'
+                }`}
+              >
+                Play
+              </Link>
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
@@ -143,6 +150,13 @@ export const PublicNav = ({ onAbout }) => {
 
           {user ? (
             <>
+              <Link
+                to="/play"
+                onClick={() => setOpen(false)}
+                className={`block text-sm py-2.5 transition-colors ${active('/play') ? 'text-[#1C1917] font-semibold' : 'text-[#78716C] hover:text-[#1C1917]'}`}
+              >
+                Play
+              </Link>
               <Link
                 to="/profile"
                 onClick={() => setOpen(false)}

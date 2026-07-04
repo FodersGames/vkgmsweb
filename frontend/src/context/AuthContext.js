@@ -83,6 +83,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = () => token && fetchMe(token);
+
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
@@ -104,7 +106,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, changePassword, hasPermission, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, changePassword, hasPermission, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

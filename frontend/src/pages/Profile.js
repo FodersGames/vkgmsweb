@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Mail, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard } from 'lucide-react';
+import { User, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard, Camera } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -53,131 +53,75 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
 // ── Loyalty system ────────────────────────────────────────────────────────────
 
 const TIERS = {
-  bronze:  { label: 'Bronze',  color: '#CD7F32', icon: Shield,  discount: 0,  min: 0,    next: 2500,  gradient: 'from-[#CD7F32] to-[#E8A454]' },
-  silver:  { label: 'Silver',  color: '#94A3B8', icon: Star,    discount: 5,  min: 2500,  next: 10000, gradient: 'from-[#94A3B8] to-[#CBD5E1]' },
-  gold:    { label: 'Gold',    color: '#F59E0B', icon: Trophy,  discount: 10, min: 10000, next: 25000, gradient: 'from-[#F59E0B] to-[#FCD34D]' },
-  diamond: { label: 'Diamond', color: '#22D3EE', icon: Gem,     discount: 15, min: 25000, next: null,  gradient: 'from-[#22D3EE] to-[#818CF8]' },
+  bronze:  { label: 'Bronze',  color: '#CD7F32', icon: Shield,  discount: 0,  min: 0     },
+  silver:  { label: 'Silver',  color: '#94A3B8', icon: Star,    discount: 5,  min: 2500  },
+  gold:    { label: 'Gold',    color: '#F59E0B', icon: Trophy,  discount: 10, min: 10000 },
+  diamond: { label: 'Diamond', color: '#22D3EE', icon: Gem,     discount: 15, min: 25000 },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
-
-// Gradient stops for the cartoon progress bar
-const BAR_GRADIENT = 'linear-gradient(90deg, #CD7F32 0%, #94A3B8 33%, #F59E0B 66%, #22D3EE 100%)';
 
 const LoyaltyWidget = ({ loyalty }) => {
   if (!loyalty) return null;
   const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
   const cfg = TIERS[tier] || TIERS.bronze;
   const tierIdx = TIER_ORDER.indexOf(tier);
+  const Icon = cfg.icon;
   const progressPct = next_threshold_cents
     ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
     : 100;
 
   return (
-    <div className="bg-white border border-[#E8E3DB] p-6">
-      {/* Header */}
+    <div className="bg-[#1C1917] p-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xs font-bold text-[#1C1917] uppercase tracking-[0.12em]">Loyalty Grade</h2>
-        <span
-          className="text-xs font-bold px-3 py-1 rounded-full"
-          style={{ background: `${cfg.color}22`, color: cfg.color }}
-        >
-          {cfg.label}{cfg.discount > 0 ? ` · −${cfg.discount}%` : ''}
-        </span>
-      </div>
-
-      {/* Tier badges */}
-      <div className="flex items-end justify-between mb-3 px-1">
-        {TIER_ORDER.map((t, i) => {
-          const tc = TIERS[t];
-          const TIcon = tc.icon;
-          const reached = i <= tierIdx;
-          const isCurrent = t === tier;
-          return (
-            <div key={t} className="flex flex-col items-center gap-1.5" style={{ width: '22%' }}>
-              <div
-                className={`flex items-center justify-center rounded-full transition-all duration-500 ${isCurrent ? 'ring-2 ring-offset-2' : ''}`}
-                style={{
-                  width: isCurrent ? 44 : 34,
-                  height: isCurrent ? 44 : 34,
-                  background: reached ? `linear-gradient(135deg, ${tc.color}cc, ${tc.color})` : '#F0EDE8',
-                  ringColor: tc.color,
-                  boxShadow: isCurrent ? `0 4px 14px ${tc.color}55` : 'none',
-                }}
-              >
-                <TIcon size={isCurrent ? 20 : 15} style={{ color: reached ? 'white' : '#C9C3BB' }} />
-              </div>
-              <span className="text-[9px] font-bold tracking-wide" style={{ color: reached ? tc.color : '#C9C3BB' }}>
-                {tc.label.toUpperCase()}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Cartoon progress bar */}
-      <div className="relative mb-4 mx-1">
-        {/* Track */}
-        <div
-          className="h-5 rounded-full overflow-hidden relative"
-          style={{ background: '#F0EDE8', border: '2px solid #E8E3DB' }}
-        >
-          {/* Rainbow fill */}
-          <div
-            className="h-full rounded-full transition-all duration-700 relative overflow-hidden"
-            style={{
-              width: `${progressPct}%`,
-              background: BAR_GRADIENT,
-              backgroundSize: '300px 100%',
-            }}
-          >
-            {/* Shine overlay */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%)' }}
-            />
-          </div>
-          {/* Tier dividers */}
-          {[33, 66, 89].map((pct, i) => (
-            <div
-              key={i}
-              className="absolute top-0 bottom-0 w-0.5 bg-white/50"
-              style={{ left: `${pct}%` }}
-            />
-          ))}
+        <div className="flex items-center gap-2">
+          <Icon size={13} style={{ color: cfg.color }} />
+          <h2 className="text-xs font-bold tracking-widest uppercase" style={{ color: cfg.color }}>
+            {cfg.label} rank
+          </h2>
         </div>
+        <span className="text-xs text-[#44403C] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
+      </div>
 
-        {/* Bouncing star at tip */}
-        {progressPct < 100 && progressPct > 5 && (
+      {/* Track */}
+      <div className="relative h-px bg-[#292524] mb-2">
+        <div
+          className="absolute top-0 left-0 h-full transition-all duration-700"
+          style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
+        />
+        {[{ pct: 10, t: 'bronze' }, { pct: 33, t: 'silver' }, { pct: 66, t: 'gold' }, { pct: 100, t: 'diamond' }].map(({ pct, t }) => (
           <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center"
-            style={{ left: `${progressPct}%`, borderColor: cfg.color, boxShadow: `0 2px 8px ${cfg.color}66` }}
-          >
-            <Star size={9} fill={cfg.color} style={{ color: cfg.color }} />
-          </div>
-        )}
+            key={t}
+            className="absolute -top-1 w-px h-3"
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#292524' }}
+          />
+        ))}
       </div>
 
-      {/* Spent / next */}
-      <div className="flex justify-between items-center text-xs text-[#A8A29E]">
-        <span className="font-semibold" style={{ color: cfg.color }}>
-          ${(total_spent_cents / 100).toFixed(2)} spent
-        </span>
-        {next_threshold_cents && next_tier ? (
-          <span>
-            ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to {TIERS[next_tier]?.label}
+      <div className="flex justify-between mb-5">
+        {TIER_ORDER.map((t, i) => (
+          <span
+            key={t}
+            className="text-[9px] font-semibold tracking-[0.15em] uppercase"
+            style={{ color: i <= tierIdx ? TIERS[t].color : '#292524' }}
+          >
+            {TIERS[t].label}
           </span>
-        ) : (
-          <span className="font-semibold text-[#22D3EE]">Max tier reached!</span>
-        )}
+        ))}
       </div>
+
+      {next_threshold_cents && next_tier ? (
+        <p className="text-[10px] text-[#44403C]">
+          ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
+          <span style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
+        </p>
+      ) : (
+        <p className="text-[10px]" style={{ color: cfg.color }}>Maximum rank achieved.</p>
+      )}
 
       {cfg.discount > 0 && (
-        <div
-          className="mt-4 rounded-lg px-3 py-2 text-xs font-semibold text-center"
-          style={{ background: `${cfg.color}18`, color: cfg.color }}
-        >
-          {cfg.label} grade · {cfg.discount}% off all in-app purchases
-        </div>
+        <p className="text-[10px] mt-1" style={{ color: cfg.color }}>
+          {cfg.discount}% discount applied on all in-app purchases.
+        </p>
       )}
     </div>
   );
@@ -198,7 +142,11 @@ const CardTitle = ({ icon: Icon, children, action }) => (
 );
 
 const Profile = () => {
-  const { user, logout, updateProfile, changePassword, token, isAdmin } = useAuth();
+  const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser } = useAuth();
+  const avatarInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
   const navigate = useNavigate();
 
   const DEFAULT_LOYALTY = { total_spent_cents: 0, tier: 'bronze', discount_pct: 0, next_tier: 'silver', next_threshold_cents: 2500 };
@@ -314,6 +262,37 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError('');
+    const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+    if (!ALLOWED.includes(file.type)) {
+      setAvatarError('Only JPG, PNG or SVG files are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('File too large. Maximum 5 MB.');
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview(preview);
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await axios.post(`${API_URL}/api/user/avatar`, formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      });
+      await refreshUser();
+    } catch {
+      setAvatarError('Upload failed. Please try again.');
+      setAvatarPreview(null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleLogout = () => { logout(); navigate('/'); };
 
   if (!user) return null;
@@ -334,17 +313,32 @@ const Profile = () => {
             <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">My Account</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               {/* Avatar */}
-              <div
-                className="relative w-16 h-16 flex items-center justify-center shrink-0 text-xl font-black"
-                style={{
-                  background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
-                  border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
-                  color: loyalty ? currentTier.color : '#4ECDC4',
-                  fontFamily: "'Bebas Neue', sans-serif",
-                }}
-              >
-                {initials}
-                {loyalty && (
+              <div className="relative shrink-0 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                <div
+                  className="w-16 h-16 overflow-hidden flex items-center justify-center text-xl font-black"
+                  style={{
+                    background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
+                    border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
+                    color: loyalty ? currentTier.color : '#4ECDC4',
+                    fontFamily: "'Bebas Neue', sans-serif",
+                  }}
+                >
+                  {avatarPreview || user.avatar_url ? (
+                    <img
+                      src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : initials}
+                </div>
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-[#1C1917]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {avatarUploading
+                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <Camera size={14} className="text-white" />
+                  }
+                </div>
+                {loyalty && !avatarPreview && !user.avatar_url && (
                   <div
                     className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
                     style={{ background: currentTier.color }}
@@ -352,6 +346,13 @@ const Profile = () => {
                     {React.createElement(currentTier.icon, { size: 10, color: 'white' })}
                   </div>
                 )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.svg"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </div>
 
               {/* Name + email */}
@@ -399,6 +400,16 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        {/* Avatar error */}
+        {avatarError && (
+          <div className="max-w-5xl mx-auto px-6 pt-4">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
+              <AlertTriangle size={12} className="shrink-0" />{avatarError}
+              <button onClick={() => setAvatarError('')} className="ml-auto"><X size={12} /></button>
+            </div>
+          </div>
+        )}
 
         {/* Main content — 2-column on desktop */}
         <div className="max-w-5xl mx-auto px-6 py-10">

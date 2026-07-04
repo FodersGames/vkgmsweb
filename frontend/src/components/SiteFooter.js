@@ -58,11 +58,6 @@ export const SiteFooter = ({ onAbout }) => (
               </Link>
             </li>
             <li>
-              <Link to="/careers" className="text-sm text-[#78716C] hover:text-white transition-colors">
-                Careers
-              </Link>
-            </li>
-            <li>
               <a
                 href="mailto:support@vakargames.com"
                 className="text-sm text-[#78716C] hover:text-white transition-colors"

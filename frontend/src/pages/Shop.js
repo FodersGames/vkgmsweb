@@ -38,8 +38,6 @@ const GradeBadge = ({ tier, size = 'sm' }) => {
   );
 };
 
-const BAR_GRADIENT = 'linear-gradient(90deg, #CD7F32 0%, #94A3B8 33%, #F59E0B 66%, #22D3EE 100%)';
-
 const LoyaltyBar = ({ loyalty }) => {
   const [showInfo, setShowInfo] = useState(false);
   if (!loyalty) return null;
@@ -47,121 +45,89 @@ const LoyaltyBar = ({ loyalty }) => {
   const tierIdx = TIER_ORDER.indexOf(tier);
   const cfg = TIERS[tier] || TIERS.bronze;
   const Icon = cfg.icon;
-
   const progressPct = next_threshold_cents
     ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
     : 100;
 
   return (
-    <div className="bg-white border border-[#E8E3DB] p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#1C1917] uppercase tracking-[0.12em]">Loyalty Grade</span>
+    <div className="bg-[#1C1917] p-5">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <Icon size={14} style={{ color: cfg.color }} />
+          <span className="text-sm font-bold tracking-widest uppercase" style={{ color: cfg.color }}>{cfg.label}</span>
+          {cfg.discount > 0 && (
+            <span className="text-xs text-[#78716C]">−{cfg.discount}% on purchases</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-[#44403C] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
           <button
             onClick={() => setShowInfo(v => !v)}
-            className="w-4 h-4 rounded-full border border-[#C9C3BB] text-[#A8A29E] hover:border-[#4ECDC4] hover:text-[#4ECDC4] flex items-center justify-center text-[10px] font-bold transition-colors"
+            className="w-4 h-4 border border-[#44403C] text-[#44403C] hover:border-[#78716C] hover:text-[#78716C] flex items-center justify-center text-[10px] font-bold transition-colors"
           >?</button>
-        </div>
-        <div className="flex items-center gap-2">
-          {cfg.discount > 0 && (
-            <span className="text-xs font-semibold text-[#4ECDC4]">−{cfg.discount}% on purchases</span>
-          )}
-          <span
-            className="text-xs font-bold px-2.5 py-0.5 rounded-full"
-            style={{ background: `${cfg.color}22`, color: cfg.color }}
-          >
-            {cfg.label}
-          </span>
         </div>
       </div>
 
-      {/* Tier badges */}
-      <div className="flex items-end justify-between mb-3 px-1">
+      {/* Track */}
+      <div className="relative h-px bg-[#292524] mb-1">
+        <div
+          className="absolute top-0 left-0 h-full transition-all duration-700"
+          style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
+        />
+        {/* Tier tick marks */}
+        {[{ pct: 10, t: 'bronze' }, { pct: 33, t: 'silver' }, { pct: 66, t: 'gold' }, { pct: 100, t: 'diamond' }].map(({ pct, t }) => (
+          <div
+            key={t}
+            className="absolute -top-1 w-px h-3"
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#292524' }}
+          />
+        ))}
+      </div>
+
+      {/* Tier labels row */}
+      <div className="flex justify-between mb-4">
         {TIER_ORDER.map((t, i) => {
           const tc = TIERS[t];
-          const TIcon = tc.icon;
           const reached = i <= tierIdx;
-          const isCurrent = t === tier;
           return (
-            <div key={t} className="flex flex-col items-center gap-1.5" style={{ width: '22%' }}>
-              <div
-                className="flex items-center justify-center rounded-full transition-all duration-500"
-                style={{
-                  width: isCurrent ? 40 : 30,
-                  height: isCurrent ? 40 : 30,
-                  background: reached ? `linear-gradient(135deg, ${tc.color}cc, ${tc.color})` : '#F0EDE8',
-                  boxShadow: isCurrent ? `0 4px 12px ${tc.color}55` : 'none',
-                }}
-              >
-                <TIcon size={isCurrent ? 18 : 13} style={{ color: reached ? 'white' : '#C9C3BB' }} />
-              </div>
-              <span className="text-[9px] font-bold tracking-wide" style={{ color: reached ? tc.color : '#C9C3BB' }}>
-                {tc.label.toUpperCase()}
-              </span>
-            </div>
+            <span
+              key={t}
+              className="text-[9px] font-semibold tracking-[0.15em] uppercase"
+              style={{ color: reached ? tc.color : '#292524' }}
+            >
+              {tc.label}
+            </span>
           );
         })}
       </div>
 
-      {/* Cartoon rainbow progress bar */}
-      <div className="relative mb-3 mx-1">
-        <div
-          className="h-5 rounded-full overflow-hidden relative"
-          style={{ background: '#F0EDE8', border: '2px solid #E8E3DB' }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-700 relative overflow-hidden"
-            style={{ width: `${progressPct}%`, background: BAR_GRADIENT }}
-          >
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%)' }}
-            />
-          </div>
-          {[33, 66, 89].map((pct, i) => (
-            <div key={i} className="absolute top-0 bottom-0 w-0.5 bg-white/50" style={{ left: `${pct}%` }} />
-          ))}
-        </div>
-        {progressPct < 100 && progressPct > 5 && (
-          <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center"
-            style={{ left: `${progressPct}%`, borderColor: cfg.color, boxShadow: `0 2px 8px ${cfg.color}66` }}
-          >
-            <Star size={9} fill={cfg.color} style={{ color: cfg.color }} />
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between items-center text-xs text-[#A8A29E] mb-1">
-        <span className="font-semibold" style={{ color: cfg.color }}>${(total_spent_cents / 100).toFixed(2)} spent</span>
-        {next_tier && next_threshold_cents
-          ? <span>${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to {TIERS[next_tier]?.label}</span>
-          : <span className="font-semibold text-[#22D3EE]">Max tier reached!</span>
-        }
-      </div>
+      {next_tier && next_threshold_cents ? (
+        <p className="text-[10px] text-[#44403C]">
+          ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
+          <span style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
+        </p>
+      ) : (
+        <p className="text-[10px]" style={{ color: cfg.color }}>Maximum rank achieved.</p>
+      )}
 
       {showInfo && (
-        <div className="mt-3 p-4 bg-[#F9F7F4] border border-[#E8E3DB] text-xs text-[#78716C] space-y-3">
-          <p className="font-bold text-[#1C1917]">How the loyalty program works</p>
-          <p>Every dollar you spend in the shop adds to your loyalty total. The more you spend, the higher your tier — and the bigger your discount on every future purchase.</p>
-          <div className="grid grid-cols-2 gap-1.5">
+        <div className="mt-4 pt-4 border-t border-[#292524] text-xs text-[#78716C] space-y-3">
+          <p className="font-semibold text-[#A8A29E]">Loyalty program</p>
+          <p>Every dollar you spend adds to your loyalty total. The more you spend, the higher your rank and the bigger your discount on future purchases.</p>
+          <div className="grid grid-cols-2 gap-1">
             {TIER_ORDER.map(t => {
               const tc = TIERS[t];
               const TIcon = tc.icon;
               const reached = TIER_ORDER.indexOf(t) <= tierIdx;
               return (
-                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-white border" style={{ borderColor: reached ? tc.color : '#E8E3DB' }}>
+                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#292524]">
                   <TIcon size={10} style={{ color: tc.color }} />
-                  <span className="font-semibold" style={{ color: tc.color }}>{tc.label}</span>
-                  <span className="text-[#A8A29E] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` · −${tc.discount}%` : ''}</span>
+                  <span className="font-semibold text-[10px]" style={{ color: tc.color }}>{tc.label}</span>
+                  <span className="text-[#44403C] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-[#A8A29E] pt-1 border-t border-[#E8E3DB]">
-            <strong className="text-[#78716C]">Silver, Gold and Diamond members</strong> receive exclusive coupons and bonus offers directly in their inbox from time to time.
-          </p>
         </div>
       )}
     </div>
