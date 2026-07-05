@@ -1404,15 +1404,29 @@ async def get_status(slug: str):
     return ServerStatusResponse(status=doc["status"] if doc else "open")
 
 # ============== PROJECT-SCOPED: LOGS ==============
+# Curated set of log types that are meaningful in a per-project activity feed.
+# (Account-level/global actions — auth, website content, support, careers — never carry a
+# project_slug and are therefore already excluded from this view by the query below.)
+PROJECT_LOG_TYPES = (
+    "files", "variable_action", "shop", "status", "chat",
+    "missions", "player", "send", "claim", "delete", "project",
+)
+
 @api_router.get("/projects/{slug}/logs")
 async def get_logs(slug: str, log_type: Optional[str] = None, user_filter: Optional[str] = None,
-                   uid: Optional[str] = None, limit: int = 100, page: int = 1,
+                   uid: Optional[str] = None, search: Optional[str] = None,
+                   limit: int = 100, page: int = 1,
                    user=Depends(require_permission("view_logs"))):
     await get_project_or_404(slug)
     q = {"project_slug": slug}
-    if log_type: q["type"] = log_type
+    if log_type:
+        types = [t.strip() for t in log_type.split(",") if t.strip()]
+        if types:
+            q["type"] = {"$in": types}
     if user_filter: q["user"] = user_filter
     if uid: q["uid"] = uid
+    if search:
+        q["message"] = {"$regex": re.escape(search.strip()), "$options": "i"}
 
     skip = (page - 1) * limit
     total = await db.logs.count_documents(q)
@@ -2113,7 +2127,7 @@ async def create_shop_product(game_slug: str, req: ShopProductCreateRequest, use
     }
     result = await db.website_shop_products.insert_one(doc)
     doc["_id"] = result.inserted_id
-    await log_action("website", f"Shop product '{req.name}' created for game '{game_slug}'", user=user["username"])
+    await log_action("shop", f"Shop product '{req.name}' created", project_slug=req.project_slug, user=user["username"])
     return {"success": True, "product": serialize_doc(doc)}
 
 @api_router.put("/shop/{game_slug}/products/{product_id}")
@@ -2131,7 +2145,8 @@ async def update_shop_product(game_slug: str, product_id: str, req: ShopProductU
     updates["updated_at"] = datetime.now(timezone.utc)
     await db.website_shop_products.update_one({"_id": oid}, {"$set": updates})
     updated = await db.website_shop_products.find_one({"_id": oid})
-    await log_action("website", f"Shop product '{product_id}' updated for '{game_slug}'", user=user["username"])
+    await log_action("shop", f"Shop product '{updated.get('name', product_id)}' updated",
+                      project_slug=updated.get("project_slug", product.get("project_slug")), user=user["username"])
     return {"success": True, "product": serialize_doc(updated)}
 
 @api_router.delete("/shop/{game_slug}/products/{product_id}")
@@ -2140,10 +2155,12 @@ async def delete_shop_product(game_slug: str, product_id: str, user=Depends(requ
         oid = ObjectId(product_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid product ID")
-    r = await db.website_shop_products.delete_one({"_id": oid, "game_slug": game_slug})
-    if r.deleted_count == 0:
+    product = await db.website_shop_products.find_one({"_id": oid, "game_slug": game_slug})
+    if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    await log_action("website", f"Shop product '{product_id}' deleted from '{game_slug}'", user=user["username"])
+    await db.website_shop_products.delete_one({"_id": oid})
+    await log_action("shop", f"Shop product '{product.get('name', product_id)}' deleted",
+                      project_slug=product.get("project_slug"), user=user["username"])
     return {"success": True}
 
 @api_router.get("/shop/{game_slug}/settings")
@@ -2324,7 +2341,7 @@ async def update_daily_gift(game_slug: str, req: DailyGiftConfigRequest, user=De
     updates["updated_at"] = datetime.now(timezone.utc)
     updates["updated_by"] = user["username"]
     await db.website_shop_daily_gifts.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
-    await log_action("website", f"Daily gift updated for '{game_slug}'", user=user["username"])
+    await log_action("shop", "Daily gift settings updated", project_slug=req.project_slug or None, user=user["username"])
     return serialize_doc(await db.website_shop_daily_gifts.find_one({"game_slug": game_slug}))
 
 # ── Game files ───────────────────────────────────────────────────────────────
@@ -2387,7 +2404,7 @@ async def regenerate_files_api_key(slug: str, user=Depends(require_permission("m
         raise HTTPException(status_code=404, detail="Project not found")
     new_key = secrets.token_urlsafe(32)
     await db.projects.update_one({"slug": slug}, {"$set": {"files_api_key": new_key}})
-    await log_action("website", f"Files API key regenerated for project '{slug}'", user=user["username"])
+    await log_action("files", f"Files API key regenerated", project_slug=slug, user=user["username"])
     return {"files_api_key": new_key}
 
 # ── Admin: upload file ────────────────────────────────────────────────────────
@@ -2493,7 +2510,7 @@ async def upload_game_file(
             raise HTTPException(status_code=400, detail="Fichier .sprite3 invalide (ZIP corrompu)")
 
         total = len(created_docs) + len(replaced_docs)
-        await log_action("website", f"Sprite '{file.filename}' importé : {len(created_docs)} créés, {len(replaced_docs)} remplacés dans groupe '{gid_s3}'", user=user["username"])
+        await log_action("files", f"Sprite '{file.filename}' imported: {len(created_docs)} created, {len(replaced_docs)} replaced in group '{gid_s3}'", project_slug=slug, user=user["username"])
         return {"success": True, "sprite3": True, "created": len(created_docs), "replaced": len(replaced_docs), "count": total}
 
     if ext not in _GAME_FILE_EXTS:
@@ -2531,7 +2548,7 @@ async def upload_game_file(
                 updates["group_name"] = group_name.strip()
             await db.game_files.update_one({"_id": existing["_id"]}, {"$set": updates})
             updated = await db.game_files.find_one({"_id": existing["_id"]})
-            await log_action("website", f"Text engine file '{display_name}' replaced in group '{gid}' for project '{slug}'", user=user["username"])
+            await log_action("files", f"Text engine file '{display_name}' replaced in group '{gid}'", project_slug=slug, user=user["username"])
             return {"success": True, "file": serialize_doc(updated), "replaced": True}
 
     file_id = ObjectId()
@@ -2563,7 +2580,7 @@ async def upload_game_file(
         "updated_at":  now,
     }
     await db.game_files.insert_one(doc)
-    await log_action("website", f"Game file '{display_name}' uploaded for project '{slug}'", user=user["username"])
+    await log_action("files", f"Game file '{display_name}' uploaded", project_slug=slug, user=user["username"])
     return {"success": True, "file": serialize_doc(doc)}
 
 # ── Admin: replace file content (keeps same ID) ───────────────────────────────
@@ -2613,7 +2630,7 @@ async def replace_game_file(
         "updated_at":  now,
     }
     await db.game_files.update_one({"_id": oid}, {"$set": updates})
-    await log_action("website", f"Game file '{doc['name']}' replaced for project '{slug}'", user=user["username"])
+    await log_action("files", f"Game file '{doc['name']}' replaced", project_slug=slug, user=user["username"])
     updated = await db.game_files.find_one({"_id": oid})
     return {"success": True, "file": serialize_doc(updated)}
 
@@ -2661,7 +2678,7 @@ async def delete_game_file(slug: str, file_id: str, user=Depends(require_permiss
     if dest.exists():
         dest.unlink()
     await db.game_files.delete_one({"_id": oid})
-    await log_action("website", f"Game file '{doc['name']}' deleted from project '{slug}'", user=user["username"])
+    await log_action("files", f"Game file '{doc['name']}' deleted", project_slug=slug, user=user["username"])
     return {"success": True}
 
 # ── Admin: delete entire text engine group ───────────────────────────────────
@@ -2676,7 +2693,7 @@ async def delete_file_group(slug: str, group_id: str, user=Depends(require_permi
         if dest.exists():
             dest.unlink()
     await db.game_files.delete_many({"project_slug": slug, "group_id": group_id})
-    await log_action("website", f"Text engine group '{group_id}' deleted ({len(docs)} fichiers) from project '{slug}'", user=user["username"])
+    await log_action("files", f"Text engine group '{group_id}' deleted ({len(docs)} files)", project_slug=slug, user=user["username"])
     return {"success": True, "deleted": len(docs)}
 
 # ── Admin: preview image file ─────────────────────────────────────────────────
@@ -2938,7 +2955,7 @@ async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(r
         await db.game_files.insert_one(new_doc)
         cloned += 1
 
-    await log_action("website", f"Version '{new_tag}' cloned from existing files for project '{slug}' ({cloned} files)", user=user["username"])
+    await log_action("files", f"Version '{new_tag}' cloned from existing files ({cloned} files)", project_slug=slug, user=user["username"])
     return {"success": True, "version_tag": new_tag, "files_cloned": cloned}
 
 @api_router.delete("/admin/projects/{slug}/versions/{tag}")
@@ -2962,7 +2979,7 @@ async def delete_file_version(slug: str, tag: str, user=Depends(require_permissi
             path.unlink(missing_ok=True)
     result = await db.game_files.delete_many({"project_slug": slug, "version_tag": tag})
 
-    await log_action("website", f"Version '{tag}' deleted for project '{slug}' ({result.deleted_count} files)", user=user["username"])
+    await log_action("files", f"Version '{tag}' deleted ({result.deleted_count} files)", project_slug=slug, user=user["username"])
     return {"success": True, "version_tag": tag, "files_deleted": result.deleted_count}
 
 # ── Live version (public + admin) ─────────────────────────────────────────────
@@ -2987,7 +3004,7 @@ async def set_live_version(slug: str, req: LiveVersionRequest, user=Depends(requ
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     await db.projects.update_one({"slug": slug}, {"$set": {"live_version": tag}})
-    await log_action("website", f"Live version set to '{tag}' for project '{slug}'", user=user["username"])
+    await log_action("files", f"Live version set to '{tag}'", project_slug=slug, user=user["username"])
     return {"success": True, "live_version": tag}
 
 # ── Coupon campaign endpoints ────────────────────────────────────────────────
@@ -4077,7 +4094,7 @@ async def admin_ban_player(slug: str, player_id: str, user=Depends(require_permi
         {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": user["username"]}},
         upsert=True
     )
-    await log_action("ban", f"Player {player_id} banned from project '{slug}'", project_slug=slug, user=user["username"])
+    await log_action("player", f"Player {player_id} banned", project_slug=slug, user=user["username"])
     return {"success": True, "banned": True}
 
 @api_router.delete("/admin/projects/{slug}/play/players/{player_id}/ban")
@@ -4087,7 +4104,7 @@ async def admin_unban_player(slug: str, player_id: str, user=Depends(require_per
     except Exception:
         raise HTTPException(400, "ID invalide")
     await db.play_bans.delete_one({"user_id": oid, "project_slug": slug})
-    await log_action("unban", f"Player {player_id} unbanned from project '{slug}'", project_slug=slug, user=user["username"])
+    await log_action("player", f"Player {player_id} unbanned", project_slug=slug, user=user["username"])
     return {"success": True, "banned": False}
 
 @api_router.get("/admin/projects/{slug}/play/players/{player_id}")
@@ -4288,8 +4305,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             else:
                 await db.play_bans.delete_one({"user_id": oid, "project_slug": project_slug})
             action = "banned" if want_banned else "unbanned"
-            await log_action("ban" if want_banned else "unban",
-                              f"[CLI] Player '{target.get('username')}' {action} from project '{project_slug}'",
+            await log_action("player", f"[CLI] Player '{target.get('username')}' {action}",
                               project_slug=project_slug, user=admin["username"])
             return [f"OK — player '{target.get('username')}' {action} from '{project_slug}'."], False
 
@@ -4298,7 +4314,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
                 return [f"Revoke all sessions for '{target.get('username')}' in project '{project_slug}'?",
                         "Type 'y' to confirm, or anything else to cancel."], True
             await db.play_refresh_tokens.update_many({"user_id": oid}, {"$set": {"is_revoked": True}})
-            await log_action("user_action", f"[CLI] Sessions revoked for player '{target.get('username')}' ({project_slug})",
+            await log_action("player", f"[CLI] Sessions revoked for player '{target.get('username')}'",
                               project_slug=project_slug, user=admin["username"])
             return [f"OK — all sessions revoked for '{target.get('username')}'."], False
 
