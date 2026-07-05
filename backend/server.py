@@ -4205,15 +4205,21 @@ async def play_chat_send(request: Request, req: PlayChatSendRequest, play_user=D
 async def play_chat_get(project_slug: str, channel: str = "global", limit: int = 50,
                          play_user=Depends(_get_play_user_from_access)):
     limit = min(max(limit, 1), 100)
+    blocked = await db.chat_bans.find_one({"user_id": play_user["_id"], "project_slug": project_slug}) is not None
+    mute = await db.chat_mutes.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+    muted_until = None
+    if mute and mute["muted_until"] > datetime.now(timezone.utc):
+        muted_until = mute["muted_until"].isoformat()
+
     query: dict = {"project_slug": project_slug, "channel": channel}
     if channel == "guild":
         membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
         if not membership:
-            return {"messages": []}
+            return {"messages": [], "blocked": blocked, "muted_until": muted_until}
         query["guild_id"] = membership["guild_id"]
     messages = await db.chat_messages.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
     messages.reverse()
-    return {"messages": [serialize_doc(m) for m in messages]}
+    return {"messages": [serialize_doc(m) for m in messages], "blocked": blocked, "muted_until": muted_until}
 
 @api_router.post("/play/chat/{message_id}/react")
 async def play_chat_react(message_id: str, req: ChatReactionRequest, play_user=Depends(_get_play_user_from_access)):

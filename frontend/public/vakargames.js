@@ -142,6 +142,9 @@
             this._chatPanel   = null;
             this._chatPanelOnClose = null;
             this._chatListEl  = null;
+            this._chatComposerEl = null;
+            this._chatBannerEl   = null;
+            this._chatMuteInterval = null;
             this._myGuild     = null; // { id, name, description, color, logo_id, member_count, my_role } | null
             this._guildPanel  = null;
             this._guildPanelOnClose = null;
@@ -934,14 +937,15 @@
             return _fetch(`${API_URL}${path}`, Object.assign({}, options, { headers }));
         }
 
-        async _chatFetchMessages(channel) {
-            if (!this._playAccessToken || !this._playSlug) return [];
+        async _chatFetchState(channel) {
+            const empty = { messages: [], blocked: false, muted_until: null };
+            if (!this._playAccessToken || !this._playSlug) return empty;
             try {
                 const r = await this._playFetch(`/api/play/chat?project_slug=${encodeURIComponent(this._playSlug)}&channel=${channel}&limit=50&_ts=${Date.now()}`, { cache: 'no-store' });
-                if (!r.ok) { this._log('warn', 'Chat: failed to load ' + channel + ' messages (HTTP ' + r.status + ')', 'Chat'); return []; }
+                if (!r.ok) { this._log('warn', 'Chat: failed to load ' + channel + ' messages (HTTP ' + r.status + ')', 'Chat'); return empty; }
                 const d = await r.json();
-                return d.messages || [];
-            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return []; }
+                return { messages: d.messages || [], blocked: !!d.blocked, muted_until: d.muted_until || null };
+            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return empty; }
         }
 
         async _chatSend(channel, message) {
@@ -1156,21 +1160,25 @@
         async _refreshChatMessages(channel, showLoading) {
             if (!this._chatListEl) return;
             if (showLoading) this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">Loading…</div>';
-            const messages = await this._chatFetchMessages(channel);
-            this._chatCache[channel] = messages;
+            const state = await this._chatFetchState(channel);
+            this._chatCache[channel] = state.messages;
             if (this._chatChannel !== channel || !this._chatListEl) return;
             this._chatListEl.innerHTML = '';
-            if (messages.length === 0) {
+            if (state.messages.length === 0) {
                 this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
-                return;
+            } else {
+                state.messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
+                this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
             }
-            messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
-            this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
+            this._updateChatComposerState(state.blocked, state.muted_until);
         }
 
         async _showChatPanel(onClose) {
             if (this._chatPanel) {
                 // Replacing an already-open panel: unstick any script waiting on it first.
+                this._stopChatMuteCountdown();
+                this._chatComposerEl = null;
+                this._chatBannerEl = null;
                 this._chatPanel.remove();
                 this._chatPanel = null;
                 const prevOnClose = this._chatPanelOnClose;
@@ -1252,12 +1260,63 @@
             composer.appendChild(input);
             composer.appendChild(sendBtn);
             card.appendChild(composer);
+            this._chatComposerEl = composer;
+
+            const banner = document.createElement('div');
+            banner.style.cssText = 'display:none;padding:12px 14px;background:#3a1414;border-top:1px solid #5c1f1f;color:#ff8a8a;font-size:12px;font-weight:600;text-align:center;flex-shrink:0';
+            card.appendChild(banner);
+            this._chatBannerEl = banner;
 
             document.body.appendChild(overlay);
             setTab('global');
         }
 
+        _updateChatComposerState(blocked, mutedUntil) {
+            if (!this._chatComposerEl || !this._chatBannerEl) return;
+            const isMuted = mutedUntil && new Date(mutedUntil).getTime() > Date.now();
+            if (blocked) {
+                this._chatComposerEl.style.display = 'none';
+                this._chatBannerEl.style.display = 'block';
+                this._chatBannerEl.textContent = '🚫 You are blocked from chat in this game.';
+                this._stopChatMuteCountdown();
+            } else if (isMuted) {
+                this._chatComposerEl.style.display = 'none';
+                this._chatBannerEl.style.display = 'block';
+                this._startChatMuteCountdown(mutedUntil);
+            } else {
+                this._chatComposerEl.style.display = 'flex';
+                this._chatBannerEl.style.display = 'none';
+                this._stopChatMuteCountdown();
+            }
+        }
+
+        _startChatMuteCountdown(mutedUntilIso) {
+            this._stopChatMuteCountdown();
+            const target = new Date(mutedUntilIso).getTime();
+            const tick = () => {
+                if (!this._chatBannerEl) { this._stopChatMuteCountdown(); return; }
+                const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
+                if (remaining <= 0) {
+                    this._chatBannerEl.textContent = '⏳ Your mute has expired — refresh the chat to send messages again.';
+                    this._stopChatMuteCountdown();
+                    return;
+                }
+                const m = Math.floor(remaining / 60), s = remaining % 60;
+                const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                this._chatBannerEl.textContent = '🔇 You are muted — ' + label + ' remaining.';
+            };
+            tick();
+            this._chatMuteInterval = setInterval(tick, 1000);
+        }
+
+        _stopChatMuteCountdown() {
+            if (this._chatMuteInterval) { clearInterval(this._chatMuteInterval); this._chatMuteInterval = null; }
+        }
+
         _closeChatPanel() {
+            this._stopChatMuteCountdown();
+            this._chatComposerEl = null;
+            this._chatBannerEl = null;
             if (this._chatPanel) { this._chatPanel.remove(); this._chatPanel = null; this._chatListEl = null; }
             const cb = this._chatPanelOnClose;
             this._chatPanelOnClose = null;
