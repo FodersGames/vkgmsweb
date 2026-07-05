@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
@@ -17,6 +17,7 @@ const CATEGORIES = [
 
 const Contact = () => {
   const { user, token } = useAuth();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ subject: '', category: 'general', message: '', email: '' });
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState('');
@@ -27,6 +28,21 @@ const Contact = () => {
   useEffect(() => {
     if (user?.email) setForm(f => ({ ...f, email: user.email }));
   }, [user]);
+
+  // Pre-fill from URL params (e.g. the in-game ban-appeal button links here directly)
+  useEffect(() => {
+    const category = searchParams.get('category');
+    const subject   = searchParams.get('subject');
+    const message   = searchParams.get('message');
+    if (!category && !subject && !message) return;
+    setForm(f => ({
+      ...f,
+      category: CATEGORIES.some(c => c.value === category) ? category : f.category,
+      subject:  subject || f.subject,
+      message:  message || f.message,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -3790,7 +3790,7 @@ async def play_login(request: Request):
     if user.get("isSuspended"):
         raise HTTPException(403, "Compte suspendu")
     if await _is_project_banned(user["_id"], project_slug):
-        raise HTTPException(403, "Banned from this game")
+        raise HTTPException(403, {"error": "banned", "uid": str(user["_id"])})
     user_id  = str(user["_id"])
     username = user["username"]
     now = datetime.now(timezone.utc)
@@ -3837,7 +3837,7 @@ async def play_refresh(request: Request):
     if user.get("isSuspended"):
         raise HTTPException(403, "Compte suspendu")
     if await _is_project_banned(user["_id"], project_slug):
-        raise HTTPException(403, "Banned from this game")
+        raise HTTPException(403, {"error": "banned", "uid": str(user["_id"])})
     now = datetime.now(timezone.utc)
     await db.play_refresh_tokens.update_one({"jti": jti}, {"$set": {"last_used": now}})
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": now}})

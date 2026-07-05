@@ -1399,6 +1399,13 @@
                 });
                 if (!r.ok) {
                     localStorage.removeItem(this._playStorageKey());
+                    let d = {};
+                    try { d = await r.json(); } catch {}
+                    if (r.status === 403 && d.detail && typeof d.detail === 'object' && d.detail.error === 'banned') {
+                        this._log('warn', 'Session: banned from this game (uid ' + d.detail.uid + ')');
+                        this._showBannedPopup(d.detail.uid);
+                        return;
+                    }
                     this._log('warn', r.status === 403 ? 'Session: banned from this game' : 'Session: resume rejected, signed out');
                     return;
                 }
@@ -1783,9 +1790,14 @@
                     let d = {};
                     try { d = await r.json(); } catch {}
                     if (!r.ok) {
-                        errEl.textContent = d.detail || LANGS[lang].eLo;
+                        if (d.detail && typeof d.detail === 'object' && d.detail.error === 'banned') {
+                            this._showBannedPopup(d.detail.uid, onClose);
+                            return;
+                        }
+                        const msg = typeof d.detail === 'string' ? d.detail : LANGS[lang].eLo;
+                        errEl.textContent = msg;
                         setLoading(loginBtn, false);
-                        this._log('warn', 'Auth: login failed — ' + (d.detail || LANGS[lang].eLo));
+                        this._log('warn', 'Auth: login failed — ' + msg);
                         return;
                     }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
@@ -1836,6 +1848,66 @@
 
         _closePlayPopup() {
             if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
+        }
+
+        _showBannedPopup(uid, onClose) {
+            if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
+            const accent = this._playAccent || '#4ECDC4';
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._playPopup = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#fff;border-radius:16px;padding:32px;width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center';
+            overlay.appendChild(card);
+
+            card.innerHTML =
+                '<div style="width:48px;height:48px;border-radius:12px;background:#e5393522;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">' +
+                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+                '</div>' +
+                '<div style="font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:6px">You have been banned</div>' +
+                '<div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:18px">Your account no longer has access to this game. If you think this is a mistake, you can appeal below.</div>';
+
+            const uidRow = document.createElement('div');
+            uidRow.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f6f6f8;border:1.5px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-bottom:14px';
+            const uidLabel = document.createElement('span');
+            uidLabel.textContent = 'Player ID: ' + '•'.repeat(12);
+            uidLabel.style.cssText = 'flex:1;font-size:12px;color:#888;font-family:monospace;text-align:left;letter-spacing:1px';
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copy';
+            copyBtn.style.cssText = 'padding:5px 10px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0';
+            copyBtn.addEventListener('click', async () => {
+                const ok = await this._copyToClipboard(String(uid || ''));
+                copyBtn.textContent = ok ? 'Copied ✓' : 'Failed';
+                setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = 'Copy'; }, 1500);
+            });
+            uidRow.appendChild(uidLabel);
+            uidRow.appendChild(copyBtn);
+            card.appendChild(uidRow);
+
+            const appealBtn = document.createElement('button');
+            appealBtn.textContent = 'Open a support ticket';
+            appealBtn.style.cssText = `width:100%;padding:11px;background:${accent};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px`;
+            appealBtn.addEventListener('click', () => {
+                const subject = 'Ban appeal — ' + this._playSlug;
+                const message = 'I believe I was banned by mistake.\nGame: ' + this._playSlug + '\nPlayer ID: ' + (uid || '');
+                const url = API_URL + '/contact?category=account&subject=' + encodeURIComponent(subject) + '&message=' + encodeURIComponent(message);
+                _openWindow(url);
+            });
+            card.appendChild(appealBtn);
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = 'Close';
+            closeBtn.style.cssText = 'width:100%;padding:10px;background:transparent;color:#888;border:none;font-size:13px;cursor:pointer';
+            closeBtn.addEventListener('click', () => {
+                this._closePlayPopup();
+                if (onClose) onClose();
+            });
+            card.appendChild(closeBtn);
+
+            document.body.appendChild(overlay);
+            this._log('warn', 'Auth: banned from this game (uid ' + (uid || '?') + ')', 'Play');
         }
 
         // ══════════════════════════════════════════
