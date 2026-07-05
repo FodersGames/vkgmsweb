@@ -3817,9 +3817,10 @@ async def play_me(request: Request, play_user=Depends(_get_play_user_from_access
     return {"id": str(play_user["_id"]), "username": play_user["username"]}
 
 @api_router.get("/play/permissions")
-async def play_permissions(request: Request, play_user=Depends(_get_play_user_from_access)):
+async def play_permissions(request: Request, response: Response, play_user=Depends(_get_play_user_from_access)):
     """Live permission check for in-game admin tools (dev panel, logs panel).
     Always re-reads role/permissions from the DB — never trusts a cached client value."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     is_super = play_user.get("role") == "super_admin"
     permissions = ALL_PERMISSIONS if is_super else play_user.get("permissions", [])
     return {"is_super_admin": is_super, "permissions": permissions}
@@ -3846,7 +3847,8 @@ async def play_save(request: Request, play_user=Depends(_get_play_user_from_acce
     return {"ok": True}
 
 @api_router.get("/play/load")
-async def play_load(request: Request, category: str, project_slug: str, play_user=Depends(_get_play_user_from_access)):
+async def play_load(request: Request, category: str, project_slug: str, response: Response, play_user=Depends(_get_play_user_from_access)):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     if category not in PLAY_SAVE_CATEGORIES:
         raise HTTPException(400, "Catégorie invalide")
     save = await db.play_saves.find_one({

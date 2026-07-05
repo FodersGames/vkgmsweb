@@ -1395,10 +1395,13 @@
         }
 
         async playSauvegarder({ CATEGORIE, DONNEES }) {
-            if (!this._playAccessToken) return;
+            if (!this._playAccessToken) {
+                this._log('warn', 'Save: not signed in, nothing was saved');
+                return false;
+            }
             const cat  = String(CATEGORIE);
             const data = String(DONNEES);
-            if (this._playSaveCache[cat] === data) return; // rien changé → skip
+            if (this._playSaveCache[cat] === data) return true; // rien changé → déjà sauvegardé
             try {
                 const r = await _fetch(`${API_URL}/api/play/save`, {
                     method:  'POST',
@@ -1408,18 +1411,20 @@
                 if (r.ok) {
                     this._playSaveCache[cat] = data; // cache mis à jour uniquement si succès
                     this._log('info', 'Save: category "' + cat + '" saved');
+                    return true;
                 } else {
                     this._log('warn', 'Save: category "' + cat + '" rejected (HTTP ' + r.status + ')');
+                    return false;
                 }
-            } catch (e) { this._log('error', 'Save: network error — ' + e.message); }
+            } catch (e) { this._log('error', 'Save: network error — ' + e.message); return false; }
         }
 
         async playCharger({ CATEGORIE }) {
             if (!this._playAccessToken) return '{}';
             try {
                 const r = await _fetch(
-                    `${API_URL}/api/play/load?category=${encodeURIComponent(CATEGORIE)}&project_slug=${encodeURIComponent(this._playSlug)}`,
-                    { headers: { 'Authorization': `Bearer ${this._playAccessToken}` } }
+                    `${API_URL}/api/play/load?category=${encodeURIComponent(CATEGORIE)}&project_slug=${encodeURIComponent(this._playSlug)}&_ts=${Date.now()}`,
+                    { headers: { 'Authorization': `Bearer ${this._playAccessToken}` }, cache: 'no-store' }
                 );
                 if (!r.ok) { this._log('warn', 'Load: category "' + CATEGORIE + '" rejected (HTTP ' + r.status + ')'); return '{}'; }
                 const d = await r.json();
@@ -1773,8 +1778,9 @@
         async _checkPanelPermission(perm) {
             if (!this._playAccessToken) return false;
             try {
-                const r = await _fetch(`${API_URL}/api/play/permissions`, {
-                    headers: { 'Authorization': `Bearer ${this._playAccessToken}` }
+                const r = await _fetch(`${API_URL}/api/play/permissions?_ts=${Date.now()}`, {
+                    headers: { 'Authorization': `Bearer ${this._playAccessToken}` },
+                    cache: 'no-store'
                 });
                 if (!r.ok) return false;
                 const d = await r.json();
@@ -2037,8 +2043,17 @@
                     if (cat === activeCat) { validityEl.textContent = '✗ Invalid JSON — save aborted'; validityEl.style.color = '#e74c3c'; }
                     return;
                 }
-                if (cat === activeCat) { metaEl.textContent = 'Saving…'; }
-                await this.playSauvegarder({ CATEGORIE: cat, DONNEES: st.value });
+                if (cat === activeCat) { metaEl.textContent = 'Saving…'; metaEl.style.color = '#8b8d97'; }
+                const success = await this.playSauvegarder({ CATEGORIE: cat, DONNEES: st.value });
+                if (!success) {
+                    this._log('error', `Dev Panel: save failed for category "${cat}" — the server rejected the request or the connection was lost`, 'Dev Panel');
+                    if (cat === activeCat) {
+                        metaEl.textContent = '✗ Save failed — see Logs Panel for details';
+                        metaEl.style.color = '#e74c3c';
+                    }
+                    renderNav();
+                    return;
+                }
                 st.original = st.value;
                 this._devPanelDirty[cat] = true;
                 const updatedLocally = this._pushValueToLocalVariable(cat, st.value);
@@ -2050,6 +2065,7 @@
                 );
                 if (cat === activeCat) {
                     updateValidity();
+                    metaEl.style.color = '#8b8d97';
                     metaEl.textContent = (updatedLocally ? 'Saved ✓ (server + local) · ' : 'Saved ✓ (server only) · ') + metaEl.textContent;
                 }
                 renderNav();
