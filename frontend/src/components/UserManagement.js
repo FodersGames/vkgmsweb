@@ -5,7 +5,7 @@ import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
   Search, SlidersHorizontal, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
-  FolderOpen, Server,
+  FolderOpen, Server, Terminal,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -78,6 +78,13 @@ const STATIC_GROUPS = [
       { id: 'create_missions', label: 'Post Missions' },
       { id: 'claim_missions', label: 'Claim Missions' },
       { id: 'manage_missions', label: 'Manage Missions' },
+    ]
+  },
+  {
+    label: 'In-Game Tools', icon: Terminal, color: '#16A085',
+    permissions: [
+      { id: 'game_dev_panel', label: 'Game Dev Panel (in-game)' },
+      { id: 'game_logs_panel', label: 'Game Logs Panel (in-game)' },
     ]
   },
 ];

@@ -378,6 +378,8 @@ ALL_PERMISSIONS = [
     "manage_tickets",
     "manage_play",
     "manager_careers",
+    "game_dev_panel",
+    "game_logs_panel",
 ]
 
 def is_valid_permission(p: str) -> bool:
@@ -3813,6 +3815,14 @@ async def play_refresh(request: Request):
 @api_router.get("/play/me")
 async def play_me(request: Request, play_user=Depends(_get_play_user_from_access)):
     return {"id": str(play_user["_id"]), "username": play_user["username"]}
+
+@api_router.get("/play/permissions")
+async def play_permissions(request: Request, play_user=Depends(_get_play_user_from_access)):
+    """Live permission check for in-game admin tools (dev panel, logs panel).
+    Always re-reads role/permissions from the DB — never trusts a cached client value."""
+    is_super = play_user.get("role") == "super_admin"
+    permissions = ALL_PERMISSIONS if is_super else play_user.get("permissions", [])
+    return {"is_super_admin": is_super, "permissions": permissions}
 
 @api_router.post("/play/save")
 async def play_save(request: Request, play_user=Depends(_get_play_user_from_access)):

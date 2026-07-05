@@ -98,13 +98,11 @@
             this._filesApiKey  = '';
             this._filesVersion = 'default';
             this._filesReady   = false;
-            this._filesError   = '';
             this._fileIndex    = {};
             this._filesCache   = null;
 
             // Sounds (same server/cache as Files, separate ready/error state)
             this._soundsReady  = false;
-            this._soundsError  = '';
 
             // HTML Overlay Text
             this._overlayContainer = null;
@@ -122,6 +120,25 @@
             this._loadingBarEl = null;
             this._loadingCount = 0;
             this._loadingMax   = 1;
+
+            // In-game admin tools: journal + dev/logs panels
+            this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', message }
+            this._logsListEl  = null; // live-append target while the logs panel is open
+            this._devPanel    = null;
+            this._logsPanel   = null;
+
+            // Auto-log any error assignment made anywhere in the extension,
+            // without having to touch every call site individually.
+            let _filesErrorVal = '';
+            Object.defineProperty(this, '_filesError', {
+                get: () => _filesErrorVal,
+                set: (v) => { _filesErrorVal = v; if (v) this._log('error', '[Ressources] ' + v); },
+            });
+            let _soundsErrorVal = '';
+            Object.defineProperty(this, '_soundsError', {
+                get: () => _soundsErrorVal,
+                set: (v) => { _soundsErrorVal = v; if (v) this._log('error', '[Sons] ' + v); },
+            });
         }
 
         getInfo() {
@@ -133,7 +150,8 @@
                 color3: '#1aada6',
                 menus: {
                     ouiNon:        { acceptReporters: true, items: ['oui', 'non'] },
-                    categoriesSave: { acceptReporters: true, items: ['inventory', 'stats', 'craft', 'tech', 'others'] }
+                    categoriesSave: { acceptReporters: true, items: ['inventory', 'stats', 'craft', 'tech', 'others'] },
+                    gravite:       { acceptReporters: true, items: ['info', 'attention', 'erreur'] }
                 },
                 blocks: [
 
@@ -554,6 +572,30 @@
                         blockType: Scratch.BlockType.COMMAND,
                         text:      'fermer barre de chargement'
                     },
+
+                    // ══════════════════════════════
+                    //  OUTILS DEV IN-GAME
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Outils Dev In-Game —' },
+                    {
+                        opcode:    'ouvrirPanelDev',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'ouvrir panel développeur du jeu'
+                    },
+                    {
+                        opcode:    'ouvrirPanelLogs',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'ouvrir panel logs du jeu'
+                    },
+                    {
+                        opcode:    'ecrireLog',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'écrire dans les logs [MESSAGE] gravité [GRAVITE]',
+                        arguments: {
+                            MESSAGE:  { type: Scratch.ArgumentType.STRING, defaultValue: 'Message' },
+                            GRAVITE:  { type: Scratch.ArgumentType.STRING, menu: 'gravite', defaultValue: 'info' }
+                        }
+                    },
                 ]
             };
         }
@@ -582,11 +624,12 @@
                         body:    JSON.stringify({ product_id: productId, player_uid: String(UID).trim() })
                     }
                 );
-                if (!res.ok) return false;
+                if (!res.ok) { this._log('warn', 'Shop : checkout refusé (produit ' + productId + ')'); return false; }
                 const data  = await res.json();
                 checkoutUrl = data.checkout_url;
                 sessionId   = data.session_id;
-            } catch { return false; }
+                this._log('info', 'Shop : checkout ouvert pour le produit ' + productId);
+            } catch (e) { this._log('error', 'Shop : erreur réseau au checkout — ' + e.message); return false; }
 
             const popupRef = _openWindow(checkoutUrl);
 
@@ -604,13 +647,16 @@
                         try {
                             const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
                             const d = await r.json();
-                            resolve(d.status === 'complete');
-                        } catch { resolve(false); }
+                            const ok = d.status === 'complete';
+                            this._log(ok ? 'info' : 'warn', 'Shop : achat ' + (ok ? 'confirmé' : 'non confirmé après fermeture de la fenêtre'));
+                            resolve(ok);
+                        } catch (e) { this._log('error', 'Shop : erreur de vérification du paiement — ' + e.message); resolve(false); }
                         return;
                     }
 
                     if (elapsed >= maxMs) {
                         clearInterval(interval);
+                        this._log('warn', 'Shop : délai d\'attente du paiement dépassé');
                         resolve(false);
                         return;
                     }
@@ -621,6 +667,7 @@
                         if (d.status === 'complete') {
                             clearInterval(interval);
                             if (popupRef && !popupRef.closed) popupRef.close();
+                            this._log('info', 'Shop : achat confirmé');
                             resolve(true);
                         }
                     } catch { /* continuer */ }
@@ -651,7 +698,8 @@
                         level:    parseInt(LEVEL) || null
                     })
                 });
-            } catch {}
+                this._log('info', 'Chat : message envoyé par ' + USERNAME);
+            } catch (e) { this._log('error', 'Chat : échec envoi message — ' + e.message); }
         }
 
         async getMessages({ LIMIT }) {
@@ -913,6 +961,7 @@
                     this._filesReady   = false;
                     this._soundsReady  = false;
                 }
+                this._log('info', 'Ressources : version en ligne = ' + v);
             } catch (e) {
                 this._filesError = 'Impossible de récupérer la version en ligne : ' + e.message;
             }
@@ -945,14 +994,18 @@
             try {
                 const files = await this._fetchFileList();
                 const images = files.filter(f => fileExt(f.original_filename) !== null);
+                let loaded = 0;
                 for (const f of images) {
                     try {
                         await this._addCostumeToTarget(target, f);
+                        loaded++;
                     } catch (e) {
                         console.warn('[VG] Impossible de charger ' + f.name + ' : ' + e.message);
+                        this._log('error', 'Ressources : échec chargement "' + f.name + '" — ' + e.message);
                     }
                 }
                 this._filesReady = true;
+                this._log('info', `Ressources : ${loaded}/${images.length} costumes chargés dans "${SPRITE}"`);
             } catch (e) {
                 this._filesError = e.message;
             }
@@ -992,12 +1045,17 @@
             this._filesReady = false;
             this._filesError = '';
             try {
+                let loaded = 0;
                 for (const f of group) {
                     if (fileExt(f.original_filename) === null) continue;
-                    try { await this._addCostumeToTarget(target, f); }
-                    catch (e) { console.warn('[VG] Text engine: ' + f.name + ' → ' + e.message); }
+                    try { await this._addCostumeToTarget(target, f); loaded++; }
+                    catch (e) {
+                        console.warn('[VG] Text engine: ' + f.name + ' → ' + e.message);
+                        this._log('error', 'Text engine : échec "' + f.name + '" — ' + e.message);
+                    }
                 }
                 this._filesReady = true;
+                this._log('info', `Text engine : groupe "${gid}" — ${loaded} fichier(s) chargé(s)`);
             } catch (e) {
                 this._filesError = e.message;
             }
@@ -1111,14 +1169,18 @@
             try {
                 const files  = await this._fetchFileList();
                 const sounds = files.filter(f => audioExt(f.original_filename) !== null);
+                let loaded = 0;
                 for (const f of sounds) {
                     try {
                         await this._addSoundToTarget(target, f);
+                        loaded++;
                     } catch (e) {
                         console.warn('[VG] Impossible de charger le son ' + f.name + ' : ' + e.message);
+                        this._log('error', 'Sons : échec chargement "' + f.name + '" — ' + e.message);
                     }
                 }
                 this._soundsReady = true;
+                this._log('info', `Sons : ${loaded}/${sounds.length} sons chargés dans "${SPRITE}"`);
             } catch (e) {
                 this._soundsError = e.message;
             }
@@ -1274,11 +1336,16 @@
                     headers: { 'Content-Type': 'application/json' },
                     body:    JSON.stringify({ refresh_token: stored })
                 });
-                if (!r.ok) { localStorage.removeItem(this._playStorageKey()); return; }
+                if (!r.ok) {
+                    localStorage.removeItem(this._playStorageKey());
+                    this._log('warn', 'Session : reprise refusée, déconnecté');
+                    return;
+                }
                 const d = await r.json();
                 this._playAccessToken = d.access_token;
                 this._playPlayer      = d.player;
-            } catch { /* réseau indisponible — reste déconnecté */ }
+                this._log('info', 'Session restaurée : ' + (d.player && d.player.username));
+            } catch (e) { this._log('warn', 'Session : réseau indisponible, reste déconnecté — ' + e.message); }
         }
 
         async playConfigurer({ SLUG }) {
@@ -1313,8 +1380,13 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this._playAccessToken}` },
                     body:    JSON.stringify({ category: cat, data: data, project_slug: this._playSlug })
                 });
-                if (r.ok) this._playSaveCache[cat] = data; // cache mis à jour uniquement si succès
-            } catch { /* noop */ }
+                if (r.ok) {
+                    this._playSaveCache[cat] = data; // cache mis à jour uniquement si succès
+                    this._log('info', 'Sauvegarde effectuée : catégorie "' + cat + '"');
+                } else {
+                    this._log('warn', 'Sauvegarde refusée : catégorie "' + cat + '" (HTTP ' + r.status + ')');
+                }
+            } catch (e) { this._log('error', 'Sauvegarde : erreur réseau — ' + e.message); }
         }
 
         async playCharger({ CATEGORIE }) {
@@ -1324,10 +1396,11 @@
                     `${API_URL}/api/play/load?category=${encodeURIComponent(CATEGORIE)}&project_slug=${encodeURIComponent(this._playSlug)}`,
                     { headers: { 'Authorization': `Bearer ${this._playAccessToken}` } }
                 );
-                if (!r.ok) return '{}';
+                if (!r.ok) { this._log('warn', 'Chargement refusé : catégorie "' + CATEGORIE + '" (HTTP ' + r.status + ')'); return '{}'; }
                 const d = await r.json();
+                this._log('info', 'Chargement effectué : catégorie "' + CATEGORIE + '"');
                 return d.data || '{}';
-            } catch { return '{}'; }
+            } catch (e) { this._log('error', 'Chargement : erreur réseau — ' + e.message); return '{}'; }
         }
 
         playPersonnaliser({ COULEUR, TITRE }) {
@@ -1517,13 +1590,23 @@
                     });
                     let d = {};
                     try { d = await r.json(); } catch {}
-                    if (!r.ok) { errEl.textContent = d.detail || LANGS[lang].eLo; setLoading(loginBtn, false); return; }
+                    if (!r.ok) {
+                        errEl.textContent = d.detail || LANGS[lang].eLo;
+                        setLoading(loginBtn, false);
+                        this._log('warn', 'Connexion échouée : ' + (d.detail || LANGS[lang].eLo));
+                        return;
+                    }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
+                    this._log('info', 'Connexion réussie : ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch (err) { errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')'; setLoading(loginBtn, false); }
+                } catch (err) {
+                    errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
+                    setLoading(loginBtn, false);
+                    this._log('error', 'Connexion : erreur réseau — ' + (err && err.message));
+                }
             });
 
             regBtn.addEventListener('click', async () => {
@@ -1537,13 +1620,23 @@
                     });
                     let d = {};
                     try { d = await r.json(); } catch {}
-                    if (!r.ok) { errEl.textContent = d.detail || LANGS[lang].eRe; setLoading(regBtn, false); return; }
+                    if (!r.ok) {
+                        errEl.textContent = d.detail || LANGS[lang].eRe;
+                        setLoading(regBtn, false);
+                        this._log('warn', 'Inscription échouée : ' + (d.detail || LANGS[lang].eRe));
+                        return;
+                    }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
+                    this._log('info', 'Compte créé et connecté : ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
-                } catch (err) { errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')'; setLoading(regBtn, false); }
+                } catch (err) {
+                    errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
+                    setLoading(regBtn, false);
+                    this._log('error', 'Inscription : erreur réseau — ' + (err && err.message));
+                }
             });
 
             document.body.appendChild(overlay);
@@ -1551,6 +1644,203 @@
 
         _closePlayPopup() {
             if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
+        }
+
+        // ══════════════════════════════════════════
+        //  OUTILS DEV IN-GAME — journal + panels
+        // ══════════════════════════════════════════
+
+        _log(level, message) {
+            const entry = { ts: new Date(), level, message: String(message) };
+            this._logEntries.push(entry);
+            if (this._logEntries.length > 500) this._logEntries.shift();
+            if (this._logsListEl) this._appendLogRow(entry);
+        }
+
+        _escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        _appendLogRow(entry) {
+            if (!this._logsListEl) return;
+            const color = entry.level === 'error' ? '#e74c3c' : entry.level === 'warn' ? '#f39c12' : '#9aa0a6';
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;padding:4px 2px;font-family:monospace;font-size:11.5px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:flex-start;line-height:1.4';
+            row.innerHTML =
+                `<span style="color:${color};font-weight:700;flex-shrink:0">●</span>` +
+                `<span style="color:#777;flex-shrink:0;white-space:nowrap">${entry.ts.toLocaleTimeString()}</span>` +
+                `<span style="color:#e4e4e7;word-break:break-word">${this._escapeHtml(entry.message)}</span>`;
+            this._logsListEl.appendChild(row);
+            this._logsListEl.scrollTop = this._logsListEl.scrollHeight;
+        }
+
+        ecrireLog({ MESSAGE, GRAVITE }) {
+            const g = String(GRAVITE).trim().toLowerCase();
+            const level = g === 'erreur' ? 'error' : g === 'attention' ? 'warn' : 'info';
+            this._log(level, String(MESSAGE));
+        }
+
+        async _checkPanelPermission(perm) {
+            if (!this._playAccessToken) return false;
+            try {
+                const r = await _fetch(`${API_URL}/api/play/permissions`, {
+                    headers: { 'Authorization': `Bearer ${this._playAccessToken}` }
+                });
+                if (!r.ok) return false;
+                const d = await r.json();
+                return !!(d.is_super_admin || (d.permissions || []).includes(perm));
+            } catch (e) {
+                this._log('error', 'Vérification des permissions : erreur réseau — ' + e.message);
+                return false;
+            }
+        }
+
+        async ouvrirPanelDev() {
+            const allowed = await this._checkPanelPermission('game_dev_panel');
+            if (!allowed) {
+                this._log('warn', 'Panel développeur : accès refusé' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (non connecté)'));
+                return;
+            }
+            this._log('info', 'Panel développeur ouvert par ' + (this._playPlayer ? this._playPlayer.username : '?'));
+            this._showDevPanel();
+        }
+
+        async ouvrirPanelLogs() {
+            const allowed = await this._checkPanelPermission('game_logs_panel');
+            if (!allowed) {
+                this._log('warn', 'Panel logs : accès refusé' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (non connecté)'));
+                return;
+            }
+            this._log('info', 'Panel logs ouvert par ' + (this._playPlayer ? this._playPlayer.username : '?'));
+            this._showLogsPanel();
+        }
+
+        _showDevPanel() {
+            if (this._devPanel) { this._devPanel.remove(); this._devPanel = null; }
+            const accent = this._playAccent || '#4ECDC4';
+            const categories = ['inventory', 'stats', 'craft', 'tech', 'others'];
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999995;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._devPanel = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#1c1c24;border:1px solid #33334a;border-radius:12px;padding:20px;width:520px;max-width:92vw;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            overlay.appendChild(card);
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
+            header.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff">🛠 Game Dev Panel</div>';
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'background:none;border:none;color:#999;font-size:16px;cursor:pointer;line-height:1';
+            closeBtn.addEventListener('click', () => { overlay.remove(); this._devPanel = null; });
+            header.appendChild(closeBtn);
+            card.appendChild(header);
+
+            const sub = document.createElement('div');
+            sub.style.cssText = 'font-size:11px;color:#888;margin-bottom:16px';
+            sub.textContent = 'Connecté : ' + (this._playPlayer ? this._playPlayer.username : '?') + ' · projet : ' + this._playSlug;
+            card.appendChild(sub);
+
+            for (const cat of categories) {
+                const block = document.createElement('div');
+                block.style.cssText = 'margin-bottom:14px';
+
+                const label = document.createElement('div');
+                label.style.cssText = `font-size:11px;font-weight:700;color:${accent};margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em`;
+                label.textContent = cat;
+                block.appendChild(label);
+
+                const textarea = document.createElement('textarea');
+                textarea.spellcheck = false;
+                textarea.style.cssText = 'width:100%;box-sizing:border-box;min-height:64px;background:#111118;border:1px solid #33334a;border-radius:6px;color:#eee;font-family:monospace;font-size:12px;padding:8px;resize:vertical';
+                textarea.value = 'Chargement…';
+                block.appendChild(textarea);
+
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;gap:8px;margin-top:6px;align-items:center';
+                const saveBtn = document.createElement('button');
+                saveBtn.textContent = 'Enregistrer';
+                saveBtn.style.cssText = `padding:6px 12px;background:${accent};color:#0a0a0f;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer`;
+                const statusEl = document.createElement('span');
+                statusEl.style.cssText = 'font-size:11px;color:#888';
+                row.appendChild(saveBtn);
+                row.appendChild(statusEl);
+                block.appendChild(row);
+
+                card.appendChild(block);
+
+                this.playCharger({ CATEGORIE: cat }).then(data => { textarea.value = data; });
+
+                saveBtn.addEventListener('click', async () => {
+                    try {
+                        JSON.parse(textarea.value);
+                    } catch {
+                        statusEl.textContent = 'JSON invalide';
+                        statusEl.style.color = '#e74c3c';
+                        this._log('error', `Panel dev : JSON invalide pour la catégorie "${cat}"`);
+                        return;
+                    }
+                    statusEl.textContent = 'Enregistrement…';
+                    statusEl.style.color = '#888';
+                    await this.playSauvegarder({ CATEGORIE: cat, DONNEES: textarea.value });
+                    statusEl.textContent = 'Enregistré ✓';
+                    statusEl.style.color = '#2ecc71';
+                    this._log('info', `Panel dev : sauvegarde manuelle "${cat}" par ${this._playPlayer ? this._playPlayer.username : '?'}`);
+                    setTimeout(() => { if (statusEl.isConnected) statusEl.textContent = ''; }, 2000);
+                });
+            }
+
+            document.body.appendChild(overlay);
+        }
+
+        _showLogsPanel() {
+            if (this._logsPanel) { this._logsPanel.remove(); this._logsPanel = null; this._logsListEl = null; }
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999994;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._logsPanel = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#111118;border:1px solid #2a2a3c;border-radius:12px;padding:16px;width:640px;max-width:94vw;height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            overlay.appendChild(card);
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0';
+            header.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff">📜 Game Logs</div>';
+
+            const btnGroup = document.createElement('div');
+            btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center';
+
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = 'Vider';
+            clearBtn.style.cssText = 'background:none;border:1px solid #33334a;color:#999;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer';
+            clearBtn.addEventListener('click', () => {
+                this._logEntries = [];
+                if (this._logsListEl) this._logsListEl.innerHTML = '';
+            });
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'background:none;border:none;color:#999;font-size:16px;cursor:pointer;line-height:1';
+            closeBtn.addEventListener('click', () => { overlay.remove(); this._logsPanel = null; this._logsListEl = null; });
+
+            btnGroup.appendChild(clearBtn);
+            btnGroup.appendChild(closeBtn);
+            header.appendChild(btnGroup);
+            card.appendChild(header);
+
+            const list = document.createElement('div');
+            list.style.cssText = 'flex:1;overflow-y:auto;border-top:1px solid #2a2a3c;padding-top:6px';
+            card.appendChild(list);
+            this._logsListEl = list;
+
+            for (const entry of this._logEntries) this._appendLogRow(entry);
+
+            document.body.appendChild(overlay);
         }
     }
 
