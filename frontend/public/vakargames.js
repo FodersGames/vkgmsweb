@@ -23,6 +23,14 @@
         return null;
     }
 
+    // Chat & Guilds — predefined logo set (emoji glyphs, no custom uploads) + color palette
+    const GUILD_LOGO_EMOJI = {
+        shield: '🛡️', sword: '⚔️', flame: '🔥', star: '⭐', wolf: '🐺', dragon: '🐉',
+        crown: '👑', skull: '💀', eagle: '🦅', lion: '🦁', anchor: '⚓', leaf: '🍃',
+    };
+    const GUILD_COLORS = ['#4ECDC4', '#F2994A', '#EB5757', '#9B51E0', '#2F80ED', '#27AE60', '#F2C94C', '#BB6BD9'];
+    const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
     // ── IndexedDB cache pour les fichiers de jeu ──────────────────────────────
 
     class VGCache {
@@ -128,6 +136,16 @@
             this._serverVars       = {};   // { name: { type, value } }
             this._serverVarsLoaded = false;
 
+            // Chat & Guilds
+            this._chatChannel = 'global'; // 'global' | 'guild'
+            this._chatCache   = { global: [], guild: [] };
+            this._chatPanel   = null;
+            this._chatPanelOnClose = null;
+            this._chatListEl  = null;
+            this._myGuild     = null; // { id, name, description, color, logo_id, member_count, my_role } | null
+            this._guildPanel  = null;
+            this._guildPanelOnClose = null;
+
             // In-game admin tools: journal + dev/logs panels
             this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', source, message }
             this._logCounts   = { info: 0, warn: 0, error: 0 };
@@ -167,7 +185,8 @@
                 menus: {
                     ouiNon:        { acceptReporters: true, items: ['oui', 'non'] },
                     categoriesSave: { acceptReporters: true, items: ['inventory', 'stats', 'craft', 'tech', 'others'] },
-                    gravite:       { acceptReporters: true, items: ['info', 'attention', 'erreur'] }
+                    gravite:       { acceptReporters: true, items: ['info', 'attention', 'erreur'] },
+                    canalChat:     { acceptReporters: true, items: ['global', 'guilde'] }
                 },
                 blocks: [
 
@@ -258,6 +277,61 @@
                         opcode:    'lastMessageLevel',
                         blockType: Scratch.BlockType.REPORTER,
                         text:      'last message level'
+                    },
+
+                    // ══════════════════════════════
+                    //  CHAT & GUILDS (Play — ready-made in-game UI)
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Chat & Guilds —' },
+                    {
+                        opcode:    'ouvrirChat',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'ouvrir le chat'
+                    },
+                    {
+                        opcode:    'fermerChat',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'fermer le chat'
+                    },
+                    {
+                        opcode:    'envoyerMessageChat',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'envoyer message [TEXTE] dans le chat [CANAL]',
+                        arguments: {
+                            TEXTE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Hello!' },
+                            CANAL: { type: Scratch.ArgumentType.STRING, menu: 'canalChat', defaultValue: 'global' }
+                        }
+                    },
+                    {
+                        opcode:    'rafraichirChat',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'rafraîchir le chat'
+                    },
+                    '---',
+                    {
+                        opcode:    'ouvrirPanelGuilde',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'ouvrir le panneau guilde'
+                    },
+                    {
+                        opcode:    'fermerPanelGuilde',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'fermer le panneau guilde'
+                    },
+                    {
+                        opcode:    'suisJeDansUneGuilde',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'suis-je dans une guilde ?'
+                    },
+                    {
+                        opcode:    'maNomGuilde',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'nom de ma guilde'
+                    },
+                    {
+                        opcode:    'monRoleGuilde',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'mon rôle dans la guilde'
                     },
 
                     // ══════════════════════════════
@@ -848,6 +922,662 @@
         lastMessageText()          { return this._msgAt(1)?.message  ?? ''; }
         lastMessageUsername()      { return this._msgAt(1)?.username ?? ''; }
         lastMessageLevel()         { return this._msgAt(1)?.level    ?? 0;  }
+
+        // ══════════════════════════════════════════
+        //  CHAT & GUILDS — Play-authenticated, ready-made in-game UI
+        // ══════════════════════════════════════════
+
+        async _playFetch(path, options) {
+            options = options || {};
+            const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+            if (this._playAccessToken) headers['Authorization'] = 'Bearer ' + this._playAccessToken;
+            return _fetch(`${API_URL}${path}`, Object.assign({}, options, { headers }));
+        }
+
+        async _chatFetchMessages(channel) {
+            if (!this._playAccessToken || !this._playSlug) return [];
+            try {
+                const r = await this._playFetch(`/api/play/chat?project_slug=${encodeURIComponent(this._playSlug)}&channel=${channel}&limit=50&_ts=${Date.now()}`, { cache: 'no-store' });
+                if (!r.ok) { this._log('warn', 'Chat: failed to load ' + channel + ' messages (HTTP ' + r.status + ')', 'Chat'); return []; }
+                const d = await r.json();
+                return d.messages || [];
+            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return []; }
+        }
+
+        async _chatSend(channel, message) {
+            if (!this._playAccessToken) { this._log('warn', 'Chat: not signed in', 'Chat'); return false; }
+            try {
+                const r = await this._playFetch('/api/play/chat/send', {
+                    method: 'POST',
+                    body: JSON.stringify({ project_slug: this._playSlug, channel, message }),
+                });
+                if (!r.ok) {
+                    let detail = 'rejected';
+                    try { const d = await r.json(); detail = d.detail || detail; } catch (e2) {}
+                    this._log('warn', 'Chat: send failed — ' + detail, 'Chat');
+                    return false;
+                }
+                return true;
+            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return false; }
+        }
+
+        async _chatReact(messageId, emoji) {
+            try {
+                const r = await this._playFetch(`/api/play/chat/${encodeURIComponent(messageId)}/react`, {
+                    method: 'POST', body: JSON.stringify({ emoji }),
+                });
+                return r.ok;
+            } catch (e) { return false; }
+        }
+
+        async _guildFetchMine() {
+            if (!this._playAccessToken || !this._playSlug) return null;
+            try {
+                const r = await this._playFetch(`/api/play/guilds/mine?project_slug=${encodeURIComponent(this._playSlug)}&_ts=${Date.now()}`, { cache: 'no-store' });
+                if (!r.ok) return null;
+                const d = await r.json();
+                return d.guild || null;
+            } catch (e) { return null; }
+        }
+
+        async _guildSearch(query) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds?project_slug=${encodeURIComponent(this._playSlug)}${query ? '&search=' + encodeURIComponent(query) : ''}`);
+                if (!r.ok) return [];
+                const d = await r.json();
+                return d.guilds || [];
+            } catch (e) { return []; }
+        }
+
+        async _guildCreate(name, description, color, logoId) {
+            try {
+                const r = await this._playFetch('/api/play/guilds', {
+                    method: 'POST',
+                    body: JSON.stringify({ project_slug: this._playSlug, name, description, color, logo_id: logoId }),
+                });
+                let d = {}; try { d = await r.json(); } catch (e2) {}
+                if (!r.ok) return { ok: false, error: d.detail || 'Failed to create guild' };
+                return { ok: true, guild: d.guild };
+            } catch (e) { return { ok: false, error: e.message }; }
+        }
+
+        async _guildJoin(guildId) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}/join`, { method: 'POST' });
+                let d = {}; try { d = await r.json(); } catch (e2) {}
+                return { ok: r.ok, error: d.detail };
+            } catch (e) { return { ok: false, error: e.message }; }
+        }
+
+        async _guildLeave(guildId) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}/leave`, { method: 'POST' });
+                return r.ok;
+            } catch (e) { return false; }
+        }
+
+        async _guildUpdate(guildId, fields) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}`, { method: 'PATCH', body: JSON.stringify(fields) });
+                let d = {}; try { d = await r.json(); } catch (e2) {}
+                return { ok: r.ok, guild: d.guild, error: d.detail };
+            } catch (e) { return { ok: false, error: e.message }; }
+        }
+
+        async _guildMembers(guildId) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}/members`);
+                if (!r.ok) return [];
+                const d = await r.json();
+                return d.members || [];
+            } catch (e) { return []; }
+        }
+
+        async _guildSetRole(guildId, userId, role) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) });
+                return r.ok;
+            } catch (e) { return false; }
+        }
+
+        async _guildKick(guildId, userId) {
+            try {
+                const r = await this._playFetch(`/api/play/guilds/${guildId}/members/${userId}`, { method: 'DELETE' });
+                return r.ok;
+            } catch (e) { return false; }
+        }
+
+        // ── Blocks ────────────────────────────────────────────────────────────
+
+        async ouvrirChat() {
+            return new Promise(resolve => this._showChatPanel(resolve));
+        }
+
+        fermerChat() { this._closeChatPanel(); }
+
+        async envoyerMessageChat({ TEXTE, CANAL }) {
+            const channel = String(CANAL).trim().toLowerCase() === 'guilde' ? 'guild' : 'global';
+            return await this._chatSend(channel, String(TEXTE));
+        }
+
+        async rafraichirChat() {
+            if (this._chatPanel) await this._refreshChatMessages(this._chatChannel, true);
+        }
+
+        async ouvrirPanelGuilde() {
+            return new Promise(resolve => this._showGuildPanel(resolve));
+        }
+
+        fermerPanelGuilde() { this._closeGuildPanel(); }
+
+        async suisJeDansUneGuilde() { this._myGuild = await this._guildFetchMine(); return !!this._myGuild; }
+        async maNomGuilde()         { this._myGuild = await this._guildFetchMine(); return this._myGuild ? this._myGuild.name : ''; }
+        async monRoleGuilde()       { this._myGuild = await this._guildFetchMine(); return this._myGuild ? this._myGuild.my_role : ''; }
+
+        // ── Chat window ───────────────────────────────────────────────────────
+
+        _chatAvatarColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return `hsl(${Math.abs(hash) % 360}, 55%, 45%)`;
+        }
+
+        _renderReactionPills(reactBar, msg) {
+            reactBar.innerHTML = '';
+            const myId = this._playPlayer ? this._playPlayer.id : '';
+            (msg.reactions || []).forEach(r => {
+                const mine = r.user_ids.indexOf(myId) !== -1;
+                const pill = document.createElement('button');
+                pill.textContent = r.emoji + ' ' + r.user_ids.length;
+                pill.style.cssText = `font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${mine ? '#4ECDC4' : '#2a2b34'};background:${mine ? '#4ECDC422' : '#22232b'};color:#d6d7de;cursor:pointer`;
+                pill.addEventListener('click', async () => {
+                    const ok = await this._chatReact(msg.id, r.emoji);
+                    if (ok) this._refreshChatMessages(this._chatChannel, false);
+                });
+                reactBar.appendChild(pill);
+            });
+            const addBtn = document.createElement('button');
+            addBtn.textContent = '+';
+            addBtn.title = 'Add reaction';
+            addBtn.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:10px;border:1px dashed #2a2b34;background:transparent;color:#5c5d6b;cursor:pointer';
+            addBtn.addEventListener('click', () => this._toggleEmojiPicker(reactBar, msg));
+            reactBar.appendChild(addBtn);
+        }
+
+        _toggleEmojiPicker(reactBar, msg) {
+            const existing = reactBar.querySelector('.vg-emoji-picker');
+            if (existing) { existing.remove(); return; }
+            const picker = document.createElement('div');
+            picker.className = 'vg-emoji-picker';
+            picker.style.cssText = 'display:flex;gap:3px;background:#22232b;border:1px solid #2a2b34;border-radius:8px;padding:3px';
+            REACTION_EMOJIS.forEach(emoji => {
+                const b = document.createElement('button');
+                b.textContent = emoji;
+                b.style.cssText = 'font-size:14px;padding:2px 4px;background:transparent;border:none;cursor:pointer';
+                b.addEventListener('click', async () => {
+                    picker.remove();
+                    const ok = await this._chatReact(msg.id, emoji);
+                    if (ok) this._refreshChatMessages(this._chatChannel, false);
+                });
+                picker.appendChild(b);
+            });
+            reactBar.appendChild(picker);
+        }
+
+        _renderChatMessage(msg) {
+            const row = document.createElement('div');
+            row.style.cssText = 'padding:8px 12px;border-bottom:1px solid #22232b';
+
+            const initials = (msg.username || '?').slice(0, 2).toUpperCase();
+            const color = this._chatAvatarColor(msg.username || '');
+            const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const head = document.createElement('div');
+            head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:3px';
+            head.innerHTML =
+                `<div style="width:22px;height:22px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${this._escapeHtml(initials)}</div>` +
+                `<span style="font-size:12px;font-weight:700;color:#f2f2f5">${this._escapeHtml(msg.username || '?')}</span>` +
+                `<span style="font-size:10px;color:#5c5d6b;margin-left:auto">${time}</span>`;
+            row.appendChild(head);
+
+            const body = document.createElement('div');
+            body.style.cssText = 'font-size:13px;color:#d6d7de;margin-left:30px;word-break:break-word';
+            body.textContent = msg.message;
+            row.appendChild(body);
+
+            const reactBar = document.createElement('div');
+            reactBar.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 0 30px';
+            this._renderReactionPills(reactBar, msg);
+            row.appendChild(reactBar);
+
+            return row;
+        }
+
+        async _refreshChatMessages(channel, showLoading) {
+            if (!this._chatListEl) return;
+            if (showLoading) this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">Loading…</div>';
+            const messages = await this._chatFetchMessages(channel);
+            this._chatCache[channel] = messages;
+            if (this._chatChannel !== channel || !this._chatListEl) return;
+            this._chatListEl.innerHTML = '';
+            if (messages.length === 0) {
+                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
+                return;
+            }
+            messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
+            this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
+        }
+
+        async _showChatPanel(onClose) {
+            if (this._chatPanel) {
+                // Replacing an already-open panel: unstick any script waiting on it first.
+                this._chatPanel.remove();
+                this._chatPanel = null;
+                const prevOnClose = this._chatPanelOnClose;
+                this._chatPanelOnClose = null;
+                if (prevOnClose) prevOnClose();
+            }
+            if (!this._playAccessToken) {
+                this._log('warn', 'Chat: sign in first', 'Chat');
+                if (onClose) onClose();
+                return;
+            }
+            this._chatPanelOnClose = onClose || null;
+            this._myGuild = await this._guildFetchMine();
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._chatPanel = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'width:420px;max-width:92vw;height:600px;max-height:88vh;background:#191a1f;border:1px solid #2a2b34;border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            overlay.appendChild(card);
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            header.innerHTML = '<span style="font-size:13px;font-weight:700;color:#f2f2f5">💬 Chat</span>';
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'background:none;border:none;color:#8f909c;font-size:14px;cursor:pointer;padding:2px 6px';
+            closeBtn.addEventListener('click', () => this._closeChatPanel());
+            header.appendChild(closeBtn);
+            card.appendChild(header);
+
+            const tabs = document.createElement('div');
+            tabs.style.cssText = 'display:flex;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            const globalTab = document.createElement('button');
+            const guildTab  = document.createElement('button');
+            const tabStyle = (active, disabled) =>
+                `flex:1;padding:9px 0;border:none;background:${active ? '#22232b' : 'transparent'};color:${disabled ? '#4a4b57' : active ? '#4ECDC4' : '#8f909c'};font-size:12px;font-weight:700;cursor:${disabled ? 'not-allowed' : 'pointer'};border-bottom:2px solid ${active ? '#4ECDC4' : 'transparent'}`;
+            globalTab.textContent = '🌐 Global';
+            guildTab.textContent  = '🛡️ Guild';
+            guildTab.disabled = !this._myGuild;
+            guildTab.title = this._myGuild ? '' : 'Join a guild first';
+            const setTab = (channel) => {
+                if (channel === 'guild' && !this._myGuild) return;
+                this._chatChannel = channel;
+                globalTab.style.cssText = tabStyle(channel === 'global', false);
+                guildTab.style.cssText  = tabStyle(channel === 'guild', !this._myGuild);
+                this._refreshChatMessages(channel, true);
+            };
+            globalTab.addEventListener('click', () => setTab('global'));
+            guildTab.addEventListener('click',  () => setTab('guild'));
+            tabs.appendChild(globalTab); tabs.appendChild(guildTab);
+            card.appendChild(tabs);
+
+            const list = document.createElement('div');
+            list.style.cssText = 'flex:1;overflow-y:auto;background:#141519';
+            card.appendChild(list);
+            this._chatListEl = list;
+
+            const composer = document.createElement('div');
+            composer.style.cssText = 'display:flex;gap:6px;padding:10px;border-top:1px solid #2a2b34;background:#191a1f;flex-shrink:0';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 200;
+            input.placeholder = 'Type a message…';
+            input.style.cssText = 'flex:1;background:#22232b;border:1px solid #2a2b34;border-radius:6px;color:#f2f2f5;font-size:13px;padding:8px 10px;outline:none';
+            const sendBtn = this._panelIconBtn('Send', 'Send message');
+            sendBtn.style.cssText += ';background:#4ECDC4;color:#0d1f1d;font-weight:700';
+            const doSend = async () => {
+                const text = input.value.trim();
+                if (!text) return;
+                input.disabled = true; sendBtn.disabled = true;
+                const ok = await this._chatSend(this._chatChannel, text);
+                input.disabled = false; sendBtn.disabled = false;
+                if (ok) { input.value = ''; this._refreshChatMessages(this._chatChannel, false); }
+            };
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') doSend(); });
+            sendBtn.addEventListener('click', doSend);
+            composer.appendChild(input);
+            composer.appendChild(sendBtn);
+            card.appendChild(composer);
+
+            document.body.appendChild(overlay);
+            setTab('global');
+        }
+
+        _closeChatPanel() {
+            if (this._chatPanel) { this._chatPanel.remove(); this._chatPanel = null; this._chatListEl = null; }
+            const cb = this._chatPanelOnClose;
+            this._chatPanelOnClose = null;
+            if (cb) cb();
+        }
+
+        // ── Guild panel ───────────────────────────────────────────────────────
+
+        _renderGuildForm(container, existing, onSubmit, onCancel) {
+            container.innerHTML = '';
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text'; nameInput.maxLength = 30;
+            nameInput.value = existing ? existing.name : '';
+            nameInput.placeholder = 'Guild name';
+            nameInput.style.cssText = 'width:100%;box-sizing:border-box;background:#22232b;border:1px solid #2a2b34;border-radius:6px;color:#f2f2f5;font-size:13px;padding:8px 10px;margin-bottom:10px;outline:none';
+
+            const descInput = document.createElement('textarea');
+            descInput.maxLength = 200; descInput.rows = 3;
+            descInput.value = existing ? (existing.description || '') : '';
+            descInput.placeholder = 'Description (optional)';
+            descInput.style.cssText = 'width:100%;box-sizing:border-box;background:#22232b;border:1px solid #2a2b34;border-radius:6px;color:#f2f2f5;font-size:12px;padding:8px 10px;margin-bottom:10px;outline:none;resize:none;font-family:inherit';
+
+            const mkLabel = (text) => {
+                const l = document.createElement('div');
+                l.textContent = text;
+                l.style.cssText = 'font-size:10px;color:#8f909c;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px';
+                return l;
+            };
+
+            const colorRow = document.createElement('div');
+            colorRow.style.cssText = 'display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap';
+            let selectedColor = existing ? existing.color : GUILD_COLORS[0];
+            const colorSwatches = [];
+            GUILD_COLORS.forEach(c => {
+                const sw = document.createElement('button');
+                sw.style.cssText = `width:24px;height:24px;border-radius:50%;background:${c};border:2px solid ${c === selectedColor ? '#fff' : 'transparent'};cursor:pointer`;
+                sw.addEventListener('click', () => {
+                    selectedColor = c;
+                    colorSwatches.forEach(s => { s.style.borderColor = 'transparent'; });
+                    sw.style.borderColor = '#fff';
+                });
+                colorSwatches.push(sw);
+                colorRow.appendChild(sw);
+            });
+
+            const logoRow = document.createElement('div');
+            logoRow.style.cssText = 'display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap';
+            let selectedLogo = existing ? existing.logo_id : 'shield';
+            const logoBtns = [];
+            Object.keys(GUILD_LOGO_EMOJI).forEach(id => {
+                const b = document.createElement('button');
+                b.textContent = GUILD_LOGO_EMOJI[id];
+                b.style.cssText = `width:30px;height:30px;font-size:15px;border-radius:6px;background:${id === selectedLogo ? '#4ECDC422' : '#22232b'};border:1px solid ${id === selectedLogo ? '#4ECDC4' : '#2a2b34'};cursor:pointer`;
+                b.addEventListener('click', () => {
+                    selectedLogo = id;
+                    logoBtns.forEach(entry => {
+                        entry.btn.style.background   = entry.id === selectedLogo ? '#4ECDC422' : '#22232b';
+                        entry.btn.style.borderColor  = entry.id === selectedLogo ? '#4ECDC4' : '#2a2b34';
+                    });
+                });
+                logoBtns.push({ btn: b, id });
+                logoRow.appendChild(b);
+            });
+
+            const errEl = document.createElement('div');
+            errEl.style.cssText = 'font-size:11px;color:#eb5757;margin-bottom:8px;min-height:14px';
+
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px';
+            const submitBtn = this._panelIconBtn(existing ? 'Save' : 'Create', '');
+            submitBtn.style.cssText += ';flex:1;background:#4ECDC4;color:#0d1f1d;font-weight:700;justify-content:center';
+            submitBtn.addEventListener('click', async () => {
+                errEl.textContent = '';
+                submitBtn.disabled = true;
+                const result = await onSubmit({ name: nameInput.value.trim(), description: descInput.value.trim(), color: selectedColor, logo_id: selectedLogo });
+                submitBtn.disabled = false;
+                if (!result || !result.ok) errEl.textContent = (result && result.error) || 'Something went wrong';
+            });
+            btnRow.appendChild(submitBtn);
+            if (onCancel) {
+                const cancelBtn = this._panelIconBtn('Cancel', '');
+                cancelBtn.addEventListener('click', onCancel);
+                btnRow.appendChild(cancelBtn);
+            }
+
+            container.appendChild(nameInput);
+            container.appendChild(descInput);
+            container.appendChild(mkLabel('Color'));
+            container.appendChild(colorRow);
+            container.appendChild(mkLabel('Logo'));
+            container.appendChild(logoRow);
+            container.appendChild(errEl);
+            container.appendChild(btnRow);
+        }
+
+        async _renderGuildBrowse(body, onClose) {
+            body.innerHTML = '';
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search guilds…';
+            searchInput.style.cssText = 'width:100%;box-sizing:border-box;background:#22232b;border:1px solid #2a2b34;border-radius:6px;color:#f2f2f5;font-size:12px;padding:7px 10px;outline:none;margin-bottom:12px';
+            body.appendChild(searchInput);
+
+            const list = document.createElement('div');
+            list.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:16px';
+            body.appendChild(list);
+
+            const renderList = async (query) => {
+                list.innerHTML = '<div style="font-size:11px;color:#5c5d6b;padding:8px 0">Loading…</div>';
+                const guilds = await this._guildSearch(query);
+                list.innerHTML = '';
+                if (guilds.length === 0) {
+                    list.innerHTML = '<div style="font-size:12px;color:#5c5d6b;padding:8px 0">No guilds found.</div>';
+                    return;
+                }
+                guilds.forEach(g => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#22232b;border-radius:6px';
+                    row.innerHTML =
+                        `<div style="width:28px;height:28px;border-radius:7px;background:${g.color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${GUILD_LOGO_EMOJI[g.logo_id] || '🛡️'}</div>` +
+                        `<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#f2f2f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(g.name)}</div>` +
+                        `<div style="font-size:10px;color:#8f909c">${g.member_count} member${g.member_count !== 1 ? 's' : ''}</div></div>`;
+                    const joinBtn = this._panelIconBtn('Join', '');
+                    joinBtn.addEventListener('click', async () => {
+                        joinBtn.disabled = true;
+                        const result = await this._guildJoin(g.id);
+                        if (result.ok) {
+                            this._myGuild = await this._guildFetchMine();
+                            await this._renderGuildHome(body, onClose);
+                        } else {
+                            joinBtn.disabled = false;
+                            this._log('warn', 'Guild: join failed — ' + (result.error || 'unknown error'), 'Guild');
+                        }
+                    });
+                    row.appendChild(joinBtn);
+                    list.appendChild(row);
+                });
+            };
+            searchInput.addEventListener('input', () => renderList(searchInput.value.trim()));
+            await renderList('');
+
+            const createLabel = document.createElement('div');
+            createLabel.textContent = 'Create a new guild';
+            createLabel.style.cssText = 'font-size:11px;color:#8f909c;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 10px;border-top:1px solid #2a2b34;padding-top:14px';
+            body.appendChild(createLabel);
+
+            const formContainer = document.createElement('div');
+            body.appendChild(formContainer);
+            this._renderGuildForm(formContainer, null, async (fields) => {
+                if (fields.name.length < 3) return { ok: false, error: 'Name must be at least 3 characters' };
+                const result = await this._guildCreate(fields.name, fields.description, fields.color, fields.logo_id);
+                if (result.ok) {
+                    this._myGuild = result.guild;
+                    await this._renderGuildHome(body, onClose);
+                }
+                return result;
+            }, null);
+        }
+
+        async _renderGuildHome(body, onClose) {
+            body.innerHTML = '<div style="font-size:11px;color:#5c5d6b">Loading…</div>';
+            const guild = this._myGuild;
+            if (!guild) { await this._renderGuildBrowse(body, onClose); return; }
+            const members = await this._guildMembers(guild.id);
+            const myId = this._playPlayer ? this._playPlayer.id : '';
+            const myRole = guild.my_role;
+
+            body.innerHTML = '';
+
+            const head = document.createElement('div');
+            head.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:6px';
+            head.innerHTML =
+                `<div style="width:44px;height:44px;border-radius:10px;background:${guild.color}33;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${GUILD_LOGO_EMOJI[guild.logo_id] || '🛡️'}</div>` +
+                `<div style="min-width:0"><div style="font-size:15px;font-weight:800;color:#f2f2f5">${this._escapeHtml(guild.name)}</div>` +
+                `<div style="font-size:11px;color:#8f909c">${guild.member_count} member${guild.member_count !== 1 ? 's' : ''} · ${this._escapeHtml(myRole)}</div></div>`;
+            body.appendChild(head);
+
+            if (guild.description) {
+                const desc = document.createElement('p');
+                desc.textContent = guild.description;
+                desc.style.cssText = 'font-size:12px;color:#b8b9c4;margin:8px 0 14px;line-height:1.5';
+                body.appendChild(desc);
+            }
+
+            const actionRow = document.createElement('div');
+            actionRow.style.cssText = 'display:flex;gap:8px;margin-bottom:16px';
+            if (myRole === 'owner' || myRole === 'officer') {
+                const editBtn = this._panelIconBtn('Edit Guild', '');
+                editBtn.addEventListener('click', () => {
+                    body.innerHTML = '';
+                    const backBtn = this._panelIconBtn('← Back', '');
+                    backBtn.addEventListener('click', () => this._renderGuildHome(body, onClose));
+                    body.appendChild(backBtn);
+                    const formContainer = document.createElement('div');
+                    formContainer.style.cssText = 'margin-top:12px';
+                    body.appendChild(formContainer);
+                    this._renderGuildForm(formContainer, guild, async (fields) => {
+                        const result = await this._guildUpdate(guild.id, fields);
+                        if (result.ok) {
+                            this._myGuild = Object.assign({}, result.guild, { my_role: myRole });
+                            await this._renderGuildHome(body, onClose);
+                        }
+                        return result;
+                    }, () => this._renderGuildHome(body, onClose));
+                });
+                actionRow.appendChild(editBtn);
+            }
+            const leaveBtn = this._panelIconBtn('Leave Guild', '');
+            leaveBtn.style.cssText += ';color:#eb5757;border-color:#eb575744';
+            leaveBtn.addEventListener('click', async () => {
+                leaveBtn.disabled = true;
+                const ok = await this._guildLeave(guild.id);
+                if (ok) {
+                    this._myGuild = null;
+                    if (this._chatChannel === 'guild') this._chatChannel = 'global';
+                    await this._renderGuildBrowse(body, onClose);
+                } else {
+                    leaveBtn.disabled = false;
+                }
+            });
+            actionRow.appendChild(leaveBtn);
+            body.appendChild(actionRow);
+
+            const memberLabel = document.createElement('div');
+            memberLabel.textContent = 'Members';
+            memberLabel.style.cssText = 'font-size:11px;color:#8f909c;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px';
+            body.appendChild(memberLabel);
+
+            const memberList = document.createElement('div');
+            memberList.style.cssText = 'display:flex;flex-direction:column;gap:5px';
+            members.forEach(m => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:#22232b;border-radius:6px';
+                const roleBadgeColor = m.role === 'owner' ? '#F2C94C' : m.role === 'officer' ? '#4ECDC4' : '#8f909c';
+                row.innerHTML =
+                    `<span style="font-size:12px;font-weight:600;color:#f2f2f5;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(m.username)}</span>` +
+                    `<span style="font-size:9px;font-weight:700;color:${roleBadgeColor};text-transform:uppercase;letter-spacing:0.04em">${this._escapeHtml(m.role)}</span>`;
+
+                if (m.user_id !== myId) {
+                    const canManage = (myRole === 'owner') || (myRole === 'officer' && m.role === 'member');
+                    if (canManage) {
+                        if (myRole === 'owner' && m.role !== 'owner') {
+                            const roleBtn = this._panelIconBtn(m.role === 'officer' ? 'Demote' : 'Promote', '');
+                            roleBtn.addEventListener('click', async () => {
+                                const newRole = m.role === 'officer' ? 'member' : 'officer';
+                                const ok = await this._guildSetRole(guild.id, m.user_id, newRole);
+                                if (ok) await this._renderGuildHome(body, onClose);
+                            });
+                            row.appendChild(roleBtn);
+                        }
+                        const kickBtn = this._panelIconBtn('Kick', '');
+                        kickBtn.style.cssText += ';color:#eb5757';
+                        kickBtn.addEventListener('click', async () => {
+                            const ok = await this._guildKick(guild.id, m.user_id);
+                            if (ok) await this._renderGuildHome(body, onClose);
+                        });
+                        row.appendChild(kickBtn);
+                    }
+                }
+                memberList.appendChild(row);
+            });
+            body.appendChild(memberList);
+        }
+
+        async _showGuildPanel(onClose) {
+            if (this._guildPanel) {
+                // Replacing an already-open panel: unstick any script waiting on it first.
+                this._guildPanel.remove();
+                this._guildPanel = null;
+                const prevOnClose = this._guildPanelOnClose;
+                this._guildPanelOnClose = null;
+                if (prevOnClose) prevOnClose();
+            }
+            if (!this._playAccessToken) {
+                this._log('warn', 'Guild: sign in first', 'Guild');
+                if (onClose) onClose();
+                return;
+            }
+            this._guildPanelOnClose = onClose || null;
+            this._myGuild = await this._guildFetchMine();
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            this._guildPanel = overlay;
+
+            const card = document.createElement('div');
+            card.style.cssText = 'width:460px;max-width:92vw;max-height:88vh;background:#191a1f;border:1px solid #2a2b34;border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            overlay.appendChild(card);
+
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            header.innerHTML = '<span style="font-size:13px;font-weight:700;color:#f2f2f5">🛡️ Guild</span>';
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            closeBtn.style.cssText = 'background:none;border:none;color:#8f909c;font-size:14px;cursor:pointer;padding:2px 6px';
+            closeBtn.addEventListener('click', () => this._closeGuildPanel());
+            header.appendChild(closeBtn);
+            card.appendChild(header);
+
+            const body = document.createElement('div');
+            body.style.cssText = 'flex:1;overflow-y:auto;padding:16px';
+            card.appendChild(body);
+
+            if (this._myGuild) {
+                await this._renderGuildHome(body, onClose);
+            } else {
+                await this._renderGuildBrowse(body, onClose);
+            }
+
+            document.body.appendChild(overlay);
+        }
+
+        _closeGuildPanel() {
+            if (this._guildPanel) { this._guildPanel.remove(); this._guildPanel = null; }
+            const cb = this._guildPanelOnClose;
+            this._guildPanelOnClose = null;
+            if (cb) cb();
+        }
 
         // ══════════════════════════════════════════
         //  FICHIERS / RESSOURCES — helpers internes

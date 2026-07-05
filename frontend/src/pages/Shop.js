@@ -178,7 +178,7 @@ const Shop = () => {
 
   const [products, setProducts]         = useState([]);
   const [categories, setCategories]     = useState([]);
-  const [gameCategories, setGameCategories] = useState([]);
+  const [productCategories, setProductCategories] = useState([]);
   const [loyalty, setLoyalty]           = useState(null);
   const [loading, setLoading]           = useState(true);
   const [activeGame, setActiveGame]     = useState(searchParams.get('game') || 'all');
@@ -205,15 +205,7 @@ const Shop = () => {
     setActiveSub(s);
   }, [searchParams]);
 
-  // Fetch per-game categories when a specific game is selected
-  useEffect(() => {
-    if (activeGame === 'all') { setGameCategories([]); return; }
-    axios.get(`${API_URL}/api/shop/${activeGame}/settings`)
-      .then(r => setGameCategories(r.data.categories || []))
-      .catch(() => setGameCategories([]));
-  }, [activeGame]);
-
-  // Fetch products + categories
+  // Fetch products (+ the global category list) and the "browse by game" list
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -223,6 +215,7 @@ const Shop = () => {
           axios.get(`${API_URL}/api/shop/categories`),
         ]);
         setProducts(prodRes.data.products || []);
+        setProductCategories(prodRes.data.categories || []);
         setCategories(catRes.data.categories || []);
       } catch { /* silent */ } finally {
         setLoading(false);
@@ -327,7 +320,7 @@ const Shop = () => {
   const featured = filtered.filter(p => p.featured);
   const regular  = filtered.filter(p => !p.featured);
 
-  const activeCatObj = gameCategories.find(c => c.id === activeCat);
+  const activeCatObj = productCategories.find(c => c.id === activeCat);
   const activeSubcats = activeCatObj?.subcategories || [];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -413,8 +406,8 @@ const Shop = () => {
             </div>
           )}
 
-          {/* Per-game category filter */}
-          {activeGame !== 'all' && gameCategories.length > 0 && (
+          {/* Category filter — works across all games, or narrowed to the selected one */}
+          {productCategories.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
@@ -426,7 +419,7 @@ const Shop = () => {
                 >
                   All
                 </button>
-                {gameCategories.map(cat => {
+                {productCategories.map(cat => {
                   const Icon = ICONS[cat.icon] || Package;
                   return (
                     <button

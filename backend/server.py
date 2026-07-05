@@ -496,6 +496,43 @@ class ChatMessageRequest(BaseModel):
     message: str
     level: Optional[int] = None
 
+# ── Chat & Guilds (Play — JWT-authenticated, channel-aware) ──────────────────
+class PlayChatSendRequest(BaseModel):
+    project_slug: str
+    channel: Literal["global", "guild"]
+    message: str
+
+class ChatReactionRequest(BaseModel):
+    emoji: str
+
+class PlayGuildCreateRequest(BaseModel):
+    project_slug: str
+    name: str
+    description: str = ""
+    color: str = "#4ECDC4"
+    logo_id: str = "shield"
+
+class PlayGuildUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    logo_id: Optional[str] = None
+
+class GuildMemberRoleRequest(BaseModel):
+    role: Literal["officer", "member"]
+
+class ChatBanRequest(BaseModel):
+    user_id: str
+
+class ChatMuteRequest(BaseModel):
+    user_id: str
+    duration_minutes: int
+    reason: str = ""
+
+class ChatMaintenanceRequest(BaseModel):
+    chat_global_enabled: Optional[bool] = None
+    chat_guilds_enabled: Optional[bool] = None
+
 class BannedWordsUpdateRequest(BaseModel):
     words: List[str]
 
@@ -506,6 +543,7 @@ class ShopProductCreateRequest(BaseModel):
     image_url: str = ""
     badge: Optional[str] = None
     discount_pct: Optional[int] = None
+    game_slug: str
     project_slug: str
     variable: str
     amount: str
@@ -521,6 +559,7 @@ class ShopProductUpdateRequest(BaseModel):
     image_url: Optional[str] = None
     badge: Optional[str] = None
     discount_pct: Optional[int] = None
+    game_slug: Optional[str] = None
     project_slug: Optional[str] = None
     variable: Optional[str] = None
     amount: Optional[str] = None
@@ -529,54 +568,15 @@ class ShopProductUpdateRequest(BaseModel):
     subcategory: Optional[str] = None
     featured: Optional[bool] = None
 
-class DailyGiftConfigRequest(BaseModel):
-    active: bool = True
-    title: str = "Daily Gift"
-    description: str = ""
-    image_url: str = ""
-    project_slug: str = ""
-    variable: str = ""
-    amount: str = ""
-
-class DailyGiftClaimRequest(BaseModel):
-    player_uid: str
-
 class ShopCheckoutRequest(BaseModel):
     product_id: str
     player_uid: str
     coupon_code: Optional[str] = ""
 
-class ShopSettingsRequest(BaseModel):
-    # Banner
-    shop_title: str = ""
-    banner_url: str = ""
-    banner_title: str = ""
-    banner_subtitle: str = ""
-    banner_height: str = "md"
-    banner_overlay: str = "rgba(0,0,0,0.55)"
-    # Colors
-    primary_color: str = "#6C5CE7"
-    accent_color: str = "#A29BFE"
-    background_color: str = ""
-    surface_color: str = ""
-    border_color: str = ""
-    text_color: str = ""
-    text_muted_color: str = ""
-    price_color: str = ""
-    # Background texture
-    bg_texture_url: str = ""
-    bg_texture_opacity: float = 0.05
-    # Cards
-    card_style: str = "rounded"
-    card_shadow: str = "sm"
-    # Layout & sections
-    featured_section_title: str = "Featured Offers"
-    footer_text: str = ""
-    categories: List[dict] = []
-
 class ShopGlobalSettingsRequest(BaseModel):
-    shop_title: str = "Shop"
-    footer_text: str = ""
+    shop_title: Optional[str] = None
+    footer_text: Optional[str] = None
+    categories: Optional[List[dict]] = None
 
 class GamePurchaseCheckoutRequest(BaseModel):
     coupon_code: Optional[str] = ""
@@ -1418,7 +1418,7 @@ async def get_status(slug: str):
 # (Account-level/global actions — auth, website content, support, careers — never carry a
 # project_slug and are therefore already excluded from this view by the query below.)
 PROJECT_LOG_TYPES = (
-    "files", "variable_action", "shop", "status", "chat",
+    "files", "variable_action", "shop", "status", "chat", "guild",
     "missions", "player", "send", "claim", "delete", "project",
 )
 
@@ -1800,9 +1800,17 @@ async def post_chat_message(request: Request, project_slug: str):
     return {"success": True, "message_data": serialize_doc(doc)}
 
 @api_router.get("/projects/{project_slug}/chat")
-async def get_chat_messages(project_slug: str, limit: int = 50):
+async def get_chat_messages(project_slug: str, limit: int = 50, channel: Optional[str] = None, guild_id: Optional[str] = None):
     limit = min(max(limit, 1), 100)
-    messages = await db.chat_messages.find({"project_slug": project_slug}).sort("timestamp", -1).limit(limit).to_list(limit)
+    query: dict = {"project_slug": project_slug}
+    if channel:
+        query["channel"] = channel
+    if guild_id:
+        try:
+            query["guild_id"] = ObjectId(guild_id)
+        except Exception:
+            pass
+    messages = await db.chat_messages.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
     messages.reverse()
     return {"messages": [serialize_doc(m) for m in messages]}
 
@@ -1837,21 +1845,31 @@ async def update_banned_words(req: BannedWordsUpdateRequest, user=Depends(requir
 
 # ============== SHOP ==============
 
-# ── Global shop settings ─────────────────────────────────────────────────────
+# ── Global shop settings (title, footer, and the cross-game category list) ───
 @api_router.get("/shop/settings")
 async def get_global_shop_settings():
     doc = await db.website_shop_global_settings.find_one({})
     if not doc:
-        return {"shop_title": "Shop", "footer_text": ""}
-    return serialize_doc(doc)
+        return {"shop_title": "Shop", "footer_text": "", "categories": []}
+    result = serialize_doc(doc)
+    result.setdefault("categories", [])
+    return result
 
 @api_router.put("/shop/settings")
 async def update_global_shop_settings(req: ShopGlobalSettingsRequest, user=Depends(require_permission("manage_shop"))):
-    updates = req.dict()
+    updates = {k: v for k, v in req.dict().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc)
     await db.website_shop_global_settings.update_one({}, {"$set": updates}, upsert=True)
-    await log_action("website", "Global shop settings updated", user=user["username"])
+    await log_action("shop", "Global shop settings updated", user=user["username"])
     return serialize_doc(await db.website_shop_global_settings.find_one({}))
+
+async def _get_shop_categories() -> List[dict]:
+    doc = await db.website_shop_global_settings.find_one({}, {"categories": 1})
+    return (doc or {}).get("categories", [])
+
+async def _validate_game_slug(game_slug: str):
+    if not await db.website_games.find_one({"slug": game_slug}):
+        raise HTTPException(status_code=404, detail=f"Game '{game_slug}' not found")
 
 # ── Global products list ──────────────────────────────────────────────────────
 @api_router.get("/shop/products")
@@ -1862,15 +1880,82 @@ async def list_all_shop_products(game_slug: Optional[str] = None, category: Opti
     if category:
         query["category"] = category
     products = await db.website_shop_products.find(query).sort([("featured", -1), ("created_at", 1)]).to_list(500)
-    return {"products": [serialize_doc(p) for p in products]}
+    categories = await _get_shop_categories()
+    return {"products": [serialize_doc(p) for p in products], "categories": categories}
 
 @api_router.get("/shop/products/admin")
-async def list_all_shop_products_admin(game_slug: Optional[str] = None, user=Depends(require_permission("manage_shop"))):
+async def list_all_shop_products_admin(game_slug: Optional[str] = None, category: Optional[str] = None,
+                                        user=Depends(require_permission("manage_shop"))):
     query: dict = {}
     if game_slug:
         query["game_slug"] = game_slug
+    if category:
+        query["category"] = category
     products = await db.website_shop_products.find(query).sort([("game_slug", 1), ("created_at", 1)]).to_list(500)
     return {"products": [serialize_doc(p) for p in products]}
+
+@api_router.post("/shop/products")
+async def create_shop_product_global(req: ShopProductCreateRequest, user=Depends(require_permission("manage_shop"))):
+    await _validate_game_slug(req.game_slug)
+    if not await db.projects.find_one({"slug": req.project_slug}):
+        raise HTTPException(status_code=404, detail="Project not found")
+    doc = {
+        "game_slug": req.game_slug,
+        "name": req.name,
+        "description": req.description,
+        "price": req.price,
+        "image_url": req.image_url,
+        "badge": req.badge,
+        "discount_pct": req.discount_pct,
+        "project_slug": req.project_slug,
+        "variable": req.variable,
+        "amount": req.amount,
+        "active": req.active,
+        "category": req.category,
+        "subcategory": req.subcategory,
+        "featured": req.featured,
+        "created_at": datetime.now(timezone.utc),
+        "created_by": user["username"],
+    }
+    result = await db.website_shop_products.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    await log_action("shop", f"Shop product '{req.name}' created", project_slug=req.project_slug, user=user["username"])
+    return {"success": True, "product": serialize_doc(doc)}
+
+@api_router.put("/shop/products/{product_id}")
+async def update_shop_product_global(product_id: str, req: ShopProductUpdateRequest, user=Depends(require_permission("manage_shop"))):
+    try:
+        oid = ObjectId(product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    product = await db.website_shop_products.find_one({"_id": oid})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    updates = {k: v for k, v in req.dict().items() if v is not None}
+    if "game_slug" in updates:
+        await _validate_game_slug(updates["game_slug"])
+    if "project_slug" in updates and not await db.projects.find_one({"slug": updates["project_slug"]}):
+        raise HTTPException(status_code=404, detail="Project not found")
+    updates["updated_at"] = datetime.now(timezone.utc)
+    await db.website_shop_products.update_one({"_id": oid}, {"$set": updates})
+    updated = await db.website_shop_products.find_one({"_id": oid})
+    await log_action("shop", f"Shop product '{updated.get('name', product_id)}' updated",
+                      project_slug=updated.get("project_slug"), user=user["username"])
+    return {"success": True, "product": serialize_doc(updated)}
+
+@api_router.delete("/shop/products/{product_id}")
+async def delete_shop_product_global(product_id: str, user=Depends(require_permission("manage_shop"))):
+    try:
+        oid = ObjectId(product_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid product ID")
+    product = await db.website_shop_products.find_one({"_id": oid})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    await db.website_shop_products.delete_one({"_id": oid})
+    await log_action("shop", f"Shop product '{product.get('name', product_id)}' deleted",
+                      project_slug=product.get("project_slug"), user=user["username"])
+    return {"success": True}
 
 # ── Categories (derived from games with active products) ──────────────────────
 @api_router.get("/shop/categories")
@@ -2139,101 +2224,6 @@ async def list_game_purchases(game_slug: str, user=Depends(require_permission("m
     purchases = await db.game_purchases.find({"game_slug": game_slug}).sort("purchased_at", -1).to_list(1000)
     return {"purchases": [serialize_doc(p) for p in purchases]}
 
-@api_router.get("/shop/{game_slug}/products")
-async def list_shop_products_public(game_slug: str):
-    products = await db.website_shop_products.find({"game_slug": game_slug, "active": True}).sort("created_at", 1).to_list(200)
-    return {"products": [serialize_doc(p) for p in products]}
-
-@api_router.get("/shop/{game_slug}/products/admin")
-async def list_shop_products_admin(game_slug: str, user=Depends(require_permission("manage_shop"))):
-    products = await db.website_shop_products.find({"game_slug": game_slug}).sort("created_at", 1).to_list(200)
-    return {"products": [serialize_doc(p) for p in products]}
-
-@api_router.post("/shop/{game_slug}/products")
-async def create_shop_product(game_slug: str, req: ShopProductCreateRequest, user=Depends(require_permission("manage_shop"))):
-    if not await db.projects.find_one({"slug": req.project_slug}):
-        raise HTTPException(status_code=404, detail="Project not found")
-    doc = {
-        "game_slug": game_slug,
-        "name": req.name,
-        "description": req.description,
-        "price": req.price,
-        "image_url": req.image_url,
-        "badge": req.badge,
-        "discount_pct": req.discount_pct,
-        "project_slug": req.project_slug,
-        "variable": req.variable,
-        "amount": req.amount,
-        "active": req.active,
-        "category": req.category,
-        "subcategory": req.subcategory,
-        "featured": req.featured,
-        "created_at": datetime.now(timezone.utc),
-        "created_by": user["username"],
-    }
-    result = await db.website_shop_products.insert_one(doc)
-    doc["_id"] = result.inserted_id
-    await log_action("shop", f"Shop product '{req.name}' created", project_slug=req.project_slug, user=user["username"])
-    return {"success": True, "product": serialize_doc(doc)}
-
-@api_router.put("/shop/{game_slug}/products/{product_id}")
-async def update_shop_product(game_slug: str, product_id: str, req: ShopProductUpdateRequest, user=Depends(require_permission("manage_shop"))):
-    try:
-        oid = ObjectId(product_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid product ID")
-    product = await db.website_shop_products.find_one({"_id": oid, "game_slug": game_slug})
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    updates = {k: v for k, v in req.dict().items() if v is not None}
-    if "project_slug" in updates and not await db.projects.find_one({"slug": updates["project_slug"]}):
-        raise HTTPException(status_code=404, detail="Project not found")
-    updates["updated_at"] = datetime.now(timezone.utc)
-    await db.website_shop_products.update_one({"_id": oid}, {"$set": updates})
-    updated = await db.website_shop_products.find_one({"_id": oid})
-    await log_action("shop", f"Shop product '{updated.get('name', product_id)}' updated",
-                      project_slug=updated.get("project_slug", product.get("project_slug")), user=user["username"])
-    return {"success": True, "product": serialize_doc(updated)}
-
-@api_router.delete("/shop/{game_slug}/products/{product_id}")
-async def delete_shop_product(game_slug: str, product_id: str, user=Depends(require_permission("manage_shop"))):
-    try:
-        oid = ObjectId(product_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid product ID")
-    product = await db.website_shop_products.find_one({"_id": oid, "game_slug": game_slug})
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    await db.website_shop_products.delete_one({"_id": oid})
-    await log_action("shop", f"Shop product '{product.get('name', product_id)}' deleted",
-                      project_slug=product.get("project_slug"), user=user["username"])
-    return {"success": True}
-
-@api_router.get("/shop/{game_slug}/settings")
-async def get_shop_settings(game_slug: str):
-    doc = await db.website_shop_settings.find_one({"game_slug": game_slug})
-    if not doc:
-        return {"game_slug": game_slug, "shop_title": "", "banner_url": "", "banner_title": "", "banner_subtitle": "",
-                "banner_height": "md", "banner_overlay": "rgba(0,0,0,0.55)",
-                "primary_color": "#6C5CE7", "accent_color": "#A29BFE",
-                "background_color": "", "surface_color": "", "border_color": "",
-                "text_color": "", "text_muted_color": "", "price_color": "",
-                "bg_texture_url": "", "bg_texture_opacity": 0.05,
-                "card_style": "rounded", "card_shadow": "sm",
-                "featured_section_title": "Featured Offers", "footer_text": "", "categories": []}
-    return serialize_doc(doc)
-
-@api_router.put("/shop/{game_slug}/settings")
-async def update_shop_settings(game_slug: str, req: ShopSettingsRequest, user=Depends(require_permission("manage_shop"))):
-    updates = req.dict()
-    updates["game_slug"] = game_slug
-    updates["updated_at"] = datetime.now(timezone.utc)
-    updates["updated_by"] = user["username"]
-    await db.website_shop_settings.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
-    await log_action("website", f"Shop settings updated for '{game_slug}'", user=user["username"])
-    result = await db.website_shop_settings.find_one({"game_slug": game_slug})
-    return serialize_doc(result)
-
 @api_router.post("/shop/{game_slug}/checkout")
 @limiter.limit("10/minute")
 async def create_checkout_session(request: Request, game_slug: str, req: ShopCheckoutRequest, user=Depends(get_current_user)):
@@ -2293,102 +2283,6 @@ async def get_session_status(request: Request, session_id: str):
         return {"status": session.status, "payment_status": session.payment_status}
     except Exception:
         raise HTTPException(status_code=404, detail="Session not found")
-
-# ── Daily Gift ──────────────────────────────────────────────────────────────
-@api_router.get("/shop/{game_slug}/daily-gift")
-@limiter.limit("60/minute")
-async def get_daily_gift(request: Request, game_slug: str, player_uid: Optional[str] = None):
-    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug})
-    if not gift or not gift.get("active"):
-        return {"active": False}
-    result = serialize_doc(gift)
-    now = datetime.now(timezone.utc)
-    tomorrow = datetime(now.year, now.month, now.day, tzinfo=timezone.utc) + timedelta(days=1)
-    result["resets_at"] = tomorrow.isoformat()
-    result["seconds_until_reset"] = int((tomorrow - now).total_seconds())
-    if player_uid:
-        date_key = now.date().isoformat()
-        existing = await db.website_shop_daily_claims.find_one({
-            "game_slug": game_slug, "player_uid": player_uid.strip(),
-            "date_key": date_key,
-        })
-        result["claimed"] = existing is not None
-    else:
-        result["claimed"] = None
-    return result
-
-@api_router.post("/shop/{game_slug}/daily-gift/claim")
-@limiter.limit("10/minute")
-async def claim_daily_gift(request: Request, game_slug: str, req: DailyGiftClaimRequest):
-    player_uid = req.player_uid.strip()
-    if not player_uid:
-        raise HTTPException(status_code=400, detail="Player UID required")
-    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug, "active": True})
-    if not gift:
-        raise HTTPException(status_code=404, detail="No active daily gift")
-    now = datetime.now(timezone.utc)
-    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
-    tomorrow = today_start + timedelta(days=1)
-    date_key = today_start.date().isoformat()
-    seconds_left = int((tomorrow - now).total_seconds())
-
-    # Atomic claim slot reservation using find_one_and_update + upsert.
-    # MongoDB guarantees only one concurrent request can perform the insert —
-    # all others will find the document already exists and get it returned.
-    # return_document=False → returns the PRE-UPDATE doc (None if newly inserted).
-    existing = await db.website_shop_daily_claims.find_one_and_update(
-        {"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key},
-        {"$setOnInsert": {"claimed_at": now}},
-        upsert=True,
-        return_document=False,
-    )
-    if existing is not None:
-        # Document existed before → already claimed today
-        raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
-
-    # Also block old-format claims (records without date_key, from before this fix)
-    old_claim = await db.website_shop_daily_claims.find_one({
-        "game_slug": game_slug, "player_uid": player_uid,
-        "date_key": {"$exists": False},
-        "claimed_at": {"$gte": today_start},
-    })
-    if old_claim:
-        # Rollback the slot we just reserved, then reject
-        await db.website_shop_daily_claims.delete_one(
-            {"game_slug": game_slug, "player_uid": player_uid, "date_key": date_key}
-        )
-        raise HTTPException(status_code=409, detail=f"Already claimed today. Resets in {seconds_left} seconds.")
-
-    project = await db.projects.find_one({"slug": gift["project_slug"]})
-    if not project:
-        raise HTTPException(status_code=500, detail="Daily gift project configuration error")
-    await db.items.insert_one({
-        "project_slug": gift["project_slug"],
-        "uid": player_uid,
-        "variable": gift["variable"],
-        "amount": gift["amount"],
-        "created_at": now,
-        "created_by": "daily_gift",
-    })
-    return {"success": True, "item": gift["variable"], "amount": gift["amount"]}
-
-@api_router.get("/shop/{game_slug}/daily-gift/admin")
-async def get_daily_gift_admin(game_slug: str, user=Depends(require_permission("manage_shop"))):
-    gift = await db.website_shop_daily_gifts.find_one({"game_slug": game_slug})
-    if not gift:
-        return {"game_slug": game_slug, "active": False, "title": "Daily Gift",
-                "description": "", "image_url": "", "project_slug": "", "variable": "", "amount": ""}
-    return serialize_doc(gift)
-
-@api_router.put("/shop/{game_slug}/daily-gift")
-async def update_daily_gift(game_slug: str, req: DailyGiftConfigRequest, user=Depends(require_permission("manage_shop"))):
-    updates = req.dict()
-    updates["game_slug"] = game_slug
-    updates["updated_at"] = datetime.now(timezone.utc)
-    updates["updated_by"] = user["username"]
-    await db.website_shop_daily_gifts.update_one({"game_slug": game_slug}, {"$set": updates}, upsert=True)
-    await log_action("shop", "Daily gift settings updated", project_slug=req.project_slug or None, user=user["username"])
-    return serialize_doc(await db.website_shop_daily_gifts.find_one({"game_slug": game_slug}))
 
 # ── Game files ───────────────────────────────────────────────────────────────
 
@@ -4222,6 +4116,440 @@ async def admin_play_delete_player(slug: str, player_id: str, user=Depends(requi
     await db.play_refresh_tokens.delete_many({"user_id": oid})
     return {"ok": True}
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  CHAT & GUILDS (Play — Global channel + per-project guilds)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Separate from the legacy shared-API-key chat above: these routes authenticate
+# via the Play JWT (same as saves/nicknames/bans), so a message's sender identity
+# can never be spoofed by the client. The legacy raw blocks/endpoints are untouched.
+
+CHAT_MAX_LEN   = 200
+CHAT_HISTORY_CAP = 150
+REACTION_EMOJIS = {"👍", "❤️", "😂", "😮", "😢", "🔥"}
+GUILD_LOGOS = ["shield", "sword", "flame", "star", "wolf", "dragon", "crown", "skull", "eagle", "lion", "anchor", "leaf"]
+GUILD_NAME_MIN, GUILD_NAME_MAX = 3, 30
+
+async def _get_chat_maintenance(project_slug: str) -> dict:
+    project = await db.projects.find_one({"slug": project_slug}, {"chat_global_enabled": 1, "chat_guilds_enabled": 1})
+    if not project:
+        return {"chat_global_enabled": True, "chat_guilds_enabled": True}
+    return {
+        "chat_global_enabled": project.get("chat_global_enabled", True),
+        "chat_guilds_enabled": project.get("chat_guilds_enabled", True),
+    }
+
+def _serialize_guild(g: dict, my_role: Optional[str] = None) -> dict:
+    out = serialize_doc(g)
+    if my_role is not None:
+        out["my_role"] = my_role
+    return out
+
+# ── Messaging ─────────────────────────────────────────────────────────────────
+
+@api_router.post("/play/chat/send")
+@limiter.limit("1/2seconds")
+async def play_chat_send(request: Request, req: PlayChatSendRequest, play_user=Depends(_get_play_user_from_access)):
+    project_slug = req.project_slug.strip()
+    if not project_slug:
+        raise HTTPException(400, "project_slug requis")
+    if await _is_project_banned(play_user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
+    if await db.chat_bans.find_one({"user_id": play_user["_id"], "project_slug": project_slug}):
+        raise HTTPException(403, "You are blocked from chat in this game")
+    mute = await db.chat_mutes.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+    now = datetime.now(timezone.utc)
+    if mute and mute["muted_until"] > now:
+        raise HTTPException(403, f"Muted for {int((mute['muted_until'] - now).total_seconds())} more seconds")
+
+    maintenance = await _get_chat_maintenance(project_slug)
+    guild_id = None
+    if req.channel == "global":
+        if not maintenance["chat_global_enabled"]:
+            raise HTTPException(503, "Global chat is currently disabled")
+    else:
+        if not maintenance["chat_guilds_enabled"]:
+            raise HTTPException(503, "The guild system is currently disabled")
+        membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+        if not membership:
+            raise HTTPException(400, "You are not in a guild")
+        guild_id = membership["guild_id"]
+
+    message = req.message.strip()[:CHAT_MAX_LEN]
+    if not message:
+        raise HTTPException(400, "Message required")
+    banned_words = await get_banned_words()
+    clean_message = censor_message(message, banned_words)
+
+    nickname_doc = await db.play_nicknames.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+    username = nickname_doc["nickname"] if nickname_doc else play_user["username"]
+
+    doc = {
+        "project_slug": project_slug, "channel": req.channel, "guild_id": guild_id,
+        "user_id": play_user["_id"], "username": username, "level": None,
+        "message": clean_message, "reactions": [], "timestamp": now,
+    }
+    result = await db.chat_messages.insert_one(doc)
+    doc["_id"] = result.inserted_id
+
+    scope_query: dict = {"project_slug": project_slug, "channel": req.channel}
+    if guild_id:
+        scope_query["guild_id"] = guild_id
+    count = await db.chat_messages.count_documents(scope_query)
+    if count > CHAT_HISTORY_CAP:
+        oldest = await db.chat_messages.find(scope_query).sort("timestamp", 1).limit(count - CHAT_HISTORY_CAP).to_list(count - CHAT_HISTORY_CAP)
+        await db.chat_messages.delete_many({"_id": {"$in": [o["_id"] for o in oldest]}})
+
+    return {"success": True, "message_data": serialize_doc(doc)}
+
+@api_router.get("/play/chat")
+async def play_chat_get(project_slug: str, channel: str = "global", limit: int = 50,
+                         play_user=Depends(_get_play_user_from_access)):
+    limit = min(max(limit, 1), 100)
+    query: dict = {"project_slug": project_slug, "channel": channel}
+    if channel == "guild":
+        membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+        if not membership:
+            return {"messages": []}
+        query["guild_id"] = membership["guild_id"]
+    messages = await db.chat_messages.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
+    messages.reverse()
+    return {"messages": [serialize_doc(m) for m in messages]}
+
+@api_router.post("/play/chat/{message_id}/react")
+async def play_chat_react(message_id: str, req: ChatReactionRequest, play_user=Depends(_get_play_user_from_access)):
+    if req.emoji not in REACTION_EMOJIS:
+        raise HTTPException(400, "Invalid emoji")
+    try:
+        oid = ObjectId(message_id)
+    except Exception:
+        raise HTTPException(400, "Invalid message ID")
+    msg = await db.chat_messages.find_one({"_id": oid})
+    if not msg:
+        raise HTTPException(404, "Message not found")
+    uid_str = str(play_user["_id"])
+    reactions = msg.get("reactions", [])
+    entry = next((r for r in reactions if r["emoji"] == req.emoji), None)
+    if entry and uid_str in entry.get("user_ids", []):
+        entry["user_ids"].remove(uid_str)
+        if not entry["user_ids"]:
+            reactions = [r for r in reactions if r["emoji"] != req.emoji]
+    elif entry:
+        entry["user_ids"].append(uid_str)
+    else:
+        reactions.append({"emoji": req.emoji, "user_ids": [uid_str]})
+    await db.chat_messages.update_one({"_id": oid}, {"$set": {"reactions": reactions}})
+    return {"success": True, "reactions": reactions}
+
+# ── Guilds ────────────────────────────────────────────────────────────────────
+
+@api_router.post("/play/guilds")
+@limiter.limit("5/hour")
+async def play_create_guild(request: Request, req: PlayGuildCreateRequest, play_user=Depends(_get_play_user_from_access)):
+    project_slug = req.project_slug.strip()
+    if not project_slug:
+        raise HTTPException(400, "project_slug requis")
+    if await _is_project_banned(play_user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
+    if not (await _get_chat_maintenance(project_slug))["chat_guilds_enabled"]:
+        raise HTTPException(503, "The guild system is currently disabled")
+    if await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug}):
+        raise HTTPException(400, "You are already in a guild")
+    name = req.name.strip()
+    if not (GUILD_NAME_MIN <= len(name) <= GUILD_NAME_MAX):
+        raise HTTPException(400, f"Guild name must be {GUILD_NAME_MIN}-{GUILD_NAME_MAX} characters")
+    if req.logo_id not in GUILD_LOGOS:
+        raise HTTPException(400, "Invalid logo")
+    if await db.guilds.find_one({"project_slug": project_slug, "name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}):
+        raise HTTPException(400, "A guild with this name already exists")
+    now = datetime.now(timezone.utc)
+    doc = {
+        "project_slug": project_slug, "name": name, "description": req.description.strip()[:200],
+        "color": req.color, "logo_id": req.logo_id, "owner_id": play_user["_id"],
+        "member_count": 1, "created_at": now,
+    }
+    result = await db.guilds.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    await db.guild_members.insert_one({
+        "guild_id": result.inserted_id, "project_slug": project_slug,
+        "user_id": play_user["_id"], "role": "owner", "joined_at": now,
+    })
+    await log_action("guild", f"Guild '{name}' created", project_slug=project_slug, user=play_user["username"])
+    return {"success": True, "guild": _serialize_guild(doc, my_role="owner")}
+
+@api_router.get("/play/guilds")
+async def play_list_guilds(project_slug: str, search: Optional[str] = None, play_user=Depends(_get_play_user_from_access)):
+    query: dict = {"project_slug": project_slug}
+    if search:
+        query["name"] = {"$regex": re.escape(search.strip()), "$options": "i"}
+    guilds = await db.guilds.find(query).sort("member_count", -1).to_list(200)
+    return {"guilds": [serialize_doc(g) for g in guilds]}
+
+@api_router.get("/play/guilds/mine")
+async def play_my_guild(project_slug: str, play_user=Depends(_get_play_user_from_access)):
+    membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+    if not membership:
+        return {"guild": None}
+    guild = await db.guilds.find_one({"_id": membership["guild_id"]})
+    if not guild:
+        return {"guild": None}
+    return {"guild": _serialize_guild(guild, my_role=membership["role"])}
+
+@api_router.get("/play/guilds/{guild_id}/members")
+async def play_list_guild_members(guild_id: str, play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid = ObjectId(guild_id)
+    except Exception:
+        raise HTTPException(400, "Invalid guild ID")
+    membership = await db.guild_members.find_one({"guild_id": oid, "user_id": play_user["_id"]})
+    if not membership:
+        raise HTTPException(403, "Not a member of this guild")
+    members = await db.guild_members.find({"guild_id": oid}).sort("joined_at", 1).to_list(500)
+    users = await db.users.find({"_id": {"$in": [m["user_id"] for m in members]}}).to_list(500)
+    users_by_id = {u["_id"]: u for u in users}
+    return {"members": [
+        {"user_id": str(m["user_id"]), "username": users_by_id.get(m["user_id"], {}).get("username", "?"),
+         "role": m["role"], "joined_at": m["joined_at"].isoformat()}
+        for m in members
+    ]}
+
+@api_router.post("/play/guilds/{guild_id}/join")
+@limiter.limit("10/minute")
+async def play_join_guild(request: Request, guild_id: str, play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid = ObjectId(guild_id)
+    except Exception:
+        raise HTTPException(400, "Invalid guild ID")
+    guild = await db.guilds.find_one({"_id": oid})
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+    project_slug = guild["project_slug"]
+    if await _is_project_banned(play_user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
+    if not (await _get_chat_maintenance(project_slug))["chat_guilds_enabled"]:
+        raise HTTPException(503, "The guild system is currently disabled")
+    if await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug}):
+        raise HTTPException(400, "You are already in a guild")
+    try:
+        await db.guild_members.insert_one({
+            "guild_id": oid, "project_slug": project_slug,
+            "user_id": play_user["_id"], "role": "member", "joined_at": datetime.now(timezone.utc),
+        })
+    except DuplicateKeyError:
+        raise HTTPException(400, "You are already in a guild")
+    await db.guilds.update_one({"_id": oid}, {"$inc": {"member_count": 1}})
+    return {"success": True}
+
+@api_router.post("/play/guilds/{guild_id}/leave")
+async def play_leave_guild(guild_id: str, play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid = ObjectId(guild_id)
+    except Exception:
+        raise HTTPException(400, "Invalid guild ID")
+    membership = await db.guild_members.find_one({"guild_id": oid, "user_id": play_user["_id"]})
+    if not membership:
+        raise HTTPException(404, "Not a member of this guild")
+    await db.guild_members.delete_one({"_id": membership["_id"]})
+    await db.guilds.update_one({"_id": oid}, {"$inc": {"member_count": -1}})
+
+    if membership["role"] == "owner":
+        # Auto-promote: longest-standing officer, else longest-standing member, else disband.
+        next_owner = await db.guild_members.find_one({"guild_id": oid, "role": "officer"}, sort=[("joined_at", 1)])
+        if not next_owner:
+            next_owner = await db.guild_members.find_one({"guild_id": oid}, sort=[("joined_at", 1)])
+        if next_owner:
+            await db.guild_members.update_one({"_id": next_owner["_id"]}, {"$set": {"role": "owner"}})
+        else:
+            await db.guilds.delete_one({"_id": oid})
+            await db.chat_messages.delete_many({"guild_id": oid})
+    return {"success": True}
+
+@api_router.patch("/play/guilds/{guild_id}")
+async def play_update_guild(guild_id: str, req: PlayGuildUpdateRequest, play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid = ObjectId(guild_id)
+    except Exception:
+        raise HTTPException(400, "Invalid guild ID")
+    membership = await db.guild_members.find_one({"guild_id": oid, "user_id": play_user["_id"]})
+    if not membership or membership["role"] not in ("owner", "officer"):
+        raise HTTPException(403, "Only the owner or an officer can edit the guild")
+    guild = await db.guilds.find_one({"_id": oid})
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+    updates: dict = {}
+    if req.name is not None:
+        name = req.name.strip()
+        if not (GUILD_NAME_MIN <= len(name) <= GUILD_NAME_MAX):
+            raise HTTPException(400, f"Guild name must be {GUILD_NAME_MIN}-{GUILD_NAME_MAX} characters")
+        if await db.guilds.find_one({"project_slug": guild["project_slug"], "_id": {"$ne": oid},
+                                      "name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}):
+            raise HTTPException(400, "A guild with this name already exists")
+        updates["name"] = name
+    if req.description is not None:
+        updates["description"] = req.description.strip()[:200]
+    if req.color is not None:
+        updates["color"] = req.color
+    if req.logo_id is not None:
+        if req.logo_id not in GUILD_LOGOS:
+            raise HTTPException(400, "Invalid logo")
+        updates["logo_id"] = req.logo_id
+    if updates:
+        await db.guilds.update_one({"_id": oid}, {"$set": updates})
+    updated = await db.guilds.find_one({"_id": oid})
+    return {"success": True, "guild": _serialize_guild(updated, my_role=membership["role"])}
+
+@api_router.patch("/play/guilds/{guild_id}/members/{member_user_id}")
+async def play_set_member_role(guild_id: str, member_user_id: str, req: GuildMemberRoleRequest,
+                                play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid, member_oid = ObjectId(guild_id), ObjectId(member_user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid ID")
+    membership = await db.guild_members.find_one({"guild_id": oid, "user_id": play_user["_id"]})
+    if not membership or membership["role"] != "owner":
+        raise HTTPException(403, "Only the owner can change roles")
+    target = await db.guild_members.find_one({"guild_id": oid, "user_id": member_oid})
+    if not target:
+        raise HTTPException(404, "Member not found")
+    if target["role"] == "owner":
+        raise HTTPException(400, "Cannot change the owner's role")
+    await db.guild_members.update_one({"_id": target["_id"]}, {"$set": {"role": req.role}})
+    return {"success": True}
+
+@api_router.delete("/play/guilds/{guild_id}/members/{member_user_id}")
+async def play_kick_member(guild_id: str, member_user_id: str, play_user=Depends(_get_play_user_from_access)):
+    try:
+        oid, member_oid = ObjectId(guild_id), ObjectId(member_user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid ID")
+    membership = await db.guild_members.find_one({"guild_id": oid, "user_id": play_user["_id"]})
+    if not membership or membership["role"] not in ("owner", "officer"):
+        raise HTTPException(403, "Only the owner or an officer can kick members")
+    target = await db.guild_members.find_one({"guild_id": oid, "user_id": member_oid})
+    if not target:
+        raise HTTPException(404, "Member not found")
+    if target["role"] == "owner":
+        raise HTTPException(400, "Cannot kick the owner")
+    if membership["role"] == "officer" and target["role"] == "officer":
+        raise HTTPException(403, "Officers cannot kick other officers")
+    await db.guild_members.delete_one({"_id": target["_id"]})
+    await db.guilds.update_one({"_id": oid}, {"$inc": {"member_count": -1}})
+    return {"success": True}
+
+# ── Dashboard moderation (chat bans/mutes, guild oversight, maintenance) ─────
+
+@api_router.get("/admin/projects/{slug}/chat/moderation")
+async def admin_chat_moderation_list(slug: str, user=Depends(require_permission("manage_chat"))):
+    bans = await db.chat_bans.find({"project_slug": slug}).to_list(500)
+    mutes = await db.chat_mutes.find({"project_slug": slug}).to_list(500)
+    now = datetime.now(timezone.utc)
+    user_ids = list({b["user_id"] for b in bans} | {m["user_id"] for m in mutes})
+    users = await db.users.find({"_id": {"$in": user_ids}}).to_list(500) if user_ids else []
+    users_by_id = {u["_id"]: u for u in users}
+    return {
+        "bans": [
+            {"user_id": str(b["user_id"]), "username": users_by_id.get(b["user_id"], {}).get("username", "?"),
+             "banned_at": b["banned_at"].isoformat(), "banned_by": b.get("banned_by")}
+            for b in bans
+        ],
+        "mutes": [
+            {"user_id": str(m["user_id"]), "username": users_by_id.get(m["user_id"], {}).get("username", "?"),
+             "muted_until": m["muted_until"].isoformat(), "active": m["muted_until"] > now,
+             "reason": m.get("reason", ""), "muted_by": m.get("muted_by")}
+            for m in mutes
+        ],
+    }
+
+@api_router.post("/admin/projects/{slug}/chat/ban")
+async def admin_chat_ban(slug: str, req: ChatBanRequest, user=Depends(require_permission("manage_chat"))):
+    try:
+        oid = ObjectId(req.user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid user ID")
+    await db.chat_bans.update_one(
+        {"user_id": oid, "project_slug": slug},
+        {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": user["username"]}},
+        upsert=True,
+    )
+    await log_action("chat", f"Player {req.user_id} blocked from chat", project_slug=slug, user=user["username"])
+    return {"success": True}
+
+@api_router.delete("/admin/projects/{slug}/chat/ban/{user_id}")
+async def admin_chat_unban(slug: str, user_id: str, user=Depends(require_permission("manage_chat"))):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid user ID")
+    await db.chat_bans.delete_one({"user_id": oid, "project_slug": slug})
+    await log_action("chat", f"Player {user_id} unblocked from chat", project_slug=slug, user=user["username"])
+    return {"success": True}
+
+@api_router.post("/admin/projects/{slug}/chat/mute")
+async def admin_chat_mute(slug: str, req: ChatMuteRequest, user=Depends(require_permission("manage_chat"))):
+    try:
+        oid = ObjectId(req.user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid user ID")
+    if req.duration_minutes <= 0:
+        raise HTTPException(400, "Duration must be positive")
+    muted_until = datetime.now(timezone.utc) + timedelta(minutes=req.duration_minutes)
+    await db.chat_mutes.update_one(
+        {"user_id": oid, "project_slug": slug},
+        {"$set": {"muted_until": muted_until, "muted_by": user["username"], "reason": req.reason.strip()}},
+        upsert=True,
+    )
+    await log_action("chat", f"Player {req.user_id} muted for {req.duration_minutes} minutes", project_slug=slug, user=user["username"])
+    return {"success": True, "muted_until": muted_until.isoformat()}
+
+@api_router.delete("/admin/projects/{slug}/chat/mute/{user_id}")
+async def admin_chat_unmute(slug: str, user_id: str, user=Depends(require_permission("manage_chat"))):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid user ID")
+    await db.chat_mutes.delete_one({"user_id": oid, "project_slug": slug})
+    await log_action("chat", f"Player {user_id} unmuted", project_slug=slug, user=user["username"])
+    return {"success": True}
+
+@api_router.get("/admin/projects/{slug}/guilds")
+async def admin_list_guilds(slug: str, user=Depends(require_permission("manage_chat"))):
+    guilds = await db.guilds.find({"project_slug": slug}).sort("member_count", -1).to_list(500)
+    return {"guilds": [serialize_doc(g) for g in guilds]}
+
+@api_router.delete("/admin/projects/{slug}/guilds/{guild_id}")
+async def admin_delete_guild(slug: str, guild_id: str, user=Depends(require_permission("manage_chat"))):
+    try:
+        oid = ObjectId(guild_id)
+    except Exception:
+        raise HTTPException(400, "Invalid guild ID")
+    guild = await db.guilds.find_one({"_id": oid, "project_slug": slug})
+    if not guild:
+        raise HTTPException(404, "Guild not found")
+    await db.guild_members.delete_many({"guild_id": oid})
+    await db.chat_messages.delete_many({"guild_id": oid})
+    await db.guilds.delete_one({"_id": oid})
+    await log_action("guild", f"Guild '{guild['name']}' disbanded by admin", project_slug=slug, user=user["username"])
+    return {"success": True}
+
+@api_router.get("/admin/projects/{slug}/chat/settings")
+async def admin_get_chat_settings(slug: str, user=Depends(require_permission("manage_chat"))):
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(404, "Project not found")
+    return {
+        "chat_global_enabled": project.get("chat_global_enabled", True),
+        "chat_guilds_enabled": project.get("chat_guilds_enabled", True),
+    }
+
+@api_router.put("/admin/projects/{slug}/chat/settings")
+async def admin_update_chat_settings(slug: str, req: ChatMaintenanceRequest, user=Depends(require_permission("manage_chat"))):
+    updates = {k: v for k, v in req.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "Nothing to update")
+    await db.projects.update_one({"slug": slug}, {"$set": updates})
+    parts = [f"{k.replace('chat_', '').replace('_enabled', '')}: {'on' if v else 'off'}" for k, v in updates.items()]
+    await log_action("chat", "Chat settings updated (" + ", ".join(parts) + ")", project_slug=slug, user=user["username"])
+    return {"success": True, **updates}
+
 # ============================================================
 # SUPER ADMIN CLI
 # ============================================================
@@ -4549,11 +4877,6 @@ async def startup_event():
         await db.blog_posts.create_index("slug", unique=True)
         await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
         await db.website_shop_products.create_index([("game_slug", 1), ("active", 1)])
-        await db.website_shop_settings.create_index("game_slug", unique=True)
-        await db.website_shop_daily_claims.create_index(
-            [("game_slug", 1), ("player_uid", 1), ("date_key", 1)], unique=True
-        )
-        await db.website_shop_daily_gifts.create_index("game_slug", unique=True)
         await db.missions.create_index([("project_slug", 1), ("status", 1)])
         await db.missions.create_index("created_at")
         await db.notifications.create_index([("userId", 1), ("createdAt", -1)])
@@ -4572,7 +4895,30 @@ async def startup_event():
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.chat_messages.create_index([("project_slug", 1), ("channel", 1), ("guild_id", 1), ("timestamp", 1)])
+        await db.guilds.create_index([("project_slug", 1), ("name", 1)])
+        await db.guild_members.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.guild_members.create_index([("guild_id", 1)])
+        await db.chat_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.chat_mutes.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         logger.info("Database indexes initialized")
+
+        # Migration: merge the old per-game shop categories (now retired in favor of one
+        # global category list) into website_shop_global_settings. Non-destructive — only
+        # runs while the global list is still empty, and never touches/deletes the old
+        # per-game website_shop_settings documents themselves.
+        global_shop = await db.website_shop_global_settings.find_one({})
+        if not global_shop or not global_shop.get("categories"):
+            merged, seen_labels = [], set()
+            async for doc in db.website_shop_settings.find({}):
+                for cat in doc.get("categories", []):
+                    label = (cat.get("label") or "").strip()
+                    if label and label.lower() not in seen_labels:
+                        seen_labels.add(label.lower())
+                        merged.append(cat)
+            if merged:
+                await db.website_shop_global_settings.update_one({}, {"$set": {"categories": merged}}, upsert=True)
+                logger.info(f"Shop categories migration: merged {len(merged)} categories from per-game settings")
 
         # Migration: backfill stable_id on files cloned before the stable-ID
         # system existed, so every version shares the original asset's ID.

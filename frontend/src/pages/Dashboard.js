@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
-  Users, Activity, FileText, Database, LogOut, Code,
+  Users, Activity, FileText, Database, LogOut,
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
@@ -13,7 +13,6 @@ import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
 import { LogsViewer }          from '../components/LogsViewer';
 import { VariablesManagement } from '../components/VariablesManagement';
-import { ApiEndpoints }        from '../components/ApiEndpoints';
 import { DashboardOverview }   from '../components/DashboardOverview';
 import { ProjectManagement }   from '../components/ProjectManagement';
 import { GamesManagement }     from '../components/GamesManagement';
@@ -71,7 +70,6 @@ const NAV_GROUPS = [
     label: 'Team',
     items: [
       { id: 'users', label: 'Users',    icon: Users,  permission: 'manage_users'  },
-      { id: 'api',   label: 'API Docs', icon: Code,   permission: 'view_api_docs' },
       { id: 'vps',   label: 'VPS',      icon: Server, permission: 'view_vps'     },
       { id: 'cli',   label: 'CLI',      icon: Terminal, superAdminOnly: true     },
     ],
@@ -379,7 +377,6 @@ const DashboardContent = () => {
             {activeTab === 'overview' && <DashboardOverview setActiveTab={setActiveTab} />}
             {activeTab === 'projects' && <ProjectManagement />}
             {activeTab === 'users'    && hasPermission('manage_users')  && <UserManagement />}
-            {activeTab === 'api'      && hasPermission('view_api_docs') && <ApiEndpoints />}
             {activeTab === 'vps'      && hasPermission('view_vps')      && <VpsStats />}
             {activeTab === 'cli'      && user?.is_super_admin           && <CliConsole />}
 
