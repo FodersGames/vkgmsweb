@@ -133,6 +133,8 @@
             this._devCatState = {}; // per-category in-memory editor state while the dev panel is open
             this._logStatsEl = null;
             this._devPanelPausedRuntime = false; // whether WE paused the runtime (vs. it already being paused)
+            this._devPanelOnClose = null; // resolves the "ouvrir panel développeur" block's promise on close
+            this._devVarBindings = {}; // { category: 'NONE'|'AUTO'|variableId } for the current dev panel session
 
             // Auto-log any error assignment made anywhere in the extension,
             // without having to touch every call site individually.
@@ -1401,6 +1403,12 @@
             }
             const cat  = String(CATEGORIE);
             const data = String(DONNEES);
+            // Defensive guard: warn if a script keeps saving this category while
+            // the Dev Panel has it open — the game should be paused while the
+            // panel is open, so this normally can't happen unless pause() failed.
+            if (this._devPanel && this._devCatState[cat] && this._devCatState[cat].loaded) {
+                this._log('warn', `Save: an external save for category "${cat}" ran while the Dev Panel had it open — the game may not be fully paused`, 'Dev Panel');
+            }
             if (this._playSaveCache[cat] === data) return true; // rien changé → déjà sauvegardé
             try {
                 const r = await _fetch(`${API_URL}/api/play/save`, {
@@ -1740,6 +1748,40 @@
             }
         }
 
+        _getGlobalScalarVariables() {
+            try {
+                const stage = Scratch.vm.runtime.getTargetForStage();
+                if (!stage || !stage.variables) return [];
+                return Object.values(stage.variables)
+                    .filter(v => v.type === '') // scalar variables only, not lists
+                    .map(v => ({ id: v.id, name: v.name }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+            } catch { return []; }
+        }
+
+        _setVariableById(variableId, dataString) {
+            try {
+                const stage = Scratch.vm.runtime.getTargetForStage();
+                if (!stage || !stage.variables || !stage.variables[variableId]) return false;
+                stage.variables[variableId].value = dataString;
+                return true;
+            } catch (e) {
+                this._log('error', 'Dev Panel: could not update linked variable — ' + e.message, 'Dev Panel');
+                return false;
+            }
+        }
+
+        _loadVarBindings() {
+            try {
+                const raw = localStorage.getItem('vg_devpanel_varbind_' + this._playSlug);
+                return raw ? JSON.parse(raw) : {};
+            } catch { return {}; }
+        }
+
+        _saveVarBindings(bindings) {
+            try { localStorage.setItem('vg_devpanel_varbind_' + this._playSlug, JSON.stringify(bindings)); } catch { /* noop */ }
+        }
+
         // ── Clipboard ─────────────────────────────────────────────────────────
 
         async _copyToClipboard(text) {
@@ -1798,7 +1840,10 @@
                 return;
             }
             this._log('info', 'Dev Panel: opened by ' + (this._playPlayer ? this._playPlayer.username : '?'), 'Dev Panel');
-            this._showDevPanel();
+            // Blocks script execution at this block until the panel is closed —
+            // combined with the runtime pause, everything after this block only
+            // runs once the developer closes the panel.
+            return new Promise(resolve => this._showDevPanel(resolve));
         }
 
         async ouvrirPanelLogs() {
@@ -1854,14 +1899,24 @@
             }
         }
 
-        _showDevPanel() {
-            if (this._devPanel) { this._devPanel.remove(); this._devPanel = null; }
+        _showDevPanel(onClose) {
+            if (this._devPanel) {
+                // Replacing an already-open panel: unstick any script waiting on it first.
+                this._devPanel.remove();
+                this._devPanel = null;
+                const prevOnClose = this._devPanelOnClose;
+                this._devPanelOnClose = null;
+                if (prevOnClose) prevOnClose();
+            }
+            this._devPanelOnClose = onClose || null;
             this._pauseRuntimeForDevPanel();
             const accent = this._playAccent || '#4ECDC4';
             const categories = ['inventory', 'stats', 'craft', 'tech', 'others'];
             this._devCatState = {};
             for (const c of categories) this._devCatState[c] = { value: null, original: null, loaded: false };
             let activeCat = categories[0];
+            const varBindings = this._loadVarBindings();
+            const globalVars = this._getGlobalScalarVariables();
 
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;z-index:999995;background:rgba(8,9,12,0.7);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif';
@@ -1884,6 +1939,9 @@
                 overlay.remove();
                 this._devPanel = null;
                 this._resumeRuntimeAfterDevPanel();
+                const cb = this._devPanelOnClose;
+                this._devPanelOnClose = null;
+                if (cb) cb();
             });
             titleBar.appendChild(titleLeft);
             titleBar.appendChild(closeBtn);
@@ -1924,14 +1982,19 @@
 
             const navButtons = {};
             const renderNav = () => {
+                let anyDirty = false;
                 for (const cat of categories) {
                     const st = this._devCatState[cat];
                     const dirty = st.loaded && st.value !== st.original;
+                    if (dirty) anyDirty = true;
                     const btn = navButtons[cat];
                     btn.style.background = cat === activeCat ? '#262832' : 'transparent';
                     btn.style.color = cat === activeCat ? '#f2f2f5' : '#a9aab3';
                     btn.querySelector('.vg-dot').style.background = dirty ? '#f39c12' : 'transparent';
                 }
+                saveAllBtn.disabled = !anyDirty;
+                saveAllBtn.style.opacity = anyDirty ? '1' : '0.4';
+                saveAllBtn.style.cursor = anyDirty ? 'pointer' : 'default';
             };
 
             for (const cat of categories) {
@@ -1985,6 +2048,31 @@
             editorHeader.appendChild(editorTools);
             editor.appendChild(editorHeader);
 
+            // ── Variable link row ──
+            const linkRow = document.createElement('div');
+            linkRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #2a2b34;flex-shrink:0;background:#191a1f';
+            const linkLabel = document.createElement('span');
+            linkLabel.textContent = 'Linked variable:';
+            linkLabel.style.cssText = 'font-size:11px;color:#8b8d97;flex-shrink:0';
+            const linkSelect = document.createElement('select');
+            linkSelect.style.cssText = 'flex:1;background:#111218;border:1px solid #2f303a;border-radius:5px;color:#e7e7ea;font-size:11.5px;padding:4px 8px;outline:none;font-family:system-ui,sans-serif;max-width:320px';
+            const rebuildLinkOptions = () => {
+                const opts = [
+                    '<option value="AUTO">Auto-match by name (variable named "' + activeCat + '")</option>',
+                    '<option value="NONE">Do not link a variable</option>',
+                    ...globalVars.map(v => `<option value="${this._escapeHtml(v.id)}">${this._escapeHtml(v.name)}</option>`)
+                ];
+                linkSelect.innerHTML = opts.join('');
+                linkSelect.value = varBindings[activeCat] || 'AUTO';
+            };
+            linkSelect.addEventListener('change', () => {
+                varBindings[activeCat] = linkSelect.value;
+                this._saveVarBindings(varBindings);
+            });
+            linkRow.appendChild(linkLabel);
+            linkRow.appendChild(linkSelect);
+            editor.appendChild(linkRow);
+
             const textarea = document.createElement('textarea');
             textarea.spellcheck = false;
             textarea.style.cssText = 'flex:1;width:100%;box-sizing:border-box;background:#111218;border:none;color:#e7e7ea;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;padding:14px 16px;resize:none;outline:none';
@@ -2010,7 +2098,11 @@
                     validityEl.textContent = '✗ Invalid JSON — ' + e.message;
                     validityEl.style.color = '#e74c3c';
                 }
-                metaEl.textContent = textarea.value.length + ' chars' + (st.loaded && st.value !== st.original ? ' · unsaved changes' : '');
+                const dirty = st.loaded && st.value !== st.original;
+                metaEl.textContent = textarea.value.length + ' chars' + (dirty ? ' · unsaved changes' : '');
+                saveBtn.disabled = !dirty;
+                saveBtn.style.opacity = dirty ? '1' : '0.4';
+                saveBtn.style.cursor = dirty ? 'pointer' : 'default';
                 renderNav();
             };
             textarea.addEventListener('input', updateValidity);
@@ -2028,6 +2120,7 @@
 
             const renderEditor = () => {
                 editorTitle.textContent = activeCat;
+                rebuildLinkOptions();
                 const st = this._devCatState[activeCat];
                 textarea.value = st.loaded ? st.value : 'Loading…';
                 textarea.disabled = !st.loaded;
@@ -2056,17 +2149,33 @@
                 }
                 st.original = st.value;
                 this._devPanelDirty[cat] = true;
-                const updatedLocally = this._pushValueToLocalVariable(cat, st.value);
+
+                const binding = varBindings[cat] || 'AUTO';
+                let updatedLocally = false;
+                let linkedVarName = null;
+                if (binding === 'NONE') {
+                    updatedLocally = false;
+                } else if (binding === 'AUTO') {
+                    updatedLocally = this._pushValueToLocalVariable(cat, st.value);
+                    if (updatedLocally) linkedVarName = cat;
+                } else {
+                    updatedLocally = this._setVariableById(binding, st.value);
+                    if (updatedLocally) {
+                        const found = globalVars.find(v => v.id === binding);
+                        linkedVarName = found ? found.name : binding;
+                    }
+                }
+
                 this._log(
                     'info',
                     `Dev Panel: manual save "${cat}" by ${this._playPlayer ? this._playPlayer.username : '?'}` +
-                    (updatedLocally ? ` — local variable "${cat}" updated` : ' — no matching local variable found, use the "modifiée ?" block to reload it'),
+                    (updatedLocally ? ` — variable "${linkedVarName}" updated` : binding === 'NONE' ? ' — no variable linked' : ' — linked variable not found, server only'),
                     'Dev Panel'
                 );
                 if (cat === activeCat) {
                     updateValidity();
                     metaEl.style.color = '#8b8d97';
-                    metaEl.textContent = (updatedLocally ? 'Saved ✓ (server + local) · ' : 'Saved ✓ (server only) · ') + metaEl.textContent;
+                    metaEl.textContent = (updatedLocally ? `Saved ✓ (server + "${linkedVarName}") · ` : 'Saved ✓ (server only) · ') + metaEl.textContent;
                 }
                 renderNav();
             };
