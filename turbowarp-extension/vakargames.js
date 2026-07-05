@@ -122,22 +122,28 @@
             this._loadingMax   = 1;
 
             // In-game admin tools: journal + dev/logs panels
-            this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', message }
+            this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', source, message }
+            this._logCounts   = { info: 0, warn: 0, error: 0 };
             this._logsListEl  = null; // live-append target while the logs panel is open
+            this._logFilters  = { info: true, warn: true, error: true, source: 'All', search: '' };
+            this._logsAutoStick = true;
             this._devPanel    = null;
             this._logsPanel   = null;
+            this._devPanelDirty = { inventory: false, stats: false, craft: false, tech: false, others: false };
+            this._devCatState = {}; // per-category in-memory editor state while the dev panel is open
+            this._logStatsEl = null;
 
             // Auto-log any error assignment made anywhere in the extension,
             // without having to touch every call site individually.
             let _filesErrorVal = '';
             Object.defineProperty(this, '_filesError', {
                 get: () => _filesErrorVal,
-                set: (v) => { _filesErrorVal = v; if (v) this._log('error', '[Ressources] ' + v); },
+                set: (v) => { _filesErrorVal = v; if (v) this._log('error', 'Resources: ' + v); },
             });
             let _soundsErrorVal = '';
             Object.defineProperty(this, '_soundsError', {
                 get: () => _soundsErrorVal,
-                set: (v) => { _soundsErrorVal = v; if (v) this._log('error', '[Sons] ' + v); },
+                set: (v) => { _soundsErrorVal = v; if (v) this._log('error', 'Sounds: ' + v); },
             });
         }
 
@@ -596,6 +602,24 @@
                             GRAVITE:  { type: Scratch.ArgumentType.STRING, menu: 'gravite', defaultValue: 'info' }
                         }
                     },
+                    '---',
+                    {
+                        opcode:    'panelDevCategorieModifiee',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'panel dev : catégorie [CATEGORIE] modifiée ?',
+                        arguments: {
+                            CATEGORIE: { type: Scratch.ArgumentType.STRING, menu: 'categoriesSave', defaultValue: 'stats' }
+                        }
+                    },
+                    '---',
+                    {
+                        opcode:    'copierPressePapier',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'copier [TEXTE] dans le presse-papier',
+                        arguments: {
+                            TEXTE: { type: Scratch.ArgumentType.STRING, defaultValue: 'texte à copier' }
+                        }
+                    },
                 ]
             };
         }
@@ -624,12 +648,12 @@
                         body:    JSON.stringify({ product_id: productId, player_uid: String(UID).trim() })
                     }
                 );
-                if (!res.ok) { this._log('warn', 'Shop : checkout refusé (produit ' + productId + ')'); return false; }
+                if (!res.ok) { this._log('warn', 'Shop: checkout rejected (product ' + productId + ')'); return false; }
                 const data  = await res.json();
                 checkoutUrl = data.checkout_url;
                 sessionId   = data.session_id;
-                this._log('info', 'Shop : checkout ouvert pour le produit ' + productId);
-            } catch (e) { this._log('error', 'Shop : erreur réseau au checkout — ' + e.message); return false; }
+                this._log('info', 'Shop: checkout opened for product ' + productId);
+            } catch (e) { this._log('error', 'Shop: network error during checkout — ' + e.message); return false; }
 
             const popupRef = _openWindow(checkoutUrl);
 
@@ -648,15 +672,15 @@
                             const r = await _fetch(`${API_URL}/api/shop/session/${encodeURIComponent(sessionId)}/status`);
                             const d = await r.json();
                             const ok = d.status === 'complete';
-                            this._log(ok ? 'info' : 'warn', 'Shop : achat ' + (ok ? 'confirmé' : 'non confirmé après fermeture de la fenêtre'));
+                            this._log(ok ? 'info' : 'warn', 'Shop: purchase ' + (ok ? 'confirmed' : 'not confirmed after window closed'));
                             resolve(ok);
-                        } catch (e) { this._log('error', 'Shop : erreur de vérification du paiement — ' + e.message); resolve(false); }
+                        } catch (e) { this._log('error', 'Shop: payment verification error — ' + e.message); resolve(false); }
                         return;
                     }
 
                     if (elapsed >= maxMs) {
                         clearInterval(interval);
-                        this._log('warn', 'Shop : délai d\'attente du paiement dépassé');
+                        this._log('warn', 'Shop: payment wait timed out');
                         resolve(false);
                         return;
                     }
@@ -667,7 +691,7 @@
                         if (d.status === 'complete') {
                             clearInterval(interval);
                             if (popupRef && !popupRef.closed) popupRef.close();
-                            this._log('info', 'Shop : achat confirmé');
+                            this._log('info', 'Shop: purchase confirmed');
                             resolve(true);
                         }
                     } catch { /* continuer */ }
@@ -698,8 +722,8 @@
                         level:    parseInt(LEVEL) || null
                     })
                 });
-                this._log('info', 'Chat : message envoyé par ' + USERNAME);
-            } catch (e) { this._log('error', 'Chat : échec envoi message — ' + e.message); }
+                this._log('info', 'Chat: message sent by ' + USERNAME);
+            } catch (e) { this._log('error', 'Chat: failed to send message — ' + e.message); }
         }
 
         async getMessages({ LIMIT }) {
@@ -948,7 +972,7 @@
 
         async useLiveVersion() {
             if (!this._filesSlug || !this._filesApiKey) {
-                this._filesError = 'Configurez les ressources d\'abord.';
+                this._filesError = 'Configure the resources first.';
                 return;
             }
             try {
@@ -961,9 +985,9 @@
                     this._filesReady   = false;
                     this._soundsReady  = false;
                 }
-                this._log('info', 'Ressources : version en ligne = ' + v);
+                this._log('info', 'Resources: live version = ' + v);
             } catch (e) {
-                this._filesError = 'Impossible de récupérer la version en ligne : ' + e.message;
+                this._filesError = 'Could not fetch the live version: ' + e.message;
             }
         }
 
@@ -981,12 +1005,12 @@
 
         async loadAllToSprite({ SPRITE }) {
             if (!this._filesSlug || !this._filesApiKey) {
-                this._filesError = 'Configurez les ressources d\'abord.';
+                this._filesError = 'Configure the resources first.';
                 return;
             }
             const target = this._findTarget(SPRITE);
             if (!target) {
-                this._filesError = 'Sprite "' + SPRITE + '" introuvable.';
+                this._filesError = 'Sprite "' + SPRITE + '" not found.';
                 return;
             }
             this._filesReady = false;
@@ -1000,12 +1024,12 @@
                         await this._addCostumeToTarget(target, f);
                         loaded++;
                     } catch (e) {
-                        console.warn('[VG] Impossible de charger ' + f.name + ' : ' + e.message);
-                        this._log('error', 'Ressources : échec chargement "' + f.name + '" — ' + e.message);
+                        console.warn('[VG] Could not load ' + f.name + ' : ' + e.message);
+                        this._log('error', 'Resources: failed to load "' + f.name + '" — ' + e.message);
                     }
                 }
                 this._filesReady = true;
-                this._log('info', `Ressources : ${loaded}/${images.length} costumes chargés dans "${SPRITE}"`);
+                this._log('info', `Resources: ${loaded}/${images.length} costumes loaded into "${SPRITE}"`);
             } catch (e) {
                 this._filesError = e.message;
             }
@@ -1016,15 +1040,15 @@
 
         async loadCostumeById({ ID, SPRITE }) {
             const target = this._findTarget(SPRITE);
-            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" not found.'; return; }
 
             let f = this._fileIndex[String(ID)];
             if (!f) {
                 try { await this._fetchFileList(); } catch (e) { this._filesError = e.message; return; }
                 f = this._fileIndex[String(ID)];
             }
-            if (!f) { this._filesError = 'Fichier ID "' + ID + '" introuvable dans la version "' + this._filesVersion + '".'; return; }
-            if (fileExt(f.original_filename) === null) { this._filesError = '"' + f.name + '" n\'est pas une image (SVG/PNG/JPG).'; return; }
+            if (!f) { this._filesError = 'File ID "' + ID + '" not found in version "' + this._filesVersion + '".'; return; }
+            if (fileExt(f.original_filename) === null) { this._filesError = '"' + f.name + '" is not an image (SVG/PNG/JPG).'; return; }
 
             try {
                 await this._addCostumeToTarget(target, f);
@@ -1033,14 +1057,14 @@
 
         async loadTextEngine({ GROUP_ID, SPRITE }) {
             const target = this._findTarget(SPRITE);
-            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+            if (!target) { this._filesError = 'Sprite "' + SPRITE + '" not found.'; return; }
 
             let files;
             try { files = await this._fetchFileList(); } catch (e) { this._filesError = e.message; return; }
 
             const gid   = String(GROUP_ID).trim();
             const group = files.filter(f => f.group_id === gid);
-            if (!group.length) { this._filesError = 'Groupe text engine "' + gid + '" introuvable.'; return; }
+            if (!group.length) { this._filesError = 'Text engine group "' + gid + '" not found.'; return; }
 
             this._filesReady = false;
             this._filesError = '';
@@ -1051,11 +1075,11 @@
                     try { await this._addCostumeToTarget(target, f); loaded++; }
                     catch (e) {
                         console.warn('[VG] Text engine: ' + f.name + ' → ' + e.message);
-                        this._log('error', 'Text engine : échec "' + f.name + '" — ' + e.message);
+                        this._log('error', 'Text Engine: failed "' + f.name + '" — ' + e.message);
                     }
                 }
                 this._filesReady = true;
-                this._log('info', `Text engine : groupe "${gid}" — ${loaded} fichier(s) chargé(s)`);
+                this._log('info', `Text Engine: group "${gid}" — ${loaded} file(s) loaded`);
             } catch (e) {
                 this._filesError = e.message;
             }
@@ -1156,12 +1180,12 @@
 
         async loadAllSounds({ SPRITE }) {
             if (!this._filesSlug || !this._filesApiKey) {
-                this._soundsError = 'Configurez les ressources d\'abord.';
+                this._soundsError = 'Configure the resources first.';
                 return;
             }
             const target = this._findTarget(SPRITE);
             if (!target) {
-                this._soundsError = 'Sprite "' + SPRITE + '" introuvable.';
+                this._soundsError = 'Sprite "' + SPRITE + '" not found.';
                 return;
             }
             this._soundsReady = false;
@@ -1175,12 +1199,12 @@
                         await this._addSoundToTarget(target, f);
                         loaded++;
                     } catch (e) {
-                        console.warn('[VG] Impossible de charger le son ' + f.name + ' : ' + e.message);
-                        this._log('error', 'Sons : échec chargement "' + f.name + '" — ' + e.message);
+                        console.warn('[VG] Could not load sound ' + f.name + ' : ' + e.message);
+                        this._log('error', 'Sounds: failed to load "' + f.name + '" — ' + e.message);
                     }
                 }
                 this._soundsReady = true;
-                this._log('info', `Sons : ${loaded}/${sounds.length} sons chargés dans "${SPRITE}"`);
+                this._log('info', `Sounds: ${loaded}/${sounds.length} sounds loaded into "${SPRITE}"`);
             } catch (e) {
                 this._soundsError = e.message;
             }
@@ -1191,15 +1215,15 @@
 
         async loadSoundById({ ID, SPRITE }) {
             const target = this._findTarget(SPRITE);
-            if (!target) { this._soundsError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+            if (!target) { this._soundsError = 'Sprite "' + SPRITE + '" not found.'; return; }
 
             let f = this._fileIndex[String(ID)];
             if (!f) {
                 try { await this._fetchFileList(); } catch (e) { this._soundsError = e.message; return; }
                 f = this._fileIndex[String(ID)];
             }
-            if (!f) { this._soundsError = 'Fichier ID "' + ID + '" introuvable dans la version "' + this._filesVersion + '".'; return; }
-            if (audioExt(f.original_filename) === null) { this._soundsError = '"' + f.name + '" n\'est pas un son (MP3/WAV/OGG).'; return; }
+            if (!f) { this._soundsError = 'File ID "' + ID + '" not found in version "' + this._filesVersion + '".'; return; }
+            if (audioExt(f.original_filename) === null) { this._soundsError = '"' + f.name + '" is not a sound (MP3/WAV/OGG).'; return; }
 
             try {
                 await this._addSoundToTarget(target, f);
@@ -1338,14 +1362,14 @@
                 });
                 if (!r.ok) {
                     localStorage.removeItem(this._playStorageKey());
-                    this._log('warn', 'Session : reprise refusée, déconnecté');
+                    this._log('warn', 'Session: resume rejected, signed out');
                     return;
                 }
                 const d = await r.json();
                 this._playAccessToken = d.access_token;
                 this._playPlayer      = d.player;
-                this._log('info', 'Session restaurée : ' + (d.player && d.player.username));
-            } catch (e) { this._log('warn', 'Session : réseau indisponible, reste déconnecté — ' + e.message); }
+                this._log('info', 'Session: restored — ' + (d.player && d.player.username));
+            } catch (e) { this._log('warn', 'Session: network unavailable, staying signed out — ' + e.message); }
         }
 
         async playConfigurer({ SLUG }) {
@@ -1382,11 +1406,11 @@
                 });
                 if (r.ok) {
                     this._playSaveCache[cat] = data; // cache mis à jour uniquement si succès
-                    this._log('info', 'Sauvegarde effectuée : catégorie "' + cat + '"');
+                    this._log('info', 'Save: category "' + cat + '" saved');
                 } else {
-                    this._log('warn', 'Sauvegarde refusée : catégorie "' + cat + '" (HTTP ' + r.status + ')');
+                    this._log('warn', 'Save: category "' + cat + '" rejected (HTTP ' + r.status + ')');
                 }
-            } catch (e) { this._log('error', 'Sauvegarde : erreur réseau — ' + e.message); }
+            } catch (e) { this._log('error', 'Save: network error — ' + e.message); }
         }
 
         async playCharger({ CATEGORIE }) {
@@ -1396,11 +1420,11 @@
                     `${API_URL}/api/play/load?category=${encodeURIComponent(CATEGORIE)}&project_slug=${encodeURIComponent(this._playSlug)}`,
                     { headers: { 'Authorization': `Bearer ${this._playAccessToken}` } }
                 );
-                if (!r.ok) { this._log('warn', 'Chargement refusé : catégorie "' + CATEGORIE + '" (HTTP ' + r.status + ')'); return '{}'; }
+                if (!r.ok) { this._log('warn', 'Load: category "' + CATEGORIE + '" rejected (HTTP ' + r.status + ')'); return '{}'; }
                 const d = await r.json();
-                this._log('info', 'Chargement effectué : catégorie "' + CATEGORIE + '"');
+                this._log('info', 'Load: category "' + CATEGORIE + '" loaded');
                 return d.data || '{}';
-            } catch (e) { this._log('error', 'Chargement : erreur réseau — ' + e.message); return '{}'; }
+            } catch (e) { this._log('error', 'Load: network error — ' + e.message); return '{}'; }
         }
 
         playPersonnaliser({ COULEUR, TITRE }) {
@@ -1593,19 +1617,19 @@
                     if (!r.ok) {
                         errEl.textContent = d.detail || LANGS[lang].eLo;
                         setLoading(loginBtn, false);
-                        this._log('warn', 'Connexion échouée : ' + (d.detail || LANGS[lang].eLo));
+                        this._log('warn', 'Auth: login failed — ' + (d.detail || LANGS[lang].eLo));
                         return;
                     }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
-                    this._log('info', 'Connexion réussie : ' + (d.player && d.player.username));
+                    this._log('info', 'Auth: login succeeded — ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
                 } catch (err) {
                     errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
                     setLoading(loginBtn, false);
-                    this._log('error', 'Connexion : erreur réseau — ' + (err && err.message));
+                    this._log('error', 'Auth: network error on login — ' + (err && err.message));
                 }
             });
 
@@ -1623,19 +1647,19 @@
                     if (!r.ok) {
                         errEl.textContent = d.detail || LANGS[lang].eRe;
                         setLoading(regBtn, false);
-                        this._log('warn', 'Inscription échouée : ' + (d.detail || LANGS[lang].eRe));
+                        this._log('warn', 'Auth: registration failed — ' + (d.detail || LANGS[lang].eRe));
                         return;
                     }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
-                    this._log('info', 'Compte créé et connecté : ' + (d.player && d.player.username));
+                    this._log('info', 'Auth: account created and signed in — ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
                 } catch (err) {
                     errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
                     setLoading(regBtn, false);
-                    this._log('error', 'Inscription : erreur réseau — ' + (err && err.message));
+                    this._log('error', 'Auth: network error on registration — ' + (err && err.message));
                 }
             });
 
@@ -1647,14 +1671,24 @@
         }
 
         // ══════════════════════════════════════════
-        //  OUTILS DEV IN-GAME — journal + panels
+        //  IN-GAME DEV TOOLS — journal + panels
         // ══════════════════════════════════════════
 
-        _log(level, message) {
-            const entry = { ts: new Date(), level, message: String(message) };
+        _log(level, message, source) {
+            let text = String(message);
+            let src  = source || 'System';
+            if (!source) {
+                const m = /^([^:]{2,24}):\s(.*)$/s.exec(text);
+                if (m) { src = m[1]; text = m[2]; }
+            }
+            const entry = { ts: new Date(), level, source: src, message: text };
             this._logEntries.push(entry);
             if (this._logEntries.length > 500) this._logEntries.shift();
-            if (this._logsListEl) this._appendLogRow(entry);
+            if (this._logCounts[level] !== undefined) this._logCounts[level]++;
+            if (this._logsListEl) {
+                this._updateLogStats();
+                if (this._logMatchesFilters(entry)) this._appendLogRow(entry);
+            }
         }
 
         _escapeHtml(str) {
@@ -1663,24 +1697,53 @@
             return div.innerHTML;
         }
 
-        _appendLogRow(entry) {
-            if (!this._logsListEl) return;
-            const color = entry.level === 'error' ? '#e74c3c' : entry.level === 'warn' ? '#f39c12' : '#9aa0a6';
-            const row = document.createElement('div');
-            row.style.cssText = 'display:flex;gap:8px;padding:4px 2px;font-family:monospace;font-size:11.5px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:flex-start;line-height:1.4';
-            row.innerHTML =
-                `<span style="color:${color};font-weight:700;flex-shrink:0">●</span>` +
-                `<span style="color:#777;flex-shrink:0;white-space:nowrap">${entry.ts.toLocaleTimeString()}</span>` +
-                `<span style="color:#e4e4e7;word-break:break-word">${this._escapeHtml(entry.message)}</span>`;
-            this._logsListEl.appendChild(row);
-            this._logsListEl.scrollTop = this._logsListEl.scrollHeight;
-        }
-
         ecrireLog({ MESSAGE, GRAVITE }) {
             const g = String(GRAVITE).trim().toLowerCase();
             const level = g === 'erreur' ? 'error' : g === 'attention' ? 'warn' : 'info';
-            this._log(level, String(MESSAGE));
+            this._log(level, String(MESSAGE), 'Script');
         }
+
+        panelDevCategorieModifiee({ CATEGORIE }) {
+            const cat = String(CATEGORIE);
+            const changed = !!this._devPanelDirty[cat];
+            this._devPanelDirty[cat] = false;
+            return changed;
+        }
+
+        // ── Clipboard ─────────────────────────────────────────────────────────
+
+        async _copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+                throw new Error('Clipboard API unavailable');
+            } catch {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    ta.remove();
+                    return ok;
+                } catch (e2) {
+                    this._log('error', 'Clipboard: copy failed — ' + e2.message, 'Clipboard');
+                    return false;
+                }
+            }
+        }
+
+        async copierPressePapier({ TEXTE }) {
+            const text = String(TEXTE);
+            const ok = await this._copyToClipboard(text);
+            this._log(ok ? 'info' : 'warn', ok ? `Clipboard: copied ${text.length} character(s)` : 'Clipboard: copy failed', 'Clipboard');
+        }
+
+        // ── Permission gate ───────────────────────────────────────────────────
 
         async _checkPanelPermission(perm) {
             if (!this._playAccessToken) return false;
@@ -1692,7 +1755,7 @@
                 const d = await r.json();
                 return !!(d.is_super_admin || (d.permissions || []).includes(perm));
             } catch (e) {
-                this._log('error', 'Vérification des permissions : erreur réseau — ' + e.message);
+                this._log('error', 'Permissions: network error — ' + e.message, 'Permissions');
                 return false;
             }
         }
@@ -1700,145 +1763,433 @@
         async ouvrirPanelDev() {
             const allowed = await this._checkPanelPermission('game_dev_panel');
             if (!allowed) {
-                this._log('warn', 'Panel développeur : accès refusé' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (non connecté)'));
+                this._log('warn', 'Dev Panel: access denied' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (not signed in)'), 'Dev Panel');
                 return;
             }
-            this._log('info', 'Panel développeur ouvert par ' + (this._playPlayer ? this._playPlayer.username : '?'));
+            this._log('info', 'Dev Panel: opened by ' + (this._playPlayer ? this._playPlayer.username : '?'), 'Dev Panel');
             this._showDevPanel();
         }
 
         async ouvrirPanelLogs() {
             const allowed = await this._checkPanelPermission('game_logs_panel');
             if (!allowed) {
-                this._log('warn', 'Panel logs : accès refusé' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (non connecté)'));
+                this._log('warn', 'Logs Panel: access denied' + (this._playPlayer ? ' (' + this._playPlayer.username + ')' : ' (not signed in)'), 'Logs Panel');
                 return;
             }
-            this._log('info', 'Panel logs ouvert par ' + (this._playPlayer ? this._playPlayer.username : '?'));
+            this._log('info', 'Logs Panel: opened by ' + (this._playPlayer ? this._playPlayer.username : '?'), 'Logs Panel');
             this._showLogsPanel();
         }
+
+        // ── Shared chrome helpers ─────────────────────────────────────────────
+
+        _panelIconBtn(label, title) {
+            const b = document.createElement('button');
+            b.textContent = label;
+            b.title = title || '';
+            b.style.cssText = 'background:#22232b;border:1px solid #34353f;color:#c7c8d1;font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:system-ui,sans-serif;white-space:nowrap';
+            b.addEventListener('mouseenter', () => { b.style.background = '#2b2c36'; });
+            b.addEventListener('mouseleave', () => { b.style.background = '#22232b'; });
+            return b;
+        }
+
+        // ══════════════════════════════════════════
+        //  DEV PANEL — landscape, multi-category editor
+        // ══════════════════════════════════════════
 
         _showDevPanel() {
             if (this._devPanel) { this._devPanel.remove(); this._devPanel = null; }
             const accent = this._playAccent || '#4ECDC4';
             const categories = ['inventory', 'stats', 'craft', 'tech', 'others'];
+            this._devCatState = {};
+            for (const c of categories) this._devCatState[c] = { value: null, original: null, loaded: false };
+            let activeCat = categories[0];
 
             const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;inset:0;z-index:999995;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999995;background:rgba(8,9,12,0.7);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif';
             this._devPanel = overlay;
 
             const card = document.createElement('div');
-            card.style.cssText = 'background:#1c1c24;border:1px solid #33334a;border-radius:12px;padding:20px;width:520px;max-width:92vw;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            card.style.cssText = 'background:#1b1c22;border:1px solid #2f303a;border-radius:10px;width:900px;max-width:95vw;height:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,0.5);overflow:hidden';
             overlay.appendChild(card);
 
-            const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px';
-            header.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff">🛠 Game Dev Panel</div>';
+            // ── Title bar ──
+            const titleBar = document.createElement('div');
+            titleBar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            const titleLeft = document.createElement('div');
+            titleLeft.style.cssText = 'display:flex;align-items:center;gap:10px';
+            titleLeft.innerHTML = `<span style="font-size:14px">🛠</span><span style="font-size:14px;font-weight:700;color:#f2f2f5;letter-spacing:0.02em">Game Dev Panel</span><span style="font-size:10px;color:#6f7078;border:1px solid #34353f;border-radius:3px;padding:1px 6px">${this._escapeHtml(this._playSlug || 'unknown project')}</span>`;
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
-            closeBtn.style.cssText = 'background:none;border:none;color:#999;font-size:16px;cursor:pointer;line-height:1';
+            closeBtn.style.cssText = 'background:none;border:none;color:#8b8d97;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px';
             closeBtn.addEventListener('click', () => { overlay.remove(); this._devPanel = null; });
-            header.appendChild(closeBtn);
-            card.appendChild(header);
+            titleBar.appendChild(titleLeft);
+            titleBar.appendChild(closeBtn);
+            card.appendChild(titleBar);
 
-            const sub = document.createElement('div');
-            sub.style.cssText = 'font-size:11px;color:#888;margin-bottom:16px';
-            sub.textContent = 'Connecté : ' + (this._playPlayer ? this._playPlayer.username : '?') + ' · projet : ' + this._playSlug;
-            card.appendChild(sub);
+            // ── Body: sidebar + editor (landscape) ──
+            const body = document.createElement('div');
+            body.style.cssText = 'flex:1;display:flex;min-height:0';
+            card.appendChild(body);
+
+            // Sidebar
+            const sidebar = document.createElement('div');
+            sidebar.style.cssText = 'width:210px;flex-shrink:0;border-right:1px solid #2a2b34;display:flex;flex-direction:column;background:#191a1f';
+            body.appendChild(sidebar);
+
+            const playerBlock = document.createElement('div');
+            playerBlock.style.cssText = 'padding:14px;border-bottom:1px solid #2a2b34';
+            const initials = (this._playPlayer && this._playPlayer.username ? this._playPlayer.username.slice(0, 2) : '??').toUpperCase();
+            playerBlock.innerHTML =
+                `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">` +
+                `<div style="width:28px;height:28px;border-radius:50%;background:${accent}22;color:${accent};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${this._escapeHtml(initials)}</div>` +
+                `<div style="min-width:0"><div style="font-size:12px;font-weight:700;color:#f2f2f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(this._playPlayer ? this._playPlayer.username : 'Unknown')}</div>` +
+                `<div style="font-size:10px;color:#5fd97f">● Connected</div></div></div>`;
+            const copyIdBtn = this._panelIconBtn('Copy Player ID', 'Copy the current player ID to the clipboard');
+            copyIdBtn.style.width = '100%';
+            copyIdBtn.addEventListener('click', async () => {
+                const id = this._playPlayer ? this._playPlayer.id : '';
+                const ok = await this._copyToClipboard(String(id));
+                copyIdBtn.textContent = ok ? 'Copied ✓' : 'Copy failed';
+                setTimeout(() => { if (copyIdBtn.isConnected) copyIdBtn.textContent = 'Copy Player ID'; }, 1500);
+            });
+            playerBlock.appendChild(copyIdBtn);
+            sidebar.appendChild(playerBlock);
+
+            const navList = document.createElement('div');
+            navList.style.cssText = 'flex:1;overflow-y:auto;padding:8px';
+            sidebar.appendChild(navList);
+
+            const navButtons = {};
+            const renderNav = () => {
+                for (const cat of categories) {
+                    const st = this._devCatState[cat];
+                    const dirty = st.loaded && st.value !== st.original;
+                    const btn = navButtons[cat];
+                    btn.style.background = cat === activeCat ? '#262832' : 'transparent';
+                    btn.style.color = cat === activeCat ? '#f2f2f5' : '#a9aab3';
+                    btn.querySelector('.vg-dot').style.background = dirty ? '#f39c12' : 'transparent';
+                }
+            };
 
             for (const cat of categories) {
-                const block = document.createElement('div');
-                block.style.cssText = 'margin-bottom:14px';
-
-                const label = document.createElement('div');
-                label.style.cssText = `font-size:11px;font-weight:700;color:${accent};margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em`;
-                label.textContent = cat;
-                block.appendChild(label);
-
-                const textarea = document.createElement('textarea');
-                textarea.spellcheck = false;
-                textarea.style.cssText = 'width:100%;box-sizing:border-box;min-height:64px;background:#111118;border:1px solid #33334a;border-radius:6px;color:#eee;font-family:monospace;font-size:12px;padding:8px;resize:vertical';
-                textarea.value = 'Chargement…';
-                block.appendChild(textarea);
-
-                const row = document.createElement('div');
-                row.style.cssText = 'display:flex;gap:8px;margin-top:6px;align-items:center';
-                const saveBtn = document.createElement('button');
-                saveBtn.textContent = 'Enregistrer';
-                saveBtn.style.cssText = `padding:6px 12px;background:${accent};color:#0a0a0f;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer`;
-                const statusEl = document.createElement('span');
-                statusEl.style.cssText = 'font-size:11px;color:#888';
-                row.appendChild(saveBtn);
-                row.appendChild(statusEl);
-                block.appendChild(row);
-
-                card.appendChild(block);
-
-                this.playCharger({ CATEGORIE: cat }).then(data => { textarea.value = data; });
-
-                saveBtn.addEventListener('click', async () => {
-                    try {
-                        JSON.parse(textarea.value);
-                    } catch {
-                        statusEl.textContent = 'JSON invalide';
-                        statusEl.style.color = '#e74c3c';
-                        this._log('error', `Panel dev : JSON invalide pour la catégorie "${cat}"`);
-                        return;
-                    }
-                    statusEl.textContent = 'Enregistrement…';
-                    statusEl.style.color = '#888';
-                    await this.playSauvegarder({ CATEGORIE: cat, DONNEES: textarea.value });
-                    statusEl.textContent = 'Enregistré ✓';
-                    statusEl.style.color = '#2ecc71';
-                    this._log('info', `Panel dev : sauvegarde manuelle "${cat}" par ${this._playPlayer ? this._playPlayer.username : '?'}`);
-                    setTimeout(() => { if (statusEl.isConnected) statusEl.textContent = ''; }, 2000);
-                });
+                const btn = document.createElement('button');
+                btn.style.cssText = 'width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:transparent;border:none;color:#a9aab3;font-size:12px;font-weight:600;text-transform:capitalize;padding:8px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px;font-family:system-ui,sans-serif';
+                btn.innerHTML = `<span>${cat}</span><span class="vg-dot" style="width:6px;height:6px;border-radius:50%;flex-shrink:0"></span>`;
+                btn.addEventListener('click', () => { activeCat = cat; renderEditor(); renderNav(); });
+                navButtons[cat] = btn;
+                navList.appendChild(btn);
             }
+
+            const sidebarFooter = document.createElement('div');
+            sidebarFooter.style.cssText = 'padding:10px;border-top:1px solid #2a2b34';
+            const saveAllBtn = this._panelIconBtn('💾 Save All Categories', 'Save every category with unsaved changes');
+            saveAllBtn.style.width = '100%';
+            saveAllBtn.style.background = accent;
+            saveAllBtn.style.color = '#0a0a0f';
+            saveAllBtn.style.border = 'none';
+            saveAllBtn.addEventListener('click', async () => {
+                for (const cat of categories) {
+                    const st = this._devCatState[cat];
+                    if (st.loaded && st.value !== st.original) await saveCategory(cat);
+                }
+            });
+            sidebarFooter.appendChild(saveAllBtn);
+            sidebar.appendChild(sidebarFooter);
+
+            // Editor (main area)
+            const editor = document.createElement('div');
+            editor.style.cssText = 'flex:1;display:flex;flex-direction:column;min-width:0';
+            body.appendChild(editor);
+
+            const editorHeader = document.createElement('div');
+            editorHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            const editorTitle = document.createElement('div');
+            editorTitle.style.cssText = 'font-size:12px;font-weight:700;color:' + accent + ';text-transform:uppercase;letter-spacing:0.06em';
+            const editorTools = document.createElement('div');
+            editorTools.style.cssText = 'display:flex;gap:6px';
+            const reloadBtn  = this._panelIconBtn('⟳ Reload', 'Discard local edits and re-fetch from the server');
+            const formatBtn  = this._panelIconBtn('{ } Format', 'Pretty-print this JSON');
+            const copyBtn    = this._panelIconBtn('⧉ Copy', 'Copy this category\'s JSON to the clipboard');
+            const saveBtn    = this._panelIconBtn('Save', 'Save this category to the server');
+            saveBtn.style.background = accent;
+            saveBtn.style.color = '#0a0a0f';
+            saveBtn.style.border = 'none';
+            editorTools.appendChild(reloadBtn);
+            editorTools.appendChild(formatBtn);
+            editorTools.appendChild(copyBtn);
+            editorTools.appendChild(saveBtn);
+            editorHeader.appendChild(editorTitle);
+            editorHeader.appendChild(editorTools);
+            editor.appendChild(editorHeader);
+
+            const textarea = document.createElement('textarea');
+            textarea.spellcheck = false;
+            textarea.style.cssText = 'flex:1;width:100%;box-sizing:border-box;background:#111218;border:none;color:#e7e7ea;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;padding:14px 16px;resize:none;outline:none';
+            textarea.value = 'Loading…';
+            editor.appendChild(textarea);
+
+            const statusBar = document.createElement('div');
+            statusBar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 16px;border-top:1px solid #2a2b34;font-size:11px;color:#8b8d97;flex-shrink:0';
+            const validityEl = document.createElement('span');
+            const metaEl = document.createElement('span');
+            statusBar.appendChild(validityEl);
+            statusBar.appendChild(metaEl);
+            editor.appendChild(statusBar);
+
+            const updateValidity = () => {
+                const st = this._devCatState[activeCat];
+                st.value = textarea.value;
+                try {
+                    JSON.parse(textarea.value || '{}');
+                    validityEl.textContent = '✓ Valid JSON';
+                    validityEl.style.color = '#5fd97f';
+                } catch (e) {
+                    validityEl.textContent = '✗ Invalid JSON — ' + e.message;
+                    validityEl.style.color = '#e74c3c';
+                }
+                metaEl.textContent = textarea.value.length + ' chars' + (st.loaded && st.value !== st.original ? ' · unsaved changes' : '');
+                renderNav();
+            };
+            textarea.addEventListener('input', updateValidity);
+
+            const loadCategory = async (cat) => {
+                const st = this._devCatState[cat];
+                if (st.loaded) return;
+                const data = await this.playCharger({ CATEGORIE: cat });
+                st.value = data;
+                st.original = data;
+                st.loaded = true;
+                if (cat === activeCat) renderEditor();
+                renderNav();
+            };
+
+            const renderEditor = () => {
+                editorTitle.textContent = activeCat;
+                const st = this._devCatState[activeCat];
+                textarea.value = st.loaded ? st.value : 'Loading…';
+                textarea.disabled = !st.loaded;
+                if (!st.loaded) { loadCategory(activeCat); return; }
+                updateValidity();
+            };
+
+            const saveCategory = async (cat) => {
+                const st = this._devCatState[cat];
+                try { JSON.parse(st.value || '{}'); }
+                catch {
+                    this._log('error', `Dev Panel: invalid JSON for category "${cat}", save aborted`, 'Dev Panel');
+                    if (cat === activeCat) { validityEl.textContent = '✗ Invalid JSON — save aborted'; validityEl.style.color = '#e74c3c'; }
+                    return;
+                }
+                if (cat === activeCat) { metaEl.textContent = 'Saving…'; }
+                await this.playSauvegarder({ CATEGORIE: cat, DONNEES: st.value });
+                st.original = st.value;
+                this._devPanelDirty[cat] = true;
+                this._log('info', `Dev Panel: manual save "${cat}" by ${this._playPlayer ? this._playPlayer.username : '?'}`, 'Dev Panel');
+                if (cat === activeCat) { updateValidity(); metaEl.textContent = 'Saved ✓ · ' + metaEl.textContent; }
+                renderNav();
+            };
+
+            reloadBtn.addEventListener('click', async () => {
+                this._devCatState[activeCat] = { value: null, original: null, loaded: false };
+                renderEditor();
+            });
+            formatBtn.addEventListener('click', () => {
+                try {
+                    textarea.value = JSON.stringify(JSON.parse(textarea.value || '{}'), null, 2);
+                    updateValidity();
+                } catch { /* leave as-is if invalid */ }
+            });
+            copyBtn.addEventListener('click', async () => {
+                const ok = await this._copyToClipboard(textarea.value);
+                copyBtn.textContent = ok ? '✓ Copied' : 'Copy failed';
+                setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = '⧉ Copy'; }, 1200);
+            });
+            saveBtn.addEventListener('click', () => saveCategory(activeCat));
+
+            renderNav();
+            renderEditor();
 
             document.body.appendChild(overlay);
         }
 
+        // ══════════════════════════════════════════
+        //  LOGS PANEL — landscape, filterable, exportable
+        // ══════════════════════════════════════════
+
+        _logMatchesFilters(entry) {
+            const f = this._logFilters;
+            if (!f[entry.level]) return false;
+            if (f.source !== 'All' && entry.source !== f.source) return false;
+            if (f.search && !(entry.source + ' ' + entry.message).toLowerCase().includes(f.search.toLowerCase())) return false;
+            return true;
+        }
+
+        _appendLogRow(entry) {
+            if (!this._logsListEl) return;
+            const color = entry.level === 'error' ? '#e74c3c' : entry.level === 'warn' ? '#f39c12' : '#8b8d97';
+            const label = entry.level === 'error' ? 'ERROR' : entry.level === 'warn' ? 'WARN' : 'INFO';
+            const row = document.createElement('div');
+            row.style.cssText = 'display:grid;grid-template-columns:76px 56px 110px 1fr;gap:10px;padding:5px 10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;border-bottom:1px solid rgba(255,255,255,0.045);align-items:start;line-height:1.4';
+            row.innerHTML =
+                `<span style="color:#5f6069;white-space:nowrap">${entry.ts.toLocaleTimeString()}</span>` +
+                `<span style="color:${color};font-weight:700">${label}</span>` +
+                `<span style="color:#7f96b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${this._escapeHtml(entry.source)}</span>` +
+                `<span style="color:#e4e4e7;word-break:break-word">${this._escapeHtml(entry.message)}</span>`;
+            this._logsListEl.appendChild(row);
+            if (this._logsAutoStick) this._logsListEl.scrollTop = this._logsListEl.scrollHeight;
+        }
+
+        _renderLogsList() {
+            if (!this._logsListEl) return;
+            this._logsListEl.innerHTML = '';
+            for (const entry of this._logEntries) {
+                if (this._logMatchesFilters(entry)) this._appendLogRow(entry);
+            }
+        }
+
+        _updateLogStats() {
+            if (!this._logStatsEl) return;
+            const c = this._logCounts;
+            this._logStatsEl.innerHTML =
+                `<span style="color:#8b8d97">${this._logEntries.length} total</span>` +
+                `<span style="color:#8b8d97">·</span><span style="color:#8b8d97">${c.info} info</span>` +
+                `<span style="color:#8b8d97">·</span><span style="color:#f39c12">${c.warn} warn</span>` +
+                `<span style="color:#8b8d97">·</span><span style="color:#e74c3c">${c.error} error</span>`;
+        }
+
+        _logsAsText() {
+            return this._logEntries
+                .filter(e => this._logMatchesFilters(e))
+                .map(e => `[${e.ts.toLocaleTimeString()}] [${e.level.toUpperCase()}] [${e.source}] ${e.message}`)
+                .join('\n');
+        }
+
         _showLogsPanel() {
             if (this._logsPanel) { this._logsPanel.remove(); this._logsPanel = null; this._logsListEl = null; }
+            this._logFilters = { info: true, warn: true, error: true, source: 'All', search: '' };
 
             const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;inset:0;z-index:999994;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999994;background:rgba(8,9,12,0.7);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif';
             this._logsPanel = overlay;
 
             const card = document.createElement('div');
-            card.style.cssText = 'background:#111118;border:1px solid #2a2a3c;border-radius:12px;padding:16px;width:640px;max-width:94vw;height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
+            card.style.cssText = 'background:#1b1c22;border:1px solid #2f303a;border-radius:10px;width:960px;max-width:96vw;height:620px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,0.5);overflow:hidden';
             overlay.appendChild(card);
 
-            const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0';
-            header.innerHTML = '<div style="font-size:15px;font-weight:700;color:#fff">📜 Game Logs</div>';
+            // ── Title bar ──
+            const titleBar = document.createElement('div');
+            titleBar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            const titleLeft = document.createElement('div');
+            titleLeft.style.cssText = 'display:flex;align-items:center;gap:10px';
+            const statsEl = document.createElement('span');
+            statsEl.style.cssText = 'font-size:11px;display:flex;gap:6px';
+            this._logStatsEl = statsEl;
+            titleLeft.innerHTML = '<span style="font-size:14px">📜</span><span style="font-size:14px;font-weight:700;color:#f2f2f5;letter-spacing:0.02em">Game Logs</span>';
+            titleLeft.appendChild(statsEl);
 
-            const btnGroup = document.createElement('div');
-            btnGroup.style.cssText = 'display:flex;gap:10px;align-items:center';
-
-            const clearBtn = document.createElement('button');
-            clearBtn.textContent = 'Vider';
-            clearBtn.style.cssText = 'background:none;border:1px solid #33334a;color:#999;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer';
-            clearBtn.addEventListener('click', () => {
-                this._logEntries = [];
-                if (this._logsListEl) this._logsListEl.innerHTML = '';
-            });
-
+            const titleActions = document.createElement('div');
+            titleActions.style.cssText = 'display:flex;gap:6px;align-items:center';
+            const copyAllBtn = this._panelIconBtn('⧉ Copy', 'Copy the currently visible log lines to the clipboard');
+            const exportBtn  = this._panelIconBtn('⤓ Export .txt', 'Download the currently visible log lines as a text file');
+            const clearBtn   = this._panelIconBtn('Clear', 'Clear the log history');
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
-            closeBtn.style.cssText = 'background:none;border:none;color:#999;font-size:16px;cursor:pointer;line-height:1';
-            closeBtn.addEventListener('click', () => { overlay.remove(); this._logsPanel = null; this._logsListEl = null; });
+            closeBtn.style.cssText = 'background:none;border:none;color:#8b8d97;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px';
+            closeBtn.addEventListener('click', () => { overlay.remove(); this._logsPanel = null; this._logsListEl = null; this._logStatsEl = null; });
 
-            btnGroup.appendChild(clearBtn);
-            btnGroup.appendChild(closeBtn);
-            header.appendChild(btnGroup);
-            card.appendChild(header);
+            copyAllBtn.addEventListener('click', async () => {
+                const ok = await this._copyToClipboard(this._logsAsText());
+                copyAllBtn.textContent = ok ? '✓ Copied' : 'Copy failed';
+                setTimeout(() => { if (copyAllBtn.isConnected) copyAllBtn.textContent = '⧉ Copy'; }, 1200);
+            });
+            exportBtn.addEventListener('click', () => {
+                const blob = new Blob([this._logsAsText()], { type: 'text/plain' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href = url;
+                a.download = 'vakargames-logs-' + Date.now() + '.txt';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+            });
+            clearBtn.addEventListener('click', () => {
+                this._logEntries = [];
+                this._logCounts  = { info: 0, warn: 0, error: 0 };
+                this._renderLogsList();
+                this._updateLogStats();
+            });
 
+            titleActions.appendChild(copyAllBtn);
+            titleActions.appendChild(exportBtn);
+            titleActions.appendChild(clearBtn);
+            titleActions.appendChild(closeBtn);
+            titleBar.appendChild(titleLeft);
+            titleBar.appendChild(titleActions);
+            card.appendChild(titleBar);
+
+            // ── Toolbar: search + level filters + source filter ──
+            const toolbar = document.createElement('div');
+            toolbar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #2a2b34;flex-shrink:0';
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Search logs…';
+            searchInput.style.cssText = 'flex:1;background:#111218;border:1px solid #2f303a;border-radius:6px;color:#e7e7ea;font-size:12px;padding:6px 10px;outline:none;font-family:system-ui,sans-serif';
+            searchInput.addEventListener('input', () => {
+                this._logFilters.search = searchInput.value;
+                this._renderLogsList();
+            });
+            toolbar.appendChild(searchInput);
+
+            const levelDefs = [['info', 'Info', '#8b8d97'], ['warn', 'Warning', '#f39c12'], ['error', 'Error', '#e74c3c']];
+            const levelBtns = {};
+            for (const [key, label, color] of levelDefs) {
+                const b = document.createElement('button');
+                b.textContent = label;
+                b.style.cssText = `background:${color}22;border:1px solid ${color}55;color:${color};font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:system-ui,sans-serif`;
+                b.addEventListener('click', () => {
+                    this._logFilters[key] = !this._logFilters[key];
+                    b.style.opacity = this._logFilters[key] ? '1' : '0.35';
+                    this._renderLogsList();
+                });
+                levelBtns[key] = b;
+                toolbar.appendChild(b);
+            }
+
+            const sourceSelect = document.createElement('select');
+            sourceSelect.style.cssText = 'background:#111218;border:1px solid #2f303a;border-radius:6px;color:#e7e7ea;font-size:11px;padding:6px 8px;outline:none;font-family:system-ui,sans-serif';
+            const refreshSources = () => {
+                const sources = ['All', ...new Set(this._logEntries.map(e => e.source))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
+                const current = sourceSelect.value || 'All';
+                sourceSelect.innerHTML = sources.map(s => `<option value="${this._escapeHtml(s)}">${this._escapeHtml(s)}</option>`).join('');
+                sourceSelect.value = sources.includes(current) ? current : 'All';
+            };
+            sourceSelect.addEventListener('change', () => {
+                this._logFilters.source = sourceSelect.value;
+                this._renderLogsList();
+            });
+            toolbar.appendChild(sourceSelect);
+            card.appendChild(toolbar);
+
+            // ── Column header ──
+            const colHeader = document.createElement('div');
+            colHeader.style.cssText = 'display:grid;grid-template-columns:76px 56px 110px 1fr;gap:10px;padding:6px 10px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#5f6069;border-bottom:1px solid #2a2b34;flex-shrink:0';
+            colHeader.innerHTML = '<span>Time</span><span>Level</span><span>Source</span><span>Message</span>';
+            card.appendChild(colHeader);
+
+            // ── List ──
             const list = document.createElement('div');
-            list.style.cssText = 'flex:1;overflow-y:auto;border-top:1px solid #2a2a3c;padding-top:6px';
+            list.style.cssText = 'flex:1;overflow-y:auto';
+            list.addEventListener('scroll', () => {
+                this._logsAutoStick = (list.scrollTop + list.clientHeight >= list.scrollHeight - 24);
+            });
             card.appendChild(list);
             this._logsListEl = list;
 
-            for (const entry of this._logEntries) this._appendLogRow(entry);
+            refreshSources();
+            this._renderLogsList();
+            this._updateLogStats();
 
             document.body.appendChild(overlay);
         }
