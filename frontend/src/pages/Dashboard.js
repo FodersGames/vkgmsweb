@@ -3,14 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
-  Users, Package, Activity, FileText, Database, LogOut, Code,
+  Users, Activity, FileText, Database, LogOut, Code,
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, Briefcase,
+  ChevronRight, Briefcase, Terminal,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
-import { SendItems }           from '../components/SendItems';
 import { ServerStatus }        from '../components/ServerStatus';
 import { LogsViewer }          from '../components/LogsViewer';
 import { VariablesManagement } from '../components/VariablesManagement';
@@ -30,6 +29,7 @@ import { AccountSettings }     from '../components/AccountSettings';
 import { CouponManagement }    from '../components/CouponManagement';
 import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
+import { CliConsole }         from '../components/CliConsole';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 
@@ -46,7 +46,6 @@ const NAV_GROUPS = [
     id: 'studio',
     items: [
       { id: 'projects',   label: 'Projects',      icon: Gamepad2,      permission: 'view_projects'  },
-      { id: 'send-items', label: 'Send Items',     icon: Package,       permission: 'send_items',      requiresProject: true },
       { id: 'status',     label: 'Server Status',  icon: Activity,      permission: 'change_status',   requiresProject: true },
       { id: 'variables',  label: 'Variables',      icon: Database,      permission: 'view_variables',  requiresProject: true },
       { id: 'logs',       label: 'Logs',           icon: FileText,      permission: 'view_logs',       requiresProject: true },
@@ -74,22 +73,24 @@ const NAV_GROUPS = [
       { id: 'users', label: 'Users',    icon: Users,  permission: 'manage_users'  },
       { id: 'api',   label: 'API Docs', icon: Code,   permission: 'view_api_docs' },
       { id: 'vps',   label: 'VPS',      icon: Server, permission: 'view_vps'     },
+      { id: 'cli',   label: 'CLI',      icon: Terminal, superAdminOnly: true     },
     ],
   },
 ];
 
-const PROJECT_TABS = new Set(['send-items', 'status', 'variables', 'logs', 'chat', 'missions', 'files', 'players']);
+const PROJECT_TABS = new Set(['status', 'variables', 'logs', 'chat', 'missions', 'files', 'players']);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const itemVisible = (item, hasPermission) => {
+const itemVisible = (item, hasPermission, isSuperAdmin) => {
+  if (item.superAdminOnly) return !!isSuperAdmin;
   if (item.anyPermission) return item.anyPermission.some(p => hasPermission(p));
   if (!item.permission) return true;
   return hasPermission(item.permission);
 };
 
-const groupVisible = (group, hasPermission) =>
-  group.items.some(i => itemVisible(i, hasPermission));
+const groupVisible = (group, hasPermission, isSuperAdmin) =>
+  group.items.some(i => itemVisible(i, hasPermission, isSuperAdmin));
 
 const findCurrentGroup = (tabId) =>
   NAV_GROUPS.find(g => g.items.some(i => i.id === tabId));
@@ -193,7 +194,7 @@ const DashboardContent = () => {
       {/* Nav groups */}
       <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
         {NAV_GROUPS.map((group, gi) => {
-          const visibleItems = group.items.filter(i => itemVisible(i, hasPermission));
+          const visibleItems = group.items.filter(i => itemVisible(i, hasPermission, user?.is_super_admin));
           if (!visibleItems.length) return null;
 
           return (
@@ -363,6 +364,7 @@ const DashboardContent = () => {
             {activeTab === 'users'    && hasPermission('manage_users')  && <UserManagement />}
             {activeTab === 'api'      && hasPermission('view_api_docs') && <ApiEndpoints />}
             {activeTab === 'vps'      && hasPermission('view_vps')      && <VpsStats />}
+            {activeTab === 'cli'      && user?.is_super_admin           && <CliConsole />}
 
             {needsProject && !selectedProject && (
               <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
@@ -386,7 +388,6 @@ const DashboardContent = () => {
               </div>
             )}
 
-            {activeTab === 'send-items' && selectedProject && hasPermission('send_items')                                             && <SendItems />}
             {activeTab === 'status'     && selectedProject && hasPermission('change_status')                                          && <ServerStatus />}
             {activeTab === 'variables'  && selectedProject && hasPermission('view_variables')                                         && <VariablesManagement />}
             {activeTab === 'logs'       && selectedProject && hasPermission('view_logs')                                              && <LogsViewer />}

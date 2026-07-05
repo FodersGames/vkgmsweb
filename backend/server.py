@@ -29,6 +29,7 @@ import math
 import zipfile
 import io
 import json
+import shlex
 
 VERSION = "1.3.0"
 
@@ -652,6 +653,10 @@ class SuspendUserRequest(BaseModel):
     suspended: bool
     reason: Optional[str] = ""
 
+class CliExecuteRequest(BaseModel):
+    command: str
+    confirm: bool = False
+
 class UpdateProfileRequest(BaseModel):
     firstName: str
     lastName: str
@@ -773,6 +778,11 @@ def require_any_of(*permissions):
             raise HTTPException(status_code=403, detail=f"Missing one of: {', '.join(permissions)}")
         return user
     return check
+
+async def require_super_admin(user=Depends(get_current_user)):
+    if not user["is_super_admin"]:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    return user
 
 async def get_project_or_404(slug):
     p = await db.projects.find_one({"slug": slug})
@@ -4013,6 +4023,244 @@ async def admin_play_delete_player(slug: str, player_id: str, user=Depends(requi
     await db.play_saves.delete_many({"user_id": oid, "project_slug": slug})
     await db.play_refresh_tokens.delete_many({"user_id": oid})
     return {"ok": True}
+
+# ============================================================
+# SUPER ADMIN CLI
+# ============================================================
+# Closed whitelist of commands only. Every verb below wraps the SAME database
+# operations already used by their equivalent dashboard endpoints — no raw
+# Mongo queries, no code evaluation. Destructive verbs are two-phase: the
+# first call (confirm=False) returns a preview only; the actual write only
+# happens when the client resends the identical command with confirm=True.
+
+_CLI_HELP_TEXT = [
+    "Available commands:",
+    "  help",
+    "  user find <email|username>",
+    "  user suspend <email|username>",
+    "  user unsuspend <email|username>",
+    "  player find <project_slug> <username|nickname|email|id>",
+    "  player ban <project_slug> <username|nickname|email|id>",
+    "  player unban <project_slug> <username|nickname|email|id>",
+    "  player revoke <project_slug> <username|nickname|email|id>",
+    "  loyalty show <email>",
+    "  loyalty adjust <email> <+amount|-amount> [reason]",
+    "  purchases show <email>",
+    "",
+    "Destructive commands ask for confirmation before applying any change.",
+]
+
+async def _cli_find_user_doc(query: str):
+    q = query.strip()
+    if not q:
+        return None
+    user = await db.users.find_one({"email": q.lower()})
+    if user:
+        return user
+    user = await db.users.find_one({"username": {"$regex": f"^{re.escape(q)}$", "$options": "i"}})
+    if user:
+        return user
+    try:
+        return await db.users.find_one({"_id": ObjectId(q)})
+    except Exception:
+        return None
+
+async def _cli_find_player_doc(project_slug: str, query: str):
+    q = query.strip()
+    if not q:
+        return None
+    nick = await db.play_nicknames.find_one(
+        {"project_slug": project_slug, "nickname": {"$regex": f"^{re.escape(q)}$", "$options": "i"}}
+    )
+    if nick:
+        user = await db.users.find_one({"_id": nick["user_id"]})
+        if user:
+            return user
+    return await _cli_find_user_doc(q)
+
+def _cli_user_summary(u) -> List[str]:
+    return [
+        f"id:        {str(u['_id'])}",
+        f"username:  {u.get('username', '')}",
+        f"email:     {u.get('email', '')}",
+        f"role:      {u.get('role', 'user')}",
+        f"suspended: {u.get('isSuspended', False)}",
+        f"createdAt: {u['createdAt'].isoformat() if isinstance(u.get('createdAt'), datetime) else u.get('created_at', '')}",
+        f"lastLogin: {u['lastLogin'].isoformat() if isinstance(u.get('lastLogin'), datetime) else 'never'}",
+    ]
+
+class _CliError(Exception):
+    pass
+
+async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
+    """Returns (lines, needs_confirm). Raises _CliError with a user-facing message on bad input."""
+    if not tokens:
+        raise _CliError("Empty command. Type 'help' for the command list.")
+    verb = tokens[0].lower()
+
+    if verb == "help":
+        return _CLI_HELP_TEXT, False
+
+    if verb == "user" and len(tokens) >= 3:
+        sub, query = tokens[1].lower(), tokens[2]
+        target = await _cli_find_user_doc(query)
+        if not target:
+            raise _CliError(f"No user found matching '{query}'.")
+
+        if sub == "find":
+            return _cli_user_summary(target), False
+
+        if sub in ("suspend", "unsuspend"):
+            want_suspended = sub == "suspend"
+            if target.get("role") == "super_admin":
+                raise _CliError("Cannot suspend a super admin account.")
+            if str(target["_id"]) == admin["id"]:
+                raise _CliError("Cannot suspend your own account.")
+            if not confirm:
+                action = "Suspend" if want_suspended else "Reactivate"
+                return [f"{action} account '{target.get('username')}' ({target.get('email')})?",
+                        "Type 'y' to confirm, or anything else to cancel."], True
+            await db.users.update_one({"_id": target["_id"]}, {"$set": {"isSuspended": want_suspended}})
+            action = "suspended" if want_suspended else "reactivated"
+            await log_action("user_action", f"[CLI] User '{target.get('username')}' {action}", user=admin["username"])
+            return [f"OK — user '{target.get('username')}' {action}."], False
+
+    if verb == "player" and len(tokens) >= 4:
+        sub, project_slug, query = tokens[1].lower(), tokens[2], tokens[3]
+        project = await db.projects.find_one({"slug": project_slug})
+        if not project:
+            raise _CliError(f"No project with slug '{project_slug}'.")
+        target = await _cli_find_player_doc(project_slug, query)
+        if not target:
+            raise _CliError(f"No player found matching '{query}' in project '{project_slug}'.")
+        oid = target["_id"]
+
+        if sub == "find":
+            saves = await db.play_saves.find({"user_id": oid, "project_slug": project_slug}).to_list(None)
+            ban = await db.play_bans.find_one({"user_id": oid, "project_slug": project_slug})
+            nick = await db.play_nicknames.find_one({"user_id": oid, "project_slug": project_slug})
+            lines = _cli_user_summary(target) + [
+                f"nickname:  {nick['nickname'] if nick else '(none)'}",
+                f"banned:    {ban is not None}",
+                f"saves:     {', '.join(s['category'] for s in saves) if saves else '(none)'}",
+            ]
+            return lines, False
+
+        if sub in ("ban", "unban"):
+            want_banned = sub == "ban"
+            if not confirm:
+                action = "Ban" if want_banned else "Unban"
+                return [f"{action} '{target.get('username')}' from project '{project_slug}'?",
+                        "Type 'y' to confirm, or anything else to cancel."], True
+            if want_banned:
+                await db.play_bans.update_one(
+                    {"user_id": oid, "project_slug": project_slug},
+                    {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": admin["username"]}},
+                    upsert=True,
+                )
+            else:
+                await db.play_bans.delete_one({"user_id": oid, "project_slug": project_slug})
+            action = "banned" if want_banned else "unbanned"
+            await log_action("ban" if want_banned else "unban",
+                              f"[CLI] Player '{target.get('username')}' {action} from project '{project_slug}'",
+                              project_slug=project_slug, user=admin["username"])
+            return [f"OK — player '{target.get('username')}' {action} from '{project_slug}'."], False
+
+        if sub == "revoke":
+            if not confirm:
+                return [f"Revoke all sessions for '{target.get('username')}' in project '{project_slug}'?",
+                        "Type 'y' to confirm, or anything else to cancel."], True
+            await db.play_refresh_tokens.update_many({"user_id": oid}, {"$set": {"is_revoked": True}})
+            await log_action("user_action", f"[CLI] Sessions revoked for player '{target.get('username')}' ({project_slug})",
+                              project_slug=project_slug, user=admin["username"])
+            return [f"OK — all sessions revoked for '{target.get('username')}'."], False
+
+    if verb == "loyalty" and len(tokens) >= 3:
+        sub, email = tokens[1].lower(), tokens[2].lower().strip()
+        target = await db.users.find_one({"email": email})
+        if not target:
+            raise _CliError(f"No user with email '{email}'.")
+        points = await db.user_points.find_one({"email": email})
+        total_cents = points.get("total_spent_cents", 0) if points else 0
+
+        if sub == "show":
+            return [
+                f"email: {email}",
+                f"tier:  {get_tier(total_cents)}",
+                f"total: ${total_cents / 100:.2f}",
+            ], False
+
+        if sub == "adjust":
+            if len(tokens) < 4:
+                raise _CliError("Usage: loyalty adjust <email> <+amount|-amount> [reason]")
+            try:
+                adjust_dollars = float(tokens[3])
+            except ValueError:
+                raise _CliError(f"'{tokens[3]}' is not a valid amount.")
+            if adjust_dollars == 0:
+                raise _CliError("Adjustment cannot be zero.")
+            reason = " ".join(tokens[4:])
+            if not confirm:
+                sign = "+" if adjust_dollars > 0 else ""
+                return [f"Adjust loyalty for '{email}' by {sign}${adjust_dollars:.2f}"
+                        + (f" (reason: {reason})" if reason else "") + "?",
+                        "Type 'y' to confirm, or anything else to cancel."], True
+            adjust_cents = round(adjust_dollars * 100)
+            new_total = max(0, total_cents + adjust_cents)
+            new_tier = get_tier(new_total)
+            await db.user_points.update_one(
+                {"email": email},
+                {"$set": {"total_spent_cents": new_total, "tier": new_tier, "updated_at": datetime.now(timezone.utc)}},
+                upsert=True,
+            )
+            reason_str = f" (reason: {reason})" if reason else ""
+            await log_action("user_action",
+                f"[CLI] Admin '{admin['username']}' adjusted loyalty for '{target.get('username', email)}': "
+                f"${adjust_dollars:+.2f}{reason_str} -> {new_total}cts ({new_tier})",
+                user=admin["username"])
+            await _create_notification(
+                user_id=str(target["_id"]),
+                message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by ${abs(adjust_dollars):.2f}. Current tier: {new_tier.capitalize()}.",
+                notif_type="loyalty_adjustment",
+            )
+            return [f"OK — new total ${new_total / 100:.2f} ({new_tier})."], False
+
+    if verb == "purchases" and len(tokens) >= 3 and tokens[1].lower() == "show":
+        email = tokens[2].lower().strip()
+        target = await db.users.find_one({"email": email})
+        if not target:
+            raise _CliError(f"No user with email '{email}'.")
+        games = await db.game_purchases.find({"email": email}).sort("purchased_at", -1).to_list(200)
+        lines = [f"Full-game purchases for {email}:"]
+        if games:
+            for g in games:
+                lines.append(f"  - {g.get('game_name', g.get('game_slug'))}  ${g.get('amount_paid_cents', 0)/100:.2f}  {g.get('purchased_at', '')}")
+        else:
+            lines.append("  (none)")
+        return lines, False
+
+    raise _CliError(f"Unknown command '{' '.join(tokens)}'. Type 'help' for the command list.")
+
+@api_router.post("/admin/cli/execute")
+@limiter.limit("20/minute")
+async def cli_execute(request: Request, body: CliExecuteRequest, admin=Depends(require_super_admin)):
+    raw = body.command.strip()
+    if not raw:
+        raise HTTPException(400, "Empty command")
+    if len(raw) > 500:
+        raise HTTPException(400, "Command too long")
+    try:
+        tokens = shlex.split(raw)
+    except ValueError:
+        raise HTTPException(400, "Unmatched quotes in command")
+
+    try:
+        lines, needs_confirm = await _cli_dispatch(tokens, body.confirm, admin)
+        await log_action("cli", f"[CLI] '{admin['username']}' ran: {raw}"
+                          + (" (confirmed)" if body.confirm else ""), user=admin["username"])
+        return {"output": lines, "needs_confirm": needs_confirm, "error": False}
+    except _CliError as e:
+        return {"output": [str(e)], "needs_confirm": False, "error": True}
 
 # ============================================================
 # CAREERS

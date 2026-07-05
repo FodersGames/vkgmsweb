@@ -126,10 +126,14 @@ export const PlayersManagement = () => {
     });
   };
 
-  const filtered = players.filter(p =>
-    p.username.toLowerCase().includes(search.toLowerCase()) ||
-    p.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = players.filter(p => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return p.username.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      p.id.toLowerCase() === q ||
+      p.id.toLowerCase().startsWith(q);
+  });
 
   if (!slug) return null;
 
@@ -162,7 +166,7 @@ export const PlayersManagement = () => {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
           <input
             type="text"
-            placeholder="Rechercher un joueur..."
+            placeholder="Rechercher par pseudo, email ou ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"

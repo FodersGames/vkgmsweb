@@ -117,8 +117,6 @@
             this._playPopup       = null;
             this._playSaveCache   = {};
             this._playNickname    = null; // per-game nickname, fetched lazily
-            this._giftPollInterval = null;
-            this._giftPollUid      = null;
             this._loadingPopup = null;
             this._loadingBarEl = null;
             this._loadingCount = 0;
@@ -585,15 +583,10 @@
                     },
                     '---',
                     {
-                        opcode:    'surveillerCadeaux',
+                        opcode:    'verifierCadeaux',
                         blockType: Scratch.BlockType.COMMAND,
-                        text:      'surveiller les cadeaux pour uid [UID]',
+                        text:      'vérifier les cadeaux à la connexion pour uid [UID]',
                         arguments: { UID: { type: Scratch.ArgumentType.STRING, defaultValue: '' } }
-                    },
-                    {
-                        opcode:    'arreterSurveillanceCadeaux',
-                        blockType: Scratch.BlockType.COMMAND,
-                        text:      'arrêter la surveillance des cadeaux'
                     },
                     '---',
                     {
@@ -1469,7 +1462,6 @@
             this._playPlayer      = null;
             this._playSaveCache   = {};
             this._playNickname    = null;
-            this.arreterSurveillanceCadeaux();
             localStorage.removeItem(this._playStorageKey());
         }
 
@@ -1594,25 +1586,18 @@
             return applied;
         }
 
-        surveillerCadeaux({ UID }) {
+        // One-shot check, meant to be called once right after the player
+        // connects: claims and applies any purchase (made in-game or gifted
+        // from the site) that arrived while they were away. No background
+        // polling — the data just sits server-side in the queue until this
+        // runs, then it's granted server + local in one go.
+        async verifierCadeaux({ UID }) {
             const uid = String(UID).trim();
             if (!uid) return;
-            this.arreterSurveillanceCadeaux();
-            this._giftPollUid = uid;
-            this._log('info', 'Gift watch started for uid "' + uid + '"', 'Shop');
-            this._claimAndApplyGifts(this._playSlug, uid, { showPopup: true });
-            this._giftPollInterval = setInterval(() => {
-                this._claimAndApplyGifts(this._playSlug, this._giftPollUid, { showPopup: true });
-            }, 12000);
-        }
-
-        arreterSurveillanceCadeaux() {
-            if (this._giftPollInterval) {
-                clearInterval(this._giftPollInterval);
-                this._giftPollInterval = null;
-                this._log('info', 'Gift watch stopped', 'Shop');
-            }
-            this._giftPollUid = null;
+            const applied = await this._claimAndApplyGifts(this._playSlug, uid, { showPopup: true });
+            this._log('info', applied > 0
+                ? `Gift check: ${applied} item(s) granted on connect`
+                : 'Gift check: nothing pending', 'Shop');
         }
 
         playOuvrirChargement({ MAX }) { this._showLoadingScreen(MAX); }
