@@ -59,6 +59,16 @@
 
   function isImage(filename) { return extOf(filename) !== null; }
 
+  function audioExtOf(filename) {
+    const s = (filename || '').toLowerCase();
+    if (s.endsWith('.mp3')) return 'mp3';
+    if (s.endsWith('.wav')) return 'wav';
+    if (s.endsWith('.ogg')) return 'ogg';
+    return null;
+  }
+
+  function isAudio(filename) { return audioExtOf(filename) !== null; }
+
   // ── Extension ────────────────────────────────────────────────────────────────
 
   class VakarGamesFilesExtension {
@@ -71,6 +81,8 @@
       this._resolvedVersion = 'default';
       this._ready           = false;
       this._error           = '';
+      this._soundsReady     = false;
+      this._soundsError     = '';
       this._fileIndex       = {};   // id → file metadata
       this._cache           = null; // VGCache instance
     }
@@ -169,6 +181,37 @@
               ID: { type: Scratch.ArgumentType.STRING, defaultValue: '' },
             },
           },
+
+          '---',
+
+          // ── 6. Sounds ────────────────────────────────────────────────────────
+          {
+            opcode:    'loadAllSounds',
+            blockType: Scratch.BlockType.COMMAND,
+            text:      'load all sounds to sprite [SPRITE]',
+            arguments: {
+              SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' },
+            },
+          },
+          {
+            opcode:    'soundsReady',
+            blockType: Scratch.BlockType.BOOLEAN,
+            text:      'sounds ready?',
+          },
+          {
+            opcode:    'soundsError',
+            blockType: Scratch.BlockType.REPORTER,
+            text:      'sound load error',
+          },
+          {
+            opcode:    'loadSoundToSprite',
+            blockType: Scratch.BlockType.COMMAND,
+            text:      'load sound ID [ID] to sprite [SPRITE]',
+            arguments: {
+              ID:     { type: Scratch.ArgumentType.STRING, defaultValue: '' },
+              SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' },
+            },
+          },
         ],
       };
     }
@@ -239,6 +282,31 @@
       await vm.addCostume(costume.md5ext, costume, target.id);
     }
 
+    async _addSound(target, fileId, originalFilename, displayName, updatedAt) {
+      const vm      = Scratch.vm;
+      const storage = vm.runtime.storage;
+      const ext     = audioExtOf(originalFilename);
+
+      let dataFormat, formatTag, suffix;
+      if (ext === 'mp3') { dataFormat = storage.DataFormat.MP3 || 'mp3'; formatTag = 'mp3'; suffix = '.mp3'; }
+      else if (ext === 'ogg') { dataFormat = storage.DataFormat.OGG || 'ogg'; formatTag = 'ogg'; suffix = '.ogg'; }
+      else { dataFormat = storage.DataFormat.WAV; formatTag = 'wav'; suffix = '.wav'; }
+
+      const bytes = await this._getBytes(fileId, originalFilename, updatedAt);
+      const asset = storage.createAsset(storage.AssetType.Sound, dataFormat, bytes, null, true);
+      const soundObject = {
+        asset,
+        assetId:     asset.assetId,
+        name:        displayName,
+        dataFormat:  formatTag,
+        format:      '',
+        rate:        44100,
+        sampleCount: 0,
+        md5:         asset.assetId + suffix,
+      };
+      await vm.addSound(soundObject, target.id);
+    }
+
     _findTarget(spriteName) {
       const vm = Scratch.vm;
       return vm.runtime.getSpriteTargetByName(String(spriteName))
@@ -256,6 +324,8 @@
       this._fileIndex       = {};
       this._ready           = false;
       this._error           = '';
+      this._soundsReady     = false;
+      this._soundsError     = '';
     }
 
     hasInternet() {
@@ -272,6 +342,7 @@
         const data = await res.json();
         this._resolvedVersion = data.live_version || 'default';
         this._cache           = null; // version changed → new cache namespace
+        this._soundsReady     = false;
       } catch (e) {
         this._error = `Cannot fetch live version: ${e.message}`;
       }
@@ -283,6 +354,7 @@
         this._resolvedVersion = tag;
         this._cache           = null;
         this._ready           = false;
+        this._soundsReady     = false;
       }
     }
 
@@ -306,12 +378,13 @@
         const url  = `${this._base()}/api/game/${this._slug}/files?version=${encodeURIComponent(this._resolvedVersion)}`;
         const res  = await this._fetch(url);
         const data = await res.json();
-        const imageFiles = (data.files || []).filter(f => isImage(f.original_filename));
+        const mediaFiles = (data.files || []).filter(f => isImage(f.original_filename) || isAudio(f.original_filename));
+        const imageFiles = mediaFiles.filter(f => isImage(f.original_filename));
 
         // Build index — keyed by stable asset ID (same across all versions)
         // AND by per-version doc id, so both kinds of IDs resolve
         this._fileIndex = {};
-        for (const f of imageFiles) {
+        for (const f of mediaFiles) {
           this._fileIndex[f.id] = f;
           if (f.asset_id)  this._fileIndex[f.asset_id]  = f;
           if (f.stable_id) this._fileIndex[f.stable_id] = f;
@@ -335,6 +408,17 @@
     isReady()            { return this._ready; }
     loadErrorReporter()  { return this._error; }
 
+    async _refetchIndex() {
+      const url  = `${this._base()}/api/game/${this._slug}/files?version=${encodeURIComponent(this._resolvedVersion)}`;
+      const res  = await this._fetch(url);
+      const data = await res.json();
+      for (const file of (data.files || [])) {
+        this._fileIndex[file.id] = file;
+        if (file.asset_id)  this._fileIndex[file.asset_id]  = file;
+        if (file.stable_id) this._fileIndex[file.stable_id] = file;
+      }
+    }
+
     async loadCostumeToSprite({ ID, SPRITE }) {
       const target = this._findTarget(SPRITE);
       if (!target) { this._error = `Sprite "${SPRITE}" not found.`; return; }
@@ -342,18 +426,8 @@
       let f = this._fileIndex[String(ID)];
 
       if (!f) {
-        // Not in index — fetch file list to populate index
-        try {
-          const url  = `${this._base()}/api/game/${this._slug}/files?version=${encodeURIComponent(this._resolvedVersion)}`;
-          const res  = await this._fetch(url);
-          const data = await res.json();
-          for (const file of (data.files || [])) {
-            this._fileIndex[file.id] = file;
-            if (file.asset_id)  this._fileIndex[file.asset_id]  = file;
-            if (file.stable_id) this._fileIndex[file.stable_id] = file;
-          }
-          f = this._fileIndex[String(ID)];
-        } catch (e) { this._error = e.message; return; }
+        try { await this._refetchIndex(); f = this._fileIndex[String(ID)]; }
+        catch (e) { this._error = e.message; return; }
       }
 
       if (!f) { this._error = `File ID "${ID}" not found in version "${this._resolvedVersion}".`; return; }
@@ -367,6 +441,67 @@
     fileDisplayName({ ID }) {
       const f = this._fileIndex[String(ID)];
       return f ? f.name : '';
+    }
+
+    // ── Sounds ────────────────────────────────────────────────────────────────
+
+    async loadAllSounds({ SPRITE }) {
+      if (!this._slug || !this._apiKey) {
+        this._soundsError = 'Configure the extension first.';
+        return;
+      }
+      const target = this._findTarget(SPRITE);
+      if (!target) {
+        this._soundsError = `Sprite "${SPRITE}" not found.`;
+        return;
+      }
+      this._soundsReady = false;
+      this._soundsError = '';
+      try {
+        const url  = `${this._base()}/api/game/${this._slug}/files?version=${encodeURIComponent(this._resolvedVersion)}`;
+        const res  = await this._fetch(url);
+        const data = await res.json();
+        const soundFiles = (data.files || []).filter(f => isAudio(f.original_filename));
+
+        for (const f of soundFiles) {
+          this._fileIndex[f.id] = f;
+          if (f.asset_id)  this._fileIndex[f.asset_id]  = f;
+          if (f.stable_id) this._fileIndex[f.stable_id] = f;
+        }
+
+        for (const f of soundFiles) {
+          try {
+            await this._addSound(target, f.id, f.original_filename, f.name, f.updated_at);
+          } catch (e) {
+            console.warn('[VG Files] Could not load sound ' + f.name + ': ' + e.message);
+          }
+        }
+        this._soundsReady = true;
+      } catch (e) {
+        this._soundsError = e.message;
+        this._soundsReady = false;
+      }
+    }
+
+    soundsReady() { return this._soundsReady; }
+    soundsError() { return this._soundsError; }
+
+    async loadSoundToSprite({ ID, SPRITE }) {
+      const target = this._findTarget(SPRITE);
+      if (!target) { this._soundsError = `Sprite "${SPRITE}" not found.`; return; }
+
+      let f = this._fileIndex[String(ID)];
+      if (!f) {
+        try { await this._refetchIndex(); f = this._fileIndex[String(ID)]; }
+        catch (e) { this._soundsError = e.message; return; }
+      }
+
+      if (!f) { this._soundsError = `File ID "${ID}" not found in version "${this._resolvedVersion}".`; return; }
+      if (!isAudio(f.original_filename)) { this._soundsError = `File "${f.name}" is not a sound (MP3/WAV/OGG).`; return; }
+
+      try {
+        await this._addSound(target, f.id, f.original_filename, f.name, f.updated_at);
+      } catch (e) { this._soundsError = e.message; }
     }
   }
 

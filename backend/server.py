@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, UploadFile, File, Form
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -2215,6 +2215,7 @@ _GAME_FILE_EXTS = {
     ".svg", ".png", ".jpg", ".jpeg", ".webp",
     ".pdf",
     ".mp4", ".mov",
+    ".mp3", ".wav", ".ogg",
 }
 _PREVIEW_TYPES = {
     ".svg":  "image/svg+xml",
@@ -2222,7 +2223,11 @@ _PREVIEW_TYPES = {
     ".jpg":  "image/jpeg",
     ".jpeg": "image/jpeg",
     ".webp": "image/webp",
+    ".mp3":  "audio/mpeg",
+    ".wav":  "audio/wav",
+    ".ogg":  "audio/ogg",
 }
+_AUDIO_EXTS = {".mp3", ".wav", ".ogg"}
 _GAME_FILE_MAX_BYTES = 500 * 1024 * 1024  # 500 MB
 
 async def _verify_files_api_key(project_slug: str, request: Request):
@@ -2564,7 +2569,7 @@ async def preview_game_file_admin(slug: str, file_id: str, user=Depends(require_
     ext = Path(doc.get("original_filename", "")).suffix.lower()
     media_type = _PREVIEW_TYPES.get(ext)
     if not media_type:
-        raise HTTPException(status_code=400, detail="Not a previewable image file")
+        raise HTTPException(status_code=400, detail="Not a previewable file")
     dest = _game_file_path(slug, file_id)
     if not dest.exists():
         raise HTTPException(status_code=404, detail="File data missing on server")
@@ -2711,6 +2716,48 @@ async def list_file_versions(slug: str, user=Depends(require_permission("manage_
     if "default" not in tags:
         tags.insert(0, "default")
     return {"versions": tags, "live_version": project.get("live_version") or "default"}
+
+@api_router.get("/admin/projects/{slug}/versions/{tag}/download")
+async def download_file_version_zip(slug: str, tag: str, user=Depends(require_any_of("manage_files", "claim_missions"))):
+    tag = tag.strip()
+    project = await db.projects.find_one({"slug": slug})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if tag == "default":
+        query = {"project_slug": slug, "$or": [{"version_tag": "default"}, {"version_tag": {"$exists": False}}]}
+    else:
+        query = {"project_slug": slug, "version_tag": tag}
+
+    docs = await db.game_files.find(query).to_list(1000)
+    if not docs:
+        raise HTTPException(status_code=404, detail=f"Version '{tag}' not found or has no files")
+
+    buffer = io.BytesIO()
+    used_names = set()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for doc in docs:
+            src = _game_file_path(slug, str(doc["_id"]))
+            if not src.exists():
+                continue
+            base_name = re.sub(r"[^\w.\- ]", "_", doc.get("original_filename") or doc.get("name") or str(doc["_id"]))
+            arcname = base_name
+            n = 1
+            while arcname in used_names:
+                stem, ext = os.path.splitext(base_name)
+                arcname = f"{stem}_{n}{ext}"
+                n += 1
+            used_names.add(arcname)
+            zf.write(src, arcname=arcname)
+
+    buffer.seek(0)
+    safe_tag = re.sub(r"[^\w.\-]", "_", tag)
+    zip_filename = f"{slug}_{safe_tag}.zip"
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{zip_filename}"'},
+    )
 
 class VersionCloneRequest(BaseModel):
     new_tag: str

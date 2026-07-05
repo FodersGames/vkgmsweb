@@ -74,6 +74,14 @@
         return null;
     }
 
+    function audioExt(filename) {
+        const s = (filename || '').toLowerCase();
+        if (s.endsWith('.mp3')) return 'mp3';
+        if (s.endsWith('.wav')) return 'wav';
+        if (s.endsWith('.ogg')) return 'ogg';
+        return null;
+    }
+
     // ── Extension principale ──────────────────────────────────────────────────
 
     class VakarGames {
@@ -93,6 +101,10 @@
             this._filesError   = '';
             this._fileIndex    = {};
             this._filesCache   = null;
+
+            // Sounds (same server/cache as Files, separate ready/error state)
+            this._soundsReady  = false;
+            this._soundsError  = '';
 
             // HTML Overlay Text
             this._overlayContainer = null;
@@ -360,6 +372,58 @@
                         text:      'supprimer le costume numéro [NUM] du sprite [SPRITE]',
                         arguments: {
                             NUM:    { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+
+                    // ══════════════════════════════
+                    //  SONS
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Sons —' },
+
+                    {
+                        opcode:    'loadAllSounds',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'charger tous les sons dans le sprite [SPRITE]',
+                        arguments: {
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'soundsReady',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'sons prêts ?'
+                    },
+                    {
+                        opcode:    'soundsError',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'erreur de chargement des sons'
+                    },
+                    {
+                        opcode:    'loadSoundById',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'charger son [LABEL] ID [ID] dans sprite [SPRITE]',
+                        arguments: {
+                            LABEL:  { type: Scratch.ArgumentType.STRING, defaultValue: 'nom du son' },
+                            ID:     { type: Scratch.ArgumentType.STRING, defaultValue: '' },
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    '---',
+                    {
+                        opcode:    'removeAllSounds',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer tous les sons du sprite [SPRITE]',
+                        arguments: {
+                            SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
+                        }
+                    },
+                    {
+                        opcode:    'removeSoundByName',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'supprimer le son [NOM] du sprite [SPRITE]',
+                        arguments: {
+                            NOM:    { type: Scratch.ArgumentType.STRING, defaultValue: 'bruitage' },
                             SPRITE: { type: Scratch.ArgumentType.STRING, defaultValue: 'Sprite1' }
                         }
                     },
@@ -759,6 +823,44 @@
             this._updateLoadingScreen(file.name);
         }
 
+        async _addSoundToTarget(target, file) {
+            const vm      = Scratch.vm;
+            const storage = vm.runtime.storage;
+            const ext     = audioExt(file.original_filename);
+
+            const fileVersion = file.updated_at || file.uploaded_at || file.id;
+
+            // Si le son existe déjà avec la même version → skip (pas de doublon)
+            const existing = target.sprite.sounds_.find(s => s.name === file.name);
+            if (existing) {
+                await this._ensureFilesCache();
+                const cached = await this._filesCache.get(file.id).catch(() => null);
+                if (cached && cached.updated_at === fileVersion) return; // déjà à jour
+                const idx = target.sprite.sounds_.indexOf(existing);
+                if (idx !== -1) target.deleteSound(idx);
+            }
+
+            let dataFormat, formatTag, suffix;
+            if (ext === 'mp3') { dataFormat = storage.DataFormat.MP3 || 'mp3'; formatTag = 'mp3'; suffix = '.mp3'; }
+            else if (ext === 'ogg') { dataFormat = storage.DataFormat.OGG || 'ogg'; formatTag = 'ogg'; suffix = '.ogg'; }
+            else { dataFormat = storage.DataFormat.WAV; formatTag = 'wav'; suffix = '.wav'; }
+
+            const bytes = await this._getFileBytes(file.id, fileVersion);
+            const asset = storage.createAsset(storage.AssetType.Sound, dataFormat, bytes, null, true);
+            const soundObject = {
+                asset,
+                assetId:     asset.assetId,
+                name:        file.name,
+                dataFormat:  formatTag,
+                format:      '',
+                rate:        44100,
+                sampleCount: 0,
+                md5:         asset.assetId + suffix,
+            };
+            await vm.addSound(soundObject, target.id);
+            this._updateLoadingScreen(file.name);
+        }
+
         _findTarget(spriteName) {
             const vm = Scratch.vm;
             return vm.runtime.getSpriteTargetByName(String(spriteName))
@@ -770,7 +872,8 @@
             const url = `${API_URL}/api/game/${encodeURIComponent(this._filesSlug)}/files?version=${encodeURIComponent(this._filesVersion)}`;
             const res = await this._fetchWithKey(url);
             const data = await res.json();
-            const files = (data.files || []).filter(f => fileExt(f.original_filename) !== null);
+            // Images et sons sont tous deux reconnus ici ; chaque bloc filtre ensuite selon son besoin
+            const files = (data.files || []).filter(f => fileExt(f.original_filename) !== null || audioExt(f.original_filename) !== null);
             this._fileIndex = {};
             for (const f of files) this._fileIndex[f.id] = f;
             return files;
@@ -787,6 +890,8 @@
             this._fileIndex    = {};
             this._filesReady   = false;
             this._filesError   = '';
+            this._soundsReady  = false;
+            this._soundsError  = '';
         }
 
         hasInternet() {
@@ -806,6 +911,7 @@
                     this._filesVersion = v;
                     this._filesCache   = null; // nouveau namespace de cache
                     this._filesReady   = false;
+                    this._soundsReady  = false;
                 }
             } catch (e) {
                 this._filesError = 'Impossible de récupérer la version en ligne : ' + e.message;
@@ -818,6 +924,7 @@
                 this._filesVersion = tag;
                 this._filesCache   = null;
                 this._filesReady   = false;
+                this._soundsReady  = false;
             }
         }
 
@@ -837,7 +944,8 @@
             this._filesError = '';
             try {
                 const files = await this._fetchFileList();
-                for (const f of files) {
+                const images = files.filter(f => fileExt(f.original_filename) !== null);
+                for (const f of images) {
                     try {
                         await this._addCostumeToTarget(target, f);
                     } catch (e) {
@@ -982,6 +1090,73 @@
                     target.deleteCostume(i);
                 }
             }
+        }
+
+        // ══════════════════════════════════════════
+        //  SONS — blocs
+        // ══════════════════════════════════════════
+
+        async loadAllSounds({ SPRITE }) {
+            if (!this._filesSlug || !this._filesApiKey) {
+                this._soundsError = 'Configurez les ressources d\'abord.';
+                return;
+            }
+            const target = this._findTarget(SPRITE);
+            if (!target) {
+                this._soundsError = 'Sprite "' + SPRITE + '" introuvable.';
+                return;
+            }
+            this._soundsReady = false;
+            this._soundsError = '';
+            try {
+                const files  = await this._fetchFileList();
+                const sounds = files.filter(f => audioExt(f.original_filename) !== null);
+                for (const f of sounds) {
+                    try {
+                        await this._addSoundToTarget(target, f);
+                    } catch (e) {
+                        console.warn('[VG] Impossible de charger le son ' + f.name + ' : ' + e.message);
+                    }
+                }
+                this._soundsReady = true;
+            } catch (e) {
+                this._soundsError = e.message;
+            }
+        }
+
+        soundsReady() { return this._soundsReady; }
+        soundsError() { return this._soundsError; }
+
+        async loadSoundById({ ID, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) { this._soundsError = 'Sprite "' + SPRITE + '" introuvable.'; return; }
+
+            let f = this._fileIndex[String(ID)];
+            if (!f) {
+                try { await this._fetchFileList(); } catch (e) { this._soundsError = e.message; return; }
+                f = this._fileIndex[String(ID)];
+            }
+            if (!f) { this._soundsError = 'Fichier ID "' + ID + '" introuvable dans la version "' + this._filesVersion + '".'; return; }
+            if (audioExt(f.original_filename) === null) { this._soundsError = '"' + f.name + '" n\'est pas un son (MP3/WAV/OGG).'; return; }
+
+            try {
+                await this._addSoundToTarget(target, f);
+            } catch (e) { this._soundsError = e.message; }
+        }
+
+        removeAllSounds({ SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            for (let i = target.sprite.sounds_.length - 1; i >= 0; i--) {
+                target.deleteSound(i);
+            }
+        }
+
+        removeSoundByName({ NOM, SPRITE }) {
+            const target = this._findTarget(SPRITE);
+            if (!target) return;
+            const idx = target.sprite.sounds_.findIndex(s => s.name === String(NOM));
+            if (idx !== -1) target.deleteSound(idx);
         }
 
         // ── HTML Overlay Text Engine ─────────────────────────────────────────

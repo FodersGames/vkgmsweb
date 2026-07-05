@@ -7,6 +7,7 @@ import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
   HardDrive, Star, X, GitBranch, ChevronDown, Plus, Image, ZoomIn, Search, Type,
+  Music, Play, Pause,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -15,6 +16,12 @@ const IMAGE_EXTS = ['.svg', '.png', '.jpg', '.jpeg', '.webp'];
 function isImageFile(filename) {
   const s = (filename || '').toLowerCase();
   return IMAGE_EXTS.some(e => s.endsWith(e));
+}
+
+const AUDIO_EXTS = ['.mp3', '.wav', '.ogg'];
+function isAudioFile(filename) {
+  const s = (filename || '').toLowerCase();
+  return AUDIO_EXTS.some(e => s.endsWith(e));
 }
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -101,6 +108,10 @@ export const FilesManagement = () => {
   const [previewLoading, setPreviewLoading] = useState(new Set());
   const [previewModal,   setPreviewModal]   = useState(null); // file object
 
+  // Audio preview
+  const [playingAudioId, setPlayingAudioId] = useState(null);
+  const audioElRef = useRef(null);
+
   useEffect(() => {
     return () => { Object.values(previews).forEach(u => URL.revokeObjectURL(u)); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -115,6 +126,7 @@ export const FilesManagement = () => {
   const [createVersionErr,  setCreateVersionErr]  = useState('');
   const [confirmVersionDel, setConfirmVersionDel] = useState(null);
   const [deletingVersion,   setDeletingVersion]   = useState(false);
+  const [downloadingVersion, setDownloadingVersion] = useState(null);
 
   const fileInputRef    = useRef(null);
   const replaceInputRef = useRef(null);
@@ -286,6 +298,16 @@ export const FilesManagement = () => {
     }
   };
 
+  const toggleAudio = async (file) => {
+    if (playingAudioId === file.id) {
+      audioElRef.current?.pause();
+      setPlayingAudioId(null);
+      return;
+    }
+    if (!previews[file.id]) await loadPreview(file);
+    setPlayingAudioId(file.id);
+  };
+
   const openPreview = (file) => {
     setPreviewModal(file);
     loadPreview(file);
@@ -409,6 +431,27 @@ export const FilesManagement = () => {
     }
   };
 
+  const downloadVersion = async (tag) => {
+    setDownloadingVersion(tag);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/projects/${slug}/versions/${encodeURIComponent(tag)}/download`, { headers });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slug}_${tag}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Le téléchargement de la version a échoué.');
+    } finally {
+      setDownloadingVersion(null);
+    }
+  };
+
   const deleteVersion = async (tag) => {
     setDeletingVersion(true);
     try {
@@ -490,6 +533,7 @@ export const FilesManagement = () => {
         <span className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.1em] uppercase">Version:</span>
         {['all', ...versions].map(tag => {
           const deletable = tag !== 'all' && tag !== 'default';
+          const downloadable = tag !== 'all';
           return (
             <span key={tag} className="inline-flex items-stretch group">
               <button
@@ -502,6 +546,20 @@ export const FilesManagement = () => {
               >
                 {tag}
               </button>
+              {downloadable && (
+                <button
+                  onClick={() => downloadVersion(tag)}
+                  disabled={downloadingVersion === tag}
+                  title={`Télécharger la version ${tag} (.zip)`}
+                  className={`px-1 border border-l-0 transition-colors disabled:opacity-50 ${
+                    activeVersionTag === tag
+                      ? 'border-[#1C1917] text-[#78716C] hover:text-[#4ECDC4]'
+                      : 'border-[#E8E3DB] text-[#C9C3BB] hover:text-[#4ECDC4] hover:border-[#C9C3BB]'
+                  } ${deletable ? '' : 'border-r'}`}
+                >
+                  {downloadingVersion === tag ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                </button>
+              )}
               {deletable && (
                 <button
                   onClick={() => setConfirmVersionDel(tag)}
@@ -949,6 +1007,17 @@ export const FilesManagement = () => {
         </div>
       )}
 
+      {/* Hidden audio player for sound previews */}
+      {playingAudioId && previews[playingAudioId] && (
+        <audio
+          ref={audioElRef}
+          src={previews[playingAudioId]}
+          autoPlay
+          onEnded={() => setPlayingAudioId(null)}
+          className="hidden"
+        />
+      )}
+
       {/* Image preview modal */}
       {previewModal && (
         <div
@@ -1201,6 +1270,23 @@ export const FilesManagement = () => {
                       <>
                         <Image size={14} className="text-[#A8A29E] group-hover:hidden" />
                         <ZoomIn size={13} className="text-[#4ECDC4] hidden group-hover:block" />
+                      </>
+                    )}
+                  </button>
+                ) : isAudioFile(file.original_filename) ? (
+                  <button
+                    onClick={() => toggleAudio(file)}
+                    className="w-10 h-10 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center shrink-0 mt-0.5 group hover:border-[#4ECDC4]/50 transition-colors"
+                    title={playingAudioId === file.id ? 'Pause' : 'Écouter'}
+                  >
+                    {previewLoading.has(file.id) ? (
+                      <Loader2 size={12} className="animate-spin text-[#A8A29E]" />
+                    ) : playingAudioId === file.id ? (
+                      <Pause size={14} className="text-[#4ECDC4]" />
+                    ) : (
+                      <>
+                        <Music size={14} className="text-[#A8A29E] group-hover:hidden" />
+                        <Play size={13} className="text-[#4ECDC4] hidden group-hover:block" />
                       </>
                     )}
                   </button>
