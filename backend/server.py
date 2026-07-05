@@ -37,7 +37,9 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+# tz_aware=True: without it, datetimes read back from Mongo are naive (no tzinfo), which crashes
+# any comparison against a freshly-created datetime.now(timezone.utc) (e.g. mute/ban expiry checks).
+client = AsyncIOMotorClient(mongo_url, tz_aware=True)
 db = client[os.environ['DB_NAME']]
 
 _jwt_secret_env = os.environ.get('JWT_SECRET', '')
