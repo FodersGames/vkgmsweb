@@ -1724,21 +1724,16 @@
             return changed;
         }
 
-        // Pushes a freshly-saved Dev Panel value straight into a matching global
-        // (Stage) Scratch variable, so the running game sees the new value
-        // immediately — no need to wait for a "modifiée ?" poll to reload it.
+        // Pushes a freshly-saved Dev Panel value straight into the closest-matching
+        // $-tagged global (Stage) Scratch variable, so the running game sees the
+        // new value immediately — no need to wait for a "modifiée ?" poll to reload it.
         _pushValueToLocalVariable(categoryName, dataString) {
             try {
-                const vm = Scratch.vm;
-                const stage = vm.runtime.getTargetForStage();
+                const stage = Scratch.vm.runtime.getTargetForStage();
                 if (!stage || !stage.variables) return false;
-                let variable = stage.lookupVariableByNameAndType(categoryName, '');
-                if (!variable) {
-                    const match = Object.values(stage.variables).find(
-                        v => v.name.toLowerCase() === categoryName.toLowerCase()
-                    );
-                    if (match) variable = match;
-                }
+                const candidate = this._bestMatchingVariable(categoryName, this._getGlobalScalarVariables());
+                if (!candidate) return false;
+                const variable = stage.variables[candidate.id];
                 if (!variable) return false;
                 variable.value = dataString;
                 return true;
@@ -1753,10 +1748,58 @@
                 const stage = Scratch.vm.runtime.getTargetForStage();
                 if (!stage || !stage.variables) return [];
                 return Object.values(stage.variables)
-                    .filter(v => v.type === '') // scalar variables only, not lists
+                    .filter(v => v.type === '' && v.name.includes('$')) // scalar vars tagged with $, e.g. "$inventory"
                     .map(v => ({ id: v.id, name: v.name }))
                     .sort((a, b) => a.name.localeCompare(b.name));
             } catch { return []; }
+        }
+
+        // Picks the $-tagged variable whose name most closely matches a category
+        // name (exact > substring > fuzzy), so the Dev Panel can pre-select a
+        // sensible default instead of leaving it on "Auto-match by name".
+        _bestMatchingVariable(categoryName, variables) {
+            const clean = (s) => s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            const catClean = clean(categoryName);
+            if (!catClean) return null;
+            let best = null;
+            let bestScore = 0;
+            for (const v of variables) {
+                const varClean = clean(v.name);
+                if (!varClean) continue;
+                let score;
+                if (varClean === catClean) {
+                    score = 100;
+                } else if (varClean.includes(catClean)) {
+                    score = 80 * (catClean.length / varClean.length);
+                } else if (catClean.includes(varClean)) {
+                    score = 70 * (varClean.length / catClean.length);
+                } else {
+                    score = 50 * this._stringSimilarity(catClean, varClean);
+                }
+                if (score > bestScore) { bestScore = score; best = v; }
+            }
+            return bestScore >= 30 ? best : null;
+        }
+
+        _stringSimilarity(a, b) {
+            const dist = this._levenshtein(a, b);
+            const maxLen = Math.max(a.length, b.length) || 1;
+            return 1 - dist / maxLen;
+        }
+
+        _levenshtein(a, b) {
+            const m = a.length, n = b.length;
+            const dp = [];
+            for (let i = 0; i <= m; i++) { dp.push([i]); }
+            for (let j = 1; j <= n; j++) { dp[0][j] = j; }
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    dp[i][j] = a[i - 1] === b[j - 1]
+                        ? dp[i - 1][j - 1]
+                        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+            return dp[m][n];
         }
 
         _setVariableById(variableId, dataString) {
@@ -2058,12 +2101,18 @@
             linkSelect.style.cssText = 'flex:1;background:#111218;border:1px solid #2f303a;border-radius:5px;color:#e7e7ea;font-size:11.5px;padding:4px 8px;outline:none;font-family:system-ui,sans-serif;max-width:320px';
             const rebuildLinkOptions = () => {
                 const opts = [
-                    '<option value="AUTO">Auto-match by name (variable named "' + activeCat + '")</option>',
+                    '<option value="AUTO">Auto-match closest $ variable to "' + activeCat + '"</option>',
                     '<option value="NONE">Do not link a variable</option>',
                     ...globalVars.map(v => `<option value="${this._escapeHtml(v.id)}">${this._escapeHtml(v.name)}</option>`)
                 ];
                 linkSelect.innerHTML = opts.join('');
-                linkSelect.value = varBindings[activeCat] || 'AUTO';
+                let current = varBindings[activeCat];
+                if (!current) {
+                    // No saved preference yet — suggest the closest-matching $-tagged variable.
+                    const suggestion = this._bestMatchingVariable(activeCat, globalVars);
+                    current = suggestion ? suggestion.id : 'AUTO';
+                }
+                linkSelect.value = current;
             };
             linkSelect.addEventListener('change', () => {
                 varBindings[activeCat] = linkSelect.value;
