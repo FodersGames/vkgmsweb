@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
   Users, RefreshCw, ChevronDown, ChevronUp, Trash2,
-  ShieldOff, Save, Search, Clock, Calendar,
+  ShieldOff, Save, Search, Clock, Calendar, Ban, ShieldCheck,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -86,6 +86,27 @@ export const PlayersManagement = () => {
       onConfirm: async () => {
         await api.delete(`/api/admin/projects/${slug}/play/players/${player.id}/tokens`);
         toast.success(`Sessions de "${player.username}" révoquées`);
+      },
+    });
+  };
+
+  const toggleBan = (player) => {
+    const willBan = !player.banned;
+    showConfirm({
+      title: willBan ? 'Bannir le joueur' : 'Débannir le joueur',
+      description: willBan
+        ? `Bannir "${player.username}" de "${selectedProject.name}" ? Il ne pourra plus se connecter ni jouer à ce jeu (les autres jeux et son compte restent intacts).`
+        : `Retirer le bannissement de "${player.username}" pour "${selectedProject.name}" ?`,
+      confirmLabel: willBan ? 'Bannir' : 'Débannir',
+      variant: willBan ? 'destructive' : 'warning',
+      onConfirm: async () => {
+        if (willBan) {
+          await api.patch(`/api/admin/projects/${slug}/play/players/${player.id}/ban`);
+        } else {
+          await api.delete(`/api/admin/projects/${slug}/play/players/${player.id}/ban`);
+        }
+        toast.success(willBan ? `"${player.username}" banni de ce jeu` : `"${player.username}" débanni`);
+        setPlayers(p => p.map(x => x.id === player.id ? { ...x, banned: willBan } : x));
       },
     });
   };
@@ -182,7 +203,12 @@ export const PlayersManagement = () => {
                       {player.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#1C1917] truncate">{player.username}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-[#1C1917] truncate">{player.username}</p>
+                        {player.banned && (
+                          <span className="text-[9px] font-bold text-red-500 border border-red-200 bg-red-50 px-1.5 py-0.5 uppercase tracking-wide shrink-0">Banned</span>
+                        )}
+                      </div>
                       <p className="text-xs text-[#A8A29E]">{player.categories?.length || 0} catégorie{player.categories?.length !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
@@ -201,6 +227,15 @@ export const PlayersManagement = () => {
                     >
                       <ShieldOff size={14} />
                     </button>
+                    {canDelete && (
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleBan(player); }}
+                        title={player.banned ? 'Débannir de ce jeu' : 'Bannir de ce jeu'}
+                        className={`p-1.5 transition-colors ${player.banned ? 'text-red-500 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10' : 'text-[#A8A29E] hover:text-red-500 hover:bg-red-50'}`}
+                      >
+                        {player.banned ? <ShieldCheck size={14} /> : <Ban size={14} />}
+                      </button>
+                    )}
                     {canDelete && (
                       <button
                         onClick={e => { e.stopPropagation(); deletePlayer(player); }}

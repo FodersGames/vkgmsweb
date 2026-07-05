@@ -1360,10 +1360,13 @@ async def claim_gift(request: Request, slug: str, uid: str):
     items = await db.items.find({"project_slug": slug, "uid": uid}).sort("created_at", 1).to_list(1000)
     if not items:
         return {"length": 0}
-    resp = [{"variable": i["variable"], "amount": i["amount"]} for i in items]
+    resp = [{"variable": i["variable"], "amount": i["amount"], "from_name": i.get("from_name"), "product_name": i.get("product_name")} for i in items]
     await db.items.delete_one({"_id": items[0]["_id"]})
     await log_action("claim", f"User {uid} claimed: {items[0]['variable']} x{items[0]['amount']}", project_slug=slug, uid=uid)
-    result = {"length": len(resp), "variable": resp[0]["variable"], "amount": resp[0]["amount"]}
+    result = {
+        "length": len(resp), "variable": resp[0]["variable"], "amount": resp[0]["amount"],
+        "from_name": resp[0].get("from_name"), "product_name": resp[0].get("product_name"),
+    }
     if len(resp) > 1:
         result["items"] = resp[1:]
     return result
@@ -3035,6 +3038,11 @@ async def stripe_webhook(request: Request):
                 try:
                     product = await db.website_shop_products.find_one({"_id": ObjectId(product_id)})
                     if product:
+                        buyer_name = "Vakar Games Shop"
+                        if user_email:
+                            buyer = await db.users.find_one({"email": user_email})
+                            if buyer:
+                                buyer_name = buyer.get("firstName") or buyer.get("username") or buyer_name
                         await db.items.insert_one({
                             "project_slug": product["project_slug"],
                             "uid": uid,
@@ -3042,9 +3050,11 @@ async def stripe_webhook(request: Request):
                             "amount": product["amount"],
                             "created_at": datetime.now(timezone.utc),
                             "created_by": "stripe_shop",
+                            "from_name": buyer_name,
+                            "product_name": product.get("name", "Item"),
                         })
                         await log_action("send",
-                            f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe)",
+                            f"Shop: {product['amount']}x {product['variable']} → {uid} (Stripe, from {buyer_name})",
                             project_slug=product["project_slug"], user="stripe_shop",
                             uid=uid, variable=product["variable"], amount=product["amount"])
                         logger.info(f"Shop delivery OK: {product['amount']}x {product['variable']} to {uid}")
@@ -3698,6 +3708,12 @@ async def _get_play_user_from_access(request: Request):
         raise HTTPException(403, "Compte suspendu")
     return user
 
+async def _is_project_banned(user_id, project_slug: str) -> bool:
+    if not project_slug:
+        return False
+    ban = await db.play_bans.find_one({"user_id": user_id, "project_slug": project_slug})
+    return ban is not None
+
 # ── Public play routes ───────────────────────────────────────────────────────
 
 @api_router.post("/play/register")
@@ -3752,9 +3768,10 @@ async def play_register(request: Request):
 @api_router.post("/play/login")
 @limiter.limit("15/minute")
 async def play_login(request: Request):
-    body     = await request.json()
-    login    = str(body.get("login", "")).strip()
-    password = str(body.get("password", ""))
+    body         = await request.json()
+    login        = str(body.get("login", "")).strip()
+    password     = str(body.get("password", ""))
+    project_slug = str(body.get("project_slug", "")).strip()
     if not login or not password:
         raise HTTPException(400, "Champs requis manquants")
     user = await db.users.find_one({"$or": [{"username": login}, {"email": login.lower()}]})
@@ -3762,6 +3779,8 @@ async def play_login(request: Request):
         raise HTTPException(400, "Identifiants incorrects")
     if user.get("isSuspended"):
         raise HTTPException(403, "Compte suspendu")
+    if await _is_project_banned(user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
     user_id  = str(user["_id"])
     username = user["username"]
     now = datetime.now(timezone.utc)
@@ -3783,6 +3802,7 @@ async def play_login(request: Request):
 async def play_refresh(request: Request):
     body = await request.json()
     refresh_token = str(body.get("refresh_token", ""))
+    project_slug  = str(body.get("project_slug", "")).strip()
     if not refresh_token:
         raise HTTPException(401, "Refresh token manquant")
     try:
@@ -3806,6 +3826,8 @@ async def play_refresh(request: Request):
         raise HTTPException(401, "Compte introuvable")
     if user.get("isSuspended"):
         raise HTTPException(403, "Compte suspendu")
+    if await _is_project_banned(user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
     now = datetime.now(timezone.utc)
     await db.play_refresh_tokens.update_one({"jti": jti}, {"$set": {"last_used": now}})
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": now}})
@@ -3835,6 +3857,8 @@ async def play_save(request: Request, play_user=Depends(_get_play_user_from_acce
         raise HTTPException(400, f"Catégorie invalide. Valeurs: {', '.join(sorted(PLAY_SAVE_CATEGORIES))}")
     if not project_slug:
         raise HTTPException(400, "project_slug requis")
+    if await _is_project_banned(play_user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
     try:
         json.loads(data)
     except json.JSONDecodeError:
@@ -3851,10 +3875,36 @@ async def play_load(request: Request, category: str, project_slug: str, response
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     if category not in PLAY_SAVE_CATEGORIES:
         raise HTTPException(400, "Catégorie invalide")
+    if await _is_project_banned(play_user["_id"], project_slug):
+        raise HTTPException(403, "Banned from this game")
     save = await db.play_saves.find_one({
         "user_id": play_user["_id"], "project_slug": project_slug, "category": category
     })
     return {"data": save["data"] if save else "{}"}
+
+class NicknameRequest(BaseModel):
+    project_slug: str
+    nickname: str
+
+@api_router.post("/play/nickname")
+async def play_set_nickname(body: NicknameRequest, play_user=Depends(_get_play_user_from_access)):
+    nickname = body.nickname.strip()
+    if not (1 <= len(nickname) <= 24):
+        raise HTTPException(400, "Nickname must be 1-24 characters")
+    if not body.project_slug:
+        raise HTTPException(400, "project_slug requis")
+    await db.play_nicknames.update_one(
+        {"user_id": play_user["_id"], "project_slug": body.project_slug},
+        {"$set": {"nickname": nickname, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
+    return {"nickname": nickname}
+
+@api_router.get("/play/nickname")
+async def play_get_nickname(project_slug: str, response: Response, play_user=Depends(_get_play_user_from_access)):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    doc = await db.play_nicknames.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+    return {"nickname": doc["nickname"] if doc else play_user["username"]}
 
 # ── Admin play routes ────────────────────────────────────────────────────────
 
@@ -3863,6 +3913,8 @@ async def admin_play_players(slug: str, user=Depends(require_permission("manage_
     saves   = await db.play_saves.find({"project_slug": slug}).to_list(None)
     p_ids   = list({s["user_id"] for s in saves})
     players = await db.users.find({"_id": {"$in": p_ids}}).to_list(None)
+    bans    = await db.play_bans.find({"project_slug": slug}).to_list(None)
+    banned_ids = {b["user_id"] for b in bans}
     result  = []
     for p in players:
         p_saves = [s for s in saves if s["user_id"] == p["_id"]]
@@ -3873,8 +3925,33 @@ async def admin_play_players(slug: str, user=Depends(require_permission("manage_
             "created_at": str(p.get("createdAt", "")),
             "last_seen":  str(p.get("lastLogin", "")),
             "categories": [s["category"] for s in p_saves],
+            "banned":     p["_id"] in banned_ids,
         })
     return {"players": result}
+
+@api_router.patch("/admin/projects/{slug}/play/players/{player_id}/ban")
+async def admin_ban_player(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    await db.play_bans.update_one(
+        {"user_id": oid, "project_slug": slug},
+        {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": user["username"]}},
+        upsert=True
+    )
+    await log_action("ban", f"Player {player_id} banned from project '{slug}'", project_slug=slug, user=user["username"])
+    return {"success": True, "banned": True}
+
+@api_router.delete("/admin/projects/{slug}/play/players/{player_id}/ban")
+async def admin_unban_player(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    await db.play_bans.delete_one({"user_id": oid, "project_slug": slug})
+    await log_action("unban", f"Player {player_id} unbanned from project '{slug}'", project_slug=slug, user=user["username"])
+    return {"success": True, "banned": False}
 
 @api_router.get("/admin/projects/{slug}/play/players/{player_id}")
 async def admin_play_player_detail(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
@@ -4038,6 +4115,8 @@ async def startup_event():
         await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
         await db.careers.create_index("created_at")
         await db.careers.create_index("is_open")
+        await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         logger.info("Database indexes initialized")
 
         # Migration: backfill stable_id on files cloned before the stable-ID

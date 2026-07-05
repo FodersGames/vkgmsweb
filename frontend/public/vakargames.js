@@ -116,6 +116,9 @@
             this._playPlayer      = null;
             this._playPopup       = null;
             this._playSaveCache   = {};
+            this._playNickname    = null; // per-game nickname, fetched lazily
+            this._giftPollInterval = null;
+            this._giftPollUid      = null;
             this._loadingPopup = null;
             this._loadingBarEl = null;
             this._loadingCount = 0;
@@ -539,6 +542,17 @@
                         text:      'id du joueur connecté'
                     },
                     {
+                        opcode:    'playRenommer',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'se renommer [PSEUDO] dans ce jeu',
+                        arguments: { PSEUDO: { type: Scratch.ArgumentType.STRING, defaultValue: 'MonPseudo' } }
+                    },
+                    {
+                        opcode:    'playPseudoJeu',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'pseudo du joueur dans ce jeu'
+                    },
+                    {
                         opcode:    'playDeconnecter',
                         blockType: Scratch.BlockType.COMMAND,
                         text:      'déconnecter le joueur'
@@ -568,6 +582,18 @@
                             COULEUR: { type: Scratch.ArgumentType.STRING, defaultValue: '#4ECDC4' },
                             TITRE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'VakarGames Play' }
                         }
+                    },
+                    '---',
+                    {
+                        opcode:    'surveillerCadeaux',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'surveiller les cadeaux pour uid [UID]',
+                        arguments: { UID: { type: Scratch.ArgumentType.STRING, defaultValue: '' } }
+                    },
+                    {
+                        opcode:    'arreterSurveillanceCadeaux',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'arrêter la surveillance des cadeaux'
                     },
                     '---',
                     {
@@ -659,6 +685,21 @@
             } catch (e) { this._log('error', 'Shop: network error during checkout — ' + e.message); return false; }
 
             const popupRef = _openWindow(checkoutUrl);
+            const uid = String(UID).trim();
+
+            // On confirmed payment: claim the delivered item(s) right away and
+            // apply them to the local Scratch variable — server + local stay in
+            // sync immediately, no need to wait for the game's own autosave loop
+            // or a future reconnect.
+            const finishPurchase = async (ok) => {
+                if (ok) {
+                    const applied = await this._claimAndApplyGifts(gameSlug, uid, { showPopup: false });
+                    this._log('info', applied > 0
+                        ? `Shop: purchase applied locally (${applied} item(s))`
+                        : 'Shop: purchase confirmed, item(s) will arrive on next claim/reconnect', 'Shop');
+                }
+                return ok;
+            };
 
             return await new Promise((resolve) => {
                 let elapsed  = 0;
@@ -676,7 +717,7 @@
                             const d = await r.json();
                             const ok = d.status === 'complete';
                             this._log(ok ? 'info' : 'warn', 'Shop: purchase ' + (ok ? 'confirmed' : 'not confirmed after window closed'));
-                            resolve(ok);
+                            resolve(await finishPurchase(ok));
                         } catch (e) { this._log('error', 'Shop: payment verification error — ' + e.message); resolve(false); }
                         return;
                     }
@@ -695,7 +736,7 @@
                             clearInterval(interval);
                             if (popupRef && !popupRef.closed) popupRef.close();
                             this._log('info', 'Shop: purchase confirmed');
-                            resolve(true);
+                            resolve(await finishPurchase(true));
                         }
                     } catch { /* continuer */ }
                 }, pollMs);
@@ -1361,11 +1402,11 @@
                 const r = await _fetch(`${API_URL}/api/play/refresh`, {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ refresh_token: stored })
+                    body:    JSON.stringify({ refresh_token: stored, project_slug: this._playSlug })
                 });
                 if (!r.ok) {
                     localStorage.removeItem(this._playStorageKey());
-                    this._log('warn', 'Session: resume rejected, signed out');
+                    this._log('warn', r.status === 403 ? 'Session: banned from this game' : 'Session: resume rejected, signed out');
                     return;
                 }
                 const d = await r.json();
@@ -1389,10 +1430,46 @@
         playNomJoueur()   { return this._playPlayer ? this._playPlayer.username : ''; }
         playIdJoueur()    { return this._playPlayer ? this._playPlayer.id : ''; }
 
+        async playRenommer({ PSEUDO }) {
+            if (!this._playAccessToken) {
+                this._log('warn', 'Nickname: not signed in, nothing was changed', 'Play');
+                return;
+            }
+            const nickname = String(PSEUDO).trim();
+            if (!nickname) return;
+            try {
+                const r = await _fetch(`${API_URL}/api/play/nickname`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this._playAccessToken}` },
+                    body:    JSON.stringify({ project_slug: this._playSlug, nickname })
+                });
+                if (!r.ok) { this._log('warn', 'Nickname: rejected (HTTP ' + r.status + ')', 'Play'); return; }
+                const d = await r.json();
+                this._playNickname = d.nickname;
+                this._log('info', 'Nickname: set to "' + d.nickname + '" for this game', 'Play');
+            } catch (e) { this._log('error', 'Nickname: network error — ' + e.message, 'Play'); }
+        }
+
+        async playPseudoJeu() {
+            if (this._playNickname) return this._playNickname;
+            if (!this._playAccessToken) return this._playPlayer ? this._playPlayer.username : '';
+            try {
+                const r = await _fetch(`${API_URL}/api/play/nickname?project_slug=${encodeURIComponent(this._playSlug)}&_ts=${Date.now()}`, {
+                    headers: { 'Authorization': `Bearer ${this._playAccessToken}` }, cache: 'no-store'
+                });
+                if (!r.ok) return this._playPlayer ? this._playPlayer.username : '';
+                const d = await r.json();
+                this._playNickname = d.nickname;
+                return d.nickname;
+            } catch { return this._playPlayer ? this._playPlayer.username : ''; }
+        }
+
         playDeconnecter() {
             this._playAccessToken = null;
             this._playPlayer      = null;
             this._playSaveCache   = {};
+            this._playNickname    = null;
+            this.arreterSurveillanceCadeaux();
             localStorage.removeItem(this._playStorageKey());
         }
 
@@ -1444,6 +1521,98 @@
         playPersonnaliser({ COULEUR, TITRE }) {
             this._playAccent = String(COULEUR).trim() || '#4ECDC4';
             this._playTitle  = String(TITRE).trim()   || 'VakarGames Play';
+        }
+
+        // ══════════════════════════════════════════
+        //  SHOP GIFTS — claim queue (db.items / claimgift), local sync + popup
+        // ══════════════════════════════════════════
+
+        // Applies a numeric increment to a global (Stage) Scratch variable —
+        // the shop's "variable"/"amount" fields already describe exactly this.
+        _incrementLocalVariable(varName, amountStr) {
+            try {
+                const stage = Scratch.vm.runtime.getTargetForStage();
+                if (!stage) return false;
+                const variable = stage.lookupVariableByNameAndType(String(varName), '');
+                if (!variable) return false;
+                const cur = Number(variable.value) || 0;
+                const amt = Number(amountStr) || 0;
+                variable.value = cur + amt;
+                return true;
+            } catch (e) {
+                this._log('error', 'Gift: could not update variable "' + varName + '" — ' + e.message, 'Shop');
+                return false;
+            }
+        }
+
+        _showGiftPopup(fromName, productName, variableName, amount) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:999993;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif';
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#fff;border-radius:14px;padding:28px;width:320px;max-width:88vw;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center';
+            card.innerHTML =
+                '<div style="font-size:36px;margin-bottom:10px">🎁</div>' +
+                '<div style="font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:6px">Gift received!</div>' +
+                '<div style="font-size:13px;color:#666;margin-bottom:4px">From <strong>' + this._escapeHtml(fromName) + '</strong></div>' +
+                '<div style="font-size:13px;color:#666;margin-bottom:18px">' + this._escapeHtml(String(amount)) + 'x ' + this._escapeHtml(productName || variableName) + '</div>';
+            const okBtn = document.createElement('button');
+            okBtn.textContent = 'Nice!';
+            okBtn.style.cssText = `width:100%;padding:10px;background:${this._playAccent || '#4ECDC4'};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer`;
+            okBtn.addEventListener('click', () => overlay.remove());
+            card.appendChild(okBtn);
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+            setTimeout(() => { if (overlay.isConnected) overlay.remove(); }, 8000);
+        }
+
+        // Claims and applies every pending item in the queue for this uid/project.
+        // Returns the number of items applied.
+        async _claimAndApplyGifts(projectSlug, uid, { showPopup } = {}) {
+            const slug = projectSlug || this._playSlug;
+            if (!slug || !uid) return 0;
+            let applied = 0;
+            try {
+                for (let guard = 0; guard < 20; guard++) { // drain the queue, capped defensively
+                    const r = await _fetch(`${API_URL}/api/projects/${encodeURIComponent(slug)}/claimgift/${encodeURIComponent(uid)}?_ts=${Date.now()}`, { cache: 'no-store' });
+                    if (!r.ok) break;
+                    const d = await r.json();
+                    if (!d || !d.length) break;
+                    const items = [{ variable: d.variable, amount: d.amount, from_name: d.from_name, product_name: d.product_name }, ...(d.items || [])];
+                    for (const it of items) {
+                        this._incrementLocalVariable(it.variable, it.amount);
+                        applied++;
+                        this._log('info', `Gift: claimed ${it.amount}x ${it.variable}` + (it.from_name ? ` from ${it.from_name}` : ''), 'Shop');
+                        if (showPopup && it.from_name) {
+                            this._showGiftPopup(it.from_name, it.product_name, it.variable, it.amount);
+                        }
+                    }
+                    if (d.length < 2 && !d.items) break; // queue likely drained
+                }
+            } catch (e) {
+                this._log('error', 'Gift: claim failed — ' + e.message, 'Shop');
+            }
+            return applied;
+        }
+
+        surveillerCadeaux({ UID }) {
+            const uid = String(UID).trim();
+            if (!uid) return;
+            this.arreterSurveillanceCadeaux();
+            this._giftPollUid = uid;
+            this._log('info', 'Gift watch started for uid "' + uid + '"', 'Shop');
+            this._claimAndApplyGifts(this._playSlug, uid, { showPopup: true });
+            this._giftPollInterval = setInterval(() => {
+                this._claimAndApplyGifts(this._playSlug, this._giftPollUid, { showPopup: true });
+            }, 12000);
+        }
+
+        arreterSurveillanceCadeaux() {
+            if (this._giftPollInterval) {
+                clearInterval(this._giftPollInterval);
+                this._giftPollInterval = null;
+                this._log('info', 'Gift watch stopped', 'Shop');
+            }
+            this._giftPollUid = null;
         }
 
         playOuvrirChargement({ MAX }) { this._showLoadingScreen(MAX); }
@@ -1905,9 +2074,13 @@
             const b = document.createElement('button');
             b.textContent = label;
             b.title = title || '';
-            b.style.cssText = 'background:#22232b;border:1px solid #34353f;color:#c7c8d1;font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:system-ui,sans-serif;white-space:nowrap';
-            b.addEventListener('mouseenter', () => { b.style.background = '#2b2c36'; });
-            b.addEventListener('mouseleave', () => { b.style.background = '#22232b'; });
+            b.style.cssText = 'background:#22232b;border:1px solid #34353f;color:#c7c8d1;font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:system-ui,sans-serif;white-space:nowrap;filter:none';
+            // Hover feedback via a brightness filter rather than swapping the
+            // background color directly — this works no matter what background
+            // a caller later assigns (e.g. the accent color on Save buttons)
+            // instead of permanently overwriting it with a hardcoded grey.
+            b.addEventListener('mouseenter', () => { if (!b.disabled) b.style.filter = 'brightness(1.18)'; });
+            b.addEventListener('mouseleave', () => { b.style.filter = 'none'; });
             return b;
         }
 
