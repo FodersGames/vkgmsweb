@@ -13,7 +13,7 @@ import time
 import psutil
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Any
 import secrets
 import bcrypt
 import jwt
@@ -435,12 +435,20 @@ class UpdateUserPermissionsRequest(BaseModel):
                 raise ValueError(f"Invalid permission: {p}")
         return perms
 
-class VariableCreateRequest(BaseModel):
-    variable_name: str
-    values: List[str]
+VAR_TYPES = ("string", "number", "boolean", "list", "json")
 
-class VariableUpdateRequest(BaseModel):
-    values: List[str]
+class ServerVariableRequest(BaseModel):
+    name: str
+    var_type: Literal["string", "number", "boolean", "list", "json"] = "string"
+    value: Any = None
+    description: str = ""
+    is_public: bool = True
+
+class ServerVariableUpdateRequest(BaseModel):
+    var_type: Optional[Literal["string", "number", "boolean", "list", "json"]] = None
+    value: Any = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
 
 class CreateProjectRequest(BaseModel):
     name: str
@@ -1414,17 +1422,89 @@ async def get_logs(slug: str, log_type: Optional[str] = None, user_filter: Optio
             l["timestamp"] = l["timestamp"].isoformat()
     return {"logs": logs, "count": len(logs), "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
-# ============== PROJECT-SCOPED: VARIABLES ==============
+# ============== PROJECT-SCOPED: SERVER VARIABLES ==============
+# A "server variable" is a per-project, admin-controlled config value the live game can read
+# (if public) without needing a new build — e.g. a maintenance message, an event multiplier, a
+# drop table. Old documents (pre-typed system) only have {variable_name, values: [str, ...]};
+# _normalize_variable_doc reads those transparently as a "list" type without ever rewriting or
+# deleting them — they only get upgraded to the new shape if an admin explicitly edits them.
+
+def _normalize_variable_doc(v: dict) -> dict:
+    if "var_type" not in v:
+        return {
+            "name": v.get("variable_name", v.get("name", "")),
+            "var_type": "list",
+            "value": v.get("values", []),
+            "description": "",
+            "is_public": True,
+            "created_at": v.get("created_at"),
+            "created_by": v.get("created_by"),
+            "updated_at": v.get("updated_at"),
+            "updated_by": v.get("updated_by"),
+        }
+    return {
+        "name": v.get("name", v.get("variable_name", "")),
+        "var_type": v.get("var_type", "string"),
+        "value": v.get("value"),
+        "description": v.get("description", ""),
+        "is_public": v.get("is_public", True),
+        "created_at": v.get("created_at"),
+        "created_by": v.get("created_by"),
+        "updated_at": v.get("updated_at"),
+        "updated_by": v.get("updated_by"),
+    }
+
+def _validate_variable_value(var_type: str, value):
+    if var_type == "string":
+        return str(value) if value is not None else ""
+    if var_type == "number":
+        try:
+            f = float(value)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Value must be a number")
+        return int(f) if f.is_integer() else f
+    if var_type == "boolean":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in ("true", "1", "yes")
+        return bool(value)
+    if var_type == "list":
+        if not isinstance(value, list):
+            raise HTTPException(400, "Value must be a list")
+        return [str(v) for v in value]
+    if var_type == "json":
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                raise HTTPException(400, "Value must be valid JSON")
+        if value is None:
+            return {}
+        return value
+    raise HTTPException(400, f"Invalid var_type. Must be one of: {', '.join(VAR_TYPES)}")
+
+async def _find_variable_doc(slug: str, name: str):
+    return await db.variables.find_one({"project_slug": slug, "$or": [{"name": name}, {"variable_name": name}]})
+
 @api_router.post("/projects/{slug}/variables")
-async def create_variable(slug: str, req: VariableCreateRequest, user=Depends(require_permission("create_variables"))):
+async def create_variable(slug: str, req: ServerVariableRequest, user=Depends(require_permission("create_variables"))):
     await get_project_or_404(slug)
-    if await db.variables.find_one({"project_slug": slug, "variable_name": req.variable_name}):
+    if await _find_variable_doc(slug, req.name):
         raise HTTPException(status_code=400, detail="Variable exists")
-    await db.variables.insert_one({"project_slug": slug, "variable_name": req.variable_name, "values": req.values,
-                                   "created_at": datetime.now(timezone.utc), "created_by": user["username"],
-                                   "updated_at": datetime.now(timezone.utc), "updated_by": user["username"]})
-    await log_action("variable_action", f"Variable '{req.variable_name}' created", project_slug=slug, user=user["username"])
-    return {"success": True, "variable_name": req.variable_name, "values": req.values}
+    value = _validate_variable_value(req.var_type, req.value)
+    now = datetime.now(timezone.utc)
+    await db.variables.insert_one({
+        "project_slug": slug, "name": req.name, "var_type": req.var_type, "value": value,
+        "description": req.description, "is_public": req.is_public,
+        "created_at": now, "created_by": user["username"],
+        "updated_at": now, "updated_by": user["username"],
+    })
+    await log_action("variable_action",
+        f"Variable '{req.name}' created ({req.var_type}, {'public' if req.is_public else 'private'})",
+        project_slug=slug, user=user["username"], variable=req.name)
+    return {"success": True, "name": req.name, "var_type": req.var_type, "value": value,
+            "description": req.description, "is_public": req.is_public}
 
 @api_router.get("/projects/{slug}/variables")
 async def list_variables(slug: str, page: int = 1, limit: int = 200, user=Depends(require_permission("view_variables"))):
@@ -1432,39 +1512,68 @@ async def list_variables(slug: str, page: int = 1, limit: int = 200, user=Depend
 
     skip = (page - 1) * limit
     total = await db.variables.count_documents({"project_slug": slug})
-    vs = await db.variables.find({"project_slug": slug}, {"_id": 0, "project_slug": 0}).skip(skip).limit(limit).to_list(limit)
+    vs = await db.variables.find({"project_slug": slug}, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    result = []
     for v in vs:
-        for k in ["created_at", "updated_at"]:
-            if isinstance(v.get(k), datetime):
-                v[k] = v[k].isoformat()
-    return {"variables": vs, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
+        nv = _normalize_variable_doc(v)
+        for k in ("created_at", "updated_at"):
+            if isinstance(nv.get(k), datetime):
+                nv[k] = nv[k].isoformat()
+        result.append(nv)
+    return {"variables": result, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
+
+# Bulk, unauthenticated: lets the running game preload every public config value in one call.
+@api_router.get("/projects/{slug}/variables/public")
+async def list_public_variables(slug: str):
+    await get_project_or_404(slug)
+    vs = await db.variables.find({"project_slug": slug}).to_list(1000)
+    result = {}
+    for v in vs:
+        nv = _normalize_variable_doc(v)
+        if nv["is_public"] and nv["name"]:
+            result[nv["name"]] = {"type": nv["var_type"], "value": nv["value"]}
+    return {"variables": result}
 
 @api_router.get("/projects/{slug}/variable/{name}")
 async def get_variable(slug: str, name: str):
     await get_project_or_404(slug)
-    v = await db.variables.find_one({"project_slug": slug, "variable_name": name}, {"_id": 0})
+    v = await _find_variable_doc(slug, name)
     if not v:
         raise HTTPException(status_code=404, detail="Variable not found")
-    result = {"variable_name": name}
-    for i, val in enumerate(v.get("values", [])):
-        result[f"value_{i}"] = val
-    result["count"] = len(v.get("values", []))
-    return result
+    nv = _normalize_variable_doc(v)
+    if not nv["is_public"]:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    return {"name": nv["name"], "type": nv["var_type"], "value": nv["value"]}
 
 @api_router.put("/projects/{slug}/variables/{name}")
-async def update_variable(slug: str, name: str, req: VariableUpdateRequest, user=Depends(require_permission("edit_variables"))):
+async def update_variable(slug: str, name: str, req: ServerVariableUpdateRequest, user=Depends(require_permission("edit_variables"))):
     await get_project_or_404(slug)
-    if not await db.variables.find_one({"project_slug": slug, "variable_name": name}):
+    existing = await _find_variable_doc(slug, name)
+    if not existing:
         raise HTTPException(status_code=404, detail="Variable not found")
-    await db.variables.update_one({"project_slug": slug, "variable_name": name},
-                                  {"$set": {"values": req.values, "updated_at": datetime.now(timezone.utc), "updated_by": user["username"]}})
+    nv = _normalize_variable_doc(existing)
+    var_type    = req.var_type if req.var_type is not None else nv["var_type"]
+    value       = _validate_variable_value(var_type, req.value) if req.value is not None else nv["value"]
+    description = req.description if req.description is not None else nv["description"]
+    is_public   = req.is_public if req.is_public is not None else nv["is_public"]
+    now = datetime.now(timezone.utc)
+    await db.variables.replace_one(
+        {"_id": existing["_id"]},
+        {
+            "project_slug": slug, "name": name, "var_type": var_type, "value": value,
+            "description": description, "is_public": is_public,
+            "created_at": nv.get("created_at") or now, "created_by": nv.get("created_by") or user["username"],
+            "updated_at": now, "updated_by": user["username"],
+        }
+    )
     await log_action("variable_action", f"Variable '{name}' updated", project_slug=slug, user=user["username"], variable=name)
-    return {"success": True, "variable_name": name, "values": req.values}
+    return {"success": True, "name": name, "var_type": var_type, "value": value,
+            "description": description, "is_public": is_public}
 
 @api_router.delete("/projects/{slug}/variables/{name}")
 async def delete_variable(slug: str, name: str, user=Depends(require_permission("delete_variables"))):
     await get_project_or_404(slug)
-    r = await db.variables.delete_one({"project_slug": slug, "variable_name": name})
+    r = await db.variables.delete_one({"project_slug": slug, "$or": [{"name": name}, {"variable_name": name}]})
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Variable not found")
     await log_action("variable_action", f"Variable '{name}' deleted", project_slug=slug, user=user["username"], variable=name)
@@ -3724,15 +3833,30 @@ async def _is_project_banned(user_id, project_slug: str) -> bool:
     ban = await db.play_bans.find_one({"user_id": user_id, "project_slug": project_slug})
     return ban is not None
 
+async def _check_first_time_and_mark(user_id, project_slug: str) -> bool:
+    """Atomically records a player's first connection to a project. Returns True only the very first time."""
+    if not project_slug:
+        return False
+    try:
+        result = await db.play_first_seen.update_one(
+            {"user_id": user_id, "project_slug": project_slug},
+            {"$setOnInsert": {"first_seen_at": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
+        return result.upserted_id is not None
+    except DuplicateKeyError:
+        return False
+
 # ── Public play routes ───────────────────────────────────────────────────────
 
 @api_router.post("/play/register")
 @limiter.limit("10/minute")
 async def play_register(request: Request):
     body     = await request.json()
-    username = str(body.get("username", "")).strip()
-    email    = str(body.get("email", "")).strip().lower()
-    password = str(body.get("password", ""))
+    username     = str(body.get("username", "")).strip()
+    email        = str(body.get("email", "")).strip().lower()
+    password     = str(body.get("password", ""))
+    project_slug = str(body.get("project_slug", "")).strip()
 
     if not username or not email or not password:
         raise HTTPException(400, "Tous les champs sont requis")
@@ -3772,8 +3896,9 @@ async def play_register(request: Request):
         "expires_at": now + timedelta(days=PLAY_REFRESH_TOKEN_DAYS),
         "is_revoked": False,
     })
+    is_first_time = await _check_first_time_and_mark(result.inserted_id, project_slug)
     return {"access_token": access_token, "refresh_token": refresh_token,
-            "player": {"id": user_id, "username": username}}
+            "player": {"id": user_id, "username": username}, "is_first_time": is_first_time}
 
 @api_router.post("/play/login")
 @limiter.limit("15/minute")
@@ -3804,8 +3929,9 @@ async def play_login(request: Request):
         "expires_at": now + timedelta(days=PLAY_REFRESH_TOKEN_DAYS),
         "is_revoked": False,
     })
+    is_first_time = await _check_first_time_and_mark(user["_id"], project_slug)
     return {"access_token": access_token, "refresh_token": refresh_token,
-            "player": {"id": user_id, "username": username}}
+            "player": {"id": user_id, "username": username}, "is_first_time": is_first_time}
 
 @api_router.post("/play/refresh")
 @limiter.limit("30/minute")
@@ -3842,7 +3968,8 @@ async def play_refresh(request: Request):
     await db.play_refresh_tokens.update_one({"jti": jti}, {"$set": {"last_used": now}})
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": now}})
     access_token = _create_play_access_token(user_id, user["username"])
-    return {"access_token": access_token, "player": {"id": user_id, "username": user["username"]}}
+    is_first_time = await _check_first_time_and_mark(user["_id"], project_slug)
+    return {"access_token": access_token, "player": {"id": user_id, "username": user["username"]}, "is_first_time": is_first_time}
 
 @api_router.get("/play/me")
 async def play_me(request: Request, play_user=Depends(_get_play_user_from_access)):
@@ -4338,7 +4465,16 @@ async def startup_event():
         await db.items.create_index([("project_slug", 1), ("uid", 1)])
         await db.logs.create_index([("project_slug", 1), ("type", 1)])
         await db.logs.create_index("timestamp")
-        await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True)
+        # Sparse: legacy docs only have "variable_name", new docs only have "name" — sparse
+        # keeps each shape's uniqueness constraint from colliding with the other on the
+        # "missing field" (null) case. The old index is dropped/recreated as sparse since a
+        # non-sparse unique index with the same key pattern already existed pre-migration.
+        try:
+            await db.variables.drop_index("project_slug_1_variable_name_1")
+        except Exception:
+            pass
+        await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True, sparse=True)
+        await db.variables.create_index([("project_slug", 1), ("name", 1)], unique=True, sparse=True)
         await db.website_games.create_index("slug", unique=True)
         await db.blog_posts.create_index("slug", unique=True)
         await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
@@ -4365,6 +4501,7 @@ async def startup_event():
         await db.careers.create_index("is_open")
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         logger.info("Database indexes initialized")
 
         # Migration: backfill stable_id on files cloned before the stable-ID

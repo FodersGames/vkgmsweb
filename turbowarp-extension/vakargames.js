@@ -117,10 +117,16 @@
             this._playPopup       = null;
             this._playSaveCache   = {};
             this._playNickname    = null; // per-game nickname, fetched lazily
+            this._playFirstTime   = false; // was this the player's very first connection to this game?
+            this._playBanFrozen   = false; // once true, the VM has been permanently paused for a ban
             this._loadingPopup = null;
             this._loadingBarEl = null;
             this._loadingCount = 0;
             this._loadingMax   = 1;
+
+            // Server variables (admin-controlled project config, cached after preload)
+            this._serverVars       = {};   // { name: { type, value } }
+            this._serverVarsLoaded = false;
 
             // In-game admin tools: journal + dev/logs panels
             this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', source, message }
@@ -530,6 +536,11 @@
                         text:      'joueur connecté ?'
                     },
                     {
+                        opcode:    'playPremiereConnexion',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'première fois que le joueur joue à ce jeu ?'
+                    },
+                    {
                         opcode:    'playNomJoueur',
                         blockType: Scratch.BlockType.REPORTER,
                         text:      'nom du joueur connecté'
@@ -599,6 +610,34 @@
                         opcode:    'playFermerChargement',
                         blockType: Scratch.BlockType.COMMAND,
                         text:      'fermer barre de chargement'
+                    },
+
+                    // ══════════════════════════════
+                    //  SERVER VARIABLES
+                    // ══════════════════════════════
+                    { blockType: Scratch.BlockType.LABEL, text: '— Server Variables —' },
+                    {
+                        opcode:    'preloadServerVars',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'précharger les variables serveur du projet [SLUG]',
+                        arguments: { SLUG: { type: Scratch.ArgumentType.STRING, defaultValue: 'mon-jeu' } }
+                    },
+                    {
+                        opcode:    'refreshServerVars',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text:      'rafraîchir les variables serveur'
+                    },
+                    {
+                        opcode:    'getServerVar',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text:      'variable serveur [NOM]',
+                        arguments: { NOM: { type: Scratch.ArgumentType.STRING, defaultValue: 'event_multiplier' } }
+                    },
+                    {
+                        opcode:    'serverVarExists',
+                        blockType: Scratch.BlockType.BOOLEAN,
+                        text:      'variable serveur [NOM] existe ?',
+                        arguments: { NOM: { type: Scratch.ArgumentType.STRING, defaultValue: 'event_multiplier' } }
                     },
 
                     // ══════════════════════════════
@@ -1412,6 +1451,7 @@
                 const d = await r.json();
                 this._playAccessToken = d.access_token;
                 this._playPlayer      = d.player;
+                this._playFirstTime   = !!d.is_first_time;
                 this._log('info', 'Session: restored — ' + (d.player && d.player.username));
             } catch (e) { this._log('warn', 'Session: network unavailable, staying signed out — ' + e.message); }
         }
@@ -1426,7 +1466,8 @@
             return new Promise(resolve => this._showPlayPopup(resolve));
         }
 
-        playEstConnecte() { return !!this._playPlayer; }
+        playEstConnecte()        { return !!this._playPlayer; }
+        playPremiereConnexion()  { return !!this._playFirstTime; }
         playNomJoueur()   { return this._playPlayer ? this._playPlayer.username : ''; }
         playIdJoueur()    { return this._playPlayer ? this._playPlayer.id : ''; }
 
@@ -1469,6 +1510,7 @@
             this._playPlayer      = null;
             this._playSaveCache   = {};
             this._playNickname    = null;
+            this._playFirstTime   = false;
             localStorage.removeItem(this._playStorageKey());
         }
 
@@ -1609,6 +1651,46 @@
 
         playOuvrirChargement({ MAX }) { this._showLoadingScreen(MAX); }
         playFermerChargement()        { this._closeLoadingScreen(); }
+
+        async _fetchServerVars(slug) {
+            try {
+                const r = await _fetch(`${API_URL}/api/projects/${encodeURIComponent(slug)}/variables/public?_ts=${Date.now()}`, { cache: 'no-store' });
+                if (!r.ok) { this._log('warn', 'Server Variables: preload failed (HTTP ' + r.status + ')', 'Config'); return; }
+                const d = await r.json();
+                this._serverVars = d.variables || {};
+                this._serverVarsLoaded = true;
+                this._log('info', 'Server Variables: preloaded ' + Object.keys(this._serverVars).length + ' variable(s)', 'Config');
+            } catch (e) {
+                this._log('error', 'Server Variables: network error — ' + e.message, 'Config');
+            }
+        }
+
+        async preloadServerVars({ SLUG }) {
+            this._playSlug = this._playSlug || String(SLUG).trim();
+            await this._fetchServerVars(String(SLUG).trim());
+        }
+
+        async refreshServerVars() {
+            if (!this._playSlug) { this._log('warn', 'Server Variables: no project configured yet', 'Config'); return; }
+            await this._fetchServerVars(this._playSlug);
+        }
+
+        _stringifyServerVarValue(entry) {
+            if (!entry) return '';
+            if (entry.type === 'list' || entry.type === 'json') return JSON.stringify(entry.value);
+            return String(entry.value);
+        }
+
+        getServerVar({ NOM }) {
+            const name = String(NOM).trim();
+            const entry = this._serverVars[name];
+            return this._stringifyServerVarValue(entry);
+        }
+
+        serverVarExists({ NOM }) {
+            const name = String(NOM).trim();
+            return Object.prototype.hasOwnProperty.call(this._serverVars, name);
+        }
 
         _showLoadingScreen(max) {
             if (this._loadingPopup) { this._loadingPopup.remove(); }
@@ -1791,7 +1873,7 @@
                     try { d = await r.json(); } catch {}
                     if (!r.ok) {
                         if (d.detail && typeof d.detail === 'object' && d.detail.error === 'banned') {
-                            this._showBannedPopup(d.detail.uid, onClose);
+                            this._showBannedPopup(d.detail.uid);
                             return;
                         }
                         const msg = typeof d.detail === 'string' ? d.detail : LANGS[lang].eLo;
@@ -1803,6 +1885,7 @@
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
+                    this._playFirstTime   = !!d.is_first_time;
                     this._log('info', 'Auth: login succeeded — ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
@@ -1833,6 +1916,7 @@
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
+                    this._playFirstTime   = !!d.is_first_time;
                     this._log('info', 'Auth: account created and signed in — ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
@@ -1850,7 +1934,19 @@
             if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
         }
 
-        _showBannedPopup(uid, onClose) {
+        _freezeForBan() {
+            if (this._playBanFrozen) return;
+            this._playBanFrozen = true;
+            try {
+                if (typeof Scratch !== 'undefined' && Scratch.vm && Scratch.vm.runtime && typeof Scratch.vm.runtime.pause === 'function') {
+                    Scratch.vm.runtime.pause();
+                }
+            } catch (e) {}
+            this._log('error', 'Game frozen — this account is banned from this project.', 'Play');
+        }
+
+        _showBannedPopup(uid) {
+            this._freezeForBan();
             if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
             const accent = this._playAccent || '#4ECDC4';
 
@@ -1896,15 +1992,6 @@
                 _openWindow(url);
             });
             card.appendChild(appealBtn);
-
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = 'Close';
-            closeBtn.style.cssText = 'width:100%;padding:10px;background:transparent;color:#888;border:none;font-size:13px;cursor:pointer';
-            closeBtn.addEventListener('click', () => {
-                this._closePlayPopup();
-                if (onClose) onClose();
-            });
-            card.appendChild(closeBtn);
 
             document.body.appendChild(overlay);
             this._log('warn', 'Auth: banned from this game (uid ' + (uid || '?') + ')', 'Play');
