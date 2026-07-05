@@ -132,6 +132,7 @@
             this._devPanelDirty = { inventory: false, stats: false, craft: false, tech: false, others: false };
             this._devCatState = {}; // per-category in-memory editor state while the dev panel is open
             this._logStatsEl = null;
+            this._devPanelPausedRuntime = false; // whether WE paused the runtime (vs. it already being paused)
 
             // Auto-log any error assignment made anywhere in the extension,
             // without having to touch every call site individually.
@@ -1710,6 +1711,30 @@
             return changed;
         }
 
+        // Pushes a freshly-saved Dev Panel value straight into a matching global
+        // (Stage) Scratch variable, so the running game sees the new value
+        // immediately — no need to wait for a "modifiée ?" poll to reload it.
+        _pushValueToLocalVariable(categoryName, dataString) {
+            try {
+                const vm = Scratch.vm;
+                const stage = vm.runtime.getTargetForStage();
+                if (!stage || !stage.variables) return false;
+                let variable = stage.lookupVariableByNameAndType(categoryName, '');
+                if (!variable) {
+                    const match = Object.values(stage.variables).find(
+                        v => v.name.toLowerCase() === categoryName.toLowerCase()
+                    );
+                    if (match) variable = match;
+                }
+                if (!variable) return false;
+                variable.value = dataString;
+                return true;
+            } catch (e) {
+                this._log('error', 'Dev Panel: could not update local variable — ' + e.message, 'Dev Panel');
+                return false;
+            }
+        }
+
         // ── Clipboard ─────────────────────────────────────────────────────────
 
         async _copyToClipboard(text) {
@@ -1796,8 +1821,36 @@
         //  DEV PANEL — landscape, multi-category editor
         // ══════════════════════════════════════════
 
+        _pauseRuntimeForDevPanel() {
+            if (this._devPanelPausedRuntime) return; // already paused by us
+            try {
+                if (typeof Scratch.vm.runtime.pause === 'function') {
+                    Scratch.vm.runtime.pause();
+                    this._devPanelPausedRuntime = true;
+                    this._log('info', 'Dev Panel: game paused while the panel is open', 'Dev Panel');
+                }
+            } catch (e) {
+                this._log('warn', 'Dev Panel: could not pause the game — ' + e.message, 'Dev Panel');
+            }
+        }
+
+        _resumeRuntimeAfterDevPanel() {
+            if (!this._devPanelPausedRuntime) return;
+            try {
+                if (typeof Scratch.vm.runtime.resume === 'function') {
+                    Scratch.vm.runtime.resume();
+                    this._log('info', 'Dev Panel: game resumed', 'Dev Panel');
+                }
+            } catch (e) {
+                this._log('warn', 'Dev Panel: could not resume the game — ' + e.message, 'Dev Panel');
+            } finally {
+                this._devPanelPausedRuntime = false;
+            }
+        }
+
         _showDevPanel() {
             if (this._devPanel) { this._devPanel.remove(); this._devPanel = null; }
+            this._pauseRuntimeForDevPanel();
             const accent = this._playAccent || '#4ECDC4';
             const categories = ['inventory', 'stats', 'craft', 'tech', 'others'];
             this._devCatState = {};
@@ -1821,7 +1874,11 @@
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
             closeBtn.style.cssText = 'background:none;border:none;color:#8b8d97;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px';
-            closeBtn.addEventListener('click', () => { overlay.remove(); this._devPanel = null; });
+            closeBtn.addEventListener('click', () => {
+                overlay.remove();
+                this._devPanel = null;
+                this._resumeRuntimeAfterDevPanel();
+            });
             titleBar.appendChild(titleLeft);
             titleBar.appendChild(closeBtn);
             card.appendChild(titleBar);
@@ -1984,8 +2041,17 @@
                 await this.playSauvegarder({ CATEGORIE: cat, DONNEES: st.value });
                 st.original = st.value;
                 this._devPanelDirty[cat] = true;
-                this._log('info', `Dev Panel: manual save "${cat}" by ${this._playPlayer ? this._playPlayer.username : '?'}`, 'Dev Panel');
-                if (cat === activeCat) { updateValidity(); metaEl.textContent = 'Saved ✓ · ' + metaEl.textContent; }
+                const updatedLocally = this._pushValueToLocalVariable(cat, st.value);
+                this._log(
+                    'info',
+                    `Dev Panel: manual save "${cat}" by ${this._playPlayer ? this._playPlayer.username : '?'}` +
+                    (updatedLocally ? ` — local variable "${cat}" updated` : ' — no matching local variable found, use the "modifiée ?" block to reload it'),
+                    'Dev Panel'
+                );
+                if (cat === activeCat) {
+                    updateValidity();
+                    metaEl.textContent = (updatedLocally ? 'Saved ✓ (server + local) · ' : 'Saved ✓ (server only) · ') + metaEl.textContent;
+                }
                 renderNav();
             };
 
