@@ -1,69 +1,192 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Settings, AlertTriangle } from 'lucide-react';
-import { Button, Card, CardHeader, CardBody } from '../ui';
+import {
+  Settings, AlertTriangle, Mail, ShieldCheck, CheckCircle2, XCircle, Save, Server as ServerIcon,
+} from 'lucide-react';
+import api from '../utils/api';
+import { Button, Input } from '../ui';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const timeAgo = (iso) => {
+  if (!iso) return null;
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
+
+const HealthRow = ({ label, ok, value, neutral }) => {
+  const Icon = neutral ? ServerIcon : (ok ? CheckCircle2 : XCircle);
+  const color = neutral ? '#71717a' : (ok ? '#4ECDC4' : '#EB5757');
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5 border-b border-[#F0EDE8] dark:border-[#1c1c2e] last:border-0">
+      <span className="text-xs text-[#78716C]">{label}</span>
+      <span className="flex items-center gap-1.5 text-xs font-medium shrink-0" style={{ color }}>
+        <Icon size={13} />
+        {value}
+      </span>
+    </div>
+  );
+};
 
 export const WebsiteSettings = () => {
-  const { token } = useAuth();
-  const [maintenance, setMaintenance] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [maintenance,  setMaintenance]  = useState(false);
+  const [supportEmail, setSupportEmail] = useState('');
+  const [emailInput,   setEmailInput]   = useState('');
+  const [updatedAt,    setUpdatedAt]    = useState(null);
+  const [updatedBy,    setUpdatedBy]    = useState(null);
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const [savingEmail,  setSavingEmail]  = useState(false);
+  const [health,       setHealth]       = useState(null);
 
-  useEffect(() => {
-    axios.get(`${API_URL}/api/website/settings`).then(r => setMaintenance(r.data.maintenance_mode)).catch(() => {});
+  const fetchSettings = useCallback(async () => {
+    try {
+      const r = await api.get('/api/website/settings');
+      setMaintenance(r.data.maintenance_mode);
+      setSupportEmail(r.data.support_email);
+      setEmailInput(r.data.support_email);
+      setUpdatedAt(r.data.updated_at || null);
+      setUpdatedBy(r.data.updated_by || null);
+    } catch {}
   }, []);
 
-  const toggleMaintenance = async () => {
-    setLoading(true);
+  const fetchHealth = useCallback(async () => {
     try {
-      const r = await axios.put(`${API_URL}/api/website/settings`, { maintenance_mode: !maintenance }, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await api.get('/api/admin/system/health');
+      setHealth(r.data);
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchSettings(); fetchHealth(); }, [fetchSettings, fetchHealth]);
+
+  const toggleMaintenance = async () => {
+    setLoadingMaintenance(true);
+    try {
+      const r = await api.put('/api/website/settings', { maintenance_mode: !maintenance });
       setMaintenance(r.data.maintenance_mode);
+      setUpdatedAt(new Date().toISOString());
       toast.success(`Maintenance mode ${r.data.maintenance_mode ? 'enabled' : 'disabled'}`);
-    } catch (e) { toast.error('Failed'); }
-    finally { setLoading(false); }
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to update'); }
+    finally { setLoadingMaintenance(false); }
   };
 
+  const saveEmail = async (e) => {
+    e.preventDefault();
+    setSavingEmail(true);
+    try {
+      const r = await api.put('/api/website/settings', { support_email: emailInput.trim() });
+      setSupportEmail(r.data.support_email);
+      setEmailInput(r.data.support_email);
+      setUpdatedAt(new Date().toISOString());
+      toast.success('Support email updated');
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to update email'); }
+    finally { setSavingEmail(false); }
+  };
+
+  const emailDirty = emailInput.trim() !== supportEmail;
+
   return (
-    <div className="max-w-2xl">
-      <Card className="overflow-hidden">
-        <CardHeader>
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-[#71717a]/10 flex items-center justify-center">
+          <Settings size={20} className="text-[#71717a]" />
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-[#1C1917] dark:text-[#e4e4e7]">Website Settings</h1>
+          <p className="text-xs text-[#A8A29E]">Global configuration for the public site</p>
+        </div>
+      </div>
+
+      {/* Maintenance mode */}
+      <div className={`p-5 border ${maintenance ? 'bg-red-500/5 border-red-500/20' : 'bg-white dark:bg-[#0d0d14] border-[#E8E3DB] dark:border-[#2a2a3c]'}`}>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#71717a18' }}>
-              <Settings size={16} style={{ color: '#71717a' }} />
-            </div>
+            <AlertTriangle size={20} className={maintenance ? 'text-red-400' : 'text-[#71717a]'} />
             <div>
-              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Website Settings</h3>
-              <p className="text-xs text-[#71717a]">Global website configuration</p>
+              <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Maintenance Mode</h4>
+              <p className="text-xs text-[#71717a]">
+                {maintenance ? 'Website is currently in maintenance — only staff accounts can sign in' : 'Website is live and accessible'}
+              </p>
             </div>
           </div>
-        </CardHeader>
-        <CardBody>
-          <div className={`p-5 border ${maintenance ? 'bg-red-500/5 border-red-500/20' : 'bg-[#F9F7F4] dark:bg-[#111118] border-[#E8E3DB] dark:border-[#2a2a3c]'}`}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle size={20} className={maintenance ? 'text-red-400' : 'text-[#71717a]'} />
-                <div>
-                  <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Maintenance Mode</h4>
-                  <p className="text-xs text-[#71717a]">
-                    {maintenance ? 'Website is currently in maintenance' : 'Website is live and accessible'}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={maintenance ? 'primary' : 'danger'}
-                loading={loading}
-                onClick={toggleMaintenance}
-                data-testid="maintenance-toggle"
-              >
-                {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
-              </Button>
-            </div>
+          <Button
+            variant={maintenance ? 'primary' : 'danger'}
+            loading={loadingMaintenance}
+            onClick={toggleMaintenance}
+            data-testid="maintenance-toggle"
+          >
+            {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
+          </Button>
+        </div>
+        {updatedAt && (
+          <p className="text-[11px] text-[#A8A29E] mt-3">
+            Last changed {timeAgo(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''}
+          </p>
+        )}
+      </div>
+
+      {/* Support email */}
+      <div className="p-5 border border-[#E8E3DB] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+        <div className="flex items-center gap-3 mb-4">
+          <Mail size={18} className="text-[#4ECDC4]" />
+          <div>
+            <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Support Contact Email</h4>
+            <p className="text-xs text-[#71717a]">Shown on the Contact page and the site footer.</p>
           </div>
-        </CardBody>
-      </Card>
+        </div>
+        <form onSubmit={saveEmail} className="flex items-end gap-2 flex-wrap">
+          <Input
+            type="email"
+            value={emailInput}
+            onChange={e => setEmailInput(e.target.value)}
+            wrapperClassName="flex-1 min-w-[220px]"
+            placeholder="support@yourdomain.com"
+          />
+          <Button type="submit" icon={Save} loading={savingEmail} disabled={!emailDirty}>Save</Button>
+        </form>
+      </div>
+
+      {/* System health */}
+      <div className="p-5 border border-[#E8E3DB] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+        <div className="flex items-center gap-3 mb-4">
+          <ShieldCheck size={18} className="text-[#4ECDC4]" />
+          <div>
+            <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">System Health</h4>
+            <p className="text-xs text-[#71717a]">Read-only status of key backend configuration.</p>
+          </div>
+        </div>
+        {health ? (
+          <div>
+            <HealthRow label="Backend version" ok neutral value={`v${health.version}`} />
+            <HealthRow
+              label="Stripe payments"
+              ok={health.stripe_configured}
+              value={health.stripe_configured ? `configured (${health.stripe_mode || 'unknown'})` : 'not configured'}
+            />
+            <HealthRow
+              label="Stripe webhook"
+              ok={health.stripe_webhook_configured}
+              value={health.stripe_webhook_configured ? 'configured' : 'not configured'}
+            />
+            <HealthRow
+              label="Session persistence"
+              ok={health.jwt_persistent}
+              value={health.jwt_persistent ? 'persistent across restarts' : 'ephemeral — sessions drop on restart'}
+            />
+            <HealthRow
+              label="Emergency setup key"
+              ok={health.master_key_configured}
+              value={health.master_key_configured ? 'configured' : 'not set'}
+            />
+          </div>
+        ) : (
+          <p className="text-xs text-[#A8A29E]">Loading…</p>
+        )}
+      </div>
     </div>
   );
 };

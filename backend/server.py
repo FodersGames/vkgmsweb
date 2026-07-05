@@ -423,6 +423,8 @@ class ServerStatusRequest(BaseModel):
 
 class ServerStatusResponse(BaseModel):
     status: str
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
 
 class UpdateUserPermissionsRequest(BaseModel):
     permissions: List[str]
@@ -486,7 +488,8 @@ class BlogUpdateRequest(BaseModel):
     published: Optional[bool] = None
 
 class WebsiteSettingsRequest(BaseModel):
-    maintenance_mode: bool
+    maintenance_mode: Optional[bool] = None
+    support_email: Optional[str] = None
 
 class ChatMessageRequest(BaseModel):
     username: str
@@ -1401,7 +1404,14 @@ async def change_status(slug: str, req: ServerStatusRequest, user=Depends(requir
 async def get_status(slug: str):
     await get_project_or_404(slug)
     doc = await db.server_status.find_one({"project_slug": slug})
-    return ServerStatusResponse(status=doc["status"] if doc else "open")
+    if not doc:
+        return ServerStatusResponse(status="open")
+    updated_at = doc.get("updated_at")
+    return ServerStatusResponse(
+        status=doc["status"],
+        updated_at=updated_at.isoformat() if isinstance(updated_at, datetime) else updated_at,
+        updated_by=doc.get("updated_by"),
+    )
 
 # ============== PROJECT-SCOPED: LOGS ==============
 # Curated set of log types that are meaningful in a per-project activity feed.
@@ -1705,19 +1715,55 @@ async def delete_blog_post(post_slug: str, user=Depends(require_permission("dele
     return {"success": True, "message": "Post deleted"}
 
 # ============== WEBSITE: SETTINGS ==============
+DEFAULT_SUPPORT_EMAIL = "support@vakargames.com"
+
 @api_router.get("/website/settings")
 async def get_website_settings():
     doc = await db.website_settings.find_one({}, {"_id": 0})
     if not doc:
-        return {"maintenance_mode": False}
-    return {"maintenance_mode": doc.get("maintenance_mode", False)}
+        return {"maintenance_mode": False, "support_email": DEFAULT_SUPPORT_EMAIL}
+    updated_at = doc.get("updated_at")
+    return {
+        "maintenance_mode": doc.get("maintenance_mode", False),
+        "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
+        "updated_at": updated_at.isoformat() if isinstance(updated_at, datetime) else updated_at,
+        "updated_by": doc.get("updated_by"),
+    }
 
 @api_router.put("/website/settings")
 async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(require_permission("manage_website"))):
-    await db.website_settings.update_one({}, {"$set": {"maintenance_mode": req.maintenance_mode, "updated_at": datetime.now(timezone.utc),
-                                                        "updated_by": user["username"]}}, upsert=True)
-    await log_action("website", f"Maintenance mode {'enabled' if req.maintenance_mode else 'disabled'}", user=user["username"])
-    return {"success": True, "maintenance_mode": req.maintenance_mode}
+    updates = {"updated_at": datetime.now(timezone.utc), "updated_by": user["username"]}
+    log_parts = []
+    if req.maintenance_mode is not None:
+        updates["maintenance_mode"] = req.maintenance_mode
+        log_parts.append(f"maintenance {'enabled' if req.maintenance_mode else 'disabled'}")
+    if req.support_email is not None:
+        email = req.support_email.strip()
+        if email and not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
+            raise HTTPException(status_code=400, detail="Invalid email address")
+        updates["support_email"] = email or DEFAULT_SUPPORT_EMAIL
+        log_parts.append(f"support email set to '{updates['support_email']}'")
+    await db.website_settings.update_one({}, {"$set": updates}, upsert=True)
+    if log_parts:
+        await log_action("website", "Settings updated: " + ", ".join(log_parts), user=user["username"])
+    doc = await db.website_settings.find_one({}, {"_id": 0})
+    return {
+        "success": True,
+        "maintenance_mode": doc.get("maintenance_mode", False),
+        "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
+    }
+
+@api_router.get("/admin/system/health")
+async def get_system_health(user=Depends(require_permission("manage_website"))):
+    stripe_key = os.environ.get('STRIPE_SECRET_KEY', '')
+    return {
+        "version": VERSION,
+        "jwt_persistent": not _JWT_EPHEMERAL,
+        "master_key_configured": bool(SETUP_KEY),
+        "stripe_configured": bool(stripe_key),
+        "stripe_mode": "live" if stripe_key.startswith("sk_live_") else ("test" if stripe_key.startswith("sk_test_") else None),
+        "stripe_webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
+    }
 
 # ============== CHAT (per-project, public POST/GET + admin moderation) ==============
 @api_router.post("/projects/{project_slug}/chat")
@@ -2843,20 +2889,25 @@ async def list_file_versions(slug: str, user=Depends(require_permission("manage_
         raise HTTPException(status_code=404, detail="Project not found")
     pipeline = [
         {"$match": {"project_slug": slug}},
-        {"$group": {"_id": "$version_tag"}},
+        {"$group": {"_id": "$version_tag", "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}},
     ]
     raw = await db.game_files.aggregate(pipeline).to_list(200)
-    tags = []
+    counts = {}
     for r in raw:
-        t = r["_id"]
-        if t is None:
-            t = "default"
-        if t not in tags:
-            tags.append(t)
-    if "default" not in tags:
-        tags.insert(0, "default")
-    return {"versions": tags, "live_version": project.get("live_version") or "default"}
+        t = r["_id"] or "default"
+        counts[t] = counts.get(t, 0) + r["count"]
+    if "default" not in counts:
+        counts["default"] = 0
+    tags = sorted(counts.keys(), key=lambda t: (t != "default", t))
+    lv_updated_at = project.get("live_version_updated_at")
+    return {
+        "versions": tags,
+        "file_counts": counts,
+        "live_version": project.get("live_version") or "default",
+        "live_version_updated_at": lv_updated_at.isoformat() if isinstance(lv_updated_at, datetime) else lv_updated_at,
+        "live_version_updated_by": project.get("live_version_updated_by"),
+    }
 
 @api_router.get("/admin/projects/{slug}/versions/{tag}/download")
 async def download_file_version_zip(slug: str, tag: str, user=Depends(require_any_of("manage_files", "claim_missions"))):
@@ -3003,7 +3054,10 @@ async def set_live_version(slug: str, req: LiveVersionRequest, user=Depends(requ
     project = await db.projects.find_one({"slug": slug})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    await db.projects.update_one({"slug": slug}, {"$set": {"live_version": tag}})
+    now = datetime.now(timezone.utc)
+    await db.projects.update_one({"slug": slug}, {"$set": {
+        "live_version": tag, "live_version_updated_at": now, "live_version_updated_by": user["username"],
+    }})
     await log_action("files", f"Live version set to '{tag}'", project_slug=slug, user=user["username"])
     return {"success": True, "live_version": tag}
 

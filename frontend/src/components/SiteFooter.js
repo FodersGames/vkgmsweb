@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-export const SiteFooter = ({ onAbout }) => (
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
+
+export const SiteFooter = ({ onAbout }) => {
+  const [supportEmail, setSupportEmail] = useState(DEFAULT_SUPPORT_EMAIL);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/api/website/settings`)
+      .then(r => { if (r.data.support_email) setSupportEmail(r.data.support_email); })
+      .catch(() => {});
+  }, []);
+
+  return (
   <footer className="bg-[#1C1917]">
     <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 pt-16 pb-10">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 mb-14">
@@ -16,10 +29,10 @@ export const SiteFooter = ({ onAbout }) => (
             Independent game studio.<br />Based in France.
           </p>
           <a
-            href="mailto:support@vakargames.com"
+            href={`mailto:${supportEmail}`}
             className="inline-block mt-5 text-xs text-[#4ECDC4] hover:text-[#45b8b0] transition-colors"
           >
-            support@vakargames.com
+            {supportEmail}
           </a>
         </div>
 
@@ -59,7 +72,7 @@ export const SiteFooter = ({ onAbout }) => (
             </li>
             <li>
               <a
-                href="mailto:support@vakargames.com"
+                href={`mailto:${supportEmail}`}
                 className="text-sm text-[#78716C] hover:text-white transition-colors"
               >
                 Contact
@@ -95,4 +108,5 @@ export const SiteFooter = ({ onAbout }) => (
       </div>
     </div>
   </footer>
-);
+  );
+};

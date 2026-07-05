@@ -7,6 +7,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Send, MessageCircle, Mail, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
 
 const CATEGORIES = [
   { value: 'general', label: 'General question' },
@@ -22,8 +23,15 @@ const Contact = () => {
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [supportEmail, setSupportEmail] = useState(DEFAULT_SUPPORT_EMAIL);
 
   useEffect(() => { document.title = 'Contact — Vakar Games'; }, []);
+
+  useEffect(() => {
+    axios.get(`${API_URL}/api/website/settings`)
+      .then(r => { if (r.data.support_email) setSupportEmail(r.data.support_email); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (user?.email) setForm(f => ({ ...f, email: user.email }));
@@ -198,10 +206,10 @@ const Contact = () => {
                 <h3 className="text-sm font-bold text-[#1C1917]">Email</h3>
               </div>
               <a
-                href="mailto:support@vakargames.com"
+                href={`mailto:${supportEmail}`}
                 className="text-sm text-[#78716C] hover:text-[#4ECDC4] transition-colors"
               >
-                support@vakargames.com
+                {supportEmail}
               </a>
             </div>
 

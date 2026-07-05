@@ -103,6 +103,157 @@ const findCurrentItem = (tabId) => {
   return null;
 };
 
+// ── Nav item ──────────────────────────────────────────────────────────────
+// Hoisted to module scope (not defined inside DashboardContent): keeping it a stable
+// component reference means React patches the existing DOM on re-render instead of
+// remounting it, which is what preserves the sidebar's scroll position across tab clicks.
+
+const NavItem = ({ item, activeTab, selectedProject, onSelect }) => {
+  const Icon     = item.icon;
+  const isActive = activeTab === item.id;
+  const disabled = item.requiresProject && !selectedProject;
+
+  return (
+    <button
+      onClick={() => { if (!disabled) onSelect(item.id); }}
+      disabled={disabled}
+      data-testid={`sidebar-nav-${item.id}`}
+      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors duration-150 border-l-2 ${
+        isActive
+          ? 'border-[#4ECDC4] bg-white/[0.06] text-white font-medium'
+          : disabled
+          ? 'border-transparent text-[#44403C] cursor-not-allowed'
+          : 'border-transparent text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
+      }`}
+    >
+      <Icon
+        size={15}
+        className={`shrink-0 transition-colors ${
+          isActive ? 'text-[#4ECDC4]' : disabled ? 'text-[#44403C]' : 'text-[#78716C]'
+        }`}
+      />
+      <span className="text-[13px] leading-none">{item.label}</span>
+    </button>
+  );
+};
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+// Also hoisted for the same reason as NavItem above.
+
+const SidebarContent = ({
+  onClose, hasPermission, user, projects, selectedProject, selectProject,
+  showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
+  displayName, initials, logout,
+}) => (
+  <div className="flex flex-col h-full bg-[#1C1917]">
+
+    {/* Logo */}
+    <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#292524]">
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-[15px] font-black tracking-[0.16em] text-white leading-tight"
+          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+        >
+          VAKAR GAMES
+        </p>
+        <p className="text-[10px] text-[#78716C] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
+      </div>
+      {onClose && (
+        <button onClick={onClose} className="text-[#78716C] hover:text-white transition-colors ml-1">
+          <X size={18} />
+        </button>
+      )}
+    </div>
+
+    {/* Nav groups */}
+    <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
+      {NAV_GROUPS.map((group, gi) => {
+        const visibleItems = group.items.filter(i => itemVisible(i, hasPermission, user?.is_super_admin));
+        if (!visibleItems.length) return null;
+
+        return (
+          <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534E] px-5 mb-2">
+              {group.label}
+            </p>
+
+            {/* Project selector — Studio only */}
+            {group.id === 'studio' && projects.length > 0 && (
+              <div className="relative mb-2 mx-3" ref={projectDropRef}>
+                <button
+                  onClick={() => setShowProject(v => !v)}
+                  data-testid="project-selector"
+                  className="w-full flex items-center gap-2 px-3 py-2 bg-[#292524] hover:bg-[#33302C] text-left transition-colors"
+                >
+                  <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
+                  <span className="flex-1 text-[12px] font-medium text-white truncate">
+                    {selectedProject?.name || 'Select project…'}
+                  </span>
+                  <ChevronDown
+                    size={12}
+                    className={`text-[#78716C] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {showProject && (
+                  <div
+                    className="absolute z-50 left-0 right-0 mt-1 bg-[#292524] border border-[#33302C] shadow-lg overflow-hidden"
+                    data-testid="project-dropdown"
+                  >
+                    {projects.map(p => (
+                      <button
+                        key={p.slug}
+                        onClick={() => { selectProject(p); setShowProject(false); }}
+                        data-testid={`project-option-${p.slug}`}
+                        className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
+                          selectedProject?.slug === p.slug
+                            ? 'bg-white/[0.06] text-white font-medium'
+                            : 'text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
+                        }`}
+                      >
+                        <span className="flex-1 truncate">{p.name}</span>
+                        {selectedProject?.slug === p.slug && <Check size={11} className="text-[#4ECDC4]" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="px-2">
+              {visibleItems.map(item => (
+                <NavItem key={item.id} item={item} activeTab={activeTab} selectedProject={selectedProject} onSelect={onSelectTab} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+
+    {/* User card */}
+    <div className="shrink-0 border-t border-[#292524] p-3">
+      <div className="flex items-center gap-3 px-2 py-2">
+        <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-white truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-[#78716C] leading-tight">
+            {user?.is_super_admin ? 'Super Admin' : 'Admin'}
+          </p>
+        </div>
+        <button
+          onClick={logout}
+          title="Sign out"
+          data-testid="logout-button"
+          className="p-1.5 text-[#78716C] hover:text-red-400 transition-colors shrink-0"
+        >
+          <LogOut size={15} />
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 const DashboardContent = () => {
@@ -136,147 +287,13 @@ const DashboardContent = () => {
   const currentGroup = findCurrentGroup(activeTab);
   const currentItem  = findCurrentItem(activeTab);
 
-  // ── Nav item ──────────────────────────────────────────────────────────────
+  const onSelectTab = (id) => { setActiveTab(id); setMobileOpen(false); };
 
-  const NavItem = ({ item }) => {
-    const Icon    = item.icon;
-    const isActive  = activeTab === item.id;
-    const disabled  = item.requiresProject && !selectedProject;
-
-    return (
-      <button
-        key={item.id}
-        onClick={() => { if (!disabled) { setActiveTab(item.id); setMobileOpen(false); } }}
-        disabled={disabled}
-        data-testid={`sidebar-nav-${item.id}`}
-        className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors duration-150 border-l-2 ${
-          isActive
-            ? 'border-[#4ECDC4] bg-white/[0.06] text-white font-medium'
-            : disabled
-            ? 'border-transparent text-[#44403C] cursor-not-allowed'
-            : 'border-transparent text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
-        }`}
-      >
-        <Icon
-          size={15}
-          className={`shrink-0 transition-colors ${
-            isActive ? 'text-[#4ECDC4]' : disabled ? 'text-[#44403C]' : 'text-[#78716C]'
-          }`}
-        />
-        <span className="text-[13px] leading-none">{item.label}</span>
-      </button>
-    );
+  const sidebarProps = {
+    hasPermission, user, projects, selectedProject, selectProject,
+    showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
+    displayName, initials, logout,
   };
-
-  // ── Sidebar ───────────────────────────────────────────────────────────────
-
-  const SidebarContent = ({ onClose }) => (
-    <div className="flex flex-col h-full bg-[#1C1917]">
-
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#292524]">
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-[15px] font-black tracking-[0.16em] text-white leading-tight"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-          >
-            VAKAR GAMES
-          </p>
-          <p className="text-[10px] text-[#78716C] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
-        </div>
-        {onClose && (
-          <button onClick={onClose} className="text-[#78716C] hover:text-white transition-colors ml-1">
-            <X size={18} />
-          </button>
-        )}
-      </div>
-
-      {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
-        {NAV_GROUPS.map((group, gi) => {
-          const visibleItems = group.items.filter(i => itemVisible(i, hasPermission, user?.is_super_admin));
-          if (!visibleItems.length) return null;
-
-          return (
-            <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534E] px-5 mb-2">
-                {group.label}
-              </p>
-
-              {/* Project selector — Studio only */}
-              {group.id === 'studio' && projects.length > 0 && (
-                <div className="relative mb-2 mx-3" ref={projectDropRef}>
-                  <button
-                    onClick={() => setShowProject(v => !v)}
-                    data-testid="project-selector"
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-[#292524] hover:bg-[#33302C] text-left transition-colors"
-                  >
-                    <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                    <span className="flex-1 text-[12px] font-medium text-white truncate">
-                      {selectedProject?.name || 'Select project…'}
-                    </span>
-                    <ChevronDown
-                      size={12}
-                      className={`text-[#78716C] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                  {showProject && (
-                    <div
-                      className="absolute z-50 left-0 right-0 mt-1 bg-[#292524] border border-[#33302C] shadow-lg overflow-hidden"
-                      data-testid="project-dropdown"
-                    >
-                      {projects.map(p => (
-                        <button
-                          key={p.slug}
-                          onClick={() => { selectProject(p); setShowProject(false); }}
-                          data-testid={`project-option-${p.slug}`}
-                          className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
-                            selectedProject?.slug === p.slug
-                              ? 'bg-white/[0.06] text-white font-medium'
-                              : 'text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
-                          }`}
-                        >
-                          <span className="flex-1 truncate">{p.name}</span>
-                          {selectedProject?.slug === p.slug && <Check size={11} className="text-[#4ECDC4]" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="px-2">
-                {visibleItems.map(item => <NavItem key={item.id} item={item} />)}
-              </div>
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* User card */}
-      <div className="shrink-0 border-t border-[#292524] p-3">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-white truncate leading-tight">{displayName}</p>
-            <p className="text-[11px] text-[#78716C] leading-tight">
-              {user?.is_super_admin ? 'Super Admin' : 'Admin'}
-            </p>
-          </div>
-          <button
-            onClick={logout}
-            title="Sign out"
-            data-testid="logout-button"
-            className="p-1.5 text-[#78716C] hover:text-red-400 transition-colors shrink-0"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -285,7 +302,7 @@ const DashboardContent = () => {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex shrink-0 w-64 h-full">
-        <SidebarContent />
+        <SidebarContent {...sidebarProps} />
       </aside>
 
       {/* Mobile sidebar */}
@@ -296,7 +313,7 @@ const DashboardContent = () => {
             onClick={() => setMobileOpen(false)}
           />
           <aside className="relative z-10 w-72 h-full shadow-2xl">
-            <SidebarContent onClose={() => setMobileOpen(false)} />
+            <SidebarContent {...sidebarProps} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
