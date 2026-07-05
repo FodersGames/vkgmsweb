@@ -928,13 +928,16 @@
         }
 
         async _chatFetchState(channel) {
-            const empty = { messages: [], blocked: false, muted_until: null };
+            const empty = { messages: [], blocked: false, muted_until: null, channel_enabled: true, in_guild: false };
             if (!this._playAccessToken || !this._playSlug) return empty;
             try {
                 const r = await this._playFetch(`/api/play/chat?project_slug=${encodeURIComponent(this._playSlug)}&channel=${channel}&limit=50&_ts=${Date.now()}`, { cache: 'no-store' });
                 if (!r.ok) { this._log('warn', 'Chat: failed to load ' + channel + ' messages (HTTP ' + r.status + ')', 'Chat'); return empty; }
                 const d = await r.json();
-                return { messages: d.messages || [], blocked: !!d.blocked, muted_until: d.muted_until || null };
+                return {
+                    messages: d.messages || [], blocked: !!d.blocked, muted_until: d.muted_until || null,
+                    channel_enabled: d.channel_enabled !== false, in_guild: !!d.in_guild,
+                };
             } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return empty; }
         }
 
@@ -1184,16 +1187,36 @@
             this._chatListEl.style.padding = '0';
             this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">Loading…</div>';
 
-            this._myGuild = await this._guildFetchMine();
+            const state = await this._chatFetchState('guild');
             if (this._chatChannel !== 'guild') return; // switched tabs while loading
 
-            if (!this._myGuild) {
+            if (!state.channel_enabled) {
+                this._myGuild = null;
+                this._chatListEl.innerHTML = '';
+                this._updateChatComposerState(false, null, false);
+                return;
+            }
+
+            if (!state.in_guild) {
+                this._myGuild = null;
                 this._chatListEl.style.padding = '16px';
                 await this._renderGuildBrowse(this._chatListEl);
                 return;
             }
+
+            this._myGuild = await this._guildFetchMine();
+            if (this._chatChannel !== 'guild') return;
             this._renderGuildStrip();
-            await this._refreshChatMessages('guild', false);
+            this._chatCache.guild = state.messages;
+            this._chatListEl.style.padding = '0';
+            this._chatListEl.innerHTML = '';
+            if (state.messages.length === 0) {
+                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
+            } else {
+                state.messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
+                this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
+            }
+            this._updateChatComposerState(state.blocked, state.muted_until, true);
         }
 
         _renderGuildStrip() {
