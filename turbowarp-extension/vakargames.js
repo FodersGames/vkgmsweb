@@ -30,6 +30,7 @@
     };
     const GUILD_COLORS = ['#4ECDC4', '#F2994A', '#EB5757', '#9B51E0', '#2F80ED', '#27AE60', '#F2C94C', '#BB6BD9'];
     const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+    const GUILD_MAX_MEMBERS = 10;
 
     // ── IndexedDB cache pour les fichiers de jeu ──────────────────────────────
 
@@ -145,9 +146,8 @@
             this._chatComposerEl = null;
             this._chatBannerEl   = null;
             this._chatMuteInterval = null;
+            this._guildStripEl   = null; // mini guild header shown above messages when viewing the Guild tab
             this._myGuild     = null; // { id, name, description, color, logo_id, member_count, my_role } | null
-            this._guildPanel  = null;
-            this._guildPanelOnClose = null;
 
             // In-game admin tools: journal + dev/logs panels
             this._logEntries  = [];   // { ts, level: 'info'|'warn'|'error', source, message }
@@ -311,16 +311,6 @@
                         text:      'rafraîchir le chat'
                     },
                     '---',
-                    {
-                        opcode:    'ouvrirPanelGuilde',
-                        blockType: Scratch.BlockType.COMMAND,
-                        text:      'ouvrir le panneau guilde'
-                    },
-                    {
-                        opcode:    'fermerPanelGuilde',
-                        blockType: Scratch.BlockType.COMMAND,
-                        text:      'fermer le panneau guilde'
-                    },
                     {
                         opcode:    'suisJeDansUneGuilde',
                         blockType: Scratch.BlockType.BOOLEAN,
@@ -1065,20 +1055,14 @@
         }
 
         async rafraichirChat() {
-            if (this._chatPanel) await this._refreshChatMessages(this._chatChannel, true);
+            if (this._chatPanel) await this._renderChatBody();
         }
-
-        async ouvrirPanelGuilde() {
-            return new Promise(resolve => this._showGuildPanel(resolve));
-        }
-
-        fermerPanelGuilde() { this._closeGuildPanel(); }
 
         async suisJeDansUneGuilde() { this._myGuild = await this._guildFetchMine(); return !!this._myGuild; }
         async maNomGuilde()         { this._myGuild = await this._guildFetchMine(); return this._myGuild ? this._myGuild.name : ''; }
         async monRoleGuilde()       { this._myGuild = await this._guildFetchMine(); return this._myGuild ? this._myGuild.my_role : ''; }
 
-        // ── Chat window ───────────────────────────────────────────────────────
+        // ── Chat & Guild window (single merged interface) ──────────────────────
 
         _chatAvatarColor(name) {
             let hash = 0;
@@ -1136,18 +1120,25 @@
             const color = this._chatAvatarColor(msg.username || '');
             const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            let badgeHtml = '';
+            if (msg.guild_badge && msg.guild_badge.logo_id) {
+                const gb = msg.guild_badge;
+                badgeHtml = `<span title="${this._escapeHtml(gb.name || '')}" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:${gb.color}33;font-size:10px;flex-shrink:0">${GUILD_LOGO_EMOJI[gb.logo_id] || '🛡️'}</span>`;
+            }
+
             const head = document.createElement('div');
-            head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:3px';
+            head.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:3px';
             head.innerHTML =
                 `<div style="width:22px;height:22px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${this._escapeHtml(initials)}</div>` +
+                badgeHtml +
                 `<span style="font-size:12px;font-weight:700;color:#f2f2f5">${this._escapeHtml(msg.username || '?')}</span>` +
                 `<span style="font-size:10px;color:#5c5d6b;margin-left:auto">${time}</span>`;
             row.appendChild(head);
 
-            const body = document.createElement('div');
-            body.style.cssText = 'font-size:13px;color:#d6d7de;margin-left:30px;word-break:break-word';
-            body.textContent = msg.message;
-            row.appendChild(body);
+            const bodyEl = document.createElement('div');
+            bodyEl.style.cssText = 'font-size:13px;color:#d6d7de;margin-left:30px;word-break:break-word';
+            bodyEl.textContent = msg.message;
+            row.appendChild(bodyEl);
 
             const reactBar = document.createElement('div');
             reactBar.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 0 30px';
@@ -1163,6 +1154,7 @@
             const state = await this._chatFetchState(channel);
             this._chatCache[channel] = state.messages;
             if (this._chatChannel !== channel || !this._chatListEl) return;
+            this._chatListEl.style.padding = '0';
             this._chatListEl.innerHTML = '';
             if (state.messages.length === 0) {
                 this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
@@ -1170,7 +1162,62 @@
                 state.messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
                 this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
             }
-            this._updateChatComposerState(state.blocked, state.muted_until);
+            this._updateChatComposerState(state.blocked, state.muted_until, state.channel_enabled);
+        }
+
+        // Decides what the body shows: Global messages, my guild's messages, or —
+        // if on the Guild tab without a guild — the browse/create view.
+        async _renderChatBody() {
+            if (!this._chatListEl) return;
+
+            if (this._chatChannel === 'global') {
+                if (this._guildStripEl) this._guildStripEl.style.display = 'none';
+                await this._refreshChatMessages('global', true);
+                return;
+            }
+
+            // Guild tab
+            if (this._guildStripEl) this._guildStripEl.style.display = 'none';
+            if (this._chatComposerEl) this._chatComposerEl.style.display = 'none';
+            if (this._chatBannerEl) this._chatBannerEl.style.display = 'none';
+            this._stopChatMuteCountdown();
+            this._chatListEl.style.padding = '0';
+            this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">Loading…</div>';
+
+            this._myGuild = await this._guildFetchMine();
+            if (this._chatChannel !== 'guild') return; // switched tabs while loading
+
+            if (!this._myGuild) {
+                this._chatListEl.style.padding = '16px';
+                await this._renderGuildBrowse(this._chatListEl);
+                return;
+            }
+            this._renderGuildStrip();
+            await this._refreshChatMessages('guild', false);
+        }
+
+        _renderGuildStrip() {
+            if (!this._guildStripEl || !this._myGuild) return;
+            const g = this._myGuild;
+            this._guildStripEl.style.display = 'flex';
+            this._guildStripEl.innerHTML =
+                `<div style="width:22px;height:22px;border-radius:6px;background:${g.color}33;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">${GUILD_LOGO_EMOJI[g.logo_id] || '🛡️'}</div>` +
+                `<span style="font-size:12px;font-weight:700;color:#f2f2f5;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:8px">${this._escapeHtml(g.name)}</span>` +
+                `<span style="font-size:10px;color:#8f909c;margin-right:6px">${g.member_count}/${GUILD_MAX_MEMBERS}</span>`;
+            const infoBtn = document.createElement('button');
+            infoBtn.textContent = 'Info';
+            infoBtn.style.cssText = 'font-size:11px;font-weight:700;color:#4ECDC4;background:none;border:1px solid #2a2b34;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0';
+            infoBtn.addEventListener('click', () => this._showGuildInfoView());
+            this._guildStripEl.appendChild(infoBtn);
+        }
+
+        async _showGuildInfoView() {
+            if (this._chatComposerEl) this._chatComposerEl.style.display = 'none';
+            if (this._chatBannerEl) this._chatBannerEl.style.display = 'none';
+            if (this._guildStripEl) this._guildStripEl.style.display = 'none';
+            this._stopChatMuteCountdown();
+            this._chatListEl.style.padding = '16px';
+            await this._renderGuildHome(this._chatListEl);
         }
 
         async _showChatPanel(onClose) {
@@ -1179,6 +1226,7 @@
                 this._stopChatMuteCountdown();
                 this._chatComposerEl = null;
                 this._chatBannerEl = null;
+                this._guildStripEl = null;
                 this._chatPanel.remove();
                 this._chatPanel = null;
                 const prevOnClose = this._chatPanelOnClose;
@@ -1191,7 +1239,6 @@
                 return;
             }
             this._chatPanelOnClose = onClose || null;
-            this._myGuild = await this._guildFetchMine();
 
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
@@ -1203,7 +1250,7 @@
 
             const header = document.createElement('div');
             header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #2a2b34;flex-shrink:0';
-            header.innerHTML = '<span style="font-size:13px;font-weight:700;color:#f2f2f5">💬 Chat</span>';
+            header.innerHTML = '<span style="font-size:13px;font-weight:700;color:#f2f2f5">Chat</span>';
             const closeBtn = document.createElement('button');
             closeBtn.textContent = '✕';
             closeBtn.style.cssText = 'background:none;border:none;color:#8f909c;font-size:14px;cursor:pointer;padding:2px 6px';
@@ -1215,23 +1262,33 @@
             tabs.style.cssText = 'display:flex;border-bottom:1px solid #2a2b34;flex-shrink:0';
             const globalTab = document.createElement('button');
             const guildTab  = document.createElement('button');
-            const tabStyle = (active, disabled) =>
-                `flex:1;padding:9px 0;border:none;background:${active ? '#22232b' : 'transparent'};color:${disabled ? '#4a4b57' : active ? '#4ECDC4' : '#8f909c'};font-size:12px;font-weight:700;cursor:${disabled ? 'not-allowed' : 'pointer'};border-bottom:2px solid ${active ? '#4ECDC4' : 'transparent'}`;
-            globalTab.textContent = '🌐 Global';
-            guildTab.textContent  = '🛡️ Guild';
-            guildTab.disabled = !this._myGuild;
-            guildTab.title = this._myGuild ? '' : 'Join a guild first';
-            const setTab = (channel) => {
-                if (channel === 'guild' && !this._myGuild) return;
-                this._chatChannel = channel;
-                globalTab.style.cssText = tabStyle(channel === 'global', false);
-                guildTab.style.cssText  = tabStyle(channel === 'guild', !this._myGuild);
-                this._refreshChatMessages(channel, true);
-            };
-            globalTab.addEventListener('click', () => setTab('global'));
-            guildTab.addEventListener('click',  () => setTab('guild'));
+            const tabStyle = (active) =>
+                `flex:1;padding:9px 0;border:none;background:${active ? '#22232b' : 'transparent'};color:${active ? '#4ECDC4' : '#8f909c'};font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid ${active ? '#4ECDC4' : 'transparent'}`;
+            globalTab.textContent = 'Global';
+            guildTab.textContent  = 'Guild';
+            globalTab.style.cssText = tabStyle(true);
+            guildTab.style.cssText  = tabStyle(false);
+            globalTab.addEventListener('click', () => {
+                if (this._chatChannel === 'global') return;
+                this._chatChannel = 'global';
+                globalTab.style.cssText = tabStyle(true);
+                guildTab.style.cssText  = tabStyle(false);
+                this._renderChatBody();
+            });
+            guildTab.addEventListener('click', () => {
+                if (this._chatChannel === 'guild') return;
+                this._chatChannel = 'guild';
+                globalTab.style.cssText = tabStyle(false);
+                guildTab.style.cssText  = tabStyle(true);
+                this._renderChatBody();
+            });
             tabs.appendChild(globalTab); tabs.appendChild(guildTab);
             card.appendChild(tabs);
+
+            const guildStrip = document.createElement('div');
+            guildStrip.style.cssText = 'display:none;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #2a2b34;background:#1c1d23;flex-shrink:0';
+            card.appendChild(guildStrip);
+            this._guildStripEl = guildStrip;
 
             const list = document.createElement('div');
             list.style.cssText = 'flex:1;overflow-y:auto;background:#141519';
@@ -1268,16 +1325,24 @@
             this._chatBannerEl = banner;
 
             document.body.appendChild(overlay);
-            setTab('global');
+            this._chatChannel = 'global';
+            await this._renderChatBody();
         }
 
-        _updateChatComposerState(blocked, mutedUntil) {
+        _updateChatComposerState(blocked, mutedUntil, channelEnabled) {
             if (!this._chatComposerEl || !this._chatBannerEl) return;
             const isMuted = mutedUntil && new Date(mutedUntil).getTime() > Date.now();
-            if (blocked) {
+            if (channelEnabled === false) {
                 this._chatComposerEl.style.display = 'none';
                 this._chatBannerEl.style.display = 'block';
-                this._chatBannerEl.textContent = '🚫 You are blocked from chat in this game.';
+                this._chatBannerEl.textContent = this._chatChannel === 'guild'
+                    ? 'The guild system is currently in maintenance.'
+                    : 'Global chat is currently in maintenance.';
+                this._stopChatMuteCountdown();
+            } else if (blocked) {
+                this._chatComposerEl.style.display = 'none';
+                this._chatBannerEl.style.display = 'block';
+                this._chatBannerEl.textContent = 'You are blocked from chat in this game.';
                 this._stopChatMuteCountdown();
             } else if (isMuted) {
                 this._chatComposerEl.style.display = 'none';
@@ -1297,13 +1362,13 @@
                 if (!this._chatBannerEl) { this._stopChatMuteCountdown(); return; }
                 const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
                 if (remaining <= 0) {
-                    this._chatBannerEl.textContent = '⏳ Your mute has expired — refresh the chat to send messages again.';
+                    this._chatBannerEl.textContent = 'Your mute has expired — refresh the chat to send messages again.';
                     this._stopChatMuteCountdown();
                     return;
                 }
                 const m = Math.floor(remaining / 60), s = remaining % 60;
                 const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
-                this._chatBannerEl.textContent = '🔇 You are muted — ' + label + ' remaining.';
+                this._chatBannerEl.textContent = 'You are muted — ' + label + ' remaining.';
             };
             tick();
             this._chatMuteInterval = setInterval(tick, 1000);
@@ -1317,13 +1382,14 @@
             this._stopChatMuteCountdown();
             this._chatComposerEl = null;
             this._chatBannerEl = null;
+            this._guildStripEl = null;
             if (this._chatPanel) { this._chatPanel.remove(); this._chatPanel = null; this._chatListEl = null; }
             const cb = this._chatPanelOnClose;
             this._chatPanelOnClose = null;
             if (cb) cb();
         }
 
-        // ── Guild panel ───────────────────────────────────────────────────────
+        // ── Guild views (rendered inline into the chat window's body) ──────────
 
         _renderGuildForm(container, existing, onSubmit, onCancel) {
             container.innerHTML = '';
@@ -1413,8 +1479,13 @@
             container.appendChild(btnRow);
         }
 
-        async _renderGuildBrowse(body, onClose) {
+        async _renderGuildBrowse(body) {
             body.innerHTML = '';
+
+            const intro = document.createElement('p');
+            intro.textContent = "You're not in a guild yet. Join one below, or create your own.";
+            intro.style.cssText = 'font-size:12px;color:#b8b9c4;margin:0 0 12px;line-height:1.5';
+            body.appendChild(intro);
 
             const searchInput = document.createElement('input');
             searchInput.type = 'text';
@@ -1435,19 +1506,20 @@
                     return;
                 }
                 guilds.forEach(g => {
+                    const full = g.member_count >= GUILD_MAX_MEMBERS;
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#22232b;border-radius:6px';
                     row.innerHTML =
                         `<div style="width:28px;height:28px;border-radius:7px;background:${g.color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${GUILD_LOGO_EMOJI[g.logo_id] || '🛡️'}</div>` +
                         `<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#f2f2f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(g.name)}</div>` +
-                        `<div style="font-size:10px;color:#8f909c">${g.member_count} member${g.member_count !== 1 ? 's' : ''}</div></div>`;
-                    const joinBtn = this._panelIconBtn('Join', '');
+                        `<div style="font-size:10px;color:${full ? '#eb5757' : '#8f909c'}">${g.member_count}/${GUILD_MAX_MEMBERS} member${g.member_count !== 1 ? 's' : ''}${full ? ' — Full' : ''}</div></div>`;
+                    const joinBtn = this._panelIconBtn(full ? 'Full' : 'Join', '');
+                    joinBtn.disabled = full;
                     joinBtn.addEventListener('click', async () => {
                         joinBtn.disabled = true;
                         const result = await this._guildJoin(g.id);
                         if (result.ok) {
-                            this._myGuild = await this._guildFetchMine();
-                            await this._renderGuildHome(body, onClose);
+                            await this._renderChatBody();
                         } else {
                             joinBtn.disabled = false;
                             this._log('warn', 'Guild: join failed — ' + (result.error || 'unknown error'), 'Guild');
@@ -1472,28 +1544,33 @@
                 const result = await this._guildCreate(fields.name, fields.description, fields.color, fields.logo_id);
                 if (result.ok) {
                     this._myGuild = result.guild;
-                    await this._renderGuildHome(body, onClose);
+                    await this._renderChatBody();
                 }
                 return result;
             }, null);
         }
 
-        async _renderGuildHome(body, onClose) {
+        async _renderGuildHome(body) {
             body.innerHTML = '<div style="font-size:11px;color:#5c5d6b">Loading…</div>';
             const guild = this._myGuild;
-            if (!guild) { await this._renderGuildBrowse(body, onClose); return; }
+            if (!guild) { await this._renderGuildBrowse(body); return; }
             const members = await this._guildMembers(guild.id);
             const myId = this._playPlayer ? this._playPlayer.id : '';
             const myRole = guild.my_role;
 
             body.innerHTML = '';
 
+            const backBtn = this._panelIconBtn('← Back to chat', '');
+            backBtn.style.cssText += ';margin-bottom:12px';
+            backBtn.addEventListener('click', () => this._renderChatBody());
+            body.appendChild(backBtn);
+
             const head = document.createElement('div');
             head.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:6px';
             head.innerHTML =
                 `<div style="width:44px;height:44px;border-radius:10px;background:${guild.color}33;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${GUILD_LOGO_EMOJI[guild.logo_id] || '🛡️'}</div>` +
                 `<div style="min-width:0"><div style="font-size:15px;font-weight:800;color:#f2f2f5">${this._escapeHtml(guild.name)}</div>` +
-                `<div style="font-size:11px;color:#8f909c">${guild.member_count} member${guild.member_count !== 1 ? 's' : ''} · ${this._escapeHtml(myRole)}</div></div>`;
+                `<div style="font-size:11px;color:#8f909c">${guild.member_count}/${GUILD_MAX_MEMBERS} member${guild.member_count !== 1 ? 's' : ''} · ${this._escapeHtml(myRole)}</div></div>`;
             body.appendChild(head);
 
             if (guild.description) {
@@ -1509,9 +1586,9 @@
                 const editBtn = this._panelIconBtn('Edit Guild', '');
                 editBtn.addEventListener('click', () => {
                     body.innerHTML = '';
-                    const backBtn = this._panelIconBtn('← Back', '');
-                    backBtn.addEventListener('click', () => this._renderGuildHome(body, onClose));
-                    body.appendChild(backBtn);
+                    const innerBackBtn = this._panelIconBtn('← Back', '');
+                    innerBackBtn.addEventListener('click', () => this._renderGuildHome(body));
+                    body.appendChild(innerBackBtn);
                     const formContainer = document.createElement('div');
                     formContainer.style.cssText = 'margin-top:12px';
                     body.appendChild(formContainer);
@@ -1519,10 +1596,10 @@
                         const result = await this._guildUpdate(guild.id, fields);
                         if (result.ok) {
                             this._myGuild = Object.assign({}, result.guild, { my_role: myRole });
-                            await this._renderGuildHome(body, onClose);
+                            await this._renderGuildHome(body);
                         }
                         return result;
-                    }, () => this._renderGuildHome(body, onClose));
+                    }, () => this._renderGuildHome(body));
                 });
                 actionRow.appendChild(editBtn);
             }
@@ -1533,8 +1610,7 @@
                 const ok = await this._guildLeave(guild.id);
                 if (ok) {
                     this._myGuild = null;
-                    if (this._chatChannel === 'guild') this._chatChannel = 'global';
-                    await this._renderGuildBrowse(body, onClose);
+                    await this._renderChatBody();
                 } else {
                     leaveBtn.disabled = false;
                 }
@@ -1565,7 +1641,7 @@
                             roleBtn.addEventListener('click', async () => {
                                 const newRole = m.role === 'officer' ? 'member' : 'officer';
                                 const ok = await this._guildSetRole(guild.id, m.user_id, newRole);
-                                if (ok) await this._renderGuildHome(body, onClose);
+                                if (ok) await this._renderGuildHome(body);
                             });
                             row.appendChild(roleBtn);
                         }
@@ -1573,7 +1649,7 @@
                         kickBtn.style.cssText += ';color:#eb5757';
                         kickBtn.addEventListener('click', async () => {
                             const ok = await this._guildKick(guild.id, m.user_id);
-                            if (ok) await this._renderGuildHome(body, onClose);
+                            if (ok) await this._renderGuildHome(body);
                         });
                         row.appendChild(kickBtn);
                     }
@@ -1581,61 +1657,6 @@
                 memberList.appendChild(row);
             });
             body.appendChild(memberList);
-        }
-
-        async _showGuildPanel(onClose) {
-            if (this._guildPanel) {
-                // Replacing an already-open panel: unstick any script waiting on it first.
-                this._guildPanel.remove();
-                this._guildPanel = null;
-                const prevOnClose = this._guildPanelOnClose;
-                this._guildPanelOnClose = null;
-                if (prevOnClose) prevOnClose();
-            }
-            if (!this._playAccessToken) {
-                this._log('warn', 'Guild: sign in first', 'Guild');
-                if (onClose) onClose();
-                return;
-            }
-            this._guildPanelOnClose = onClose || null;
-            this._myGuild = await this._guildFetchMine();
-
-            const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
-            this._guildPanel = overlay;
-
-            const card = document.createElement('div');
-            card.style.cssText = 'width:460px;max-width:92vw;max-height:88vh;background:#191a1f;border:1px solid #2a2b34;border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)';
-            overlay.appendChild(card);
-
-            const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #2a2b34;flex-shrink:0';
-            header.innerHTML = '<span style="font-size:13px;font-weight:700;color:#f2f2f5">🛡️ Guild</span>';
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = '✕';
-            closeBtn.style.cssText = 'background:none;border:none;color:#8f909c;font-size:14px;cursor:pointer;padding:2px 6px';
-            closeBtn.addEventListener('click', () => this._closeGuildPanel());
-            header.appendChild(closeBtn);
-            card.appendChild(header);
-
-            const body = document.createElement('div');
-            body.style.cssText = 'flex:1;overflow-y:auto;padding:16px';
-            card.appendChild(body);
-
-            if (this._myGuild) {
-                await this._renderGuildHome(body, onClose);
-            } else {
-                await this._renderGuildBrowse(body, onClose);
-            }
-
-            document.body.appendChild(overlay);
-        }
-
-        _closeGuildPanel() {
-            if (this._guildPanel) { this._guildPanel.remove(); this._guildPanel = null; }
-            const cb = this._guildPanelOnClose;
-            this._guildPanelOnClose = null;
-            if (cb) cb();
         }
 
         // ══════════════════════════════════════════

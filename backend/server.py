@@ -4130,6 +4130,7 @@ CHAT_HISTORY_CAP = 150
 REACTION_EMOJIS = {"👍", "❤️", "😂", "😮", "😢", "🔥"}
 GUILD_LOGOS = ["shield", "sword", "flame", "star", "wolf", "dragon", "crown", "skull", "eagle", "lion", "anchor", "leaf"]
 GUILD_NAME_MIN, GUILD_NAME_MAX = 3, 30
+GUILD_MAX_MEMBERS = 10
 
 async def _get_chat_maintenance(project_slug: str) -> dict:
     project = await db.projects.find_one({"slug": project_slug}, {"chat_global_enabled": 1, "chat_guilds_enabled": 1})
@@ -4164,6 +4165,8 @@ async def play_chat_send(request: Request, req: PlayChatSendRequest, play_user=D
         raise HTTPException(403, f"Muted for {int((mute['muted_until'] - now).total_seconds())} more seconds")
 
     maintenance = await _get_chat_maintenance(project_slug)
+    membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
+
     guild_id = None
     if req.channel == "global":
         if not maintenance["chat_global_enabled"]:
@@ -4171,10 +4174,15 @@ async def play_chat_send(request: Request, req: PlayChatSendRequest, play_user=D
     else:
         if not maintenance["chat_guilds_enabled"]:
             raise HTTPException(503, "The guild system is currently disabled")
-        membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
         if not membership:
             raise HTTPException(400, "You are not in a guild")
         guild_id = membership["guild_id"]
+
+    guild_badge = None
+    if membership:
+        guild_doc = await db.guilds.find_one({"_id": membership["guild_id"]}, {"logo_id": 1, "color": 1, "name": 1})
+        if guild_doc:
+            guild_badge = {"logo_id": guild_doc.get("logo_id"), "color": guild_doc.get("color"), "name": guild_doc.get("name")}
 
     message = req.message.strip()[:CHAT_MAX_LEN]
     if not message:
@@ -4189,6 +4197,7 @@ async def play_chat_send(request: Request, req: PlayChatSendRequest, play_user=D
         "project_slug": project_slug, "channel": req.channel, "guild_id": guild_id,
         "user_id": play_user["_id"], "username": username, "level": None,
         "message": clean_message, "reactions": [], "timestamp": now,
+        "guild_badge": guild_badge,
     }
     result = await db.chat_messages.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -4213,15 +4222,24 @@ async def play_chat_get(project_slug: str, channel: str = "global", limit: int =
     if mute and mute["muted_until"] > datetime.now(timezone.utc):
         muted_until = mute["muted_until"].isoformat()
 
+    maintenance = await _get_chat_maintenance(project_slug)
+    channel_enabled = maintenance["chat_global_enabled"] if channel == "global" else maintenance["chat_guilds_enabled"]
+
+    my_guild = None
     query: dict = {"project_slug": project_slug, "channel": channel}
     if channel == "guild":
         membership = await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug})
         if not membership:
-            return {"messages": [], "blocked": blocked, "muted_until": muted_until}
+            return {"messages": [], "blocked": blocked, "muted_until": muted_until,
+                     "channel_enabled": channel_enabled, "in_guild": False}
         query["guild_id"] = membership["guild_id"]
+        my_guild = membership["guild_id"]
     messages = await db.chat_messages.find(query).sort("timestamp", -1).limit(limit).to_list(limit)
     messages.reverse()
-    return {"messages": [serialize_doc(m) for m in messages], "blocked": blocked, "muted_until": muted_until}
+    return {
+        "messages": [serialize_doc(m) for m in messages], "blocked": blocked, "muted_until": muted_until,
+        "channel_enabled": channel_enabled, "in_guild": my_guild is not None,
+    }
 
 @api_router.post("/play/chat/{message_id}/react")
 async def play_chat_react(message_id: str, req: ChatReactionRequest, play_user=Depends(_get_play_user_from_access)):
@@ -4337,6 +4355,8 @@ async def play_join_guild(request: Request, guild_id: str, play_user=Depends(_ge
         raise HTTPException(503, "The guild system is currently disabled")
     if await db.guild_members.find_one({"user_id": play_user["_id"], "project_slug": project_slug}):
         raise HTTPException(400, "You are already in a guild")
+    if guild.get("member_count", 0) >= GUILD_MAX_MEMBERS:
+        raise HTTPException(400, f"This guild is full ({GUILD_MAX_MEMBERS}/{GUILD_MAX_MEMBERS} members)")
     try:
         await db.guild_members.insert_one({
             "guild_id": oid, "project_slug": project_slug,
