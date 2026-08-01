@@ -487,7 +487,7 @@ export const FilesManagement = () => {
     return (
       <div className="flex items-center justify-center py-24 text-center">
         <div>
-          <HardDrive size={28} className="text-[#BFBFC4] mx-auto mb-3" />
+          <HardDrive size={28} className="text-[#BFBFC4] dark:text-[#52525b] mx-auto mb-3" />
           <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa]">Select a project to manage its files.</p>
         </div>
       </div>
@@ -521,7 +521,7 @@ export const FilesManagement = () => {
             </button>
             <button
               onClick={() => { setShowUpload(v => !v); setUploadErr(''); }}
-              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-semibold px-4 py-2.5 transition-colors"
+              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-xs font-semibold px-4 py-2.5 transition-colors"
             >
               <Upload size={13} /> Upload file
             </button>
@@ -541,8 +541,8 @@ export const FilesManagement = () => {
                 onClick={() => setActiveVersionTag(tag)}
                 className={`text-xs font-semibold px-2.5 py-1 border transition-colors ${
                   activeVersionTag === tag
-                    ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
-                    : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
+                    ? 'bg-[#1D1D1F] dark:bg-[#e4e4e7] text-white dark:text-[#0e0e15] border-[#1D1D1F] dark:border-[#e4e4e7]'
+                    : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] hover:text-[#1D1D1F] dark:hover:text-white'
                 }`}
               >
                 {tag}
@@ -554,8 +554,8 @@ export const FilesManagement = () => {
                   title={`Télécharger la version ${tag} (.zip)`}
                   className={`px-1 border border-l-0 transition-colors disabled:opacity-50 ${
                     activeVersionTag === tag
-                      ? 'border-[#1D1D1F] text-[#6E6E73] hover:text-[#4ECDC4]'
-                      : 'border-[#D2D2D7] text-[#BFBFC4] hover:text-[#4ECDC4] hover:border-[#BFBFC4]'
+                      ? 'border-[#1D1D1F] dark:border-[#e4e4e7] text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#4ECDC4]'
+                      : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] hover:text-[#4ECDC4] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                   } ${deletable ? '' : 'border-r'}`}
                 >
                   {downloadingVersion === tag ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
@@ -567,8 +567,8 @@ export const FilesManagement = () => {
                   title={`Supprimer la version ${tag}`}
                   className={`px-1 border border-l-0 transition-colors ${
                     activeVersionTag === tag
-                      ? 'border-[#1D1D1F] text-[#6E6E73] hover:text-red-500'
-                      : 'border-[#D2D2D7] text-[#BFBFC4] hover:text-red-500 hover:border-[#BFBFC4]'
+                      ? 'border-[#1D1D1F] dark:border-[#e4e4e7] text-[#6E6E73] dark:text-[#a1a1aa] hover:text-red-500'
+                      : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] hover:text-red-500 hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                   }`}
                 >
                   <X size={10} />
@@ -605,7 +605,7 @@ export const FilesManagement = () => {
             <button
               onClick={createVersion}
               disabled={creatingVersion || !newVersionTag.trim()}
-              className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-semibold px-4 py-2.5 disabled:opacity-50 transition-colors whitespace-nowrap"
+              className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-xs font-semibold px-4 py-2.5 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
               {creatingVersion ? <Loader2 size={12} className="animate-spin" /> : <GitBranch size={12} />}
               Create
@@ -672,7 +672,7 @@ export const FilesManagement = () => {
             onClick={() => fileInputRef.current?.click()}
             className="border-2 border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] bg-[#F5F5F7] dark:bg-[#111118] hover:bg-[#4ECDC4]/5 transition-colors cursor-pointer p-8 text-center"
           >
-            <Upload size={24} className="text-[#BFBFC4] mx-auto mb-2" />
+            <Upload size={24} className="text-[#BFBFC4] dark:text-[#52525b] mx-auto mb-2" />
             {fileEntries.length > 0 ? (
               <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{fileEntries.length} fichier{fileEntries.length > 1 ? 's' : ''} sélectionné{fileEntries.length > 1 ? 's' : ''} — clique pour en ajouter d'autres</p>
             ) : (
@@ -703,7 +703,7 @@ export const FilesManagement = () => {
                     <span className="shrink-0 w-5 text-center">
                       {isDone            && <span className="text-[#4ECDC4] text-xs">✓</span>}
                       {st === 'uploading' && <Loader2 size={12} className="animate-spin text-[#4ECDC4]" />}
-                      {st === 'pending'   && <span className="text-[#BFBFC4] text-xs">○</span>}
+                      {st === 'pending'   && <span className="text-[#BFBFC4] dark:text-[#52525b] text-xs">○</span>}
                       {isErr             && <span className="text-red-400 text-xs">✕</span>}
                     </span>
                     <input
@@ -716,7 +716,7 @@ export const FilesManagement = () => {
                     {!isDone && st !== 'uploading' && (
                       <button
                         onClick={() => { setFileEntries(prev => prev.filter(fe => fe.id !== entry.id)); setUploadStates(prev => { const n = { ...prev }; delete n[entry.id]; return n; }); }}
-                        className="text-[#BFBFC4] hover:text-red-400 transition-colors shrink-0"
+                        className="text-[#BFBFC4] dark:text-[#52525b] hover:text-red-400 transition-colors shrink-0"
                       >×</button>
                     )}
                     {doneMsg  && <span className="text-[9px] text-[#4ECDC4] shrink-0 max-w-[160px] truncate">{doneMsg}</span>}
@@ -767,7 +767,7 @@ export const FilesManagement = () => {
             {fileEntries.some(fe => isImageFile(fe.file.name)) && (
               <div className="sm:col-span-2">
                 <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] tracking-[0.12em] uppercase mb-1">
-                  Centre de rotation <span className="font-normal normal-case text-[#BFBFC4]">(SVG/PNG — laisser vide = centre auto)</span>
+                  Centre de rotation <span className="font-normal normal-case text-[#BFBFC4] dark:text-[#52525b]">(SVG/PNG — laisser vide = centre auto)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={shared.rotation_center_x} onChange={e => setShared(s => ({ ...s, rotation_center_x: e.target.value }))} placeholder="X (auto)" className="rounded-lg px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]" />
@@ -820,11 +820,11 @@ export const FilesManagement = () => {
 
                 <div>
                   <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] tracking-[0.12em] uppercase mb-1">
-                    ID du groupe <span className="font-normal normal-case text-[#BFBFC4]">(à coller dans le bloc TurboWarp)</span>
+                    ID du groupe <span className="font-normal normal-case text-[#BFBFC4] dark:text-[#52525b]">(à coller dans le bloc TurboWarp)</span>
                   </label>
                   <div className="flex gap-2">
                     <code className="flex-1 px-3 py-2 text-xs font-mono rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] truncate">
-                      {shared.group_id || <span className="text-[#BFBFC4]">— générer ci-dessous —</span>}
+                      {shared.group_id || <span className="text-[#BFBFC4] dark:text-[#52525b]">— générer ci-dessous —</span>}
                     </code>
                     {shared.group_id && (
                       <button
@@ -854,7 +854,7 @@ export const FilesManagement = () => {
             <button
               onClick={handleUploadAll}
               disabled={uploadingAll || !fileEntries.length}
-              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold px-5 py-2.5 disabled:opacity-50 transition-colors"
+              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-sm font-semibold px-5 py-2.5 disabled:opacity-50 transition-colors"
             >
               {uploadingAll ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {uploadingAll
@@ -899,7 +899,7 @@ export const FilesManagement = () => {
               <button
                 onClick={handleReplace}
                 disabled={!replaceFile || replaceSaving}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
               >
                 {replaceSaving ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                 {replaceSaving ? 'Replacing…' : 'Replace'}
@@ -962,7 +962,7 @@ export const FilesManagement = () => {
               {/* Rotation center */}
               <div>
                 <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] tracking-[0.12em] uppercase mb-1">
-                  Centre de rotation <span className="font-normal normal-case text-[#BFBFC4]">(vide = centre auto)</span>
+                  Centre de rotation <span className="font-normal normal-case text-[#BFBFC4] dark:text-[#52525b]">(vide = centre auto)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -995,7 +995,7 @@ export const FilesManagement = () => {
               <button
                 onClick={saveEdit}
                 disabled={editSaving}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-sm font-semibold py-2.5 disabled:opacity-50 transition-colors"
               >
                 {editSaving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
                 {editSaving ? 'Saving…' : 'Save changes'}
@@ -1237,12 +1237,12 @@ export const FilesManagement = () => {
         </div>
       ) : files.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c]">
-          <FileText size={28} className="text-[#BFBFC4] mx-auto mb-3" />
+          <FileText size={28} className="text-[#BFBFC4] dark:text-[#52525b] mx-auto mb-3" />
           <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa]">No files yet. Upload your first game file above.</p>
         </div>
       ) : filteredFiles.length === 0 ? (
         <div className="text-center py-10 border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c]">
-          <Search size={22} className="text-[#BFBFC4] mx-auto mb-2" />
+          <Search size={22} className="text-[#BFBFC4] dark:text-[#52525b] mx-auto mb-2" />
           <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa]">Aucun fichier ne correspond à "<strong>{search}</strong>".</p>
         </div>
       ) : (
@@ -1330,7 +1330,7 @@ export const FilesManagement = () => {
                   )}
                   {!isArtist && (
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className="text-[9px] text-[#BFBFC4] font-mono">{file.stable_id || file.id}</span>
+                      <span className="text-[9px] text-[#BFBFC4] dark:text-[#52525b] font-mono">{file.stable_id || file.id}</span>
                       <button
                         onClick={() => copyFileId(file.stable_id || file.id)}
                         title="Copier l'ID"
@@ -1384,7 +1384,7 @@ export const FilesManagement = () => {
                     <button
                       onClick={() => toggleLatest(file)}
                       title={file.is_latest ? 'Retirer du marquage "latest"' : 'Marquer comme latest'}
-                      className={`p-1.5 border transition-colors ${file.is_latest ? 'text-[#4ECDC4] border-[#4ECDC4]/30 bg-[#4ECDC4]/5' : 'text-[#A1A1A6] border-[#D2D2D7] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/30'}`}
+                      className={`rounded-xl p-1.5 border transition-colors ${file.is_latest ? 'text-[#4ECDC4] border-[#4ECDC4]/30 bg-[#4ECDC4]/5' : 'text-[#A1A1A6] dark:text-[#71717a] border-[#D2D2D7] dark:border-[#2a2a3c] hover:text-[#4ECDC4] hover:border-[#4ECDC4]/30'}`}
                     >
                       <Star size={13} />
                     </button>

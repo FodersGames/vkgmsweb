@@ -60,7 +60,7 @@ const IconPicker = ({ value, onChange }) => {
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
-              className={`p-2 flex items-center justify-center hover:bg-[#F5F5F7] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#6E6E73]'}`}>
+              className={`rounded-lg p-2 flex items-center justify-center hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}>
               <IC size={15} />
             </button>
           ))}
@@ -408,7 +408,7 @@ export const ShopManagement = () => {
                 <label className={LBL}>Product Image</label>
                 <div className="flex gap-2">
                   <input type="text" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} className={IN} placeholder="https://... or upload" />
-                  <label className="rounded-full shrink-0 cursor-pointer px-3 py-2.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold transition-colors">
+                  <label className="rounded-full shrink-0 cursor-pointer px-3 py-2.5 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-sm font-semibold transition-colors">
                     {uploading ? '…' : 'Upload'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setForm(f => ({ ...f, image_url: url })))} />
                   </label>
@@ -440,10 +440,10 @@ export const ShopManagement = () => {
                       key={b.value}
                       type="button"
                       onClick={() => setForm(f => ({ ...f, badge: b.value }))}
-                      className={`px-2.5 py-1 text-[10px] font-bold border transition-all ${
+                      className={`rounded px-2.5 py-1 text-[10px] font-bold border transition-all ${
                         form.badge === b.value
-                          ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
-                          : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'
+                          ? 'border-[#1D1D1F] dark:border-[#e4e4e7] bg-[#1D1D1F] dark:bg-[#e4e4e7] text-white dark:text-[#0e0e15]'
+                          : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                       }`}
                       style={form.badge === b.value && b.color ? { backgroundColor: b.color, borderColor: b.color } : {}}
                     >
@@ -511,7 +511,7 @@ export const ShopManagement = () => {
                     <button
                       type="button"
                       onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
-                      className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7]'}`}
+                      className={`rounded-full w-9 h-5 relative transition-colors ${form[key] ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
                     >
                       <span className={`absolute top-0.5 w-4 h-4 bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
                     </button>
@@ -567,8 +567,8 @@ export const ShopManagement = () => {
               return (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-3 p-3 border transition-all ${
-                    p.active ? 'bg-white border-[#D2D2D7]' : 'bg-[#F5F5F7] border-[#D2D2D7] opacity-60'
+                  className={`rounded-xl flex items-center gap-3 p-3 border transition-all ${
+                    p.active ? 'bg-white dark:bg-[#151520] border-[#D2D2D7] dark:border-[#2a2a3c]' : 'bg-[#F5F5F7] dark:bg-[#111118] border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60'
                   }`}
                 >
                   {p.image_url && (

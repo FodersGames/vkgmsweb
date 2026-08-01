@@ -199,7 +199,7 @@ export const ServerStatus = () => {
                   ({fileCounts[liveVersion] ?? 0} file{(fileCounts[liveVersion] ?? 0) !== 1 ? 's' : ''})
                 </span>
               </span>
-              <ChevronDown size={13} className={`text-[#A1A1A6] transition-transform ${versionOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={13} className={`text-[#A1A1A6] dark:text-[#71717a] transition-transform ${versionOpen ? 'rotate-180' : ''}`} />
             </button>
             {versionOpen && (
               <div className="rounded-xl absolute top-full left-0 mt-1 z-20 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg min-w-[220px]">

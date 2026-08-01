@@ -128,7 +128,7 @@ export const AccountSettings = () => {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saving ? 'Saving…' : 'Save changes'}
@@ -191,7 +191,7 @@ export const AccountSettings = () => {
             <button
               type="submit"
               disabled={loyaltySaving || !loyaltyAmt}
-              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {loyaltySaving && <Loader2 size={13} className="animate-spin" />}
               Apply adjustment

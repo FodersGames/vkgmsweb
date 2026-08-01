@@ -340,10 +340,10 @@ export const UserManagement = () => {
               {group.permissions.map((perm) => (
                 <label
                   key={perm.id}
-                  className={`flex items-center gap-2 px-3 py-2 border cursor-pointer transition-all text-sm ${
+                  className={`rounded-lg flex items-center gap-2 px-3 py-2 border cursor-pointer transition-all text-sm ${
                     selectedPerms.includes(perm.id)
                       ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
-                      : 'border-[#D2D2D7] bg-[#F5F5F7] text-[#6E6E73] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
+                      : 'border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] hover:text-[#1D1D1F] dark:hover:text-white'
                   }`}
                 >
                   <input
@@ -455,10 +455,10 @@ export const UserManagement = () => {
                             key={p.id}
                             type="button"
                             onClick={() => toggleCreatePermission(p.id)}
-                            className={`text-[10px] px-2 py-0.5 border transition-colors ${
+                            className={`rounded text-[10px] px-2 py-0.5 border transition-colors ${
                               createForm.permissions.includes(p.id)
                                 ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/40 text-[#4ECDC4]'
-                                : 'bg-white border-[#D2D2D7] text-[#A1A1A6] hover:border-[#BFBFC4]'
+                                : 'bg-white dark:bg-[#111118] border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                             }`}>
                             {p.label}
                           </button>
@@ -494,10 +494,10 @@ export const UserManagement = () => {
               </div>
               <button
                 onClick={() => setOnlyWithPerms(v => !v)}
-                className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold border transition-all shrink-0 ${
+                className={`rounded-lg inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold border transition-all shrink-0 ${
                   onlyWithPerms
                     ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/30 text-[#4ECDC4]'
-                    : 'bg-[#F5F5F7] border-[#D2D2D7] text-[#6E6E73] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
+                    : 'bg-[#F5F5F7] dark:bg-[#111118] border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4]/30 hover:text-[#4ECDC4]'
                 }`}
               >
                 <SlidersHorizontal size={12} />
@@ -512,7 +512,7 @@ export const UserManagement = () => {
             <div className={density === 'compact' ? 'space-y-1.5' : 'space-y-3'} data-testid="users-list">
               {listLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 flex items-center gap-3">
+                  <div key={i} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 flex items-center gap-3">
                     <Skeleton className="w-9 h-9 rounded-full shrink-0" />
                     <div className="flex-1 space-y-1.5">
                       <Skeleton className="h-3.5 w-40" />
@@ -534,10 +534,10 @@ export const UserManagement = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`bg-white border transition-all ${
+                    className={`rounded-xl bg-white dark:bg-[#151520] border transition-all ${
                       user.isSuspended
-                        ? 'border-red-200'
-                        : 'border-[#D2D2D7] hover:border-[#BFBFC4]'
+                        ? 'border-red-200 dark:border-red-900/40'
+                        : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                     }`}
                     data-testid={`user-card-${user.username}`}
                   >

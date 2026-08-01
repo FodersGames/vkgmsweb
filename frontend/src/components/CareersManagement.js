@@ -340,10 +340,10 @@ export default function CareersManagement() {
                   <button
                     key={t.id}
                     onClick={() => toggleTool(t.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-medium transition-all ${
+                    className={`rounded-lg flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-medium transition-all ${
                       form.tools.includes(t.id)
-                        ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F]'
-                        : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'
+                        ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white'
+                        : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                     }`}
                   >
                     <span className={form.tools.includes(t.id) ? '' : 'grayscale opacity-60'}>
@@ -358,7 +358,7 @@ export default function CareersManagement() {
             <div className="flex items-center gap-3 pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <div
-                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7]'}`}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
                   onClick={() => setForm(f => ({ ...f, is_open: !f.is_open }))}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${form.is_open ? 'left-5' : 'left-0.5'}`} />
@@ -378,7 +378,7 @@ export default function CareersManagement() {
 
         {loading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#D2D2D7] animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-[#D2D2D7] dark:bg-[#1c1c2e] animate-pulse" />)}
           </div>
         ) : careers.length === 0 ? (
           <div className="text-center py-16 text-[#6E6E73] dark:text-[#a1a1aa]">
@@ -390,7 +390,7 @@ export default function CareersManagement() {
               <div key={c._id} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                 <div className="flex items-center justify-between px-5 py-4 cursor-pointer" onClick={() => setExpandedId(expandedId === c._id ? null : c._id)}>
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${c.is_open ? 'bg-[#4ECDC4]' : 'bg-[#A1A1A6]'}`} />
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${c.is_open ? 'bg-[#4ECDC4]' : 'bg-[#A1A1A6] dark:bg-[#52525b]'}`} />
                     <div className="min-w-0">
                       <p className="font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm truncate">{c.title}</p>
                       <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">{c.department} · {c.contract_type} · {c.location}</p>

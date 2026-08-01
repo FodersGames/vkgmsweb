@@ -247,7 +247,7 @@ export const DashboardOverview = ({ goTo }) => {
           {canSeeProjects && (
             <button
               onClick={() => goTo('projects')}
-              className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+              className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-5 py-2.5 text-sm font-semibold transition-colors"
             >
               View projects <ArrowRight size={13} />
             </button>

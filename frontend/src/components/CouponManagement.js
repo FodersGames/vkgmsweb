@@ -146,7 +146,7 @@ export const CouponManagement = () => {
         </div>
         <button
           onClick={() => { setShowCreate(v => !v); setCreateResult(null); setCreateError(''); }}
-          className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-semibold px-3 py-2 transition-colors"
+          className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-xs font-semibold px-3 py-2 transition-colors"
         >
           <Plus size={13} /> New campaign
         </button>
@@ -211,7 +211,7 @@ export const CouponManagement = () => {
                     <button
                       key={opt.value}
                       onClick={() => handleScopeChange(opt.value)}
-                      className={`text-xs px-3 py-1.5 border font-semibold transition-colors ${form.scope === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F]' : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'}`}
+                      className={`rounded-lg text-xs px-3 py-1.5 border font-semibold transition-colors ${form.scope === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'}`}
                     >
                       {opt.label}
                     </button>
@@ -260,7 +260,7 @@ export const CouponManagement = () => {
                     <button
                       key={opt.value}
                       onClick={() => setForm(f => ({ ...f, target_type: opt.value, target_tiers: [], target_user_ids: [] }))}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 border font-semibold transition-colors ${form.target_type === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F]' : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'}`}
+                      className={`rounded-lg flex items-center gap-1.5 text-xs px-3 py-1.5 border font-semibold transition-colors ${form.target_type === opt.value ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'}`}
                     >
                       {opt.icon} {opt.label}
                     </button>
@@ -273,7 +273,7 @@ export const CouponManagement = () => {
                       <button
                         key={tier}
                         onClick={() => toggleTier(tier)}
-                        className={`text-xs px-3 py-1.5 border font-semibold capitalize transition-colors ${form.target_tiers.includes(tier) ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F]' : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'}`}
+                        className={`rounded-lg text-xs px-3 py-1.5 border font-semibold capitalize transition-colors ${form.target_tiers.includes(tier) ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'}`}
                       >
                         {TIER_LABELS[tier]}
                         {form.target_tiers.includes(tier) && <CheckCircle size={10} className="inline ml-1 text-[#4ECDC4]" />}
@@ -318,7 +318,7 @@ export const CouponManagement = () => {
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold px-5 py-2.5 transition-colors disabled:opacity-50"
+                  className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] text-sm font-semibold px-5 py-2.5 transition-colors disabled:opacity-50"
                 >
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Tag size={14} />}
                   {creating ? 'Creating…' : 'Send coupons'}

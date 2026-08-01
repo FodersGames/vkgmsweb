@@ -192,8 +192,8 @@ const TicketManagement = () => {
           <div className="space-y-4 mb-6" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {(activeTicket.messages || []).map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]' : 'bg-[#1D1D1F] text-white'}`}>
-                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A1A1A6]' : 'text-[#4ECDC4]'}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]' : 'bg-[#1D1D1F] dark:bg-[#e4e4e7] text-white dark:text-[#0e0e15]'}`}>
+                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A1A1A6] dark:text-[#71717a]' : 'text-[#4ECDC4]'}`}>
                     {msg.sender === 'support' ? `⚡ ${msg.author_name} (Support)` : msg.author_name}
                     <span className="ml-2 font-normal opacity-60">{fmtDate(msg.timestamp)}</span>
                   </p>
@@ -219,7 +219,7 @@ const TicketManagement = () => {
               <button
                 type="submit"
                 disabled={sendingReply || !reply.trim()}
-                className="rounded-full flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 Send reply

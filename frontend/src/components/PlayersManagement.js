@@ -180,9 +180,9 @@ export const PlayersManagement = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Users size={40} className="text-[#D2D2D7] mb-3" />
+            <Users size={40} className="text-[#D2D2D7] dark:text-[#2a2a3c] mb-3" />
             <p className="text-sm text-[#A1A1A6] dark:text-[#71717a] font-medium">Aucun joueur trouvé</p>
-            <p className="text-xs text-[#BFBFC4] mt-1">Les joueurs apparaîtront ici après leur première sauvegarde en jeu.</p>
+            <p className="text-xs text-[#BFBFC4] dark:text-[#52525b] mt-1">Les joueurs apparaîtront ici après leur première sauvegarde en jeu.</p>
           </div>
         ) : (
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden">
@@ -227,7 +227,7 @@ export const PlayersManagement = () => {
                     <button
                       onClick={e => { e.stopPropagation(); revokeTokens(player); }}
                       title="Déconnecter"
-                      className="p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                      className="rounded-lg p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"
                     >
                       <ShieldOff size={14} />
                     </button>
@@ -235,7 +235,7 @@ export const PlayersManagement = () => {
                       <button
                         onClick={e => { e.stopPropagation(); toggleBan(player); }}
                         title={player.banned ? 'Débannir de ce jeu' : 'Bannir de ce jeu'}
-                        className={`p-1.5 transition-colors ${player.banned ? 'text-red-500 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10' : 'text-[#A1A1A6] hover:text-red-500 hover:bg-red-50'}`}
+                        className={`rounded-lg p-1.5 transition-colors ${player.banned ? 'text-red-500 hover:text-[#4ECDC4] hover:bg-[#4ECDC4]/10' : 'text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'}`}
                       >
                         {player.banned ? <ShieldCheck size={14} /> : <Ban size={14} />}
                       </button>
@@ -244,7 +244,7 @@ export const PlayersManagement = () => {
                       <button
                         onClick={e => { e.stopPropagation(); deletePlayer(player); }}
                         title="Supprimer"
-                        className="p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="rounded-lg p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>

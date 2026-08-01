@@ -10,7 +10,7 @@ export const StatCard = ({ icon: Icon, label, value, accent, loading }) => (
     </div>
 
     {loading ? (
-      <div className="h-8 w-14 bg-[#D2D2D7] animate-pulse mb-1.5" />
+      <div className="h-8 w-14 rounded bg-[#D2D2D7] dark:bg-[#2a2a3c] animate-pulse mb-1.5" />
     ) : (
       <div className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1 tabular-nums">
         {value ?? '—'}
