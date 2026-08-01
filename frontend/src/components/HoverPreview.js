@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTheme } from '../context/ThemeContext';
 
 const DELAY_MS = 500;
 
@@ -10,6 +11,7 @@ export const HoverPreview = ({ src, alt = '', children, className = '' }) => {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const timerRef = useRef(null);
+  const { isDark } = useTheme();
 
   const clearTimer = () => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -45,8 +47,10 @@ export const HoverPreview = ({ src, alt = '', children, className = '' }) => {
     <div className={className} onMouseEnter={onEnter} onMouseMove={onMove} onMouseLeave={onLeave}>
       {children}
       {show && createPortal(
+        // Same portal-escapes-the-dark-scope issue as ConfirmDialog — reapply
+        // the class here from ThemeContext.
         <div
-          className="animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]"
+          className={`animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] ${isDark ? 'dark' : ''}`}
           style={{ left, top, width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
         >
           <img src={src} alt={alt} className="w-full h-full object-contain" />

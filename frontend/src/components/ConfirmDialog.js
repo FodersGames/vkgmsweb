@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
 import { playConfirmTick } from '../utils/sound';
+import { useTheme } from '../context/ThemeContext';
 
 /**
  * Reusable confirmation dialog.
@@ -41,6 +42,7 @@ export const ConfirmDialog = ({
   variant = 'destructive',
 }) => {
   const confirmBtnRef = useRef(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,7 +60,11 @@ export const ConfirmDialog = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    // Portaled straight to <body>, outside the Dashboard's own `dark`-scoped
+    // root div — reapply it here from ThemeContext (which crosses portals
+    // fine, since React context follows the component tree, not the DOM tree)
+    // or every dialog would render light no matter the admin theme.
+    <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${isDark ? 'dark' : ''}`}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
