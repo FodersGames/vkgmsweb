@@ -1,280 +1,238 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Mail } from 'lucide-react';
+import { ArrowRight, Gamepad2, Users, Wrench } from 'lucide-react';
 import axios from 'axios';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const PLATFORM_LABELS = {
-  steam: 'Steam',
-  google_play: 'Google Play',
-  apple: 'App Store',
-  pc: 'PC / Windows',
-  web: 'Web',
-  android: 'Android',
-};
+const FEATURES = [
+  {
+    icon: Gamepad2,
+    title: 'Game development',
+    text: 'Prototype to release, across PC and mobile, with no outsourced core systems.',
+  },
+  {
+    icon: Users,
+    title: 'Community & players',
+    text: 'Direct feedback loops that shape the roadmap, not just the patch notes.',
+  },
+  {
+    icon: Wrench,
+    title: 'In-house tooling',
+    text: 'Accounts, shop and live-ops systems we build and own outright.',
+  },
+];
 
 const Home = () => {
   const aboutRef = useRef(null);
   const [featuredGame, setFeaturedGame] = useState(null);
+  const [games, setGames] = useState([]);
 
   useEffect(() => {
     document.title = 'Vakar Games — Independent Game Studio';
     axios.get(`${API_URL}/api/website/games/featured`)
       .then(r => { if (r.data.game) setFeaturedGame(r.data.game); })
       .catch(() => {});
+    axios.get(`${API_URL}/api/website/games/public`)
+      .then(r => setGames(r.data.games || []))
+      .catch(() => {});
   }, []);
 
   const scrollToAbout = () =>
     aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
 
+  const titlesShipped = games.filter(g => g.status === 'published').length;
+
   return (
-    <div className="bg-[#F5F5F7]">
+    <div className="bg-white">
       <PublicNav onAbout={scrollToAbout} />
 
       {/* Hero */}
-      <section className="pt-32 pb-20 px-6 md:px-10 lg:px-16 max-w-screen-xl mx-auto" data-testid="hero-section">
-        <div className="max-w-4xl">
-          <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-6">
-            Independent Game Studio · France
+      <section className="pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
+        <div className="max-w-[1040px] mx-auto">
+          <p className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">
+            Independent Studio — Est. 2024
           </p>
           <h1
-            className="text-[5rem] sm:text-[7.5rem] md:text-[9.5rem] lg:text-[11.5rem] leading-[0.86] font-black tracking-tight text-[#1D1D1F] mb-8"
+            className="text-[40px] sm:text-[64px] lg:text-[80px] leading-[1.05] tracking-[-0.03em] font-bold text-[#1D1D1F]"
+            style={{ textWrap: 'balance' }}
             data-testid="hero-title"
           >
-            VAKAR<br />GAMES
+            Games built to<br /><span className="text-[#4ECDC4]">endure.</span>
           </h1>
-          <p className="text-lg sm:text-xl text-[#6E6E73] max-w-lg leading-relaxed mb-10">
+          <p className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
             We build games we'd want to play. Small team, deliberate choices, and no shortcuts on what matters.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/games"
-              className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
-            >
-              Our games <ArrowRight size={14} />
-            </Link>
-            <Link
-              to="/blog"
-              className="inline-flex items-center gap-2 rounded-full border border-[#D2D2D7] hover:border-[#BFBFC4] bg-white text-[#1D1D1F] px-5 py-2.5 text-sm font-semibold transition-all"
-            >
-              Studio journal
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-20 pt-10 border-t border-[#D2D2D7] grid grid-cols-2 sm:grid-cols-4 gap-8">
-          {[
-            { n: '2024',        label: 'Studio founded' },
-            { n: 'France',      label: 'Based in' },
-            { n: 'PC · Mobile', label: 'Platforms' },
-            { n: 'Indie',       label: 'Spirit' },
-          ].map((s, i) => (
-            <div key={i}>
-              <div
-                className="text-2xl font-black text-[#1D1D1F]"
-              >
-                {s.n}
-              </div>
-              <div className="text-sm text-[#6E6E73] mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Studio / About */}
-      <section
-        ref={aboutRef}
-        className="bg-white py-24 px-6 md:px-10 lg:px-16"
-        data-testid="about-section"
-      >
-        <div className="max-w-screen-xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div>
-              <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">
-                The studio
-              </p>
-              <h2
-                className="text-4xl sm:text-5xl font-black text-[#1D1D1F] leading-tight mb-6"
-              >
-                BUILDING GAMES<br />WORTH PLAYING
-              </h2>
-              <div className="space-y-4 text-[#6E6E73] text-base leading-relaxed">
-                <p>
-                  Vakar Games is an independent studio. We focus on a small number of projects at a time — not because we have to, but because we believe constraint leads to better work.
-                </p>
-                <p>
-                  We develop across PC and mobile, with a focus on tight mechanics, clear design and experiences that respect the player's time.
-                </p>
-                <p>
-                  Our toolset is built in-house: we manage projects, players, missions and shop systems from our own platform, so we can move fast without losing control.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                {
-                  num: '01',
-                  title: 'Game Development',
-                  text: 'From first prototype to final release. We work across PC and mobile with a focus on gameplay that feels right, not just looks right.',
-                },
-                {
-                  num: '02',
-                  title: 'Community & Players',
-                  text: 'Players are part of the process. We share progress, collect feedback and iterate — because better games come from that loop.',
-                },
-                {
-                  num: '03',
-                  title: 'Internal Tooling',
-                  text: 'We build what we need. Our studio platform manages accounts, game data, shop systems and team workflows — all under our control.',
-                },
-              ].map((item) => (
-                <div
-                  key={item.num}
-                  className="flex gap-5 p-5 rounded-xl bg-[#F5F5F7] border border-[#D2D2D7] hover:border-[#BFBFC4] transition-colors"
-                >
-                  <span
-                    className="text-xs font-black text-[#A1A1A6] tracking-wider pt-0.5 shrink-0"
-                  >
-                    {item.num}
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#1D1D1F] mb-1">{item.title}</h3>
-                    <p className="text-sm text-[#6E6E73] leading-relaxed">{item.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center justify-center gap-7 mt-8 flex-wrap">
+            <button onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
+              Explore our games <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <button onClick={scrollToAbout} className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
+              Meet the studio <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Featured Game */}
-      <section id="games" className="py-24 px-6 md:px-10 lg:px-16" data-testid="games-section">
-        <div className="max-w-screen-xl mx-auto">
+      {/* Featured game */}
+      <section className="bg-[#F5F5F7] py-[132px] px-6 text-center">
+        <div className="max-w-[1040px] mx-auto">
+          <p className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">Featured</p>
           {featuredGame ? (
             <>
-              <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-12">
-                Featured release
-              </p>
-              <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-                <div className="order-2 lg:order-1">
-                  <h2
-                    className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight mb-4"
-                  >
-                    {featuredGame.name.toUpperCase()}
-                  </h2>
-                  {featuredGame.description && (
-                    <p className="text-[#6E6E73] leading-relaxed mb-8 max-w-md">
-                      {featuredGame.description}
-                    </p>
-                  )}
-                  {featuredGame.platforms?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-8">
-                      {featuredGame.platforms.map((p, i) => (
-                        <a
-                          key={i}
-                          href={p.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full text-xs font-semibold border border-[#D2D2D7] text-[#6E6E73] px-3 py-1.5 hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F] transition-all"
-                        >
-                          {PLATFORM_LABELS[p.name] || p.name}
-                          <ExternalLink size={10} />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <Link
-                    to="/games"
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4ECDC4] hover:text-[#45b8b0] transition-colors"
-                  >
-                    All our games <ArrowRight size={14} />
-                  </Link>
-                </div>
-
-                <div className="order-1 lg:order-2">
-                  {featuredGame.logo_url ? (
-                    <img
-                      src={featuredGame.logo_url.startsWith('/') ? `${API_URL}${featuredGame.logo_url}` : featuredGame.logo_url}
-                      alt={featuredGame.name}
-                      className="w-full max-w-lg mx-auto rounded-2xl shadow-lg"
-                    />
-                  ) : featuredGame.screenshots?.[0] ? (
-                    <img
-                      src={featuredGame.screenshots[0].startsWith('/') ? `${API_URL}${featuredGame.screenshots[0]}` : featuredGame.screenshots[0]}
-                      alt={featuredGame.name}
-                      className="w-full rounded-2xl shadow-lg"
-                    />
-                  ) : (
-                    <div className="w-full aspect-video rounded-2xl bg-white border border-[#D2D2D7] flex items-center justify-center">
-                      <span
-                        className="text-[#A1A1A6] text-3xl font-black"
-                      >
-                        {featuredGame.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]" style={{ textWrap: 'balance' }}>
+                {featuredGame.name}
+                {featuredGame.description ? '.' : ''}
+              </h2>
+              {featuredGame.description && (
+                <p className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
+                  {featuredGame.description}
+                </p>
+              )}
+              <div
+                className="mt-14 rounded-[24px] border border-[#D2D2D7] overflow-hidden flex items-center justify-center"
+                style={{ background: 'linear-gradient(180deg, #FAFAFB 0%, #F0F0F2 100%)', aspectRatio: '16 / 8.2' }}
+              >
+                {featuredGame.logo_url || featuredGame.screenshots?.[0] ? (
+                  <img
+                    src={
+                      (featuredGame.logo_url || featuredGame.screenshots[0]).startsWith('/')
+                        ? `${API_URL}${featuredGame.logo_url || featuredGame.screenshots[0]}`
+                        : (featuredGame.logo_url || featuredGame.screenshots[0])
+                    }
+                    alt={featuredGame.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[48px] sm:text-[80px] font-bold tracking-[-0.03em] text-[#1D1D1F] opacity-90 uppercase">
+                    {featuredGame.name}
+                  </span>
+                )}
+              </div>
+              <div className="mt-7">
+                <Link to="/shop" className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
+                  View on the shop <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
               </div>
             </>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-6">
-                Our games
-              </p>
-              <h2
-                className="text-5xl sm:text-6xl font-black text-[#1D1D1F] mb-4"
-              >
-                IN DEVELOPMENT
+            <>
+              <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
+                New titles, in the works.
               </h2>
-              <p className="text-[#6E6E73] mb-8">
-                New titles are in progress. Follow the blog for updates.
+              <p className="text-[17px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
+                Follow the studio journal for updates on what's next.
               </p>
-              <Link
-                to="/games"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4ECDC4] hover:text-[#45b8b0] transition-colors"
-              >
-                Game catalog <ArrowRight size={14} />
-              </Link>
-            </div>
+              <div className="mt-7">
+                <Link to="/blog" className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
+                  Read the journal <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            </>
           )}
         </div>
       </section>
 
-      {/* Contact */}
-      <section id="contact" className="bg-white py-24 px-6 md:px-10 lg:px-16" data-testid="contact-section">
-        <div className="max-w-screen-xl mx-auto">
-          <div className="max-w-xl">
-            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">
-              Contact
-            </p>
-            <h2
-              className="text-4xl sm:text-5xl font-black text-[#1D1D1F] mb-4 leading-tight"
-            >
-              LET'S TALK
+      {/* Games grid */}
+      {games.length > 0 && (
+        <section id="games" className="py-[132px] px-6 text-center">
+          <div className="max-w-[1040px] mx-auto">
+            <p className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">All games</p>
+            <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
+              {games.length === 1 ? 'One world, one philosophy.' : `${games.length} worlds. One philosophy.`}
             </h2>
-            <p className="text-[#6E6E73] mb-8 leading-relaxed">
-              Questions about our games, a collaboration proposal or press inquiries — reach us directly.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/contact"
-                className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
-                data-testid="contact-email-button"
-              >
-                Open a ticket <ArrowRight size={14} />
-              </Link>
-              <a
-                href="mailto:support@vakargames.com"
-                className="inline-flex items-center gap-2 rounded-full border border-[#D2D2D7] hover:border-[#BFBFC4] bg-white text-[#6E6E73] px-5 py-2.5 text-sm font-semibold transition-all"
-              >
-                <Mail size={14} /> support@vakargames.com
-              </a>
+
+            <div
+              className="mt-14 grid text-left rounded-[18px] border border-[#D2D2D7] overflow-hidden"
+              style={{ gridTemplateColumns: `repeat(${Math.min(games.length, 3)}, 1fr)`, gap: '1px', background: '#D2D2D7' }}
+            >
+              {games.slice(0, 3).map(game => (
+                <Link
+                  key={game.slug}
+                  to={`/shop?game=${game.slug}`}
+                  className="bg-white hover:bg-[#FCFCFD] transition-colors px-[30px] py-9"
+                >
+                  <div className="text-[13px] font-bold text-[#4ECDC4] tracking-[0.04em] mb-[18px] uppercase">
+                    {game.name}
+                  </div>
+                  <h3 className="text-xl tracking-[-0.01em] font-bold text-[#1D1D1F] mb-2">{game.name}</h3>
+                  <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px]">
+                    {game.description || ' '}
+                  </p>
+                  <span className="text-[11.5px] font-semibold text-[#6E6E73]">
+                    {game.status === 'coming_soon' ? 'In development' : `Live${game.platforms?.length ? ' — ' + game.platforms.map(p => p.name).join(' · ') : ''}`}
+                  </span>
+                </Link>
+              ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Studio */}
+      <section ref={aboutRef} id="studio" className="bg-[#F5F5F7] py-[132px] px-6 text-center" data-testid="about-section">
+        <div className="max-w-[1040px] mx-auto">
+          <p className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">The studio</p>
+          <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]" style={{ textWrap: 'balance' }}>
+            Made by a small,<br />opinionated team.
+          </h2>
+          <p className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
+            We keep the roster deliberately small — people who ship, support and iterate on every title long after release.
+          </p>
+
+          <div className="mt-16 grid sm:grid-cols-3 gap-12 text-left">
+            {FEATURES.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="pt-5 border-t border-[#D2D2D7]">
+                <Icon size={22} className="text-[#4ECDC4] mb-[18px]" strokeWidth={2} />
+                <h3 className="text-[17px] tracking-[-0.01em] font-bold text-[#1D1D1F] mb-2">{title}</h3>
+                <p className="text-sm text-[#6E6E73] leading-relaxed">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-16 grid grid-cols-3 gap-8">
+            {[
+              { n: titlesShipped || games.length, label: 'Titles shipped' },
+              { n: '2024', label: 'Studio founded' },
+              { n: 'PC · Mobile', label: 'Platforms' },
+            ].map(s => (
+              <div key={s.label}>
+                <div className="text-[36px] sm:text-[56px] leading-none font-bold tracking-[-0.02em] text-[#1D1D1F]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {s.n}
+                </div>
+                <div className="text-[13.5px] text-[#6E6E73] mt-2">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="contact" className="py-[132px] px-6 text-center">
+        <div className="max-w-[1040px] mx-auto">
+          <p className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">Get in touch</p>
+          <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
+            Let's talk shop.
+          </h2>
+          <p className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
+            Press, collaborations, or just a question about one of our games — we read everything ourselves.
+          </p>
+          <div className="flex items-center justify-center gap-3 mt-9 flex-wrap">
+            <Link
+              to="/contact"
+              className="inline-flex items-center rounded-full bg-[#1D1D1F] hover:opacity-80 text-white text-sm font-medium px-5 py-2.5 transition-opacity"
+              data-testid="contact-email-button"
+            >
+              Open a ticket
+            </Link>
+            <a
+              href="mailto:support@vakargames.com"
+              className="inline-flex items-center rounded-full border border-[#D2D2D7] hover:bg-black/[0.03] text-[#1D1D1F] text-sm font-medium px-5 py-2.5 transition-colors"
+            >
+              Email the studio
+            </a>
           </div>
         </div>
       </section>

@@ -191,13 +191,11 @@ export default function Careers() {
       <PublicNav />
 
       {/* Hero */}
-      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-24 pb-12">
+      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-12">
         <div className="max-w-screen-xl mx-auto">
-          <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Join the Studio</p>
-          <h1
-            className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight mb-4"
-          >
-            CAREERS
+          <p className="text-xs font-semibold text-[#4ECDC4] mb-4">Join the Studio</p>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F] mb-4">
+            Careers
           </h1>
           <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
             We're a small independent studio building games we love. If you want to contribute
@@ -229,8 +227,8 @@ export default function Careers() {
           <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-24 bg-[#D2D2D7] animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
-            <p className="text-2xl mb-3" style={{ letterSpacing: '0.06em', color: '#BFBFC4' }}>
-              NO OPEN POSITIONS
+            <p className="text-xl font-bold mb-3 text-[#A1A1A6]">
+              No open positions
             </p>
             <p className="text-sm text-[#6E6E73]">
               Nothing right now, but feel free to reach out at{' '}

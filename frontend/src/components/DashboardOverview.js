@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Gamepad2, Users, Globe, ClipboardList, Activity,
-  FileText, ArrowRight, AlertCircle,
+  FileText, ArrowRight, AlertCircle, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
 import api from '../utils/api';
-import { StatCard } from './StatCard';
 
 const STATUS_CFG = {
-  open:        { color: '#4ECDC4', label: 'Open' },
-  maintenance: { color: '#F2994A', label: 'Maintenance' },
-  closed:      { color: '#EB5757', label: 'Closed' },
+  open:        { color: '#2FA84F', label: 'Open' },
+  maintenance: { color: '#C08A1E', label: 'Maintenance' },
+  closed:      { color: '#D64545', label: 'Closed' },
 };
 
 const LOG_COLORS = {
@@ -31,17 +30,18 @@ const timeAgo = (iso) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 
-const SectionLabel = ({ children }) => (
-  <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">{children}</p>
-);
-
 const Panel = ({ children, className = '' }) => (
-  <div className={`bg-white border border-[#D2D2D7] ${className}`}>
+  <div className={`rounded-xl bg-white border border-[#D2D2D7] overflow-hidden ${className}`}>
     {children}
   </div>
 );
 
-const STAT_GRID = ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-2 sm:grid-cols-3', 'grid-cols-2 lg:grid-cols-4'];
+const PanelHead = ({ title, action }) => (
+  <div className="flex items-center justify-between px-5 py-4 border-b border-[#D2D2D7]">
+    <h2 className="text-[14.5px] font-bold text-[#1D1D1F]">{title}</h2>
+    {action}
+  </div>
+);
 
 export const DashboardOverview = ({ setActiveTab }) => {
   const { user, hasPermission } = useAuth();
@@ -53,6 +53,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
   const canSeeLogs     = hasPermission('view_logs');
   const canSeeStatus   = hasPermission('change_status');
   const canSeeProjects = hasPermission('view_projects');
+  const canSeeVariables = hasPermission('view_variables');
 
   const [globalStats, setGlobalStats]         = useState({ users: null, games: null });
   const [globalLoading, setGlobalLoading]     = useState(false);
@@ -132,64 +133,52 @@ export const DashboardOverview = ({ setActiveTab }) => {
     { label: 'Projects',      value: projects.length,      accent: '#6C5CE7', icon: Gamepad2,     loading: false },
     canManageUsers ? { label: 'Staff',          value: globalStats.users,  accent: '#F2994A', icon: Users,        loading: globalLoading && globalStats.users === null } : null,
     canSeeGames    ? { label: 'Games',           value: globalStats.games,  accent: '#4ECDC4', icon: Globe,        loading: globalLoading && globalStats.games === null } : null,
-    (canSeeMissions && selectedProject) ? { label: 'Open Missions', value: openMissions,        accent: '#9B51E0', icon: ClipboardList, loading: missionsLoading && openMissions === null } : null,
+    (canSeeMissions && selectedProject) ? { label: 'Open missions', value: openMissions,        accent: '#9B51E0', icon: ClipboardList, loading: missionsLoading && openMissions === null } : null,
   ].filter(Boolean);
 
   const quickActions = [
-    (canSeeMissions && selectedProject)               ? { label: 'Missions',      tab: 'missions',   icon: ClipboardList, color: '#9B51E0' } : null,
-    (canSeeLogs && selectedProject)                   ? { label: 'Logs',          tab: 'logs',       icon: FileText,      color: '#6C5CE7' } : null,
-    (canSeeStatus && selectedProject)                 ? { label: 'Server Status', tab: 'status',     icon: Activity,      color: '#4ECDC4' } : null,
+    (canSeeMissions && selectedProject)               ? { label: 'Missions',      tab: 'missions',   icon: ClipboardList } : null,
+    (canSeeLogs && selectedProject)                   ? { label: 'Logs',          tab: 'logs',       icon: FileText } : null,
+    (canSeeStatus && selectedProject)                 ? { label: 'Server status', tab: 'status',     icon: Activity } : null,
   ].filter(Boolean);
 
   const displayName = user?.firstName || user?.username;
-  const greeting = displayName
-    ? `Welcome, ${displayName.charAt(0).toUpperCase() + displayName.slice(1)}`
-    : 'Welcome';
-
-  const gridClass = STAT_GRID[Math.min(statCards.length, 4)] || 'grid-cols-2 lg:grid-cols-4';
 
   return (
-    <div className="max-w-5xl space-y-8">
+    <div className="max-w-[980px] mx-auto space-y-7">
 
-      {/* Greeting */}
-      <div className="border-b border-[#D2D2D7] pb-6">
-        <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-2">{dateStr}</p>
-        <h1
-          className="text-4xl font-black text-[#1D1D1F]"
-        >
-          {greeting.toUpperCase()}
+      {/* Page head */}
+      <div>
+        <h1 className="text-[26px] font-bold tracking-[-0.02em] text-[#1D1D1F]">
+          {displayName ? `Welcome, ${displayName}` : 'Welcome'}
         </h1>
+        <p className="text-[13.5px] text-[#6E6E73] mt-1">{dateStr} — here's what's happening across your studio.</p>
       </div>
 
       {/* Stat cards */}
       {statCards.length > 0 && (
-        <div className={`grid ${gridClass} gap-4`}>
-          {statCards.map(card => <StatCard key={card.label} {...card} />)}
-        </div>
-      )}
-
-      {/* Quick actions */}
-      {quickActions.length > 0 && (
-        <div>
-          <SectionLabel>Quick Actions</SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {quickActions.map(action => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.tab}
-                  onClick={() => setActiveTab(action.tab)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] transition-colors group text-left"
-                >
-                  <div className="rounded-lg w-8 h-8 flex items-center justify-center shrink-0" style={{ backgroundColor: `${action.color}18` }}>
-                    <Icon size={14} style={{ color: action.color }} />
+        <div
+          className="grid gap-px bg-[#D2D2D7] border border-[#D2D2D7] rounded-xl overflow-hidden"
+          style={{ gridTemplateColumns: `repeat(${Math.min(statCards.length, 4)}, 1fr)` }}
+        >
+          {statCards.map(card => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} className="bg-white p-5 min-w-0">
+                <div className="w-[26px] h-[26px] rounded-lg flex items-center justify-center mb-3.5" style={{ backgroundColor: `${card.accent}18` }}>
+                  <Icon size={13} style={{ color: card.accent }} />
+                </div>
+                {card.loading ? (
+                  <div className="h-[26px] w-10 bg-[#EDEDEF] animate-pulse rounded" />
+                ) : (
+                  <div className="text-[26px] font-bold tracking-[-0.01em] text-[#1D1D1F]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {card.value ?? '—'}
                   </div>
-                  <span className="flex-1 text-sm font-medium text-[#1D1D1F] truncate">{action.label}</span>
-                  <ArrowRight size={12} className="text-[#BFBFC4] group-hover:text-[#1D1D1F] transition-colors shrink-0" />
-                </button>
-              );
-            })}
-          </div>
+                )}
+                <div className="text-xs text-[#6E6E73] mt-0.5 truncate">{card.label}</div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -199,12 +188,8 @@ export const DashboardOverview = ({ setActiveTab }) => {
           <div className="rounded-lg w-12 h-12 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center mb-5">
             <Gamepad2 size={20} className="text-[#BFBFC4]" />
           </div>
-          <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-2">Project</p>
-          <h3
-            className="text-xl font-black text-[#1D1D1F] mb-2"
-          >
-            NO PROJECT SELECTED
-          </h3>
+          <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-[0.1em] mb-2">Project</p>
+          <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">No project selected</h3>
           <p className="text-sm text-[#6E6E73] mb-6 max-w-xs">
             Select a project from the sidebar to view its activity, status and missions.
           </p>
@@ -213,115 +198,141 @@ export const DashboardOverview = ({ setActiveTab }) => {
               onClick={() => setActiveTab('projects')}
               className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
             >
-              View Projects <ArrowRight size={13} />
+              View projects <ArrowRight size={13} />
             </button>
           )}
         </Panel>
       )}
 
-      {/* Recent activity */}
-      {selectedProject && canSeeLogs && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <SectionLabel>Recent Activity — {selectedProject.name}</SectionLabel>
-            <button
-              onClick={() => setActiveTab('logs')}
-              className="text-xs font-semibold text-[#4ECDC4] hover:text-[#45b8b0] flex items-center gap-1 transition-colors"
-            >
-              View all <ArrowRight size={11} />
-            </button>
-          </div>
+      {/* Two-column layout */}
+      {selectedProject && (canSeeLogs || quickActions.length > 0 || canSeeStatus) && (
+        <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
 
-          <Panel>
-            {logsLoading ? (
-              <div className="p-4 space-y-3">
-                {[75, 55, 65].map((w, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 bg-[#D2D2D7] animate-pulse shrink-0" />
-                    <div className="h-4 bg-[#D2D2D7] animate-pulse" style={{ width: `${w}%` }} />
-                  </div>
-                ))}
-              </div>
-            ) : logsError ? (
-              <div className="p-5 flex items-center gap-3">
-                <AlertCircle size={15} className="text-[#F2994A] shrink-0" />
-                <span className="text-sm text-[#6E6E73]">
-                  Could not load activity.{' '}
-                  <button onClick={() => setLogsRetry(r => r + 1)} className="text-[#4ECDC4] hover:underline">
-                    Retry
+          {/* Recent activity */}
+          {canSeeLogs && (
+            <Panel>
+              <PanelHead
+                title="Recent activity"
+                action={
+                  <button
+                    onClick={() => setActiveTab('logs')}
+                    className="text-[12.5px] font-medium text-[#4ECDC4] hover:text-[#45b8b0] flex items-center gap-1 transition-colors"
+                  >
+                    View all logs
                   </button>
-                </span>
-              </div>
-            ) : recentLogs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-[#A1A1A6]">No recent activity.</div>
-            ) : (
-              <div className="divide-y divide-[#EDEDEF]">
-                {recentLogs.map((log, i) => {
-                  const dotColor = LOG_COLORS[log.type] || '#A1A1A6';
-                  return (
-                    <div key={i} className="flex items-center gap-3 px-4 py-3">
-                      <span className="w-1.5 h-1.5 shrink-0" style={{ backgroundColor: dotColor }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#1D1D1F] truncate">{log.message}</p>
-                        <p className="text-[11px] text-[#A1A1A6]">
-                          {log.user || '—'} · {timeAgo(log.timestamp)}
-                        </p>
-                      </div>
-                      <span
-                        className="shrink-0 text-[10px] font-semibold px-2 py-0.5"
-                        style={{ backgroundColor: `${dotColor}15`, color: dotColor }}
-                      >
-                        {log.type}
-                      </span>
+                }
+              />
+              {logsLoading ? (
+                <div className="p-5 space-y-3">
+                  {[75, 55, 65].map((w, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-[26px] h-[26px] rounded-lg bg-[#EDEDEF] animate-pulse shrink-0" />
+                      <div className="h-3.5 bg-[#EDEDEF] animate-pulse rounded" style={{ width: `${w}%` }} />
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </Panel>
-        </div>
-      )}
-
-      {/* Project status widget */}
-      {selectedProject && canSeeStatus && (
-        <div>
-          <SectionLabel>Status — {selectedProject.name}</SectionLabel>
-          <Panel className="px-5 py-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg w-9 h-9 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center">
-                  <Gamepad2 size={15} className="text-[#A1A1A6]" />
+                  ))}
                 </div>
+              ) : logsError ? (
+                <div className="p-5 flex items-center gap-3">
+                  <AlertCircle size={15} className="text-[#C08A1E] shrink-0" />
+                  <span className="text-sm text-[#6E6E73]">
+                    Could not load activity.{' '}
+                    <button onClick={() => setLogsRetry(r => r + 1)} className="text-[#4ECDC4] hover:underline">
+                      Retry
+                    </button>
+                  </span>
+                </div>
+              ) : recentLogs.length === 0 ? (
+                <div className="p-8 text-center text-sm text-[#A1A1A6]">No recent activity.</div>
+              ) : (
                 <div>
-                  <p className="text-sm font-semibold text-[#1D1D1F]">{selectedProject.name}</p>
-                  {statusInfo ? (
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 animate-pulse" style={{ backgroundColor: statusInfo.color }} />
-                      <span className="text-xs font-semibold" style={{ color: statusInfo.color }}>{statusInfo.label}</span>
-                    </div>
-                  ) : (
-                    <div className="h-3 w-16 bg-[#D2D2D7] animate-pulse mt-1" />
-                  )}
+                  {recentLogs.map((log, i) => {
+                    const dotColor = LOG_COLORS[log.type] || '#A1A1A6';
+                    return (
+                      <div key={i} className="flex items-start gap-3 px-5 py-3.5 border-b border-[#EDEDEF] last:border-0">
+                        <div className="w-[26px] h-[26px] rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${dotColor}18` }}>
+                          <FileText size={13} style={{ color: dotColor }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-[#1D1D1F] leading-snug">{log.message}</p>
+                          <p className="text-[11.5px] text-[#A1A1A6] mt-0.5">
+                            {timeAgo(log.timestamp)} · {log.user || '—'}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
+            </Panel>
+          )}
 
-              <div className="flex items-center gap-2 flex-wrap">
-                {canSeeLogs && (
-                  <button onClick={() => setActiveTab('logs')} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors font-medium">
-                    Logs
-                  </button>
+          {/* Side stack */}
+          <div className="flex flex-col gap-5">
+
+            {/* Quick actions */}
+            {quickActions.length > 0 && (
+              <Panel>
+                <PanelHead title="Quick actions" />
+                <div>
+                  {quickActions.map(action => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.tab}
+                        onClick={() => setActiveTab(action.tab)}
+                        className="w-full flex items-center gap-3 px-5 py-3.5 border-b border-[#EDEDEF] last:border-0 hover:bg-[#F5F5F7] transition-colors text-left"
+                      >
+                        <Icon size={15} className="text-[#A1A1A6] shrink-0" />
+                        <span className="flex-1 text-[13px] font-medium text-[#1D1D1F] truncate">{action.label}</span>
+                        <ChevronRight size={12} className="text-[#BFBFC4] shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </Panel>
+            )}
+
+            {/* Project status card */}
+            {canSeeStatus && (
+              <Panel className="p-5">
+                <p className="text-[14.5px] font-bold text-[#1D1D1F] mb-2.5">{selectedProject.name}</p>
+                {statusInfo ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: `${statusInfo.color}18`, color: statusInfo.color }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusInfo.color }} />
+                    {statusInfo.label}
+                  </span>
+                ) : (
+                  <div className="h-[22px] w-16 bg-[#EDEDEF] animate-pulse rounded-full" />
                 )}
-                {hasPermission('view_variables') && (
-                  <button onClick={() => setActiveTab('variables')} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors font-medium">
-                    Variables
-                  </button>
+
+                {canSeeMissions && (
+                  <div className="text-xs text-[#6E6E73] mt-3 flex items-center justify-between">
+                    <span>Open missions</span>
+                    <b className="text-[#1D1D1F] font-semibold" style={{ fontVariantNumeric: 'tabular-nums' }}>{openMissions ?? '—'}</b>
+                  </div>
                 )}
-                <button onClick={() => setActiveTab('status')} className="text-xs bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] px-3 py-1.5 transition-colors font-medium">
-                  Manage Status
-                </button>
-              </div>
-            </div>
-          </Panel>
+
+                <div className="flex items-center gap-2 flex-wrap mt-4">
+                  {canSeeLogs && (
+                    <button onClick={() => setActiveTab('logs')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
+                      Logs
+                    </button>
+                  )}
+                  {canSeeVariables && (
+                    <button onClick={() => setActiveTab('variables')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
+                      Variables
+                    </button>
+                  )}
+                  <button onClick={() => setActiveTab('status')} className="text-xs font-medium rounded-full bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] px-3 py-1.5 transition-colors">
+                    Manage status
+                  </button>
+                </div>
+              </Panel>
+            )}
+          </div>
         </div>
       )}
 

@@ -138,8 +138,8 @@ export const CouponManagement = () => {
             <Tag size={16} className="text-[#4ECDC4]" />
           </div>
           <div>
-            <h2 className="text-base font-black text-[#1D1D1F]" style={{ letterSpacing: '0.04em' }}>
-              PROMO COUPONS
+            <h2 className="text-base font-bold text-[#1D1D1F]">
+              Promo Coupons
             </h2>
             <p className="text-xs text-[#6E6E73]">Send unique discount codes to users or tiers</p>
           </div>
@@ -168,7 +168,7 @@ export const CouponManagement = () => {
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1">Campaign name</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Campaign name</label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -180,7 +180,7 @@ export const CouponManagement = () => {
               {/* Discount & validity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1">Discount %</label>
+                  <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Discount %</label>
                   <input
                     type="number" min={1} max={99}
                     value={form.discount_pct}
@@ -189,7 +189,7 @@ export const CouponManagement = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1">Valid for (days)</label>
+                  <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Valid for (days)</label>
                   <input
                     type="number" min={1}
                     value={form.valid_days}
@@ -201,7 +201,7 @@ export const CouponManagement = () => {
 
               {/* Scope */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-2">Applicable to</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-2">Applicable to</label>
                 <div className="flex gap-2 flex-wrap">
                   {[
                     { value: 'all', label: 'All purchases' },
@@ -251,7 +251,7 @@ export const CouponManagement = () => {
 
               {/* Target */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-2">Target</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-2">Target</label>
                 <div className="flex gap-2 mb-3">
                   {[
                     { value: 'tier', label: 'By loyalty tier', icon: <Tag size={12} /> },
@@ -385,15 +385,15 @@ export const CouponManagement = () => {
                     <div className="mt-4">
                       <div className="grid grid-cols-3 gap-4 text-center mb-4">
                         <div className="bg-[#F5F5F7] px-3 py-2">
-                          <p className="text-lg font-black text-[#1D1D1F]">{campaignDetail.codes.length}</p>
+                          <p className="text-lg font-bold text-[#1D1D1F]">{campaignDetail.codes.length}</p>
                           <p className="text-[10px] text-[#A1A1A6]">Total codes</p>
                         </div>
                         <div className="bg-[#F5F5F7] px-3 py-2">
-                          <p className="text-lg font-black text-[#4ECDC4]">{campaignDetail.codes.filter(x => x.used).length}</p>
+                          <p className="text-lg font-bold text-[#4ECDC4]">{campaignDetail.codes.filter(x => x.used).length}</p>
                           <p className="text-[10px] text-[#A1A1A6]">Used</p>
                         </div>
                         <div className="bg-[#F5F5F7] px-3 py-2">
-                          <p className="text-lg font-black text-[#1D1D1F]">{campaignDetail.codes.filter(x => !x.used).length}</p>
+                          <p className="text-lg font-bold text-[#1D1D1F]">{campaignDetail.codes.filter(x => !x.used).length}</p>
                           <p className="text-[10px] text-[#A1A1A6]">Remaining</p>
                         </div>
                       </div>

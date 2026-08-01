@@ -484,7 +484,7 @@ export const UserManagement = () => {
               </button>
             </div>
 
-            <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">
+            <p className="text-[10px] font-semibold text-[#A1A1A6] mb-4">
               Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
             <div className="space-y-3" data-testid="users-list">
@@ -603,7 +603,7 @@ export const UserManagement = () => {
 
                       {isEditing ? (
                         <div>
-                          <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">
+                          <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">
                             Edit Permissions ({editingUser.permissions.length}/{ALL_PERMISSIONS.length})
                           </p>
                           {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}

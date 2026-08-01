@@ -97,17 +97,15 @@ const GamesPage = () => {
     <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16">
+      <div className="pt-[52px]">
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <div className="max-w-7xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">
+            <p className="text-xs font-semibold text-[#A1A1A6] mb-3">
               Vakar Games
             </p>
-            <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1D1D1F] leading-tight"
-            >
-              OUR GAMES
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+              Our games
             </h1>
             <p className="text-[#6E6E73] mt-3 max-w-md">
               Every title we release. Each one built with care.
@@ -120,10 +118,8 @@ const GamesPage = () => {
             <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : games.length === 0 ? (
             <div className="text-center py-20">
-              <h2
-                className="text-4xl font-black text-[#A1A1A6] mb-3"
-              >
-                IN DEVELOPMENT
+              <h2 className="text-2xl font-bold text-[#A1A1A6] mb-3">
+                In development
               </h2>
               <p className="text-[#6E6E73]">New games are in progress. Check the blog for updates.</p>
             </div>
@@ -151,7 +147,7 @@ const GamesPage = () => {
                       />
                     ) : (
                       <div className="w-full aspect-video rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center">
-                        <span className="text-[#A1A1A6] text-2xl font-black">
+                        <span className="text-[#A1A1A6] text-2xl font-bold">
                           {game.name}
                         </span>
                       </div>
@@ -162,7 +158,7 @@ const GamesPage = () => {
                   <div className="lg:w-1/2 space-y-5">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h2
-                        className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1D1D1F]"
+                        className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1D1D1F]"
                       >
                         {game.name}
                       </h2>

@@ -212,7 +212,7 @@ const TicketManagement = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-black text-[#1D1D1F]">SUPPORT TICKETS</h2>
+          <h2 className="text-2xl font-bold text-[#1D1D1F]">SUPPORT TICKETS</h2>
           <p className="text-xs text-[#A1A1A6] mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
         </div>
         <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">

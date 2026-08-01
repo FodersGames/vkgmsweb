@@ -86,8 +86,8 @@ export const VpsStats = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F]" style={{ letterSpacing: '0.05em' }}>
-            VPS MONITOR
+          <h2 className="text-2xl font-bold text-[#1D1D1F]">
+            VPS Monitor
           </h2>
           {lastUpdate && (
             <p className="text-[11px] text-[#A1A1A6] mt-0.5 flex items-center gap-1">

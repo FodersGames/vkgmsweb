@@ -72,15 +72,13 @@ const Contact = () => {
     <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
       <PublicNav />
 
-      <div className="flex-1 pt-16">
+      <div className="flex-1 pt-[52px]">
         {/* Header */}
         <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
           <div className="max-w-6xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Support</p>
-            <h1
-              className="text-5xl sm:text-7xl font-black text-[#1D1D1F] leading-none"
-            >
-              CONTACT &amp; SUPPORT
+            <p className="text-xs font-semibold text-[#A1A1A6] mb-3">Support</p>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+              Contact &amp; support
             </h1>
             <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
@@ -94,10 +92,8 @@ const Contact = () => {
             {success ? (
               <div className="rounded-xl bg-white border border-[#D2D2D7] p-10 text-center">
                 <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
-                <h2
-                  className="text-2xl font-black text-[#1D1D1F] mb-2"
-                >
-                  TICKET SUBMITTED!
+                <h2 className="text-xl font-bold text-[#1D1D1F] mb-2">
+                  Ticket submitted!
                 </h2>
                 <p className="text-sm text-[#6E6E73] mb-1">
                   Your reference: <strong className="text-[#1D1D1F]">{success}</strong>
@@ -122,7 +118,7 @@ const Contact = () => {
               </div>
             ) : (
               <div className="rounded-xl bg-white border border-[#D2D2D7] p-8">
-                <h2 className="text-lg font-black text-[#1D1D1F] mb-6">Send us a message</h2>
+                <h2 className="text-lg font-bold text-[#1D1D1F] mb-6">Send us a message</h2>
                 {!token ? (
                   <div className="text-center py-10 space-y-4">
                     <p className="text-sm font-semibold text-[#1D1D1F]">Account required</p>

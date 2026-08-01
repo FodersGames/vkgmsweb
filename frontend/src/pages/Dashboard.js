@@ -146,15 +146,10 @@ const SidebarContent = ({
   <div className="flex flex-col h-full bg-[#F5F5F7] border-r border-[#D2D2D7]">
 
     {/* Logo */}
-    <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#D2D2D7]">
-      <div className="min-w-0 flex-1">
-        <p
-          className="text-[15px] font-black tracking-[0.16em] text-[#1D1D1F] leading-tight"
-        >
-          VAKAR GAMES
-        </p>
-        <p className="text-[10px] text-[#A1A1A6] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
-      </div>
+    <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7]">
+      <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] truncate">
+        Vakar Games
+      </p>
       {onClose && (
         <button onClick={onClose} className="text-[#6E6E73] hover:text-[#1D1D1F] transition-colors ml-1">
           <X size={18} />
@@ -170,7 +165,7 @@ const SidebarContent = ({
 
         return (
           <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1A6] px-5 mb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A1A1A6] px-2.5 mb-1.5">
               {group.label}
             </p>
 
@@ -298,7 +293,7 @@ const DashboardContent = () => {
     <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex shrink-0 w-64 h-full">
+      <aside className="hidden lg:flex shrink-0 w-[240px] h-full">
         <SidebarContent {...sidebarProps} />
       </aside>
 
@@ -319,7 +314,7 @@ const DashboardContent = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header className="h-16 shrink-0 bg-white border-b border-[#D2D2D7] flex items-center px-5 gap-4 z-20">
+        <header className="h-14 shrink-0 bg-white border-b border-[#D2D2D7] flex items-center px-5 gap-4 z-20">
           {/* Mobile burger */}
           <button
             className="lg:hidden p-2 -ml-1 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
@@ -329,10 +324,8 @@ const DashboardContent = () => {
           </button>
 
           {/* Mobile brand */}
-          <span
-            className="lg:hidden text-[14px] font-black tracking-[0.14em] text-[#1D1D1F]"
-          >
-            VAKAR GAMES
+          <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F]">
+            Vakar Games
           </span>
 
           {/* Breadcrumb (desktop) */}
@@ -383,7 +376,7 @@ const DashboardContent = () => {
                 <div className="w-14 h-14 rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center mb-5">
                   <Gamepad2 size={22} className="text-[#BFBFC4]" />
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A1A1A6] mb-2">
+                <p className="text-[11px] font-semibold text-[#A1A1A6] mb-2">
                   No project selected
                 </p>
                 <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">Select a Project</h3>

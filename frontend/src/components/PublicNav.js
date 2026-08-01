@@ -11,7 +11,7 @@ export const PublicNav = ({ onAbout }) => {
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -26,21 +26,24 @@ export const PublicNav = ({ onAbout }) => {
 
   return (
     <>
-    <nav className={`fixed top-0 left-0 right-0 z-50 bg-white transition-shadow duration-200 ${scrolled ? 'shadow-sm border-b border-[#D2D2D7]' : 'border-b border-[#EDEDEF]'}`}>
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-10">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 ${scrolled ? 'border-[#D2D2D7]' : 'border-transparent'}`}
+      style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(14px) saturate(180%)', WebkitBackdropFilter: 'blur(14px) saturate(180%)' }}
+    >
+      <div className="max-w-[1040px] mx-auto px-6 h-[52px] flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="text-lg font-black tracking-[0.18em] text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors"
+            className="text-[14.5px] font-bold tracking-tight text-[#1D1D1F] transition-colors"
           >
-            VAKAR GAMES
+            Vakar Games
           </Link>
 
-          <div className="hidden md:flex items-center gap-7">
+          <div className="hidden md:flex items-center gap-[26px]">
             {onAbout && (
               <button
                 onClick={() => { onAbout(); setOpen(false); }}
-                className="text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+                className="text-[12.5px] text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
               >
                 About
               </button>
@@ -49,8 +52,8 @@ export const PublicNav = ({ onAbout }) => {
               <Link
                 key={to}
                 to={to}
-                className={`text-sm font-medium transition-colors ${
-                  active(to) ? 'text-[#1D1D1F]' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                className={`text-[12.5px] transition-colors ${
+                  active(to) ? 'text-[#4ECDC4] font-medium' : 'text-[#1D1D1F] hover:text-[#6E6E73]'
                 }`}
               >
                 {label}
@@ -63,7 +66,7 @@ export const PublicNav = ({ onAbout }) => {
         <div className="hidden md:flex items-center gap-5">
           <Link
             to="/contact"
-            className="text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+            className={`text-[12.5px] transition-colors ${active('/contact') ? 'text-[#4ECDC4] font-medium' : 'text-[#1D1D1F] hover:text-[#6E6E73]'}`}
           >
             Contact
           </Link>
@@ -73,7 +76,7 @@ export const PublicNav = ({ onAbout }) => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] rounded-md px-2.5 py-1.5 transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] rounded-full px-2.5 py-1.5 transition-all"
                 >
                   <LayoutDashboard size={12} />
                   Admin
@@ -81,10 +84,10 @@ export const PublicNav = ({ onAbout }) => {
               )}
               <Link
                 to="/profile"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+                className="inline-flex items-center gap-2 text-[12.5px] font-medium text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
               >
-                <div className="w-7 h-7 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4]">
-                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={12} />}
+                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[10.5px] font-bold text-[#4ECDC4]">
+                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={11} />}
                 </div>
                 <span>{user.firstName || user.username}</span>
               </Link>
@@ -92,7 +95,7 @@ export const PublicNav = ({ onAbout }) => {
           ) : (
             <Link
               to="/login"
-              className="text-sm font-semibold text-[#1D1D1F] hover:text-[#4ECDC4] transition-colors"
+              className="inline-flex items-center text-[13px] font-medium px-4 py-1.5 rounded-full bg-[#1D1D1F] text-white hover:opacity-80 transition-opacity"
             >
               Sign In
             </Link>
@@ -100,7 +103,7 @@ export const PublicNav = ({ onAbout }) => {
         </div>
 
         <button
-          className="md:hidden p-2 -mr-1 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+          className="md:hidden p-2 -mr-1 text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -125,7 +128,7 @@ export const PublicNav = ({ onAbout }) => {
               to={to}
               onClick={() => setOpen(false)}
               className={`block text-sm py-2.5 transition-colors ${
-                active(to) ? 'text-[#1D1D1F] font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                active(to) ? 'text-[#4ECDC4] font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
               }`}
             >
               {label}

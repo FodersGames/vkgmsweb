@@ -23,17 +23,15 @@ export const BlogList = () => {
     <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16">
+      <div className="pt-[52px]">
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <div className="max-w-4xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">
+            <p className="text-xs font-semibold text-[#A1A1A6] mb-3">
               Vakar Games
             </p>
-            <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1D1D1F] leading-tight"
-            >
-              BLOG
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+              Blog
             </h1>
             <p className="text-[#6E6E73] mt-3">
               News, updates and announcements from the studio.
@@ -46,10 +44,8 @@ export const BlogList = () => {
             <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-20">
-              <h2
-                className="text-3xl font-black text-[#A1A1A6] mb-2"
-              >
-                NO POSTS YET
+              <h2 className="text-xl font-bold text-[#A1A1A6] mb-2">
+                No posts yet
               </h2>
               <p className="text-[#6E6E73]">Check back soon for updates.</p>
             </div>
@@ -134,7 +130,7 @@ export const BlogPost = () => {
     <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16">
+      <div className="pt-[52px]">
         <div className="max-w-2xl mx-auto px-6 py-14">
           <Link
             to="/blog"
@@ -152,7 +148,7 @@ export const BlogPost = () => {
           )}
 
           <h1
-            className="text-3xl sm:text-5xl font-black text-[#1D1D1F] mb-4 leading-tight"
+            className="text-3xl sm:text-5xl font-bold text-[#1D1D1F] mb-4 leading-tight"
           >
             {post.title}
           </h1>

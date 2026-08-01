@@ -586,7 +586,7 @@ export const ShopManagement = () => {
                       </span>
                       {p.featured && <Star size={11} className="text-[#F59E0B] fill-[#F59E0B]" />}
                       {badge?.value && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 text-white" style={{ backgroundColor: badge.color }}>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 text-white" style={{ backgroundColor: badge.color }}>
                           {badge.label}
                         </span>
                       )}
@@ -598,7 +598,7 @@ export const ShopManagement = () => {
                       {!p.active && <span className="text-[10px] font-bold text-[#A1A1A6] bg-[#F5F5F7] border border-[#D2D2D7] px-1.5 py-0.5">Hidden</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-sm font-black text-[#1D1D1F]">${(p.price / 100).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-[#1D1D1F]">${(p.price / 100).toFixed(2)}</span>
                       <span className="text-xs text-[#A1A1A6]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
                     </div>
                   </div>

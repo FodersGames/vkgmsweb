@@ -16,14 +16,12 @@ const TermsOfService = () => {
     <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16">
+      <div className="pt-[52px]">
         <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-12">
           <div className="max-w-3xl mx-auto">
-            <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Legal</p>
-            <h1
-              className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight mb-3"
-            >
-              TERMS OF SERVICE
+            <p className="text-xs font-semibold text-[#4ECDC4] mb-4">Legal</p>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F] mb-3">
+              Terms of Service
             </h1>
             <p className="text-sm text-[#A1A1A6]">Last updated: June 21, 2026</p>
           </div>

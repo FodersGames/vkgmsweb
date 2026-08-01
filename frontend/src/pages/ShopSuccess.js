@@ -18,11 +18,11 @@ const ShopSuccess = ({ legacy }) => {
           <CheckCircle size={28} className="text-[#4ECDC4]" />
         </div>
 
-        <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-2">
+        <p className="text-xs font-semibold text-[#4ECDC4] mb-2">
           Payment confirmed
         </p>
         <h1
-          className="text-3xl font-black text-[#1D1D1F] mb-3"
+          className="text-3xl font-bold text-[#1D1D1F] mb-3"
         >
           {isGame ? 'GAME UNLOCKED' : 'PURCHASE COMPLETE'}
         </h1>

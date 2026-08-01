@@ -9,10 +9,8 @@ const MaintenancePage = () => (
   <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
     {/* Top bar */}
     <div className="bg-white border-b border-[#D2D2D7] px-6 py-4">
-      <span
-        className="text-xl font-black tracking-[0.18em] text-[#1D1D1F]"
-      >
-        VAKAR GAMES
+      <span className="text-[17px] font-bold tracking-tight text-[#1D1D1F]">
+        Vakar Games
       </span>
     </div>
 
@@ -27,7 +25,7 @@ const MaintenancePage = () => (
         </div>
 
         <h1
-          className="text-5xl sm:text-7xl font-black text-[#1D1D1F] mb-4 leading-none"
+          className="text-5xl sm:text-7xl font-bold text-[#1D1D1F] mb-4 leading-none"
         >
           UNDER<br />MAINTENANCE
         </h1>

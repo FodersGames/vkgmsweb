@@ -305,17 +305,17 @@ const Profile = () => {
     <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
       <PublicNav />
 
-      <div className="pt-16 flex-1">
+      <div className="pt-[52px] flex-1">
 
         {/* Hero banner */}
         <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
           <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">My Account</p>
+            <p className="text-xs font-semibold text-[#4ECDC4] mb-4">My Account</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               {/* Avatar */}
               <div className="relative shrink-0 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
                 <div
-                  className="w-16 h-16 overflow-hidden flex items-center justify-center text-xl font-black"
+                  className="w-16 h-16 overflow-hidden flex items-center justify-center text-xl font-bold"
                   style={{
                     background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
                     border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
@@ -358,7 +358,7 @@ const Profile = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <h1
-                    className="text-4xl sm:text-5xl font-black text-[#1D1D1F] leading-tight"
+                    className="text-4xl sm:text-5xl font-bold text-[#1D1D1F] leading-tight"
                   >
                     {displayName}
                   </h1>

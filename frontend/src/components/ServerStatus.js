@@ -120,8 +120,8 @@ export const ServerStatus = () => {
             <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: cfg.color }} />
           </span>
           <div>
-            <p className="text-2xl font-black leading-none" style={{ color: cfg.color }}>
-              {cfg.label.toUpperCase()}
+            <p className="text-2xl font-bold leading-none" style={{ color: cfg.color }}>
+              {cfg.label}
             </p>
             <p className="text-xs text-[#6E6E73] mt-1.5">
               {statusUpdatedAt

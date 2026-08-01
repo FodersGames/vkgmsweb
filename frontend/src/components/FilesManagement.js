@@ -501,8 +501,8 @@ export const FilesManagement = () => {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-black text-[#1D1D1F]" style={{ letterSpacing: '0.04em' }}>
-            GAME FILES — {selectedProject?.name?.toUpperCase()}
+          <h2 className="text-lg font-bold text-[#1D1D1F]">
+            Game Files — {selectedProject?.name}
           </h2>
           <p className="text-xs text-[#6E6E73] mt-0.5">
             {files.length} file{files.length !== 1 ? 's' : ''}

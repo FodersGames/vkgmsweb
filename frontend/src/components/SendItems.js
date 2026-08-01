@@ -171,7 +171,7 @@ export const SendItems = () => {
                     </div>
                     {isSelected && (
                       <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#4ECDC4] flex items-center justify-center">
-                        <span className="text-[10px] text-[#0a0a0f] font-black">✓</span>
+                        <span className="text-[10px] text-[#0a0a0f] font-bold">✓</span>
                       </div>
                     )}
                     <div className="absolute top-1.5 left-1.5 hidden group-hover:flex gap-1">

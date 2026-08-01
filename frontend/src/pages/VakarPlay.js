@@ -90,18 +90,16 @@ export default function VakarPlay() {
     <div className="min-h-screen flex flex-col" style={{ background: MINT_BG }}>
       <PublicNav />
 
-      <div className="pt-16 flex-1">
+      <div className="pt-[52px] flex-1">
 
         {/* Hero */}
         <section className="bg-white border-b border-[#E2F5EC] px-6 md:px-10 lg:px-16 pt-14 pb-10">
           <div className="max-w-screen-xl mx-auto">
-            <p className="text-xs font-semibold tracking-[0.16em] uppercase mb-3" style={{ color: MINT }}>
+            <p className="text-xs font-semibold mb-3" style={{ color: MINT }}>
               Vakar Play
             </p>
-            <h1
-              className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight"
-            >
-              MY GAMES
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+              My games
             </h1>
             <p className="text-[#6B7280] text-sm mt-2">
               Welcome back, <strong className="text-[#1D1D1F]">{firstName}</strong>.
@@ -130,11 +128,8 @@ export default function VakarPlay() {
               >
                 <Gamepad2 size={28} style={{ color: MINT_DARK }} />
               </div>
-              <h2
-                className="text-3xl font-black text-[#1D1D1F] mb-3"
-                style={{ letterSpacing: '0.06em' }}
-              >
-                NO GAMES YET
+              <h2 className="text-xl font-bold text-[#1D1D1F] mb-3">
+                No games yet
               </h2>
               <p className="text-[#6B7280] text-sm mb-6 max-w-sm mx-auto">
                 Your games will appear here once you start playing Vakar Games titles.
@@ -150,7 +145,7 @@ export default function VakarPlay() {
           ) : (
             <>
               <p
-                className="text-xs font-semibold uppercase tracking-[0.14em] mb-6"
+                className="text-xs font-semibold mb-6"
                 style={{ color: MINT_DARK }}
               >
                 Your library

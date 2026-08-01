@@ -154,7 +154,7 @@ const BadgePill = ({ badge, discount_pct }) => {
   if (!cfg) return null;
   return (
     <span
-      className="text-[9px] font-black px-1.5 py-0.5 tracking-wide"
+      className="text-[9px] font-bold px-1.5 py-0.5 tracking-wide"
       style={{ backgroundColor: cfg.bg, color: cfg.text }}
     >
       {cfg.label}{badge === 'SALE' && discount_pct ? ` −${discount_pct}%` : ''}
@@ -328,16 +328,14 @@ const Shop = () => {
     <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
-      <div className="pt-16">
+      <div className="pt-[52px]">
         {/* Header — same style as home page sections */}
         <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
           <div className="max-w-screen-xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">Store</p>
+            <p className="text-xs font-semibold text-[#A1A1A6] mb-4">Store</p>
             <div className="flex items-end justify-between gap-6 flex-wrap">
-              <h1
-                className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight"
-              >
-                VAKAR GAMES<br />SHOP
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+                Shop
               </h1>
               {!user && (
                 <Link
@@ -375,7 +373,7 @@ const Shop = () => {
           {/* Category filter */}
           {categories.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Browse by game</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Browse by game</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => setGame('all')}
@@ -408,7 +406,7 @@ const Shop = () => {
           {/* Category filter — works across all games, or narrowed to the selected one */}
           {productCategories.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Category</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => selectCat('')}
@@ -440,7 +438,7 @@ const Shop = () => {
           {/* Per-category sub-category filter */}
           {activeCat && activeSubcats.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Sub-category</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Sub-category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => selectSub('')}
@@ -480,7 +478,7 @@ const Shop = () => {
               {/* Featured */}
               {featured.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4 flex items-center gap-2">
+                  <p className="text-[10px] font-semibold text-[#A1A1A6] mb-4 flex items-center gap-2">
                     <Star size={11} className="text-[#F59E0B]" />Featured
                   </p>
                   <div className={`grid gap-4 ${featured.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 sm:grid-cols-2'}`}>
@@ -493,7 +491,7 @@ const Shop = () => {
               {regular.length > 0 && (
                 <div>
                   {featured.length > 0 && (
-                    <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">All Offers</p>
+                    <p className="text-[10px] font-semibold text-[#A1A1A6] mb-4">All Offers</p>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {regular.map(p => <ProductCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
@@ -508,7 +506,7 @@ const Shop = () => {
       {/* Footer */}
       <footer className="bg-[#1D1D1F] mt-16 py-8 px-6">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-sm font-black tracking-[0.18em] text-white">VAKAR GAMES</span>
+          <span className="text-sm font-bold tracking-[0.18em] text-white">VAKAR GAMES</span>
           <p className="text-xs text-[#3A3A3C]">Secure payments powered by Stripe.</p>
         </div>
       </footer>
@@ -543,7 +541,7 @@ const Shop = () => {
                   {(discount > 0 || couponExtraDiscount > 0) && (
                     <p className="text-xs text-[#A1A1A6] line-through">${(buying.price / 100).toFixed(2)}</p>
                   )}
-                  <p className="text-lg font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
                 </div>
               </div>
 
@@ -559,7 +557,7 @@ const Shop = () => {
 
               {/* Promo coupon */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1.5">
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1.5">
                   Promo code <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
                 </label>
                 <div className="flex gap-2">
@@ -592,7 +590,7 @@ const Shop = () => {
 
               {/* Player ID */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1.5">
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1.5">
                   Your in-game Player ID
                 </label>
                 <input
@@ -651,7 +649,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         <div className="flex items-center justify-between">
           <div>
             {discount > 0 && <p className="text-xs text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-lg font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
+            <p className="text-lg font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
           <div className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-bold px-3 py-1.5 transition-colors">
             <ShoppingCart size={11} />Buy
@@ -689,7 +687,7 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         <div className="flex items-center justify-between mt-auto">
           <div>
             {discount > 0 && <p className="text-[10px] text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-sm font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
+            <p className="text-sm font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
           <span className="text-[10px] font-bold text-white bg-[#1D1D1F] px-2 py-1">Get</span>
         </div>

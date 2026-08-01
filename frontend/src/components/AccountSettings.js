@@ -66,7 +66,7 @@ export const AccountSettings = () => {
 
   return (
     <div className="max-w-lg">
-      <h2 className="text-2xl font-black text-[#1D1D1F] mb-1">MY ACCOUNT</h2>
+      <h2 className="text-2xl font-bold text-[#1D1D1F] mb-1">MY ACCOUNT</h2>
       <p className="text-xs text-[#A1A1A6] mb-8">Update your display name and username.</p>
 
       <div className="rounded-xl bg-white border border-[#D2D2D7] p-6">

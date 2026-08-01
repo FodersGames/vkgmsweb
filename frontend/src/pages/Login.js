@@ -194,9 +194,9 @@ export const Login = () => {
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="text-xl font-black text-[#1D1D1F] tracking-[0.18em] hover:text-[#3A3A3C] transition-colors"
+            className="text-[17px] font-bold tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors"
           >
-            VAKAR GAMES
+            Vakar Games
           </Link>
           <p className="mt-1.5 text-sm text-[#6E6E73]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
