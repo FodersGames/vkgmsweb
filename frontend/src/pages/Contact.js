@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
 import { Select } from '../ui';
 import { Send, MessageCircle, Mail, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 
@@ -76,7 +77,7 @@ const Contact = () => {
       <div className="flex-1 pt-[52px]">
         {/* Header */}
         <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
-          <div className="max-w-6xl mx-auto">
+          <Reveal className="max-w-6xl mx-auto">
             <p className="text-xs font-semibold text-[#A1A1A6] mb-3">Support</p>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
               Contact &amp; support
@@ -84,7 +85,7 @@ const Contact = () => {
             <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
-          </div>
+          </Reveal>
         </div>
 
         <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Briefcase, ChevronDown, ChevronUp, Send, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
 import { ToolIcon } from '../components/CareersManagement';
 import { useAuth } from '../context/AuthContext';
 
@@ -89,7 +90,7 @@ function ApplyModal({ career, onClose, token, user }) {
         ) : (
           <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
             {!token && (
-              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 text-xs text-amber-700">
+              <div className="rounded-lg flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 text-xs text-amber-700">
                 <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                 You must be signed in to apply. <a href="/login" className="font-semibold underline ml-1">Sign in</a>
               </div>
@@ -143,7 +144,7 @@ function ApplyModal({ career, onClose, token, user }) {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
+              <div className="rounded-lg flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
                 <AlertTriangle size={12} className="shrink-0" />{error}
               </div>
             )}
@@ -192,16 +193,16 @@ export default function Careers() {
 
       {/* Hero */}
       <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-12">
-        <div className="max-w-screen-xl mx-auto">
-          <p className="text-xs font-semibold text-[#4ECDC4] mb-4">Join the Studio</p>
+        <Reveal className="max-w-screen-xl mx-auto">
+          <p className="text-xs font-semibold text-[#4ECDC4] mb-4">Join the Company</p>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F] mb-4">
             Careers
           </h1>
           <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
-            We're a small independent studio building games we love. If you want to contribute
+            We're a small independent software company building applications, tools and games we're proud of. If you want to contribute
             to something creative and ambitious, we'd love to hear from you.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       <main className="flex-1 max-w-screen-xl mx-auto w-full px-6 md:px-10 lg:px-16 py-12">

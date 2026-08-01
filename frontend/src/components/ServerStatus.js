@@ -104,13 +104,13 @@ export const ServerStatus = () => {
         </div>
         <div>
           <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Server Status</h1>
-          <p className="text-xs text-[#A1A1A6]">{selectedProject.name}</p>
+          <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{selectedProject.name}</p>
         </div>
       </div>
 
       {/* Current status hero */}
       <div
-        className="flex items-center justify-between gap-4 p-6 border"
+        className="rounded-xl flex items-center justify-between gap-4 p-6 border"
         style={{ borderColor: `${cfg.color}40`, backgroundColor: `${cfg.color}0A` }}
         data-testid="current-status"
       >
@@ -123,7 +123,7 @@ export const ServerStatus = () => {
             <p className="text-2xl font-bold leading-none" style={{ color: cfg.color }}>
               {cfg.label}
             </p>
-            <p className="text-xs text-[#6E6E73] mt-1.5">
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1.5">
               {statusUpdatedAt
                 ? `Changed ${timeAgo(statusUpdatedAt)}${statusUpdatedBy ? ` by ${statusUpdatedBy}` : ''}`
                 : 'No changes recorded yet'}
@@ -148,7 +148,7 @@ export const ServerStatus = () => {
                 onClick={() => changeStatus(s)}
                 disabled={loading || isActive}
                 data-testid={`status-${s}-button`}
-                className="text-left p-4 border transition-all disabled:cursor-default"
+                className="rounded-xl text-left p-4 border transition-all disabled:cursor-default"
                 style={isActive
                   ? { borderColor: c.color, backgroundColor: `${c.color}0F` }
                   : { borderColor: '#D2D2D7' }}
@@ -158,12 +158,12 @@ export const ServerStatus = () => {
                   <span className="text-sm font-semibold" style={{ color: isActive ? c.color : '#1D1D1F' }}>{c.label}</span>
                   {isActive && <Check size={13} className="ml-auto" style={{ color: c.color }} />}
                 </div>
-                <p className="text-xs text-[#6E6E73] leading-relaxed">{c.desc}</p>
+                <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed">{c.desc}</p>
               </button>
             );
           })}
         </div>
-        <div className="flex items-start gap-2 mt-3 text-[#A1A1A6]">
+        <div className="flex items-start gap-2 mt-3 text-[#A1A1A6] dark:text-[#71717a]">
           <Info size={12} className="shrink-0 mt-0.5" />
           <p className="text-[11px] leading-relaxed">
             This status is informational only — it isn't checked by the game yet, so it won't block or warn players in-game.
@@ -179,7 +179,7 @@ export const ServerStatus = () => {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Live Game Version</h3>
-            <p className="text-xs text-[#6E6E73]">The version your players download. Change it when releasing an update.</p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">The version your players download. Change it when releasing an update.</p>
           </div>
         </div>
 
@@ -188,14 +188,14 @@ export const ServerStatus = () => {
             <button
               onClick={() => setVersionOpen(v => !v)}
               disabled={versionSaving}
-              className="rounded-full flex items-center gap-2 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14] hover:border-[#BFBFC4] px-4 py-2.5 text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] transition-colors disabled:opacity-50 min-w-[220px] justify-between"
+              className="rounded-full flex items-center gap-2 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-4 py-2.5 text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] transition-colors disabled:opacity-50 min-w-[220px] justify-between"
             >
               <span className="flex items-center gap-2">
                 {versionSaving
                   ? <Loader2 size={12} className="animate-spin text-[#4ECDC4]" />
                   : <span className="w-2 h-2 rounded-full bg-[#4ECDC4]" />}
                 {liveVersion}
-                <span className="text-xs text-[#A1A1A6] font-normal">
+                <span className="text-xs text-[#A1A1A6] dark:text-[#71717a] font-normal">
                   ({fileCounts[liveVersion] ?? 0} file{(fileCounts[liveVersion] ?? 0) !== 1 ? 's' : ''})
                 </span>
               </span>
@@ -215,19 +215,19 @@ export const ServerStatus = () => {
                         : <span className="w-3 shrink-0" />}
                       {tag}
                     </span>
-                    <span className="text-xs text-[#A1A1A6]">{fileCounts[tag] ?? 0} file{(fileCounts[tag] ?? 0) !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{fileCounts[tag] ?? 0} file{(fileCounts[tag] ?? 0) !== 1 ? 's' : ''}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          <p className="text-[11px] text-[#A1A1A6] mt-3">
+          <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-3">
             {lvUpdatedAt
               ? `Live version last changed ${timeAgo(lvUpdatedAt)}${lvUpdatedBy ? ` by ${lvUpdatedBy}` : ''}`
               : 'No changes recorded yet'}
           </p>
-          <p className="text-[10px] text-[#A1A1A6] mt-2 leading-relaxed">
+          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-2 leading-relaxed">
             The TurboWarp block <code className="bg-[#F5F5F7] dark:bg-[#111118] px-1">use live version</code> fetches this value at game startup.
             Players always load assets from this version.
           </p>

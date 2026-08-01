@@ -468,7 +468,7 @@ export const UserManagement = () => {
                   placeholder="Search by name, username, or email…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="rounded-lg w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
+                  className="rounded-lg w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
                 />
               </div>
               <button
@@ -647,7 +647,7 @@ export const UserManagement = () => {
                           <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white">✕ Close</button>
                         </div>
                         {loyaltyResult && (
-                          <div className="text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
+                          <div className="rounded-lg text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
                             {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: ${(loyaltyResult.new_total_cents / 100).toFixed(2)}
                           </div>
                         )}

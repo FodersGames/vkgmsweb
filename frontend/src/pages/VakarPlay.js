@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
 import { Gamepad2, Clock, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -94,7 +95,7 @@ export default function VakarPlay() {
 
         {/* Hero */}
         <section className="bg-white border-b border-[#EDE4FD] px-6 md:px-10 lg:px-16 pt-14 pb-10">
-          <div className="max-w-screen-xl mx-auto">
+          <Reveal className="max-w-screen-xl mx-auto">
             <p className="text-xs font-semibold mb-3" style={{ color: MINT }}>
               Vakar Play
             </p>
@@ -107,7 +108,7 @@ export default function VakarPlay() {
                 ? ` ${games.length} game${games.length > 1 ? 's' : ''} in your library.`
                 : ' Start playing to build your library.'}
             </p>
-          </div>
+          </Reveal>
         </section>
 
         <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10">

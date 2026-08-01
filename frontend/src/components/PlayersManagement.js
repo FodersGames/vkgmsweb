@@ -155,7 +155,7 @@ export const PlayersManagement = () => {
           <button
             onClick={fetchPlayers}
             disabled={loading}
-            className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] transition-colors disabled:opacity-50"
+            className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Actualiser
           </button>
@@ -196,10 +196,10 @@ export const PlayersManagement = () => {
             </div>
 
             {filtered.map(player => (
-              <div key={player.id} className="border-b border-[#EDEDEF] last:border-0">
+              <div key={player.id} className="border-b border-[#EDEDEF] dark:border-[#1c1c2e] last:border-0">
                 {/* Row */}
                 <div
-                  className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#F5F5F7] cursor-pointer transition-colors"
+                  className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-3.5 hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                   onClick={() => openPlayer(player)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -210,7 +210,7 @@ export const PlayersManagement = () => {
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{player.username}</p>
                         {player.banned && (
-                          <span className="text-[9px] font-bold text-red-500 border border-red-200 bg-red-50 px-1.5 py-0.5 uppercase tracking-wide shrink-0">Banned</span>
+                          <span className="rounded-lg text-[9px] font-bold text-red-500 border border-red-200 bg-red-50 px-1.5 py-0.5 uppercase tracking-wide shrink-0">Banned</span>
                         )}
                       </div>
                       <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{player.categories?.length || 0} catégorie{player.categories?.length !== 1 ? 's' : ''}</p>

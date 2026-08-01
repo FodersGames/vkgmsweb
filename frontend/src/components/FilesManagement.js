@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
+import { HoverPreview } from './HoverPreview';
 import {
   Upload, Download, Trash2, Edit2, RefreshCw, Key, Eye, EyeOff,
   CheckCircle, Loader2, FileText, AlertTriangle, Copy, Check,
@@ -506,7 +507,7 @@ export const FilesManagement = () => {
           </h2>
           <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">
             {files.length} file{files.length !== 1 ? 's' : ''}
-            {isArtist && <span className="ml-2 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-1.5 py-0.5">Vue artiste</span>}
+            {isArtist && <span className="rounded-lg ml-2 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-1.5 py-0.5">Vue artiste</span>}
             {!isArtist && ' · stable ID per file'}
           </p>
         </div>
@@ -647,7 +648,7 @@ export const FilesManagement = () => {
           <button
             onClick={regenKey}
             disabled={regenLoading}
-            className="flex items-center gap-2 text-xs font-semibold text-[#4ECDC4] border border-[#4ECDC4]/30 px-3 py-2 hover:bg-[#4ECDC4]/5 transition-colors disabled:opacity-50"
+            className="rounded-lg flex items-center gap-2 text-xs font-semibold text-[#4ECDC4] border border-[#4ECDC4]/30 px-3 py-2 hover:bg-[#4ECDC4]/5 transition-colors disabled:opacity-50"
           >
             {regenLoading ? <Loader2 size={12} className="animate-spin" /> : <Key size={12} />}
             Generate API key
@@ -691,7 +692,7 @@ export const FilesManagement = () => {
 
           {/* Liste des fichiers avec nom éditable */}
           {fileEntries.length > 0 && (
-            <div className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7]">
+            <div className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c]">
               {fileEntries.map((entry) => {
                 const st = uploadStates[entry.id] || 'pending';
                 const isErr  = st.startsWith('error:');
@@ -781,7 +782,7 @@ export const FilesManagement = () => {
 
             {/* Text Engine group fields */}
             {shared.file_type === 'text_engine' && (
-              <div className="sm:col-span-2 border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
+              <div className="rounded-xl sm:col-span-2 border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Type size={13} className="text-[#4ECDC4]" />
                   <p className="text-[10px] font-bold text-[#4ECDC4] uppercase tracking-[0.12em]">Text Engine Group</p>
@@ -1144,7 +1145,7 @@ export const FilesManagement = () => {
 
       {/* Text Engine Groups */}
       {!isArtist && textEngineGroups.length > 0 && (
-        <div className="border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
+        <div className="rounded-xl border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Type size={14} className="text-[#4ECDC4]" />
@@ -1176,13 +1177,13 @@ export const FilesManagement = () => {
                         setShared(s => ({ ...s, file_type: 'text_engine', group_id: group.group_id, group_name: group.group_name }));
                         setShowUpload(true);
                       }}
-                      className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-2.5 py-1.5 hover:bg-[#4ECDC4]/10 transition-colors"
+                      className="rounded-lg flex items-center gap-1.5 text-[10px] font-semibold text-[#4ECDC4] border border-[#4ECDC4]/40 px-2.5 py-1.5 hover:bg-[#4ECDC4]/10 transition-colors"
                     >
                       <Plus size={10} /> Ajouter
                     </button>
                     <button
                       onClick={() => setConfirmGroupDel(group)}
-                      className="flex items-center gap-1 text-[10px] font-semibold text-red-400 border border-red-200 px-2.5 py-1.5 hover:bg-red-50 transition-colors"
+                      className="rounded-lg flex items-center gap-1 text-[10px] font-semibold text-red-400 border border-red-200 px-2.5 py-1.5 hover:bg-red-50 transition-colors"
                     >
                       <Trash2 size={10} /> Supprimer
                     </button>
@@ -1252,9 +1253,10 @@ export const FilesManagement = () => {
               <div className="flex items-start gap-4 p-4">
                 {/* Thumbnail / icon */}
                 {isImageFile(file.original_filename) ? (
+                  <HoverPreview src={previews[file.id]} alt={file.original_filename} className="shrink-0">
                   <button
                     onClick={() => openPreview(file)}
-                    className="rounded-lg w-10 h-10 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0 mt-0.5 overflow-hidden group relative hover:border-[#4ECDC4]/50 transition-colors"
+                    className="rounded-lg w-10 h-10 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center mt-0.5 overflow-hidden group relative hover:border-[#4ECDC4]/50 transition-colors"
                     title="Prévisualiser"
                   >
                     {previews[file.id] ? (
@@ -1273,6 +1275,7 @@ export const FilesManagement = () => {
                       </>
                     )}
                   </button>
+                  </HoverPreview>
                 ) : isAudioFile(file.original_filename) ? (
                   <button
                     onClick={() => toggleAudio(file)}
@@ -1301,7 +1304,7 @@ export const FilesManagement = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{file.name}</p>
                     {file.is_latest && (
-                      <span className="flex items-center gap-1 text-[9px] font-bold bg-[#4ECDC4]/10 text-[#4ECDC4] border border-[#4ECDC4]/30 px-1.5 py-0.5 shrink-0">
+                      <span className="rounded-lg flex items-center gap-1 text-[9px] font-bold bg-[#4ECDC4]/10 text-[#4ECDC4] border border-[#4ECDC4]/30 px-1.5 py-0.5 shrink-0">
                         <Star size={8} /> LATEST
                       </span>
                     )}
@@ -1342,7 +1345,7 @@ export const FilesManagement = () => {
                         {file.version_tag || 'default'}
                       </span>
                       {file.group_id && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#4ECDC4] border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 px-1.5 py-0.5 shrink-0">
+                        <span className="rounded-lg flex items-center gap-0.5 text-[9px] font-bold text-[#4ECDC4] border border-[#4ECDC4]/40 bg-[#4ECDC4]/5 px-1.5 py-0.5 shrink-0">
                           <Type size={8} /> {file.group_name || 'TE'}
                         </span>
                       )}

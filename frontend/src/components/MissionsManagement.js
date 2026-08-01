@@ -167,10 +167,10 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
         return (
           <button key={i} onClick={() => downloadFile(f.url, filename)}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
-            <FileText size={13} className="text-[#6E6E73] group-hover:text-[#27AE60] transition-colors shrink-0" />
+            <FileText size={13} className="text-[#6E6E73] dark:text-[#a1a1aa] group-hover:text-[#27AE60] transition-colors shrink-0" />
             <span className="text-xs font-medium text-[#3A3A3C] dark:text-[#e4e4e7] flex-1 truncate">{filename}</span>
-            {f.size && <span className="text-[10px] text-[#6E6E73] shrink-0">{fmtSize(f.size)}</span>}
-            <Download size={12} className="text-[#6E6E73] group-hover:text-[#27AE60] transition-colors shrink-0" />
+            {f.size && <span className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] shrink-0">{fmtSize(f.size)}</span>}
+            <Download size={12} className="text-[#6E6E73] dark:text-[#a1a1aa] group-hover:text-[#27AE60] transition-colors shrink-0" />
           </button>
         );
       })}
@@ -421,7 +421,7 @@ export const MissionsManagement = () => {
                 placeholder="Pixel art 16×16, dark grey palette, fits existing stone theme…" />
             </div>
             <div>
-              <label className={labelClass}>Reference Files <span className="text-[#6E6E73] normal-case font-normal">(images, SVG…)</span></label>
+              <label className={labelClass}>Reference Files <span className="text-[#6E6E73] dark:text-[#a1a1aa] normal-case font-normal">(images, SVG…)</span></label>
               <div className="flex flex-wrap gap-2">
                 {form.reference_images.map((url, idx) => (
                   <div key={idx} className="relative group w-20 h-20 overflow-hidden rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14]">
@@ -451,7 +451,7 @@ export const MissionsManagement = () => {
 
       {/* ── MISSIONS LIST ── */}
       {loading ? (
-        <div className="py-12 text-center text-[#6E6E73] text-sm">Loading…</div>
+        <div className="py-12 text-center text-[#6E6E73] dark:text-[#a1a1aa] text-sm">Loading…</div>
       ) : displayed.length === 0 ? (
         <Card>
           <EmptyState
@@ -495,12 +495,12 @@ export const MissionsManagement = () => {
                         <PriorityBadge p={m.priority} />
                         <StatusBadge s={m.status} />
                         {m.revisions?.length > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-[#6E6E73] font-medium">
+                          <span className="inline-flex items-center gap-1 text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-medium">
                             <History size={10} />Round {m.revisions.length}
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#6E6E73]">
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#6E6E73] dark:text-[#a1a1aa]">
                         <span>by <span className="font-medium text-[#6E6E73] dark:text-[#a1a1aa]">{m.created_by}</span></span>
                         <span>{timeAgo(m.created_at)}</span>
                         {m.claimed_by && <span>· <span className="text-[#F2994A] font-medium">{m.claimed_by}</span></span>}
@@ -577,7 +577,7 @@ export const MissionsManagement = () => {
                           <Upload size={20} className="text-[#A1A1A6] dark:text-[#6E6E73]" />
                           <div className="text-center">
                             <p className="text-xs font-semibold text-[#3A3A3C] dark:text-[#e4e4e7]">{uploadingDelivery ? 'Uploading…' : 'Click to add files'}</p>
-                            <p className="text-[10px] text-[#6E6E73] mt-0.5">PNG, SVG, PSD, ZIP, PDF… up to 50 MB per file · Multiple allowed</p>
+                            <p className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">PNG, SVG, PSD, ZIP, PDF… up to 50 MB per file · Multiple allowed</p>
                           </div>
                           <input type="file" multiple className="hidden" onChange={uploadDelivery} disabled={uploadingDelivery} />
                         </label>
@@ -588,7 +588,7 @@ export const MissionsManagement = () => {
                             <div className="mt-2 space-y-0">
                               {/* Per-file remove buttons */}
                               {pendingFiles.map((f, i) => (
-                                <div key={i} className="flex items-center justify-between text-[11px] text-[#6E6E73] py-0.5">
+                                <div key={i} className="flex items-center justify-between text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] py-0.5">
                                   <span className="truncate">{f.filename}</span>
                                   <button onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
                                     className="ml-2 text-red-400 hover:text-red-500 shrink-0"><X size={11} /></button>
@@ -641,13 +641,13 @@ export const MissionsManagement = () => {
                       <div className="px-4 py-3 space-y-3 border-b border-[#EDEDEF] dark:border-[#1c1c2e]">
                         {m.style_description && (
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-1">Visual Style</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#a1a1aa] mb-1">Visual Style</p>
                             <p className="text-xs text-[#3A3A3C] dark:text-[#a1a1aa] whitespace-pre-wrap">{m.style_description}</p>
                           </div>
                         )}
                         {m.reference_images?.length > 0 && (
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#a1a1aa] mb-2">
                               Reference Files <span className="normal-case font-normal">(hover to download in original format)</span>
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -673,7 +673,7 @@ export const MissionsManagement = () => {
                     {/* Revision history */}
                     {m.revisions?.length > 0 && (
                       <div className="px-4 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-2 flex items-center gap-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6E6E73] dark:text-[#a1a1aa] mb-2 flex items-center gap-1.5">
                           <History size={10} />Revision History ({m.revisions.length} round{m.revisions.length > 1 ? 's' : ''})
                         </p>
                         <div className="space-y-2">
@@ -683,7 +683,7 @@ export const MissionsManagement = () => {
                                 <span className="flex items-center gap-1.5 font-semibold text-[#27AE60]">
                                   <CheckCircle size={11} />Round {rev.round} — {rev.delivered_by}
                                 </span>
-                                <span className="text-[#6E6E73] text-[10px]">{timeAgo(rev.delivered_at)}</span>
+                                <span className="text-[#6E6E73] dark:text-[#a1a1aa] text-[10px]">{timeAgo(rev.delivered_at)}</span>
                               </div>
                               {rev.delivery_files?.length > 0 && (
                                 <div className="px-3 py-2 border-t border-[#27AE60]/10">
@@ -696,7 +696,7 @@ export const MissionsManagement = () => {
                                     <span className="flex items-center gap-1.5 font-semibold text-[#EB5757]">
                                       <MessageSquare size={11} />Feedback — {rev.feedback_by}
                                     </span>
-                                    <span className="text-[#6E6E73] text-[10px]">{timeAgo(rev.feedback_at)}</span>
+                                    <span className="text-[#6E6E73] dark:text-[#a1a1aa] text-[10px]">{timeAgo(rev.feedback_at)}</span>
                                   </div>
                                   <p className="text-[#3A3A3C] dark:text-[#a1a1aa] whitespace-pre-wrap leading-relaxed">{rev.feedback}</p>
                                 </div>

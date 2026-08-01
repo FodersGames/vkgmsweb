@@ -5,6 +5,8 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
+import { HoverPreview } from '../components/HoverPreview';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -100,7 +102,7 @@ const GamesPage = () => {
       <div className="pt-[52px]">
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
-          <div className="max-w-7xl mx-auto">
+          <Reveal className="max-w-7xl mx-auto">
             <p className="text-xs font-semibold text-[#A1A1A6] mb-3">
               Vakar Games
             </p>
@@ -110,7 +112,7 @@ const GamesPage = () => {
             <p className="text-[#6E6E73] mt-3 max-w-md">
               Every title we release. Each one built with care.
             </p>
-          </div>
+          </Reveal>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-16">
@@ -126,7 +128,7 @@ const GamesPage = () => {
           ) : (
             <div className="space-y-20">
               {games.map((game, idx) => (
-                <div
+                <Reveal
                   key={game.slug}
                   className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-16 items-center`}
                   data-testid={`game-card-${game.slug}`}
@@ -163,7 +165,7 @@ const GamesPage = () => {
                         {game.name}
                       </h2>
                       {game.status === 'coming_soon' && (
-                        <span className="px-2.5 py-1 text-xs font-bold tracking-wider uppercase border border-[#A1A1A6] text-[#6E6E73]">
+                        <span className="rounded-lg px-2.5 py-1 text-xs font-bold tracking-wider uppercase border border-[#A1A1A6] text-[#6E6E73]">
                           COMING SOON
                         </span>
                       )}
@@ -175,14 +177,18 @@ const GamesPage = () => {
 
                     {game.screenshots?.length > 1 && (
                       <div className="flex gap-2 overflow-x-auto pb-1">
-                        {game.screenshots.slice(1, 4).map((s, i) => (
-                          <img
-                            key={i}
-                            src={s.startsWith('/') ? `${API_URL}${s}` : s}
-                            alt=""
-                            className="rounded-xl h-16 sm:h-20 object-cover flex-shrink-0 border border-[#D2D2D7]"
-                          />
-                        ))}
+                        {game.screenshots.slice(1, 4).map((s, i) => {
+                          const full = s.startsWith('/') ? `${API_URL}${s}` : s;
+                          return (
+                            <HoverPreview key={i} src={full} alt="" className="shrink-0">
+                              <img
+                                src={full}
+                                alt=""
+                                className="rounded-xl h-16 sm:h-20 object-cover border border-[#D2D2D7]"
+                              />
+                            </HoverPreview>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -215,7 +221,7 @@ const GamesPage = () => {
                           <p className="text-xs text-red-500 mb-2">{purchaseError.msg}</p>
                         )}
                         {ownedSlugs.has(game.slug) ? (
-                          <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#22C55E]/10 text-[#22C55E] text-sm font-semibold border border-[#22C55E]/20">
+                          <span className="rounded-lg inline-flex items-center gap-2 px-5 py-2.5 bg-[#22C55E]/10 text-[#22C55E] text-sm font-semibold border border-[#22C55E]/20">
                             <CheckCircle size={14} />
                             Owned
                           </span>
@@ -282,7 +288,7 @@ const GamesPage = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                </Reveal>
               ))}
             </div>
           )}

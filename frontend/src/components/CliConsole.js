@@ -122,7 +122,7 @@ export const CliConsole = () => {
       </div>
 
       {/* Warning banner */}
-      <div className="flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
+      <div className="rounded-lg flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
         <ShieldAlert size={15} className="text-[#F2994A] shrink-0 mt-0.5" />
         <p className="text-xs text-[#6E6E73] leading-relaxed">
           This console only runs a fixed set of predefined commands — there is no raw database access or code

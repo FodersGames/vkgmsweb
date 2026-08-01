@@ -87,7 +87,7 @@ export const ProjectManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#71717a] dark:text-[#52525b] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest mb-4">
             Projects ({projects.length})
           </p>
           {projects.length === 0 ? (

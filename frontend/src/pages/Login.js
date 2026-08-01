@@ -64,7 +64,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
     <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="rounded-xl bg-white border border-[#D2D2D7] max-w-md w-full p-8 shadow-xl">
         <div className="mb-6">
-          <div className="w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
+          <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <AlertTriangle size={18} className="text-amber-600" />
           </div>
           <h2 className="text-xl font-bold text-[#1D1D1F] mb-1">Change your password</h2>
@@ -102,7 +102,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
+            <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -253,7 +253,7 @@ export const Login = () => {
               </div>
 
               {loginError && (
-                <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="login-error">
+                <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="login-error">
                   {loginError}
                 </div>
               )}
@@ -271,7 +271,7 @@ export const Login = () => {
             <div className="px-7 py-7">
               {regSuccess ? (
                 <div className="text-center py-4">
-                  <div className="w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
+                  <div className="rounded-lg w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle size={18} className="text-[#4ECDC4]" />
                   </div>
                   <h3 className="text-base font-bold text-[#1D1D1F] mb-1">Account created</h3>
@@ -359,7 +359,7 @@ export const Login = () => {
                   </div>
 
                   {regError && (
-                    <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="register-error">
+                    <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="register-error">
                       {regError}
                     </div>
                   )}

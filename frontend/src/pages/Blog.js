@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -26,7 +27,7 @@ export const BlogList = () => {
       <div className="pt-[52px]">
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
-          <div className="max-w-4xl mx-auto">
+          <Reveal className="max-w-4xl mx-auto">
             <p className="text-xs font-semibold text-[#A1A1A6] mb-3">
               Vakar Games
             </p>
@@ -34,9 +35,9 @@ export const BlogList = () => {
               Blog
             </h1>
             <p className="text-[#6E6E73] mt-3">
-              News, updates and announcements from the studio.
+              News, updates and announcements from the company.
             </p>
-          </div>
+          </Reveal>
         </div>
 
         <div className="max-w-4xl mx-auto px-6 py-14">

@@ -20,20 +20,20 @@ export const SiteFooter = ({ onAbout }) => {
   <footer className="bg-[#F5F5F7]">
     <div className="max-w-[1040px] mx-auto px-6 pt-10 pb-14">
       <div className="pb-6 border-b border-[#D2D2D7] text-xs text-[#6E6E73]">
-        Vakar Games — Independent game studio, based in France.
+        Vakar Games — Independent software company, based in France.
       </div>
 
       <div className="pt-7 grid grid-cols-2 sm:grid-cols-4 gap-6">
         <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Games</h4>
+          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Products</h4>
           <ul className="flex flex-col gap-2.5">
-            <li><Link to="/games" className={linkCls}>All games</Link></li>
+            <li><Link to="/games" className={linkCls}>Games</Link></li>
             <li><Link to="/shop" className={linkCls}>Shop</Link></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Studio</h4>
+          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Company</h4>
           <ul className="flex flex-col gap-2.5">
             <li>
               {onAbout ? (

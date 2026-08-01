@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Reveal } from '../components/Reveal';
 import {
   ShoppingCart, X, Loader2, ArrowLeft, ArrowRight, Star,
   Package, Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
@@ -63,7 +64,7 @@ const LoyaltyBar = ({ loyalty }) => {
           <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
           <button
             onClick={() => setShowInfo(v => !v)}
-            className="w-4 h-4 border border-[#BFBFC4] text-[#A1A1A6] hover:border-[#6E6E73] hover:text-[#6E6E73] flex items-center justify-center text-[10px] font-bold transition-colors"
+            className="rounded-lg w-4 h-4 border border-[#BFBFC4] text-[#A1A1A6] hover:border-[#6E6E73] hover:text-[#6E6E73] flex items-center justify-center text-[10px] font-bold transition-colors"
           >?</button>
         </div>
       </div>
@@ -120,7 +121,7 @@ const LoyaltyBar = ({ loyalty }) => {
               const TIcon = tc.icon;
               const reached = TIER_ORDER.indexOf(t) <= tierIdx;
               return (
-                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#F5F5F7] border" style={{ borderColor: reached ? `${tc.color}55` : '#D2D2D7' }}>
+                <div key={t} className="rounded-lg flex items-center gap-1.5 px-2 py-1.5 bg-[#F5F5F7] border" style={{ borderColor: reached ? `${tc.color}55` : '#D2D2D7' }}>
                   <TIcon size={10} style={{ color: tc.color }} />
                   <span className="font-semibold text-[10px]" style={{ color: tc.color }}>{tc.label}</span>
                   <span className="text-[#A1A1A6] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
@@ -331,7 +332,7 @@ const Shop = () => {
       <div className="pt-[52px]">
         {/* Header — same style as home page sections */}
         <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
-          <div className="max-w-screen-xl mx-auto">
+          <Reveal className="max-w-screen-xl mx-auto">
             <p className="text-xs font-semibold text-[#A1A1A6] mb-4">Store</p>
             <div className="flex items-end justify-between gap-6 flex-wrap">
               <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
@@ -346,7 +347,7 @@ const Shop = () => {
                 </Link>
               )}
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10 space-y-10">
@@ -547,7 +548,7 @@ const Shop = () => {
 
               {/* Loyalty discount info */}
               {discount > 0 && loyalty && (
-                <div className="flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
+                <div className="rounded-lg flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
                   <GradeBadge tier={loyalty.tier} />
                   <p className="text-xs text-[#4ECDC4] font-semibold">
                     {discount}% loyalty discount applied

@@ -409,7 +409,7 @@ export default function CareersManagement() {
                   <div className="flex items-center gap-2 shrink-0 ml-3">
                     <button
                       onClick={e => { e.stopPropagation(); openEdit(c); }}
-                      className="p-1.5 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-[#F5F5F7]"
+                      className="p-1.5 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]"
                     >
                       <Edit2 size={14} />
                     </button>

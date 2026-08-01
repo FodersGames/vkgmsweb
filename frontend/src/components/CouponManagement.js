@@ -292,7 +292,7 @@ export const CouponManagement = () => {
                     />
                     <div className="rounded-xl max-h-40 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#F3F0EC]">
                       {filteredUsers.slice(0, 50).map(u => (
-                        <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#F5F5F7] cursor-pointer">
+                        <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] cursor-pointer">
                           <input
                             type="checkbox"
                             checked={form.target_user_ids.includes(u.id)}
@@ -348,7 +348,7 @@ export const CouponManagement = () => {
             <div key={c.id} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c]">
               <button
                 onClick={() => loadDetail(c.id)}
-                className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F5F5F7] transition-colors text-left"
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-colors text-left"
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <Tag size={16} className="text-[#4ECDC4] shrink-0" />

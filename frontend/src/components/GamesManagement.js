@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Gamepad2, Plus, Trash2, Edit2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
+import { HoverPreview } from './HoverPreview';
 import { Button, Card, CardHeader, CardBody, EmptyState, Badge, Input, Textarea, Select } from '../ui';
 
 const PLATFORMS = [
@@ -103,7 +104,7 @@ export const GamesManagement = () => {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Games Management</h3>
-              <p className="text-xs text-[#6E6E73]">Manage games displayed on the website</p>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Manage games displayed on the website</p>
             </div>
           </div>
           {hasPermission('create_games') && (
@@ -129,7 +130,7 @@ export const GamesManagement = () => {
                 <Textarea label="Description" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} required data-testid="game-description-input" />
 
                 <div>
-                  <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Logo</p>
+                  <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Logo</p>
                   <div className="flex items-center gap-3">
                     {form.logo_url && <img src={form.logo_url.startsWith('/') ? `${API_URL}${form.logo_url}` : form.logo_url} alt="logo" className="rounded-xl w-14 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />}
                     <label className="cursor-pointer">
@@ -140,7 +141,7 @@ export const GamesManagement = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Screenshots</p>
+                  <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Screenshots</p>
                   <div className="flex flex-wrap gap-2">
                     {form.screenshots.map((s, i) => (
                       <div key={i} className="relative group">
@@ -151,14 +152,14 @@ export const GamesManagement = () => {
                       </div>
                     ))}
                     <label className="cursor-pointer w-20 h-14 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50 flex items-center justify-center transition-colors">
-                      <ImageIcon size={16} className="text-[#6E6E73]" />
+                      <ImageIcon size={16} className="text-[#6E6E73] dark:text-[#a1a1aa]" />
                       <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
                     </label>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Platforms</p>
+                  <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Platforms</p>
                   <div className="space-y-2">
                     {PLATFORMS.map(p => {
                       const active = form.platforms.find(pl => pl.name === p.id);
@@ -179,9 +180,9 @@ export const GamesManagement = () => {
 
                 {/* Price */}
                 <div>
-                  <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Game Price</p>
+                  <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Game Price</p>
                   <div className="relative max-w-[180px]">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] text-sm font-medium">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] text-sm font-medium">$</span>
                     <input
                       type="number"
                       min="0"
@@ -195,14 +196,14 @@ export const GamesManagement = () => {
                       className="rounded-lg w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#4ECDC4]"
                     />
                   </div>
-                  <p className="text-[10px] text-[#6E6E73] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
+                  <p className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
                 </div>
 
                 <label className="rounded-xl flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#4ECDC4]/30 transition-colors" data-testid="featured-toggle">
                   <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
                   <div>
                     <span className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] font-medium">Featured Game</span>
-                    <p className="text-xs text-[#6E6E73]">Display this game on the homepage</p>
+                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Display this game on the homepage</p>
                   </div>
                 </label>
 
@@ -225,8 +226,12 @@ export const GamesManagement = () => {
               {games.map(g => (
                 <div key={g.slug} className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20 transition-colors">
                   {g.logo_url
-                    ? <img src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt="" className="rounded-xl w-12 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0" />
-                    : <div className="rounded-lg w-12 h-12 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><Gamepad2 size={18} className="text-[#6E6E73]" /></div>}
+                    ? (
+                      <HoverPreview src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt={g.name} className="shrink-0">
+                        <img src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt="" className="rounded-xl w-12 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />
+                      </HoverPreview>
+                    )
+                    : <div className="rounded-lg w-12 h-12 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><Gamepad2 size={18} className="text-[#6E6E73] dark:text-[#a1a1aa]" /></div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{g.name}</h4>
@@ -235,10 +240,10 @@ export const GamesManagement = () => {
                       {g.price_cents > 0 && <Badge variant="default">${(g.price_cents / 100).toFixed(2)}</Badge>}
                       {(g.price_cents === 0 || !g.price_cents) && <Badge variant="success">Free</Badge>}
                     </div>
-                    <p className="text-xs text-[#6E6E73] truncate mt-0.5">{g.description}</p>
+                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] truncate mt-0.5">{g.description}</p>
                     {g.platforms?.length > 0 && (
                       <div className="flex gap-1 mt-1.5 flex-wrap">
-                        {g.platforms.map((p, i) => <span key={i} className="text-[10px] px-1.5 py-0.5 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded text-[#6E6E73]">{p.name}</span>)}
+                        {g.platforms.map((p, i) => <span key={i} className="text-[10px] px-1.5 py-0.5 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded text-[#6E6E73] dark:text-[#a1a1aa]">{p.name}</span>)}
                       </div>
                     )}
                   </div>

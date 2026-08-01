@@ -8,7 +8,7 @@ import {
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, Briefcase, Terminal, Search, Sun, Moon,
+  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -369,22 +369,76 @@ const SidebarContent = ({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+const SESSION_KEY = 'vg_admin_last_section';
+
+const restoreSession = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null') || {};
+  } catch {
+    return {};
+  }
+};
+
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { projects, selectedProject, selectProject } = useProject();
   const isSuperAdmin = !!user?.is_super_admin;
 
-  const [activeTab,    setActiveTab]    = useState('overview');
+  const restored = useRef(restoreSession()).current;
+
+  const [activeTab,    setActiveTab]    = useState(restored.activeTab || 'overview');
   const [showProject,  setShowProject]  = useState(false);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [paletteOpen,  setPaletteOpen]  = useState(false);
 
-  const [projectTab, setProjectTab] = useState('list');
-  const [shopTab,    setShopTab]    = useState('shop');
-  const [systemTab,  setSystemTab]  = useState('vps');
+  const [projectTab, setProjectTab] = useState(restored.projectTab || 'list');
+  const [shopTab,    setShopTab]    = useState(restored.shopTab || 'shop');
+  const [systemTab,  setSystemTab]  = useState(restored.systemTab || 'vps');
 
   const projectDropRef = useRef(null);
+
+  // Back/forward history — a lightweight in-memory stack of section snapshots,
+  // since the dashboard is pure React state rather than per-tab URLs.
+  const historyStack = useRef([]);
+  const historyIndex = useRef(-1);
+  const suppressHistoryPush = useRef(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
+
+  useEffect(() => {
+    const snap = { activeTab, projectTab, shopTab, systemTab };
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(snap)); } catch {}
+
+    if (suppressHistoryPush.current) {
+      suppressHistoryPush.current = false;
+    } else {
+      historyStack.current = historyStack.current.slice(0, historyIndex.current + 1);
+      historyStack.current.push(snap);
+      if (historyStack.current.length > 50) historyStack.current.shift();
+      historyIndex.current = historyStack.current.length - 1;
+    }
+    setCanGoBack(historyIndex.current > 0);
+    setCanGoForward(historyIndex.current < historyStack.current.length - 1);
+  }, [activeTab, projectTab, shopTab, systemTab]);
+
+  const applySnapshot = (snap) => {
+    suppressHistoryPush.current = true;
+    setActiveTab(snap.activeTab);
+    setProjectTab(snap.projectTab);
+    setShopTab(snap.shopTab);
+    setSystemTab(snap.systemTab);
+  };
+  const goBack = () => {
+    if (historyIndex.current <= 0) return;
+    historyIndex.current -= 1;
+    applySnapshot(historyStack.current[historyIndex.current]);
+  };
+  const goForward = () => {
+    if (historyIndex.current >= historyStack.current.length - 1) return;
+    historyIndex.current += 1;
+    applySnapshot(historyStack.current[historyIndex.current]);
+  };
 
   useEffect(() => {
     const handler = (e) => {
@@ -396,11 +450,18 @@ const DashboardContent = () => {
   }, []);
 
   // Global ⌘K / Ctrl+K — jump to any section without touching the sidebar.
+  // Alt+←/→ — step back/forward through recently visited sections.
   useEffect(() => {
     const onKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen(v => !v);
+      } else if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goBack();
+      } else if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        goForward();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -512,6 +573,26 @@ const DashboardContent = () => {
           <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
             Vakar Games
           </span>
+
+          {/* Back / forward through recently visited sections */}
+          <div className="hidden lg:flex items-center gap-0.5 -ml-1 shrink-0">
+            <button
+              onClick={goBack}
+              disabled={!canGoBack}
+              title="Back (Alt+←)"
+              className="p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={goForward}
+              disabled={!canGoForward}
+              title="Forward (Alt+→)"
+              className="p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
 
           {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2 min-w-0">

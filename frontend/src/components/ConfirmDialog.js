@@ -86,7 +86,7 @@ export const ConfirmDialog = ({
               {title}
             </h3>
             {description && (
-              <p id="cdlg-desc" className="mt-1.5 text-sm text-[#6E6E73] leading-relaxed">
+              <p id="cdlg-desc" className="mt-1.5 text-sm text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed">
                 {description}
               </p>
             )}
@@ -95,7 +95,7 @@ export const ConfirmDialog = ({
           {!loading && (
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#e4e4e7] hover:bg-[#EDEDEF] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
+              className="rounded-lg p-1.5 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-[#e4e4e7] hover:bg-[#EDEDEF] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
               aria-label="Close"
             >
               <X size={15} />

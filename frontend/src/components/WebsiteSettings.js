@@ -22,7 +22,7 @@ const HealthRow = ({ label, ok, value, neutral }) => {
   const color = neutral ? '#6E6E73' : (ok ? '#4ECDC4' : '#EB5757');
   return (
     <div className="flex items-center justify-between gap-3 py-1.5 border-b border-[#EDEDEF] dark:border-[#1c1c2e] last:border-0">
-      <span className="text-xs text-[#6E6E73]">{label}</span>
+      <span className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">{label}</span>
       <span className="flex items-center gap-1.5 text-xs font-medium shrink-0" style={{ color }}>
         <Icon size={13} />
         {value}
@@ -93,11 +93,11 @@ export const WebsiteSettings = () => {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="rounded-lg w-10 h-10 bg-[#6E6E73]/10 flex items-center justify-center">
-          <Settings size={20} className="text-[#6E6E73]" />
+          <Settings size={20} className="text-[#6E6E73] dark:text-[#a1a1aa]" />
         </div>
         <div>
           <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Website Settings</h1>
-          <p className="text-xs text-[#A1A1A6]">Global configuration for the public site</p>
+          <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Global configuration for the public site</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ export const WebsiteSettings = () => {
             <AlertTriangle size={20} className={maintenance ? 'text-red-400' : 'text-[#6E6E73]'} />
             <div>
               <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Maintenance Mode</h4>
-              <p className="text-xs text-[#6E6E73]">
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
                 {maintenance ? 'Website is currently in maintenance — only staff accounts can sign in' : 'Website is live and accessible'}
               </p>
             </div>
@@ -123,7 +123,7 @@ export const WebsiteSettings = () => {
           </Button>
         </div>
         {updatedAt && (
-          <p className="text-[11px] text-[#A1A1A6] mt-3">
+          <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-3">
             Last changed {timeAgo(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''}
           </p>
         )}
@@ -135,7 +135,7 @@ export const WebsiteSettings = () => {
           <Mail size={18} className="text-[#4ECDC4]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Support Contact Email</h4>
-            <p className="text-xs text-[#6E6E73]">Shown on the Contact page and the site footer.</p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Shown on the Contact page and the site footer.</p>
           </div>
         </div>
         <form onSubmit={saveEmail} className="flex items-end gap-2 flex-wrap">
@@ -156,7 +156,7 @@ export const WebsiteSettings = () => {
           <ShieldCheck size={18} className="text-[#4ECDC4]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">System Health</h4>
-            <p className="text-xs text-[#6E6E73]">Read-only status of key backend configuration.</p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Read-only status of key backend configuration.</p>
           </div>
         </div>
         {health ? (
@@ -184,7 +184,7 @@ export const WebsiteSettings = () => {
             />
           </div>
         ) : (
-          <p className="text-xs text-[#A1A1A6]">Loading…</p>
+          <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Loading…</p>
         )}
       </div>
     </div>

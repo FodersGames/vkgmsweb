@@ -254,12 +254,12 @@ const TicketManagement = () => {
           <p className="text-sm text-[#A1A1A6] dark:text-[#71717a]">No tickets found.</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7]">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c]">
           {tickets.map(t => (
             <button
               key={t.id}
               onClick={() => openTicket(t)}
-              className="w-full px-6 py-4 text-left hover:bg-[#F5F5F7] transition-colors"
+              className="w-full px-6 py-4 text-left hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

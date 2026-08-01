@@ -69,7 +69,7 @@ const ValueEditor = ({ draft, setDraft }) => {
   if (draft.var_type === 'boolean') {
     return (
       <div>
-        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Value</p>
+        <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Value</p>
         <Button
           variant={draft.boolValue ? 'accent' : 'secondary'}
           onClick={() => patch({ boolValue: !draft.boolValue })}
@@ -84,7 +84,7 @@ const ValueEditor = ({ draft, setDraft }) => {
   if (draft.var_type === 'list') {
     return (
       <div>
-        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Values</p>
+        <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Values</p>
         {draft.listValue.map((v, i) => (
           <div key={i} className="flex gap-2 mb-2">
             <Input
@@ -143,7 +143,7 @@ const ValueEditor = ({ draft, setDraft }) => {
 
 const VisibilityToggle = ({ isPublic, onChange }) => (
   <div>
-    <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Visibility</p>
+    <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Visibility</p>
     <div className="flex gap-2">
       <button
         type="button"
@@ -272,7 +272,7 @@ export const VariablesManagement = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Server Variables</h1>
-              <p className="text-xs text-[#A1A1A6]">
+              <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">
                 {variables.length} variable{variables.length !== 1 ? 's' : ''} — live config the running game can read
               </p>
             </div>
@@ -281,7 +281,7 @@ export const VariablesManagement = () => {
             <button
               onClick={fetchVars}
               disabled={loading}
-              className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+              className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
@@ -295,7 +295,7 @@ export const VariablesManagement = () => {
 
         {/* Search */}
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6]" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a]" />
           <input
             type="text"
             placeholder="Search by name or description..."
@@ -345,7 +345,7 @@ export const VariablesManagement = () => {
         {variables.length === 0 && !loading ? (
           <EmptyState icon={Database} title="No server variables yet" description="Create one to push live config to your running game — no rebuild needed." />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[#A1A1A6] text-center py-10">No variable matches "{search}".</p>
+          <p className="text-sm text-[#A1A1A6] dark:text-[#71717a] text-center py-10">No variable matches "{search}".</p>
         ) : (
           <div className="space-y-3" data-testid="variables-list">
             {filtered.map(v => {
@@ -365,8 +365,8 @@ export const VariablesManagement = () => {
                           <Badge variant="orange"><Lock size={11} />Private</Badge>
                         )}
                       </div>
-                      {v.description && <p className="text-xs text-[#6E6E73] mt-1">{v.description}</p>}
-                      <p className="text-[11px] text-[#A1A1A6] mt-1">
+                      {v.description && <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1">{v.description}</p>}
+                      <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-1">
                         Updated {fmtDate(v.updated_at)}{v.updated_by ? ` by ${v.updated_by}` : ''}
                       </p>
                     </div>

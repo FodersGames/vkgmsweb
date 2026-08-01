@@ -111,7 +111,7 @@ export const SendItems = () => {
             </div>
             <div>
               <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Predefined Items</p>
-              <p className="text-xs text-[#6E6E73]">Click to pre-fill the form</p>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Click to pre-fill the form</p>
             </div>
           </div>
           <Button variant="secondary" size="sm" icon={Plus} onClick={openAddTemplate}>
@@ -127,7 +127,7 @@ export const SendItems = () => {
                   <div className="rounded-lg w-14 h-14 border-2 border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden flex items-center justify-center bg-[#EDEDEF] dark:bg-[#0d0d14] relative group cursor-pointer">
                     {tplForm.image_url
                       ? <img src={tplForm.image_url.startsWith('/') ? `${API_URL}${tplForm.image_url}` : tplForm.image_url} alt="" className="w-full h-full object-cover" />
-                      : <Upload size={16} className="text-[#A1A1A6]" />}
+                      : <Upload size={16} className="text-[#A1A1A6] dark:text-[#71717a]" />}
                     <label className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 flex items-center justify-center bg-black/40 transition-opacity">
                       <Upload size={14} className="text-white" />
                       <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setTplForm(f => ({ ...f, image_url: url })))} />
@@ -167,7 +167,7 @@ export const SendItems = () => {
                     </div>
                     <div className="px-2.5 py-2">
                       <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{tpl.name}</p>
-                      <p className="text-[11px] text-[#6E6E73] truncate">{tpl.amount}× {tpl.variable}</p>
+                      <p className="text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] truncate">{tpl.amount}× {tpl.variable}</p>
                     </div>
                     {isSelected && (
                       <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#4ECDC4] flex items-center justify-center">
@@ -175,8 +175,8 @@ export const SendItems = () => {
                       </div>
                     )}
                     <div className="absolute top-1.5 left-1.5 hidden group-hover:flex gap-1">
-                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
-                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] hover:text-red-400 transition-colors"><Trash2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] dark:text-[#a1a1aa] hover:text-red-400 transition-colors"><Trash2 size={10} /></button>
                     </div>
                   </div>
                 );
@@ -198,7 +198,7 @@ export const SendItems = () => {
               {selectedTpl && (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-[11px] text-[#4ECDC4] font-medium">Template: {selectedTpl.name}</span>
-                  <button onClick={clearTemplate} className="text-[#6E6E73] hover:text-[#3A3A3C] dark:hover:text-white transition-colors"><X size={10} /></button>
+                  <button onClick={clearTemplate} className="text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#3A3A3C] dark:hover:text-white transition-colors"><X size={10} /></button>
                 </div>
               )}
             </div>
