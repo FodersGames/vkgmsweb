@@ -618,8 +618,12 @@ const DashboardContent = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // This element carries the `dark` marker class itself, so a `dark:` variant on the
+  // SAME element would never match — Tailwind's dark: selector requires an ANCESTOR
+  // with .dark, not self. That's why the page background kept leaking light gray
+  // even in dark mode. Fixed by branching the plain bg- class instead.
   return (
-    <div className={`flex h-screen overflow-hidden bg-[#F5F5F7] ${isDark ? 'dark dark:bg-[#0e0e15]' : ''}`}>
+    <div className={`flex h-screen overflow-hidden ${isDark ? 'dark bg-[#0e0e15]' : 'bg-[#F5F5F7]'}`}>
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex shrink-0 w-[240px] h-full">

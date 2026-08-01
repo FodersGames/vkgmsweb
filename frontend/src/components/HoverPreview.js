@@ -48,12 +48,16 @@ export const HoverPreview = ({ src, alt = '', children, className = '' }) => {
       {children}
       {show && createPortal(
         // Same portal-escapes-the-dark-scope issue as ConfirmDialog — reapply
-        // the class here from ThemeContext.
-        <div
-          className={`animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] ${isDark ? 'dark' : ''}`}
-          style={{ left, top, width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
-        >
-          <img src={src} alt={alt} className="w-full h-full object-contain" />
+        // the marker from ThemeContext. It has to live on a WRAPPING element,
+        // not this one: a `dark:` variant on the same element as the `dark`
+        // marker itself never matches (dark: needs an ancestor, not self).
+        <div className={isDark ? 'dark' : ''}>
+          <div
+            className="animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]"
+            style={{ left, top, width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+          >
+            <img src={src} alt={alt} className="w-full h-full object-contain" />
+          </div>
         </div>,
         document.body
       )}
