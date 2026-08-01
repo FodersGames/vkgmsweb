@@ -71,22 +71,22 @@ export const ConfirmDialog = ({
         aria-modal="true"
         aria-labelledby="cdlg-title"
         aria-describedby={description ? 'cdlg-desc' : undefined}
-        className="relative z-10 bg-white dark:bg-[#151520] border border-[#E8E3DB] dark:border-[#2a2a3c] p-6 w-full max-w-md shadow-2xl animate-in"
+        className="relative z-10 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 w-full max-w-md shadow-2xl animate-in"
         style={{ animation: 'cdlgIn 140ms cubic-bezier(0.16,1,0.3,1)' }}
       >
         <div className="flex items-start gap-4">
           {variant === 'destructive' && (
-            <div className="w-10 h-10 bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="rounded-lg w-10 h-10 bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 mt-0.5">
               <AlertTriangle size={18} className="text-red-400" />
             </div>
           )}
 
           <div className="flex-1 min-w-0">
-            <h3 id="cdlg-title" className="text-base font-semibold text-[#1C1917] dark:text-[#e4e4e7] leading-snug">
+            <h3 id="cdlg-title" className="text-base font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] leading-snug">
               {title}
             </h3>
             {description && (
-              <p id="cdlg-desc" className="mt-1.5 text-sm text-[#71717a] leading-relaxed">
+              <p id="cdlg-desc" className="mt-1.5 text-sm text-[#6E6E73] leading-relaxed">
                 {description}
               </p>
             )}
@@ -95,7 +95,7 @@ export const ConfirmDialog = ({
           {!loading && (
             <button
               onClick={onClose}
-              className="p-1.5 text-[#71717a] hover:text-[#1C1917] dark:hover:text-[#e4e4e7] hover:bg-[#F0EDE8] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
+              className="p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#e4e4e7] hover:bg-[#EDEDEF] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
               aria-label="Close"
             >
               <X size={15} />
@@ -107,7 +107,7 @@ export const ConfirmDialog = ({
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-[#44403C] dark:text-[#a1a1aa] bg-[#F0EDE8] dark:bg-[#2a2a3c] hover:bg-[#E8E3DB] dark:hover:bg-[#3a3a50] transition-all disabled:opacity-40"
+            className="px-4 py-2 text-sm font-medium text-[#3A3A3C] dark:text-[#a1a1aa] bg-[#EDEDEF] dark:bg-[#2a2a3c] hover:bg-[#D2D2D7] dark:hover:bg-[#3a3a50] transition-all disabled:opacity-40"
           >
             {cancelLabel}
           </button>

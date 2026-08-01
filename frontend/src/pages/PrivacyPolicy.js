@@ -4,8 +4,8 @@ import { SiteFooter } from '../components/SiteFooter';
 
 const Section = ({ title, children }) => (
   <div>
-    <h2 className="text-lg font-bold text-[#1C1917] mb-3">{title}</h2>
-    <div className="text-sm text-[#78716C] leading-relaxed space-y-3">{children}</div>
+    <h2 className="text-lg font-bold text-[#1D1D1F] mb-3">{title}</h2>
+    <div className="text-sm text-[#6E6E73] leading-relaxed space-y-3">{children}</div>
   </div>
 );
 
@@ -13,26 +13,25 @@ const PrivacyPolicy = () => {
   useEffect(() => { document.title = 'Privacy Policy — Vakar Games'; }, []);
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
-        <div className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-12">
+        <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-12">
           <div className="max-w-3xl mx-auto">
             <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Legal</p>
             <h1
-              className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight mb-3"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight mb-3"
             >
               PRIVACY POLICY
             </h1>
-            <p className="text-sm text-[#A8A29E]">Last updated: June 21, 2026</p>
+            <p className="text-sm text-[#A1A1A6]">Last updated: June 21, 2026</p>
           </div>
         </div>
 
         <div className="max-w-3xl mx-auto px-6 py-14 space-y-10">
           <Section title="1. Who We Are">
-            <p>Vakar Games is an independent French video game studio. This Privacy Policy explains how we handle information when you visit <strong className="text-[#1C1917]">vakargames.com</strong>, create an account, make purchases, or use features within our games such as the in-game chat system.</p>
+            <p>Vakar Games is an independent French video game studio. This Privacy Policy explains how we handle information when you visit <strong className="text-[#1D1D1F]">vakargames.com</strong>, create an account, make purchases, or use features within our games such as the in-game chat system.</p>
           </Section>
 
           <Section title="2. What Data We Collect">
@@ -60,7 +59,7 @@ const PrivacyPolicy = () => {
           </Section>
 
           <Section title="6. Third-Party Services">
-            <p>Payments are processed by <strong className="text-[#1C1917]">Stripe</strong>. Stripe may process your payment information according to its own privacy policy. We do not embed third-party advertising, social media trackers, or analytics scripts.</p>
+            <p>Payments are processed by <strong className="text-[#1D1D1F]">Stripe</strong>. Stripe may process your payment information according to its own privacy policy. We do not embed third-party advertising, social media trackers, or analytics scripts.</p>
           </Section>
 
           <Section title="7. Children's Privacy">

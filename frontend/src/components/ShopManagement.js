@@ -20,7 +20,7 @@ const BADGE_OPTIONS = [
   { value: 'POPULAR',   label: 'Popular',       color: '#A29BFE' },
   { value: 'BEST',      label: 'Best Value',    color: '#F59E0B' },
   { value: 'BUNDLE',    label: 'Bundle',        color: '#6C5CE7' },
-  { value: 'EXCLUSIVE', label: '✦ Exclusive',   color: '#1C1917' },
+  { value: 'EXCLUSIVE', label: '✦ Exclusive',   color: '#1D1D1F' },
 ];
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -50,17 +50,17 @@ const IconPicker = ({ value, onChange }) => {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-sm text-[#1C1917] hover:border-[#C9C3BB] transition-all w-full">
+        className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-sm text-[#1D1D1F] hover:border-[#BFBFC4] transition-all w-full">
         <Comp size={14} className="text-[#4ECDC4] shrink-0" />
-        <span className="flex-1 text-left capitalize text-[#78716C]">{value || 'Icon…'}</span>
-        <ChevronDown size={12} className="text-[#A8A29E] shrink-0" />
+        <span className="flex-1 text-left capitalize text-[#6E6E73]">{value || 'Icon…'}</span>
+        <ChevronDown size={12} className="text-[#A1A1A6] shrink-0" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 p-2 bg-white border border-[#E8E3DB] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
+        <div className="absolute top-full left-0 mt-1 p-2 rounded-xl bg-white border border-[#D2D2D7] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
-              className={`p-2 flex items-center justify-center hover:bg-[#F9F7F4] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#78716C]'}`}>
+              className={`p-2 flex items-center justify-center hover:bg-[#F5F5F7] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#6E6E73]'}`}>
               <IC size={15} />
             </button>
           ))}
@@ -77,8 +77,8 @@ const defaultForm = {
   active: true, category: '', subcategory: '', featured: false,
 };
 
-const IN = 'w-full bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A8A29E]';
-const LBL = 'block text-[10px] font-semibold text-[#A8A29E] uppercase tracking-[0.14em] mb-1.5';
+const IN = 'w-full bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]';
+const LBL = 'block text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-[0.14em] mb-1.5';
 
 // ── Main component ────────────────────────────────────────────────────────────
 export const ShopManagement = () => {
@@ -284,12 +284,12 @@ export const ShopManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
+          <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
             <ShoppingBag size={20} className="text-[#4ECDC4]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#1C1917]">Shop</h1>
-            <p className="text-xs text-[#A8A29E]">
+            <h1 className="text-lg font-bold text-[#1D1D1F]">Shop</h1>
+            <p className="text-xs text-[#A1A1A6]">
               {products.length} product{products.length !== 1 ? 's' : ''} across {games.length} game{games.length !== 1 ? 's' : ''} — one unified catalog
             </p>
           </div>
@@ -306,41 +306,41 @@ export const ShopManagement = () => {
 
       {/* ── Categories panel ─────────────────────────────────────────────── */}
       {showCategories && (
-        <div className="bg-white border border-[#E8E3DB] p-5 space-y-5">
-          <p className="text-xs text-[#78716C]">
+        <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 space-y-5">
+          <p className="text-xs text-[#6E6E73]">
             One category list, shared across every game. Each category can have optional sub-categories for finer filtering.
           </p>
 
           {categories.length === 0 ? (
-            <p className="text-sm text-[#A8A29E]">No categories yet. Add one below.</p>
+            <p className="text-sm text-[#A1A1A6]">No categories yet. Add one below.</p>
           ) : (
             <div className="space-y-2">
               {categories.map(c => (
-                <div key={c.id} className="border border-[#E8E3DB]">
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F9F7F4]">
+                <div key={c.id} className="border border-[#D2D2D7]">
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7]">
                     <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
-                    <span className="font-semibold text-[#1C1917] text-sm flex-1">{c.label}</span>
-                    <span className="text-[#A8A29E] text-xs">{(c.subcategories || []).length} sub</span>
+                    <span className="font-semibold text-[#1D1D1F] text-sm flex-1">{c.label}</span>
+                    <span className="text-[#A1A1A6] text-xs">{(c.subcategories || []).length} sub</span>
                     <button
                       onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
-                      className="text-xs text-[#78716C] hover:text-[#1C1917] px-2 py-0.5 border border-[#E8E3DB] bg-white transition-colors"
+                      className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] px-2 py-0.5 border border-[#D2D2D7] bg-white transition-colors"
                     >
                       {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
                     </button>
-                    <button onClick={() => removeCategory(c.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors">
+                    <button onClick={() => removeCategory(c.id)} className="text-[#A1A1A6] hover:text-red-500 transition-colors">
                       <X size={13} />
                     </button>
                   </div>
                   {expandedCat === c.id && (
-                    <div className="px-4 py-3 border-t border-[#E8E3DB] space-y-2">
+                    <div className="px-4 py-3 border-t border-[#D2D2D7] space-y-2">
                       {(c.subcategories || []).length === 0 ? (
-                        <p className="text-xs text-[#A8A29E]">No sub-categories yet.</p>
+                        <p className="text-xs text-[#A1A1A6]">No sub-categories yet.</p>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {(c.subcategories || []).map(s => (
-                            <div key={s.id} className="flex items-center gap-1 px-2 py-1 bg-white border border-[#E8E3DB] text-xs">
-                              <span className="text-[#1C1917] font-medium">{s.label}</span>
-                              <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A8A29E] hover:text-red-500 transition-colors ml-0.5">
+                            <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white border border-[#D2D2D7] text-xs">
+                              <span className="text-[#1D1D1F] font-medium">{s.label}</span>
+                              <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A1A1A6] hover:text-red-500 transition-colors ml-0.5">
                                 <X size={10} />
                               </button>
                             </div>
@@ -387,7 +387,7 @@ export const ShopManagement = () => {
 
       {/* ── Product form ─────────────────────────────────────────────────── */}
       {showForm && (
-        <div className="p-5 bg-white border border-[#E8E3DB]">
+        <div className="p-5 rounded-xl bg-white border border-[#D2D2D7]">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -408,7 +408,7 @@ export const ShopManagement = () => {
                 <label className={LBL}>Product Image</label>
                 <div className="flex gap-2">
                   <input type="text" value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} className={IN} placeholder="https://... or upload" />
-                  <label className="shrink-0 cursor-pointer px-3 py-2.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-sm font-semibold transition-colors">
+                  <label className="rounded-full shrink-0 cursor-pointer px-3 py-2.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold transition-colors">
                     {uploading ? '…' : 'Upload'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setForm(f => ({ ...f, image_url: url })))} />
                   </label>
@@ -417,7 +417,7 @@ export const ShopManagement = () => {
                   <img
                     src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url}
                     alt="preview"
-                    className="mt-2 h-16 w-16 object-cover border border-[#E8E3DB]"
+                    className="mt-2 h-16 w-16 object-cover border border-[#D2D2D7]"
                   />
                 )}
               </div>
@@ -442,8 +442,8 @@ export const ShopManagement = () => {
                       onClick={() => setForm(f => ({ ...f, badge: b.value }))}
                       className={`px-2.5 py-1 text-[10px] font-bold border transition-all ${
                         form.badge === b.value
-                          ? 'border-[#1C1917] bg-[#1C1917] text-white'
-                          : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'
+                          ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
+                          : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'
                       }`}
                       style={form.badge === b.value && b.color ? { backgroundColor: b.color, borderColor: b.color } : {}}
                     >
@@ -458,7 +458,7 @@ export const ShopManagement = () => {
                 <div>
                   <label className={LBL}>Display Discount %</label>
                   <input type="number" min="1" max="99" value={form.discount_pct} onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))} className={IN} placeholder="20" />
-                  <p className="text-[10px] text-[#A8A29E] mt-1">Shown on badge label only — does not affect price.</p>
+                  <p className="text-[10px] text-[#A1A1A6] mt-1">Shown on badge label only — does not affect price.</p>
                 </div>
               )}
 
@@ -511,11 +511,11 @@ export const ShopManagement = () => {
                     <button
                       type="button"
                       onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
-                      className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-[#4ECDC4]' : 'bg-[#E8E3DB]'}`}
+                      className={`w-9 h-5 relative transition-colors ${form[key] ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7]'}`}
                     >
                       <span className={`absolute top-0.5 w-4 h-4 bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
                     </button>
-                    <span className="text-xs font-semibold text-[#78716C]">{label}</span>
+                    <span className="text-xs font-semibold text-[#6E6E73]">{label}</span>
                   </div>
                 ))}
               </div>
@@ -534,13 +534,13 @@ export const ShopManagement = () => {
       {/* ── Filters ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6]" />
           <input
             type="text"
             placeholder="Search products..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
+            className="w-full pl-8 pr-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
           />
         </div>
         <Select value={filterGame} onChange={e => setFilterGame(e.target.value)} wrapperClassName="w-48 shrink-0">
@@ -554,11 +554,11 @@ export const ShopManagement = () => {
       </div>
 
       {/* ── Product list ─────────────────────────────────────────────────── */}
-      <div className="bg-white border border-[#E8E3DB] p-5">
+      <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
         {products.length === 0 ? (
           <EmptyState icon={ShoppingBag} title="No products yet" description="Add your first product to start selling — across any game." />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[#A8A29E] text-center py-6">No product matches your filters.</p>
+          <p className="text-sm text-[#A1A1A6] text-center py-6">No product matches your filters.</p>
         ) : (
           <div className="space-y-2">
             {filtered.map(p => {
@@ -568,19 +568,19 @@ export const ShopManagement = () => {
                 <div
                   key={p.id}
                   className={`flex items-center gap-3 p-3 border transition-all ${
-                    p.active ? 'bg-white border-[#E8E3DB]' : 'bg-[#F9F7F4] border-[#E8E3DB] opacity-60'
+                    p.active ? 'bg-white border-[#D2D2D7]' : 'bg-[#F5F5F7] border-[#D2D2D7] opacity-60'
                   }`}
                 >
                   {p.image_url && (
                     <img
                       src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url}
                       alt={p.name}
-                      className="w-11 h-11 object-cover shrink-0 border border-[#E8E3DB]"
+                      className="w-11 h-11 object-cover shrink-0 border border-[#D2D2D7]"
                     />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-[#1C1917]">{p.name}</span>
+                      <span className="font-semibold text-sm text-[#1D1D1F]">{p.name}</span>
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#4ECDC4]/10 text-[#379E96]">
                         <Gamepad2 size={9} />{gameName(p.game_slug)}
                       </span>
@@ -591,27 +591,27 @@ export const ShopManagement = () => {
                         </span>
                       )}
                       {cat && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#78716C]">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#6E6E73]">
                           <CategoryIcon name={cat.icon} size={9} />{cat.label}
                         </span>
                       )}
-                      {!p.active && <span className="text-[10px] font-bold text-[#A8A29E] bg-[#F9F7F4] border border-[#E8E3DB] px-1.5 py-0.5">Hidden</span>}
+                      {!p.active && <span className="text-[10px] font-bold text-[#A1A1A6] bg-[#F5F5F7] border border-[#D2D2D7] px-1.5 py-0.5">Hidden</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-sm font-black text-[#1C1917]">${(p.price / 100).toFixed(2)}</span>
-                      <span className="text-xs text-[#A8A29E]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
+                      <span className="text-sm font-black text-[#1D1D1F]">${(p.price / 100).toFixed(2)}</span>
+                      <span className="text-xs text-[#A1A1A6]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => toggleActive(p)}
-                      className="p-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#A8A29E] hover:text-[#1C1917] transition-all"
+                      className="p-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#A1A1A6] hover:text-[#1D1D1F] transition-all"
                       title={p.active ? 'Hide' : 'Show'}
                     >
                       {p.active ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
-                    <button onClick={() => openEdit(p)} className="p-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#A8A29E] hover:text-[#1C1917] transition-all"><Edit2 size={13} /></button>
-                    <button onClick={() => handleDelete(p)} className="p-2 border border-[#E8E3DB] hover:border-red-200 text-[#A8A29E] hover:text-red-500 transition-all"><Trash2 size={13} /></button>
+                    <button onClick={() => openEdit(p)} className="p-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#A1A1A6] hover:text-[#1D1D1F] transition-all"><Edit2 size={13} /></button>
+                    <button onClick={() => handleDelete(p)} className="p-2 border border-[#D2D2D7] hover:border-red-200 text-[#A1A1A6] hover:text-red-500 transition-all"><Trash2 size={13} /></button>
                   </div>
                 </div>
               );
@@ -621,7 +621,7 @@ export const ShopManagement = () => {
       </div>
 
       {/* Public shop link */}
-      <div className="bg-white border border-[#E8E3DB] px-5 py-4 flex items-center justify-between gap-4">
+      <div className="rounded-xl bg-white border border-[#D2D2D7] px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <p className={LBL}>Public Shop URL</p>
           <code className="text-sm text-[#4ECDC4] font-mono">/shop</code>
@@ -630,7 +630,7 @@ export const ShopManagement = () => {
           href="/shop"
           target="_blank"
           rel="noreferrer"
-          className="px-4 py-2 border border-[#E8E3DB] hover:border-[#C9C3BB] text-[#78716C] hover:text-[#1C1917] text-sm font-semibold transition-all"
+          className="rounded-full px-4 py-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#6E6E73] hover:text-[#1D1D1F] text-sm font-semibold transition-all"
         >
           Open Shop ↗
         </a>

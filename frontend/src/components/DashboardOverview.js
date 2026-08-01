@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Gamepad2, Users, Globe, ClipboardList, Activity,
-  FileText, Package, ArrowRight, AlertCircle,
+  FileText, ArrowRight, AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProject } from '../context/ProjectContext';
@@ -19,7 +19,7 @@ const LOG_COLORS = {
   claim:           '#4ECDC4',
   status:          '#F2C94C',
   variable_action: '#2F80ED',
-  variable_access: '#A8A29E',
+  variable_access: '#A1A1A6',
   delete:          '#EB5757',
 };
 
@@ -32,11 +32,11 @@ const timeAgo = (iso) => {
 };
 
 const SectionLabel = ({ children }) => (
-  <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">{children}</p>
+  <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">{children}</p>
 );
 
 const Panel = ({ children, className = '' }) => (
-  <div className={`bg-white border border-[#E8E3DB] ${className}`}>
+  <div className={`bg-white border border-[#D2D2D7] ${className}`}>
     {children}
   </div>
 );
@@ -136,7 +136,6 @@ export const DashboardOverview = ({ setActiveTab }) => {
   ].filter(Boolean);
 
   const quickActions = [
-    (hasPermission('send_items') && selectedProject)  ? { label: 'Send Items',   tab: 'send-items', icon: Package,       color: '#F2994A' } : null,
     (canSeeMissions && selectedProject)               ? { label: 'Missions',      tab: 'missions',   icon: ClipboardList, color: '#9B51E0' } : null,
     (canSeeLogs && selectedProject)                   ? { label: 'Logs',          tab: 'logs',       icon: FileText,      color: '#6C5CE7' } : null,
     (canSeeStatus && selectedProject)                 ? { label: 'Server Status', tab: 'status',     icon: Activity,      color: '#4ECDC4' } : null,
@@ -153,11 +152,10 @@ export const DashboardOverview = ({ setActiveTab }) => {
     <div className="max-w-5xl space-y-8">
 
       {/* Greeting */}
-      <div className="border-b border-[#E8E3DB] pb-6">
+      <div className="border-b border-[#D2D2D7] pb-6">
         <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-2">{dateStr}</p>
         <h1
-          className="text-4xl font-black text-[#1C1917]"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          className="text-4xl font-black text-[#1D1D1F]"
         >
           {greeting.toUpperCase()}
         </h1>
@@ -181,13 +179,13 @@ export const DashboardOverview = ({ setActiveTab }) => {
                 <button
                   key={action.tab}
                   onClick={() => setActiveTab(action.tab)}
-                  className="flex items-center gap-3 px-4 py-3 bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] transition-colors group text-left"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] transition-colors group text-left"
                 >
-                  <div className="w-8 h-8 flex items-center justify-center shrink-0" style={{ backgroundColor: `${action.color}18` }}>
+                  <div className="rounded-lg w-8 h-8 flex items-center justify-center shrink-0" style={{ backgroundColor: `${action.color}18` }}>
                     <Icon size={14} style={{ color: action.color }} />
                   </div>
-                  <span className="flex-1 text-sm font-medium text-[#1C1917] truncate">{action.label}</span>
-                  <ArrowRight size={12} className="text-[#C9C3BB] group-hover:text-[#1C1917] transition-colors shrink-0" />
+                  <span className="flex-1 text-sm font-medium text-[#1D1D1F] truncate">{action.label}</span>
+                  <ArrowRight size={12} className="text-[#BFBFC4] group-hover:text-[#1D1D1F] transition-colors shrink-0" />
                 </button>
               );
             })}
@@ -196,25 +194,24 @@ export const DashboardOverview = ({ setActiveTab }) => {
       )}
 
       {/* No project selected */}
-      {!selectedProject && (canSeeLogs || canSeeStatus || canSeeMissions || hasPermission('send_items')) && (
+      {!selectedProject && (canSeeLogs || canSeeStatus || canSeeMissions) && (
         <Panel className="p-10 flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center mb-5">
-            <Gamepad2 size={20} className="text-[#C9C3BB]" />
+          <div className="rounded-lg w-12 h-12 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center mb-5">
+            <Gamepad2 size={20} className="text-[#BFBFC4]" />
           </div>
-          <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-2">Project</p>
+          <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-2">Project</p>
           <h3
-            className="text-xl font-black text-[#1C1917] mb-2"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            className="text-xl font-black text-[#1D1D1F] mb-2"
           >
             NO PROJECT SELECTED
           </h3>
-          <p className="text-sm text-[#78716C] mb-6 max-w-xs">
+          <p className="text-sm text-[#6E6E73] mb-6 max-w-xs">
             Select a project from the sidebar to view its activity, status and missions.
           </p>
           {canSeeProjects && (
             <button
               onClick={() => setActiveTab('projects')}
-              className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+              className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
             >
               View Projects <ArrowRight size={13} />
             </button>
@@ -240,15 +237,15 @@ export const DashboardOverview = ({ setActiveTab }) => {
               <div className="p-4 space-y-3">
                 {[75, 55, 65].map((w, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 bg-[#E8E3DB] animate-pulse shrink-0" />
-                    <div className="h-4 bg-[#E8E3DB] animate-pulse" style={{ width: `${w}%` }} />
+                    <div className="w-1.5 h-1.5 bg-[#D2D2D7] animate-pulse shrink-0" />
+                    <div className="h-4 bg-[#D2D2D7] animate-pulse" style={{ width: `${w}%` }} />
                   </div>
                 ))}
               </div>
             ) : logsError ? (
               <div className="p-5 flex items-center gap-3">
                 <AlertCircle size={15} className="text-[#F2994A] shrink-0" />
-                <span className="text-sm text-[#78716C]">
+                <span className="text-sm text-[#6E6E73]">
                   Could not load activity.{' '}
                   <button onClick={() => setLogsRetry(r => r + 1)} className="text-[#4ECDC4] hover:underline">
                     Retry
@@ -256,17 +253,17 @@ export const DashboardOverview = ({ setActiveTab }) => {
                 </span>
               </div>
             ) : recentLogs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-[#A8A29E]">No recent activity.</div>
+              <div className="p-8 text-center text-sm text-[#A1A1A6]">No recent activity.</div>
             ) : (
-              <div className="divide-y divide-[#F0EDE8]">
+              <div className="divide-y divide-[#EDEDEF]">
                 {recentLogs.map((log, i) => {
-                  const dotColor = LOG_COLORS[log.type] || '#A8A29E';
+                  const dotColor = LOG_COLORS[log.type] || '#A1A1A6';
                   return (
                     <div key={i} className="flex items-center gap-3 px-4 py-3">
                       <span className="w-1.5 h-1.5 shrink-0" style={{ backgroundColor: dotColor }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#1C1917] truncate">{log.message}</p>
-                        <p className="text-[11px] text-[#A8A29E]">
+                        <p className="text-sm text-[#1D1D1F] truncate">{log.message}</p>
+                        <p className="text-[11px] text-[#A1A1A6]">
                           {log.user || '—'} · {timeAgo(log.timestamp)}
                         </p>
                       </div>
@@ -292,39 +289,34 @@ export const DashboardOverview = ({ setActiveTab }) => {
           <Panel className="px-5 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#F9F7F4] border border-[#E8E3DB] flex items-center justify-center">
-                  <Gamepad2 size={15} className="text-[#A8A29E]" />
+                <div className="rounded-lg w-9 h-9 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center">
+                  <Gamepad2 size={15} className="text-[#A1A1A6]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#1C1917]">{selectedProject.name}</p>
+                  <p className="text-sm font-semibold text-[#1D1D1F]">{selectedProject.name}</p>
                   {statusInfo ? (
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="w-1.5 h-1.5 animate-pulse" style={{ backgroundColor: statusInfo.color }} />
                       <span className="text-xs font-semibold" style={{ color: statusInfo.color }}>{statusInfo.label}</span>
                     </div>
                   ) : (
-                    <div className="h-3 w-16 bg-[#E8E3DB] animate-pulse mt-1" />
+                    <div className="h-3 w-16 bg-[#D2D2D7] animate-pulse mt-1" />
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 {canSeeLogs && (
-                  <button onClick={() => setActiveTab('logs')} className="text-xs text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-1.5 transition-colors font-medium">
+                  <button onClick={() => setActiveTab('logs')} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors font-medium">
                     Logs
                   </button>
                 )}
                 {hasPermission('view_variables') && (
-                  <button onClick={() => setActiveTab('variables')} className="text-xs text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-1.5 transition-colors font-medium">
+                  <button onClick={() => setActiveTab('variables')} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors font-medium">
                     Variables
                   </button>
                 )}
-                {hasPermission('send_items') && (
-                  <button onClick={() => setActiveTab('send-items')} className="text-xs text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-1.5 transition-colors font-medium">
-                    Send Items
-                  </button>
-                )}
-                <button onClick={() => setActiveTab('status')} className="text-xs bg-[#1C1917] text-white hover:bg-[#2D2926] px-3 py-1.5 transition-colors font-medium">
+                <button onClick={() => setActiveTab('status')} className="text-xs bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] px-3 py-1.5 transition-colors font-medium">
                   Manage Status
                 </button>
               </div>

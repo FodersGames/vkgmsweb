@@ -15,7 +15,7 @@ const STATUS_COLORS = {
   open: 'bg-[#4ECDC4]/10 text-[#4ECDC4]',
   in_progress: 'bg-[#F59E0B]/10 text-[#F59E0B]',
   resolved: 'bg-[#22C55E]/10 text-[#22C55E]',
-  closed: 'bg-[#A8A29E]/10 text-[#A8A29E]',
+  closed: 'bg-[#A1A1A6]/10 text-[#A1A1A6]',
 };
 
 const STATUS_LABELS = {
@@ -132,7 +132,7 @@ export const SupportWidget = ({ user }) => {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-[#1C1917] text-white flex items-center justify-center shadow-lg hover:bg-[#2D2926] transition-colors"
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shadow-lg hover:bg-[#3A3A3C] transition-colors"
         aria-label="Support"
       >
         <MessageCircle size={20} />
@@ -142,9 +142,9 @@ export const SupportWidget = ({ user }) => {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 bg-white border border-[#E8E3DB] shadow-xl flex flex-col" style={{ maxHeight: '520px' }}>
+        <div className="fixed bottom-24 right-6 z-50 w-80 rounded-2xl overflow-hidden bg-white border border-[#D2D2D7] shadow-xl flex flex-col" style={{ maxHeight: '520px' }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#1C1917] text-white">
+          <div className="flex items-center justify-between px-4 py-3 bg-[#1D1D1F] text-white">
             <div className="flex items-center gap-2">
               {view !== 'menu' && (
                 <button onClick={() => { setView('menu'); setSuccess(''); setError(''); setActiveTicket(null); }} className="hover:text-white/70 transition-colors mr-1">
@@ -165,39 +165,39 @@ export const SupportWidget = ({ user }) => {
             {/* MENU */}
             {view === 'menu' && (
               <div className="p-4 space-y-3">
-                <p className="text-xs text-[#78716C]">How can we help you today?</p>
+                <p className="text-xs text-[#6E6E73]">How can we help you today?</p>
                 {token ? (
                   <>
                     <button
                       onClick={() => { setView('new'); setSuccess(''); setError(''); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
                       <Send size={16} className="text-[#4ECDC4] flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-semibold text-[#1C1917]">Open a ticket</p>
-                        <p className="text-xs text-[#A8A29E]">Send us a support request</p>
+                        <p className="text-sm font-semibold text-[#1D1D1F]">Open a ticket</p>
+                        <p className="text-xs text-[#A1A1A6]">Send us a support request</p>
                       </div>
                     </button>
                     <button
                       onClick={() => setView('mytickets')}
-                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:bg-[#F9F7F4] transition-all text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
-                      <ExternalLink size={16} className="text-[#78716C] flex-shrink-0" />
+                      <ExternalLink size={16} className="text-[#6E6E73] flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-semibold text-[#1C1917]">My tickets</p>
-                        <p className="text-xs text-[#A8A29E]">View your past requests</p>
+                        <p className="text-sm font-semibold text-[#1D1D1F]">My tickets</p>
+                        <p className="text-xs text-[#A1A1A6]">View your past requests</p>
                       </div>
                     </button>
                   </>
                 ) : (
-                  <div className="px-4 py-4 border border-[#E8E3DB] bg-[#F9F7F4] text-center space-y-2">
-                    <p className="text-sm font-semibold text-[#1C1917]">Sign in required</p>
-                    <p className="text-xs text-[#A8A29E]">You need an account to open a support ticket.</p>
+                  <div className="px-4 py-4 border border-[#D2D2D7] bg-[#F5F5F7] text-center space-y-2">
+                    <p className="text-sm font-semibold text-[#1D1D1F]">Sign in required</p>
+                    <p className="text-xs text-[#A1A1A6]">You need an account to open a support ticket.</p>
                     <a href="/login" className="inline-block mt-1 text-xs font-bold text-[#4ECDC4] hover:underline">Sign in or create account →</a>
                   </div>
                 )}
-                <p className="text-xs text-[#A8A29E] text-center pt-2">
-                  Email: <a href="mailto:support@vakargames.com" className="underline hover:text-[#1C1917]">support@vakargames.com</a>
+                <p className="text-xs text-[#A1A1A6] text-center pt-2">
+                  Email: <a href="mailto:support@vakargames.com" className="underline hover:text-[#1D1D1F]">support@vakargames.com</a>
                 </p>
               </div>
             )}
@@ -208,9 +208,9 @@ export const SupportWidget = ({ user }) => {
                 {success ? (
                   <div className="text-center py-6">
                     <CheckCircle size={36} className="text-[#4ECDC4] mx-auto mb-3" />
-                    <p className="text-sm font-bold text-[#1C1917] mb-1">Ticket submitted!</p>
-                    <p className="text-xs text-[#78716C]">Ticket number: <strong>{success}</strong></p>
-                    <p className="text-xs text-[#A8A29E] mt-2">We'll reply as soon as possible.</p>
+                    <p className="text-sm font-bold text-[#1D1D1F] mb-1">Ticket submitted!</p>
+                    <p className="text-xs text-[#6E6E73]">Ticket number: <strong>{success}</strong></p>
+                    <p className="text-xs text-[#A1A1A6] mt-2">We'll reply as soon as possible.</p>
                     <button onClick={() => { setSuccess(''); setView('menu'); }} className="mt-4 text-xs text-[#4ECDC4] hover:underline">
                       Back to support
                     </button>
@@ -218,47 +218,47 @@ export const SupportWidget = ({ user }) => {
                 ) : (
                   <form onSubmit={submitTicket} className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Email</label>
+                      <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Email</label>
                       <input
                         type="email"
                         required
                         value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                         placeholder="your@email.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Category</label>
+                      <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Category</label>
                       <select
                         value={form.category}
                         onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       >
                         {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Subject</label>
+                      <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Subject</label>
                       <input
                         type="text"
                         required
                         maxLength={200}
                         value={form.subject}
                         onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                         placeholder="Brief description"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#1C1917] mb-1">Message</label>
+                      <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Message</label>
                       <textarea
                         required
                         maxLength={2000}
                         rows={4}
                         value={form.message}
                         onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] resize-none"
+                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
                         placeholder="Describe your issue in detail…"
                       />
                     </div>
@@ -266,7 +266,7 @@ export const SupportWidget = ({ user }) => {
                     <button
                       type="submit"
                       disabled={sending}
-                      className="w-full flex items-center justify-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
                     >
                       {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       {sending ? 'Sending…' : 'Submit ticket'}
@@ -278,25 +278,25 @@ export const SupportWidget = ({ user }) => {
 
             {/* MY TICKETS */}
             {view === 'mytickets' && (
-              <div className="divide-y divide-[#E8E3DB]">
+              <div className="divide-y divide-[#D2D2D7]">
                 {loadingTickets ? (
-                  <div className="p-6 text-center"><Loader2 size={18} className="animate-spin text-[#A8A29E] mx-auto" /></div>
+                  <div className="p-6 text-center"><Loader2 size={18} className="animate-spin text-[#A1A1A6] mx-auto" /></div>
                 ) : tickets.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#A8A29E]">No tickets yet.</div>
+                  <div className="p-6 text-center text-xs text-[#A1A1A6]">No tickets yet.</div>
                 ) : (
                   tickets.map(t => (
                     <button
                       key={t.id}
                       onClick={() => openThread(t)}
-                      className="w-full px-4 py-3 text-left hover:bg-[#F9F7F4] transition-colors"
+                      className="w-full px-4 py-3 text-left hover:bg-[#F5F5F7] transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-semibold text-[#1C1917] truncate flex-1">{t.subject}</p>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 flex-shrink-0 ${STATUS_COLORS[t.status] || STATUS_COLORS.open}`}>
+                        <p className="text-xs font-semibold text-[#1D1D1F] truncate flex-1">{t.subject}</p>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[t.status] || STATUS_COLORS.open}`}>
                           {STATUS_LABELS[t.status] || t.status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#A8A29E] mt-0.5">{t.ticket_number}</p>
+                      <p className="text-[10px] text-[#A1A1A6] mt-0.5">{t.ticket_number}</p>
                     </button>
                   ))
                 )}
@@ -306,16 +306,16 @@ export const SupportWidget = ({ user }) => {
             {/* THREAD */}
             {view === 'thread' && activeTicket && (
               <div className="flex flex-col h-full">
-                <div className="flex items-center gap-2 px-4 py-2 border-b border-[#E8E3DB]">
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 ${STATUS_COLORS[activeTicket.status] || STATUS_COLORS.open}`}>
+                <div className="flex items-center gap-2 px-4 py-2 border-b border-[#D2D2D7]">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[activeTicket.status] || STATUS_COLORS.open}`}>
                     {STATUS_LABELS[activeTicket.status] || activeTicket.status}
                   </span>
-                  <span className="text-xs text-[#78716C] truncate">{activeTicket.subject}</span>
+                  <span className="text-xs text-[#6E6E73] truncate">{activeTicket.subject}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ maxHeight: '280px' }}>
                   {(activeTicket.messages || []).map((msg, i) => (
                     <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] px-3 py-2 text-xs leading-relaxed ${msg.sender === 'user' ? 'bg-[#1C1917] text-white' : 'bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917]'}`}>
+                      <div className={`max-w-[85%] px-3 py-2 text-xs leading-relaxed ${msg.sender === 'user' ? 'bg-[#1D1D1F] text-white' : 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]'}`}>
                         <p className={`text-[10px] font-semibold mb-0.5 ${msg.sender === 'user' ? 'text-white/60' : 'text-[#4ECDC4]'}`}>
                           {msg.sender === 'support' ? '⚡ Support' : msg.author_name}
                         </p>
@@ -325,25 +325,25 @@ export const SupportWidget = ({ user }) => {
                   ))}
                 </div>
                 {activeTicket.status !== 'closed' && (
-                  <form onSubmit={submitReply} className="border-t border-[#E8E3DB] p-3 flex gap-2">
+                  <form onSubmit={submitReply} className="border-t border-[#D2D2D7] p-3 flex gap-2">
                     <input
                       type="text"
                       value={reply}
                       onChange={e => setReply(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                      className="flex-1 px-3 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       placeholder="Reply…"
                     />
                     <button
                       type="submit"
                       disabled={sendingReply || !reply.trim()}
-                      className="flex items-center justify-center w-8 h-8 bg-[#1C1917] hover:bg-[#2D2926] text-white transition-colors disabled:opacity-50 flex-shrink-0"
+                      className="rounded-lg flex items-center justify-center w-8 h-8 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white transition-colors disabled:opacity-50 flex-shrink-0"
                     >
                       {sendingReply ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     </button>
                   </form>
                 )}
                 {activeTicket.status === 'closed' && (
-                  <div className="border-t border-[#E8E3DB] px-4 py-2 text-center text-xs text-[#A8A29E]">This ticket is closed.</div>
+                  <div className="border-t border-[#D2D2D7] px-4 py-2 text-center text-xs text-[#A1A1A6]">This ticket is closed.</div>
                 )}
               </div>
             )}

@@ -236,12 +236,12 @@ export const ChatManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#9B51E018' }}>
               <MessageSquare size={16} style={{ color: '#9B51E0' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Game Chat</h3>
-              <p className="text-xs text-[#71717a]">In-game chat for {selectedProject?.name || 'this project'}</p>
+              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Game Chat</h3>
+              <p className="text-xs text-[#6E6E73]">In-game chat for {selectedProject?.name || 'this project'}</p>
             </div>
           </div>
         </CardHeader>
@@ -253,21 +253,21 @@ export const ChatManagement = () => {
         ) : (
           <>
             {canManage && (
-              <div className="px-6 py-4 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
+              <div className="px-6 py-4 bg-[#F5F5F7] dark:bg-[#111118] border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
                 <div className="flex items-center gap-2 mb-2">
                   <Key size={12} style={{ color: '#9B51E0' }} />
-                  <span className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">
+                  <span className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest">
                     Chat API Key — {selectedProject.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] px-3 py-2 text-xs text-[#1C1917] dark:text-[#e4e4e7] font-mono truncate">
+                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-xs text-[#1D1D1F] dark:text-[#e4e4e7] font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
                   <Button variant="secondary" size="sm" icon={Copy} onClick={copyKey} disabled={!selectedProject.chat_api_key} data-testid="copy-chat-key" />
                   <Button variant="secondary" size="sm" icon={RefreshCw} onClick={handleRegenerateKey} loading={loading} data-testid="regenerate-chat-key" />
                 </div>
-                <p className="text-[11px] text-[#71717a] mt-2">
+                <p className="text-[11px] text-[#6E6E73] mt-2">
                   Send this key in the <code className="text-[#9B51E0]">X-Chat-Api-Key</code> header when posting from TurboWarp. Regenerating invalidates the old key immediately.
                 </p>
               </div>
@@ -275,17 +275,17 @@ export const ChatManagement = () => {
 
             {/* Maintenance toggles */}
             {canManage && (
-              <div className="px-6 py-4 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c] flex flex-wrap gap-3">
+              <div className="px-6 py-4 bg-[#F5F5F7] dark:bg-[#111118] border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex flex-wrap gap-3">
                 <button
                   onClick={() => toggleChatSetting('chat_global_enabled', 'Global chat')}
                   className={`flex-1 min-w-[220px] flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
-                    chatSettings.chat_global_enabled ? 'bg-white dark:bg-[#0d0d14] border-[#E8E3DB] dark:border-[#2a2a3c]' : 'bg-red-500/5 border-red-500/20'
+                    chatSettings.chat_global_enabled ? 'bg-white dark:bg-[#0d0d14] border-[#D2D2D7] dark:border-[#2a2a3c]' : 'bg-red-500/5 border-red-500/20'
                   }`}
                 >
                   <Globe size={16} className={chatSettings.chat_global_enabled ? 'text-[#4ECDC4]' : 'text-red-400'} />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Global Chat</p>
-                    <p className="text-xs text-[#71717a]">{chatSettings.chat_global_enabled ? 'Live' : 'In maintenance — players cannot send'}</p>
+                    <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Global Chat</p>
+                    <p className="text-xs text-[#6E6E73]">{chatSettings.chat_global_enabled ? 'Live' : 'In maintenance — players cannot send'}</p>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded ${chatSettings.chat_global_enabled ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'bg-red-500/10 text-red-400'}`}>
                     {chatSettings.chat_global_enabled ? 'ON' : 'OFF'}
@@ -294,13 +294,13 @@ export const ChatManagement = () => {
                 <button
                   onClick={() => toggleChatSetting('chat_guilds_enabled', 'Guild system')}
                   className={`flex-1 min-w-[220px] flex items-center gap-3 px-4 py-3 border text-left transition-colors ${
-                    chatSettings.chat_guilds_enabled ? 'bg-white dark:bg-[#0d0d14] border-[#E8E3DB] dark:border-[#2a2a3c]' : 'bg-red-500/5 border-red-500/20'
+                    chatSettings.chat_guilds_enabled ? 'bg-white dark:bg-[#0d0d14] border-[#D2D2D7] dark:border-[#2a2a3c]' : 'bg-red-500/5 border-red-500/20'
                   }`}
                 >
                   <Users size={16} className={chatSettings.chat_guilds_enabled ? 'text-[#4ECDC4]' : 'text-red-400'} />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Guild System</p>
-                    <p className="text-xs text-[#71717a]">{chatSettings.chat_guilds_enabled ? 'Live' : 'In maintenance — join/create/chat disabled'}</p>
+                    <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Guild System</p>
+                    <p className="text-xs text-[#6E6E73]">{chatSettings.chat_guilds_enabled ? 'Live' : 'In maintenance — join/create/chat disabled'}</p>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded ${chatSettings.chat_guilds_enabled ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'bg-red-500/10 text-red-400'}`}>
                     {chatSettings.chat_guilds_enabled ? 'ON' : 'OFF'}
@@ -311,7 +311,7 @@ export const ChatManagement = () => {
 
             <CardBody>
               <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                <p className="text-[11px] font-semibold text-[#A8A29E] dark:text-[#52525b] uppercase tracking-widest">
+                <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest">
                   Messages ({messages.length})
                 </p>
                 <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ export const ChatManagement = () => {
                     <option value="guild">Guild only</option>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#71717a]">Show last</span>
+                    <span className="text-xs text-[#6E6E73]">Show last</span>
                     <Select
                       value={messageLimit}
                       onChange={e => setMessageLimit(Number(e.target.value))}
@@ -339,12 +339,12 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-1.5 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] group hover:border-[#D6D0C7] dark:hover:border-[#3a3a50] transition-colors">
+                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] group hover:border-[#D2D2D7] dark:hover:border-[#3a3a50] transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
                           {m.channel && (
-                            <span className="text-[9px] font-bold uppercase tracking-wide bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] font-bold uppercase tracking-wide bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] px-1.5 py-0.5 rounded">
                               {m.channel === 'guild' ? 'Guild' : 'Global'}
                             </span>
                           )}
@@ -353,21 +353,21 @@ export const ChatManagement = () => {
                           )}
                           <span className="text-[10px] text-[#52525b]">{formatTime(m.timestamp)}</span>
                         </div>
-                        <p className="text-sm text-[#1C1917] dark:text-[#e4e4e7] break-words">{m.message}</p>
+                        <p className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] break-words">{m.message}</p>
                       </div>
                       {canManage && (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
                           {m.user_id && (
                             <>
-                              <button onClick={() => openMute(m.user_id, m.username)} className="p-1.5 text-[#71717a] hover:text-[#F2994A] transition-colors" title="Mute" data-testid={`mute-user-${m.user_id}`}>
+                              <button onClick={() => openMute(m.user_id, m.username)} className="p-1.5 text-[#6E6E73] hover:text-[#F2994A] transition-colors" title="Mute" data-testid={`mute-user-${m.user_id}`}>
                                 <VolumeX size={13} />
                               </button>
-                              <button onClick={() => handleBlockUser(m.user_id, m.username)} className="p-1.5 text-[#71717a] hover:text-red-400 transition-colors" title="Block from chat" data-testid={`block-user-${m.user_id}`}>
+                              <button onClick={() => handleBlockUser(m.user_id, m.username)} className="p-1.5 text-[#6E6E73] hover:text-red-400 transition-colors" title="Block from chat" data-testid={`block-user-${m.user_id}`}>
                                 <Ban size={13} />
                               </button>
                             </>
                           )}
-                          <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 text-[#71717a] hover:text-red-400 transition-all" data-testid={`delete-message-${m.id}`}>
+                          <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 text-[#6E6E73] hover:text-red-400 transition-all" data-testid={`delete-message-${m.id}`}>
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -386,37 +386,37 @@ export const ChatManagement = () => {
         <Card className="overflow-hidden">
           <button
             onClick={() => setShowModeration(v => !v)}
-            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors"
             data-testid="toggle-moderation"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
+              <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
                 <Ban size={16} style={{ color: '#EB5757' }} />
               </div>
               <div className="text-left">
-                <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Chat Moderation</h3>
-                <p className="text-xs text-[#71717a]">Blocked and muted players for this project</p>
+                <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Chat Moderation</h3>
+                <p className="text-xs text-[#6E6E73]">Blocked and muted players for this project</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#71717a]">{moderation.bans.length} blocked · {activeMutes.length} muted</span>
-              {showModeration ? <ChevronUp size={14} className="text-[#71717a]" /> : <ChevronDown size={14} className="text-[#71717a]" />}
+              <span className="text-xs text-[#6E6E73]">{moderation.bans.length} blocked · {activeMutes.length} muted</span>
+              {showModeration ? <ChevronUp size={14} className="text-[#6E6E73]" /> : <ChevronDown size={14} className="text-[#6E6E73]" />}
             </div>
           </button>
 
           {showModeration && (
-            <CardBody className="border-t border-[#E8E3DB] dark:border-[#2a2a3c] space-y-5">
+            <CardBody className="border-t border-[#D2D2D7] dark:border-[#2a2a3c] space-y-5">
               <div>
-                <p className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-widest mb-2">Blocked ({moderation.bans.length})</p>
+                <p className="text-[11px] font-semibold text-[#A1A1A6] uppercase tracking-widest mb-2">Blocked ({moderation.bans.length})</p>
                 {moderation.bans.length === 0 ? (
-                  <p className="text-sm text-[#71717a]">No one is blocked from chat.</p>
+                  <p className="text-sm text-[#6E6E73]">No one is blocked from chat.</p>
                 ) : (
                   <div className="space-y-1.5">
                     {moderation.bans.map(b => (
-                      <div key={b.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c]">
+                      <div key={b.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                         <div>
-                          <span className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">{b.username}</span>
-                          <span className="text-xs text-[#A8A29E] ml-2">blocked {formatTime(b.banned_at)}{b.banned_by ? ` by ${b.banned_by}` : ''}</span>
+                          <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{b.username}</span>
+                          <span className="text-xs text-[#A1A1A6] ml-2">blocked {formatTime(b.banned_at)}{b.banned_by ? ` by ${b.banned_by}` : ''}</span>
                         </div>
                         <Button variant="secondary" size="sm" icon={ShieldCheck} onClick={() => handleUnblockUser(b.user_id, b.username)}>Unblock</Button>
                       </div>
@@ -426,16 +426,16 @@ export const ChatManagement = () => {
               </div>
 
               <div>
-                <p className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-widest mb-2">Muted ({activeMutes.length})</p>
+                <p className="text-[11px] font-semibold text-[#A1A1A6] uppercase tracking-widest mb-2">Muted ({activeMutes.length})</p>
                 {activeMutes.length === 0 ? (
-                  <p className="text-sm text-[#71717a]">No one is currently muted.</p>
+                  <p className="text-sm text-[#6E6E73]">No one is currently muted.</p>
                 ) : (
                   <div className="space-y-1.5">
                     {activeMutes.map(m => (
-                      <div key={m.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c]">
+                      <div key={m.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                         <div>
-                          <span className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">{m.username}</span>
-                          <span className="text-xs text-[#A8A29E] ml-2">until {formatUntil(m.muted_until)}{m.reason ? ` — "${m.reason}"` : ''}</span>
+                          <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{m.username}</span>
+                          <span className="text-xs text-[#A1A1A6] ml-2">until {formatUntil(m.muted_until)}{m.reason ? ` — "${m.reason}"` : ''}</span>
                         </div>
                         <Button variant="secondary" size="sm" icon={Volume2} onClick={() => handleUnmute(m.user_id, m.username)}>Unmute</Button>
                       </div>
@@ -443,7 +443,7 @@ export const ChatManagement = () => {
                   </div>
                 )}
               </div>
-              <p className="text-[11px] text-[#71717a] leading-relaxed">
+              <p className="text-[11px] text-[#6E6E73] leading-relaxed">
                 Block or mute a player directly from a message row above by hovering over it. Blocking/muting only affects chat — it does not suspend their access to the game.
               </p>
             </CardBody>
@@ -456,39 +456,39 @@ export const ChatManagement = () => {
         <Card className="overflow-hidden">
           <button
             onClick={() => setShowGuilds(v => !v)}
-            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors"
             data-testid="toggle-guilds"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+              <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
                 <Shield size={16} style={{ color: '#4ECDC4' }} />
               </div>
               <div className="text-left">
-                <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Guilds</h3>
-                <p className="text-xs text-[#71717a]">Guilds created by players in this project</p>
+                <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Guilds</h3>
+                <p className="text-xs text-[#6E6E73]">Guilds created by players in this project</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#71717a]">{guilds.length} guild{guilds.length !== 1 ? 's' : ''}</span>
-              {showGuilds ? <ChevronUp size={14} className="text-[#71717a]" /> : <ChevronDown size={14} className="text-[#71717a]" />}
+              <span className="text-xs text-[#6E6E73]">{guilds.length} guild{guilds.length !== 1 ? 's' : ''}</span>
+              {showGuilds ? <ChevronUp size={14} className="text-[#6E6E73]" /> : <ChevronDown size={14} className="text-[#6E6E73]" />}
             </div>
           </button>
 
           {showGuilds && (
-            <CardBody className="border-t border-[#E8E3DB] dark:border-[#2a2a3c]">
+            <CardBody className="border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
               {guilds.length === 0 ? (
-                <p className="text-sm text-[#71717a]">No guilds have been created yet.</p>
+                <p className="text-sm text-[#6E6E73]">No guilds have been created yet.</p>
               ) : (
                 <div className="space-y-1.5">
                   {guilds.map(g => (
-                    <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c]">
+                    <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${g.color}22` }}>
                           <Shield size={14} style={{ color: g.color }} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7] truncate">{g.name}</p>
-                          <p className="text-xs text-[#A8A29E]">{g.member_count} member{g.member_count !== 1 ? 's' : ''}</p>
+                          <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{g.name}</p>
+                          <p className="text-xs text-[#A1A1A6]">{g.member_count} member{g.member_count !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
                       <Button variant="danger" size="sm" icon={Trash2} onClick={() => handleDisbandGuild(g)}>Disband</Button>
@@ -505,26 +505,26 @@ export const ChatManagement = () => {
         <Card className="overflow-hidden">
           <button
             onClick={() => setShowBannedWords(!showBannedWords)}
-            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors"
             data-testid="toggle-banned-words"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
+              <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#EB575718' }}>
                 <ShieldAlert size={16} style={{ color: '#EB5757' }} />
               </div>
               <div className="text-left">
-                <h3 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Banned Words</h3>
-                <p className="text-xs text-[#71717a]">Global list, applies to every project's chat</p>
+                <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Banned Words</h3>
+                <p className="text-xs text-[#6E6E73]">Global list, applies to every project's chat</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#71717a]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
-              {showBannedWords ? <ChevronUp size={14} className="text-[#71717a]" /> : <ChevronDown size={14} className="text-[#71717a]" />}
+              <span className="text-xs text-[#6E6E73]">{bannedWords.length} word{bannedWords.length !== 1 ? 's' : ''}</span>
+              {showBannedWords ? <ChevronUp size={14} className="text-[#6E6E73]" /> : <ChevronDown size={14} className="text-[#6E6E73]" />}
             </div>
           </button>
 
           {showBannedWords && (
-            <CardBody className="border-t border-[#E8E3DB] dark:border-[#2a2a3c]">
+            <CardBody className="border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
               <div className="flex gap-2 mb-4">
                 <Input
                   value={newWord}
@@ -537,18 +537,18 @@ export const ChatManagement = () => {
                 <Button icon={Plus} onClick={addBannedWord} data-testid="add-banned-word">Add</Button>
               </div>
               {bannedWords.length === 0 ? (
-                <p className="text-sm text-[#71717a]">No banned words yet.</p>
+                <p className="text-sm text-[#6E6E73]">No banned words yet.</p>
               ) : (
                 <div className="flex flex-wrap gap-2" data-testid="banned-words-list">
                   {bannedWords.map(w => (
-                    <span key={w} className="inline-flex items-center gap-1.5 bg-[#F0EDE8] dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-[#1C1917] dark:text-[#e4e4e7]">
+                    <span key={w} className="inline-flex items-center gap-1.5 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded-full pl-3 pr-1.5 py-1 text-xs text-[#1D1D1F] dark:text-[#e4e4e7]">
                       {w}
-                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#71717a] transition-colors"><X size={11} /></button>
+                      <button onClick={() => removeBannedWord(w)} className="p-0.5 hover:text-red-400 text-[#6E6E73] transition-colors"><X size={11} /></button>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-[#71717a] mt-3 leading-relaxed">
+              <p className="text-[11px] text-[#6E6E73] mt-3 leading-relaxed">
                 Matching is case-insensitive and whole-word. A detected word is replaced with asterisks (e.g. <code className="text-[#9B51E0]">con</code> → <code className="text-[#9B51E0]">***</code>).
               </p>
             </CardBody>
@@ -559,21 +559,21 @@ export const ChatManagement = () => {
 
     {/* Mute modal */}
     {muteTarget && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C1917]/50">
-        <div className="bg-white dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] w-full max-w-sm">
-          <div className="px-5 py-4 border-b border-[#E8E3DB] dark:border-[#2a2a3c] flex items-center justify-between">
-            <h3 className="font-bold text-[#1C1917] dark:text-[#e4e4e7] text-sm">Mute {muteTarget.username}</h3>
-            <button onClick={() => setMuteTarget(null)} className="p-1 text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-white transition-colors"><X size={16} /></button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/50">
+        <div className="bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm">
+          <div className="px-5 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-between">
+            <h3 className="font-bold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm">Mute {muteTarget.username}</h3>
+            <button onClick={() => setMuteTarget(null)} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"><X size={16} /></button>
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <label className="block text-[10px] font-semibold text-[#A8A29E] uppercase tracking-widest mb-1.5">Duration</label>
+              <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-widest mb-1.5">Duration</label>
               <Select value={muteMinutes} onChange={e => setMuteMinutes(Number(e.target.value))}>
                 {MUTE_PRESETS.map(p => <option key={p.minutes} value={p.minutes}>{p.label}</option>)}
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-[#A8A29E] uppercase tracking-widest mb-1.5">Reason (optional)</label>
+              <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-widest mb-1.5">Reason (optional)</label>
               <Input value={muteReason} onChange={e => setMuteReason(e.target.value)} placeholder="Spamming, harassment…" />
             </div>
             <Button className="w-full" icon={VolumeX} loading={muting} onClick={submitMute}>Mute</Button>

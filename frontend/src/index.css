@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -18,31 +16,31 @@
 
 @layer base {
   :root {
-    /* Warm off-white — #F9F7F4 */
-    --background: 38 30% 97%;
-    /* Warm near-black — #1C1917 */
-    --foreground: 27 12% 10%;
+    /* Apple-style light theme — pure white ground, #1D1D1F ink */
+    --background: 0 0% 100%;
+    --foreground: 240 3% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 27 12% 10%;
+    --card-foreground: 240 3% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 27 12% 10%;
+    --popover-foreground: 240 3% 12%;
     /* Brand teal — #4ECDC4 */
     --primary: 176 57% 55%;
-    --primary-foreground: 27 12% 6%;
-    --secondary: 35 20% 93%;
-    --secondary-foreground: 27 12% 10%;
-    --muted: 35 15% 95%;
-    /* Warm gray — #78716C */
-    --muted-foreground: 27 6% 44%;
+    --primary-foreground: 240 3% 12%;
+    /* #F5F5F7 — Apple's canonical alternating-section grey */
+    --secondary: 240 11% 96%;
+    --secondary-foreground: 240 3% 12%;
+    --muted: 240 11% 96%;
+    /* #6E6E73 */
+    --muted-foreground: 240 2% 44%;
     --accent: 176 57% 55%;
-    --accent-foreground: 27 12% 6%;
-    --destructive: 4 86% 55%;
+    --accent-foreground: 240 3% 12%;
+    --destructive: 0 64% 55%;
     --destructive-foreground: 0 0% 100%;
-    /* Warm border — #E8E3DB */
-    --border: 35 18% 88%;
-    --input: 35 18% 88%;
+    /* #D2D2D7 — Apple's hairline grey */
+    --border: 240 6% 83%;
+    --input: 240 6% 83%;
     --ring: 176 57% 55%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -75,7 +73,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

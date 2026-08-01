@@ -7,8 +7,8 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
-        <div className="text-[#78716C] text-sm">Loading…</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
+        <div className="text-[#6E6E73] text-sm">Loading…</div>
       </div>
     );
   }
@@ -23,10 +23,10 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
 
   if (permission && !hasPermission(permission)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9F7F4]">
-        <div className="max-w-md p-8 border border-[#E8E3DB] bg-white text-center">
-          <h2 className="text-2xl font-bold mb-2 text-[#1C1917]">Access Denied</h2>
-          <p className="text-[#78716C] text-sm">You don't have permission to access this page.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
+        <div className="max-w-md p-8 border border-[#D2D2D7] bg-white text-center">
+          <h2 className="text-2xl font-bold mb-2 text-[#1D1D1F]">Access Denied</h2>
+          <p className="text-[#6E6E73] text-sm">You don't have permission to access this page.</p>
         </div>
       </div>
     );

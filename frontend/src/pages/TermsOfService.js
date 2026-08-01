@@ -4,8 +4,8 @@ import { SiteFooter } from '../components/SiteFooter';
 
 const Section = ({ title, children }) => (
   <div>
-    <h2 className="text-lg font-bold text-[#1C1917] mb-3">{title}</h2>
-    <div className="text-sm text-[#78716C] leading-relaxed space-y-3">{children}</div>
+    <h2 className="text-lg font-bold text-[#1D1D1F] mb-3">{title}</h2>
+    <div className="text-sm text-[#6E6E73] leading-relaxed space-y-3">{children}</div>
   </div>
 );
 
@@ -13,26 +13,25 @@ const TermsOfService = () => {
   useEffect(() => { document.title = 'Terms of Service — Vakar Games'; }, []);
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
-        <div className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-12">
+        <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-12">
           <div className="max-w-3xl mx-auto">
             <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">Legal</p>
             <h1
-              className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight mb-3"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight mb-3"
             >
               TERMS OF SERVICE
             </h1>
-            <p className="text-sm text-[#A8A29E]">Last updated: June 21, 2026</p>
+            <p className="text-sm text-[#A1A1A6]">Last updated: June 21, 2026</p>
           </div>
         </div>
 
         <div className="max-w-3xl mx-auto px-6 py-14 space-y-10">
           <Section title="1. Acceptance of Terms">
-            <p>By accessing or using the Vakar Games website (<strong className="text-[#1C1917]">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
+            <p>By accessing or using the Vakar Games website (<strong className="text-[#1D1D1F]">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
           </Section>
 
           <Section title="2. Our Services">
@@ -71,7 +70,7 @@ const TermsOfService = () => {
           </Section>
 
           <Section title="7. Disclaimer of Warranties">
-            <p>Our website and games are provided <strong className="text-[#1C1917]">"as is"</strong> and <strong className="text-[#1C1917]">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
+            <p>Our website and games are provided <strong className="text-[#1D1D1F]">"as is"</strong> and <strong className="text-[#1D1D1F]">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
           </Section>
 
           <Section title="8. Limitation of Liability">
@@ -83,7 +82,7 @@ const TermsOfService = () => {
           </Section>
 
           <Section title="10. Governing Law">
-            <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-[#1C1917]">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
+            <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-[#1D1D1F]">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
           </Section>
 
           <Section title="11. Contact">

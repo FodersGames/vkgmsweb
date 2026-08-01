@@ -14,7 +14,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
   const isPassword = type === 'password';
   return (
     <div className="relative">
-      <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+      <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
       <input
         id={id}
         type={isPassword && show ? 'text' : type}
@@ -23,12 +23,12 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+        className="w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
       />
       {isPassword && (
         <button
           type="button"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#78716C] transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors"
           onClick={() => setShow(s => !s)}
           tabIndex={-1}
         >
@@ -62,20 +62,20 @@ const ChangePasswordModal = ({ onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-[#E8E3DB] max-w-md w-full p-8 shadow-xl">
+      <div className="rounded-xl bg-white border border-[#D2D2D7] max-w-md w-full p-8 shadow-xl">
         <div className="mb-6">
           <div className="w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <AlertTriangle size={18} className="text-amber-600" />
           </div>
-          <h2 className="text-xl font-bold text-[#1C1917] mb-1">Change your password</h2>
-          <p className="text-sm text-[#78716C]">
+          <h2 className="text-xl font-bold text-[#1D1D1F] mb-1">Change your password</h2>
+          <p className="text-sm text-[#6E6E73]">
             You must set a new password before continuing.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
               New password
             </label>
             <InputField
@@ -88,7 +88,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
               Confirm new password
             </label>
             <InputField
@@ -110,7 +110,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? 'Saving…' : 'Set new password'}
           </button>
@@ -184,7 +184,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F9F7F4]">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F5F7]">
 
       {mustChange && (
         <ChangePasswordModal onSuccess={() => navigate('/dashboard')} />
@@ -194,27 +194,26 @@ export const Login = () => {
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="text-xl font-black text-[#1C1917] tracking-[0.18em] hover:text-[#2D2926] transition-colors"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            className="text-xl font-black text-[#1D1D1F] tracking-[0.18em] hover:text-[#3A3A3C] transition-colors"
           >
             VAKAR GAMES
           </Link>
-          <p className="mt-1.5 text-sm text-[#78716C]">
+          <p className="mt-1.5 text-sm text-[#6E6E73]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
 
-        <div className="bg-white border border-[#E8E3DB] shadow-sm overflow-hidden">
+        <div className="rounded-xl bg-white border border-[#D2D2D7] shadow-sm overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-[#E8E3DB]">
+          <div className="flex border-b border-[#D2D2D7]">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
                 className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                   tab === id
-                    ? 'text-[#1C1917] border-b-2 border-[#1C1917] -mb-px'
-                    : 'text-[#78716C] hover:text-[#1C1917]'
+                    ? 'text-[#1D1D1F] border-b-2 border-[#1D1D1F] -mb-px'
+                    : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
               >
                 {label}
@@ -225,7 +224,7 @@ export const Login = () => {
           {tab === 'login' ? (
             <form onSubmit={handleLogin} className="px-7 py-7 space-y-4" data-testid="login-form">
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
                   Email
                 </label>
                 <InputField
@@ -239,7 +238,7 @@ export const Login = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <InputField
@@ -262,7 +261,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
@@ -275,13 +274,13 @@ export const Login = () => {
                   <div className="w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle size={18} className="text-[#4ECDC4]" />
                   </div>
-                  <h3 className="text-base font-bold text-[#1C1917] mb-1">Account created</h3>
-                  <p className="text-sm text-[#78716C] mb-5">
+                  <h3 className="text-base font-bold text-[#1D1D1F] mb-1">Account created</h3>
+                  <p className="text-sm text-[#6E6E73] mb-5">
                     You can now sign in with your email and password.
                   </p>
                   <button
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                    className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors"
                   >
                     Go to Sign In
                   </button>
@@ -290,8 +289,8 @@ export const Login = () => {
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                        First name <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
+                      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                        First name <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
                       </label>
                       <InputField
                         icon={User}
@@ -304,8 +303,8 @@ export const Login = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                        Last name <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
+                      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                        Last name <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
                       </label>
                       <InputField
                         icon={User}
@@ -319,8 +318,8 @@ export const Login = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
-                      Username <span className="text-[#C9C3BB] normal-case font-normal">(optional — auto-generated from email)</span>
+                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                      Username <span className="text-[#BFBFC4] normal-case font-normal">(optional — auto-generated from email)</span>
                     </label>
                     <InputField
                       icon={User}
@@ -333,7 +332,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
                       Email
                     </label>
                     <InputField
@@ -346,7 +345,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
                       Password
                     </label>
                     <InputField
@@ -368,7 +367,7 @@ export const Login = () => {
                   <button
                     type="submit"
                     disabled={regLoading}
-                    className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
@@ -379,9 +378,9 @@ export const Login = () => {
           )}
         </div>
 
-        <p className="mt-5 text-center text-xs text-[#A8A29E]">
+        <p className="mt-5 text-center text-xs text-[#A1A1A6]">
           By creating an account you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-[#78716C] transition-colors">Terms of Service</Link>.
+          <Link to="/terms" className="underline hover:text-[#6E6E73] transition-colors">Terms of Service</Link>.
         </p>
       </div>
     </div>

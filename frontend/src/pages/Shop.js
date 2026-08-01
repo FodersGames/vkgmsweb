@@ -50,26 +50,26 @@ const LoyaltyBar = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="bg-white border border-[#E8E3DB] p-5">
+    <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <Icon size={14} style={{ color: cfg.color }} />
           <span className="text-sm font-bold tracking-widest uppercase" style={{ color: cfg.color }}>{cfg.label}</span>
           {cfg.discount > 0 && (
-            <span className="text-xs text-[#78716C]">−{cfg.discount}% on purchases</span>
+            <span className="text-xs text-[#6E6E73]">−{cfg.discount}% on purchases</span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#A8A29E] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
+          <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
           <button
             onClick={() => setShowInfo(v => !v)}
-            className="w-4 h-4 border border-[#C9C3BB] text-[#A8A29E] hover:border-[#78716C] hover:text-[#78716C] flex items-center justify-center text-[10px] font-bold transition-colors"
+            className="w-4 h-4 border border-[#BFBFC4] text-[#A1A1A6] hover:border-[#6E6E73] hover:text-[#6E6E73] flex items-center justify-center text-[10px] font-bold transition-colors"
           >?</button>
         </div>
       </div>
 
       {/* Track */}
-      <div className="relative h-px bg-[#E8E3DB] mb-1">
+      <div className="relative h-px bg-[#D2D2D7] mb-1">
         <div
           className="absolute top-0 left-0 h-full transition-all duration-700"
           style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
@@ -79,7 +79,7 @@ const LoyaltyBar = ({ loyalty }) => {
           <div
             key={t}
             className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }}
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#D2D2D7' }}
           />
         ))}
       </div>
@@ -93,7 +93,7 @@ const LoyaltyBar = ({ loyalty }) => {
             <span
               key={t}
               className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-              style={{ color: reached ? tc.color : '#C9C3BB' }}
+              style={{ color: reached ? tc.color : '#BFBFC4' }}
             >
               {tc.label}
             </span>
@@ -102,7 +102,7 @@ const LoyaltyBar = ({ loyalty }) => {
       </div>
 
       {next_tier && next_threshold_cents ? (
-        <p className="text-[10px] text-[#A8A29E]">
+        <p className="text-[10px] text-[#A1A1A6]">
           ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
           <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
         </p>
@@ -111,8 +111,8 @@ const LoyaltyBar = ({ loyalty }) => {
       )}
 
       {showInfo && (
-        <div className="mt-4 pt-4 border-t border-[#E8E3DB] text-xs text-[#78716C] space-y-3">
-          <p className="font-semibold text-[#1C1917]">Loyalty program</p>
+        <div className="mt-4 pt-4 border-t border-[#D2D2D7] text-xs text-[#6E6E73] space-y-3">
+          <p className="font-semibold text-[#1D1D1F]">Loyalty program</p>
           <p>Every dollar you spend adds to your loyalty total. The more you spend, the higher your rank and the bigger your discount on future purchases.</p>
           <div className="grid grid-cols-2 gap-1">
             {TIER_ORDER.map(t => {
@@ -120,15 +120,15 @@ const LoyaltyBar = ({ loyalty }) => {
               const TIcon = tc.icon;
               const reached = TIER_ORDER.indexOf(t) <= tierIdx;
               return (
-                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#F9F7F4] border" style={{ borderColor: reached ? `${tc.color}55` : '#E8E3DB' }}>
+                <div key={t} className="flex items-center gap-1.5 px-2 py-1.5 bg-[#F5F5F7] border" style={{ borderColor: reached ? `${tc.color}55` : '#D2D2D7' }}>
                   <TIcon size={10} style={{ color: tc.color }} />
                   <span className="font-semibold text-[10px]" style={{ color: tc.color }}>{tc.label}</span>
-                  <span className="text-[#A8A29E] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
+                  <span className="text-[#A1A1A6] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-[#A8A29E] pt-1 border-t border-[#E8E3DB]">
+          <p className="text-[#A1A1A6] pt-1 border-t border-[#D2D2D7]">
             Silver, Gold and Diamond members receive exclusive coupons and bonus offers.
           </p>
         </div>
@@ -146,7 +146,7 @@ const BADGE_STYLES = {
   POPULAR: { bg: '#A29BFE', text: '#fff',     label: 'Popular' },
   BEST:    { bg: '#F59E0B', text: '#fff',     label: 'Best Value' },
   BUNDLE:  { bg: '#6C5CE7', text: '#fff',     label: 'Bundle'  },
-  EXCLUSIVE: { bg: '#1C1917', text: '#4ECDC4', label: '✦ Exclusive' },
+  EXCLUSIVE: { bg: '#1D1D1F', text: '#4ECDC4', label: '✦ Exclusive' },
 };
 
 const BadgePill = ({ badge, discount_pct }) => {
@@ -325,25 +325,24 @@ const Shop = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
         {/* Header — same style as home page sections */}
-        <section className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-10">
+        <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
           <div className="max-w-screen-xl mx-auto">
-            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">Store</p>
+            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">Store</p>
             <div className="flex items-end justify-between gap-6 flex-wrap">
               <h1
-                className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight"
-                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight"
               >
                 VAKAR GAMES<br />SHOP
               </h1>
               {!user && (
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 border border-[#1C1917] text-[#1C1917] hover:bg-[#1C1917] hover:text-white px-5 py-2.5 text-sm font-semibold transition-all"
+                  className="rounded-full inline-flex items-center gap-2 border border-[#1D1D1F] text-[#1D1D1F] hover:bg-[#1D1D1F] hover:text-white px-5 py-2.5 text-sm font-semibold transition-all"
                 >
                   <LogIn size={14} />Sign in to purchase
                 </Link>
@@ -359,15 +358,15 @@ const Shop = () => {
 
           {/* Auth notice if not logged in */}
           {!user && (
-            <div className="bg-white border border-[#E8E3DB] p-5 flex items-center gap-4">
-              <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
+            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 flex items-center gap-4">
+              <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
                 <LogIn size={16} className="text-[#4ECDC4]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#1C1917]">Sign in to buy</p>
-                <p className="text-xs text-[#78716C]">An account is required to make purchases. Earn loyalty points with every order.</p>
+                <p className="text-sm font-semibold text-[#1D1D1F]">Sign in to buy</p>
+                <p className="text-xs text-[#6E6E73]">An account is required to make purchases. Earn loyalty points with every order.</p>
               </div>
-              <Link to="/login" className="ml-auto shrink-0 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors">
+              <Link to="/login" className="rounded-full ml-auto shrink-0 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors">
                 Sign In
               </Link>
             </div>
@@ -376,14 +375,14 @@ const Shop = () => {
           {/* Category filter */}
           {categories.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Browse by game</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Browse by game</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => setGame('all')}
                   className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
                     activeGame === 'all'
-                      ? 'bg-[#1C1917] text-white border-[#1C1917]'
-                      : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                      ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                      : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
                   }`}
                 >
                   All Games
@@ -394,8 +393,8 @@ const Shop = () => {
                     onClick={() => setGame(cat.id)}
                     className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
                       activeGame === cat.id
-                        ? 'bg-[#1C1917] text-white border-[#1C1917]'
-                        : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#1C1917]'
+                        ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                        : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
                     }`}
                   >
                     {cat.label}
@@ -409,12 +408,12 @@ const Shop = () => {
           {/* Category filter — works across all games, or narrowed to the selected one */}
           {productCategories.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Category</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => selectCat('')}
                   className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                    !activeCat ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:text-[#1C1917]'
+                    !activeCat ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
                   }`}
                 >
                   All
@@ -426,7 +425,7 @@ const Shop = () => {
                       key={cat.id}
                       onClick={() => selectCat(cat.id)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                        activeCat === cat.id ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#78716C] border-[#E8E3DB] hover:border-[#4ECDC4]/50 hover:text-[#1C1917]'
+                        activeCat === cat.id ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
                       }`}
                     >
                       <Icon size={12} />
@@ -441,12 +440,12 @@ const Shop = () => {
           {/* Per-category sub-category filter */}
           {activeCat && activeSubcats.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Sub-category</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Sub-category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
                   onClick={() => selectSub('')}
                   className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
-                    !activeSub ? 'bg-[#1C1917] text-white border-[#1C1917]' : 'bg-white text-[#A8A29E] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#78716C]'
+                    !activeSub ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]' : 'bg-white text-[#A1A1A6] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#6E6E73]'
                   }`}
                 >
                   All
@@ -456,7 +455,7 @@ const Shop = () => {
                     key={s.id}
                     onClick={() => selectSub(s.id)}
                     className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
-                      activeSub === s.id ? 'bg-[#1C1917] text-white border-[#1C1917]' : 'bg-white text-[#A8A29E] border-[#E8E3DB] hover:border-[#C9C3BB] hover:text-[#78716C]'
+                      activeSub === s.id ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]' : 'bg-white text-[#A1A1A6] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#6E6E73]'
                     }`}
                   >
                     {s.label}
@@ -469,19 +468,19 @@ const Shop = () => {
           {/* Products */}
           {loading ? (
             <div className="py-24 flex justify-center">
-              <Loader2 size={24} className="animate-spin text-[#A8A29E]" />
+              <Loader2 size={24} className="animate-spin text-[#A1A1A6]" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-24 text-center">
-              <ShoppingCart size={32} className="mx-auto mb-4 text-[#C9C3BB]" />
-              <p className="text-sm text-[#A8A29E]">No products available in this category yet.</p>
+              <ShoppingCart size={32} className="mx-auto mb-4 text-[#BFBFC4]" />
+              <p className="text-sm text-[#A1A1A6]">No products available in this category yet.</p>
             </div>
           ) : (
             <>
               {/* Featured */}
               {featured.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4 flex items-center gap-2">
+                  <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4 flex items-center gap-2">
                     <Star size={11} className="text-[#F59E0B]" />Featured
                   </p>
                   <div className={`grid gap-4 ${featured.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 sm:grid-cols-2'}`}>
@@ -494,7 +493,7 @@ const Shop = () => {
               {regular.length > 0 && (
                 <div>
                   {featured.length > 0 && (
-                    <p className="text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-4">All Offers</p>
+                    <p className="text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-4">All Offers</p>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {regular.map(p => <ProductCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
@@ -507,28 +506,28 @@ const Shop = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-[#1C1917] mt-16 py-8 px-6">
+      <footer className="bg-[#1D1D1F] mt-16 py-8 px-6">
         <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-sm font-black tracking-[0.18em] text-white" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>VAKAR GAMES</span>
-          <p className="text-xs text-[#44403C]">Secure payments powered by Stripe.</p>
+          <span className="text-sm font-black tracking-[0.18em] text-white">VAKAR GAMES</span>
+          <p className="text-xs text-[#3A3A3C]">Secure payments powered by Stripe.</p>
         </div>
       </footer>
 
       {/* Buy modal */}
       {buying && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1C1917]/50">
-          <div className="bg-white border border-[#E8E3DB] w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1D1D1F]/50">
+          <div className="rounded-xl bg-white border border-[#D2D2D7] w-full max-w-md">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-[#E8E3DB] flex items-center justify-between">
-              <h3 className="font-bold text-[#1C1917] text-sm">{buying.name}</h3>
-              <button onClick={() => setBuying(null)} className="p-1 text-[#A8A29E] hover:text-[#1C1917] transition-colors">
+            <div className="px-6 py-4 border-b border-[#D2D2D7] flex items-center justify-between">
+              <h3 className="font-bold text-[#1D1D1F] text-sm">{buying.name}</h3>
+              <button onClick={() => setBuying(null)} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
                 <X size={16} />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
               {/* Product summary */}
-              <div className="flex items-center gap-4 p-4 bg-[#F9F7F4] border border-[#E8E3DB]">
+              <div className="flex items-center gap-4 p-4 bg-[#F5F5F7] border border-[#D2D2D7]">
                 {buying.image_url && (
                   <img
                     src={buying.image_url.startsWith('/') ? `${API_URL}${buying.image_url}` : buying.image_url}
@@ -537,14 +536,14 @@ const Shop = () => {
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-[#1C1917] truncate">{buying.name}</p>
-                  {buying.description && <p className="text-xs text-[#78716C] truncate">{buying.description}</p>}
+                  <p className="font-bold text-sm text-[#1D1D1F] truncate">{buying.name}</p>
+                  {buying.description && <p className="text-xs text-[#6E6E73] truncate">{buying.description}</p>}
                 </div>
                 <div className="shrink-0 text-right">
                   {(discount > 0 || couponExtraDiscount > 0) && (
-                    <p className="text-xs text-[#A8A29E] line-through">${(buying.price / 100).toFixed(2)}</p>
+                    <p className="text-xs text-[#A1A1A6] line-through">${(buying.price / 100).toFixed(2)}</p>
                   )}
-                  <p className="text-lg font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
+                  <p className="text-lg font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
                 </div>
               </div>
 
@@ -560,8 +559,8 @@ const Shop = () => {
 
               {/* Promo coupon */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1.5">
-                  Promo code <span className="text-[#C9C3BB] normal-case font-normal">(optional)</span>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1.5">
+                  Promo code <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -569,12 +568,12 @@ const Shop = () => {
                     value={couponCode}
                     onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                     placeholder="VG-XXXXXXXX"
-                    className="flex-1 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:text-[#A8A29E] placeholder:font-sans placeholder:tracking-normal"
+                    className="flex-1 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:text-[#A1A1A6] placeholder:font-sans placeholder:tracking-normal"
                   />
                   <button
                     onClick={checkCoupon}
                     disabled={!couponCode.trim() || couponChecking}
-                    className="shrink-0 text-xs font-semibold border border-[#E8E3DB] hover:border-[#4ECDC4] text-[#78716C] hover:text-[#4ECDC4] px-3 py-2.5 transition-colors disabled:opacity-40"
+                    className="shrink-0 text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-3 py-2.5 transition-colors disabled:opacity-40"
                   >
                     {couponChecking ? '…' : 'Apply'}
                   </button>
@@ -593,7 +592,7 @@ const Shop = () => {
 
               {/* Player ID */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-1.5">
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-1.5">
                   Your in-game Player ID
                 </label>
                 <input
@@ -601,18 +600,18 @@ const Shop = () => {
                   value={uid}
                   onChange={e => { setUid(e.target.value); setBuyError(''); }}
                   placeholder="player_12345"
-                  className="w-full bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm px-4 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A8A29E]"
+                  className="w-full bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-4 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]"
                   onKeyDown={e => e.key === 'Enter' && handleBuy()}
                   autoFocus
                 />
-                <p className="text-[10px] text-[#A8A29E] mt-1.5">Item delivered once payment is confirmed.</p>
+                <p className="text-[10px] text-[#A1A1A6] mt-1.5">Item delivered once payment is confirmed.</p>
                 {buyError && <p className="text-xs text-red-500 mt-1.5 font-medium">{buyError}</p>}
               </div>
 
               <button
                 onClick={handleBuy}
                 disabled={checkoutLoading}
-                className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white py-3 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-3 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
                 {checkoutLoading
                   ? <><Loader2 size={15} className="animate-spin" />Redirecting…</>
@@ -620,7 +619,7 @@ const Shop = () => {
                 }
               </button>
 
-              <p className="text-center text-[10px] text-[#A8A29E]">
+              <p className="text-center text-[10px] text-[#A1A1A6]">
                 Secure payment · Powered by Stripe · Your grade: {loyalty ? TIERS[loyalty.tier]?.label : 'Bronze'}
               </p>
             </div>
@@ -639,22 +638,22 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="flex gap-4 p-5 bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] cursor-pointer transition-colors"
+      className="flex gap-4 p-5 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors"
       onClick={() => onBuy(product)}
     >
       {img && <img src={img} alt={product.name} className="w-20 h-20 object-cover shrink-0" />}
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-2 mb-1">
           {product.badge && <BadgePill badge={product.badge} discount_pct={product.discount_pct} />}
-          <h3 className="font-bold text-sm text-[#1C1917] leading-tight">{product.name}</h3>
+          <h3 className="font-bold text-sm text-[#1D1D1F] leading-tight">{product.name}</h3>
         </div>
-        {product.description && <p className="text-xs text-[#78716C] mb-3 line-clamp-2">{product.description}</p>}
+        {product.description && <p className="text-xs text-[#6E6E73] mb-3 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between">
           <div>
-            {discount > 0 && <p className="text-xs text-[#A8A29E] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-lg font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
+            {discount > 0 && <p className="text-xs text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
+            <p className="text-lg font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
-          <div className="flex items-center gap-1.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-xs font-bold px-3 py-1.5 transition-colors">
+          <div className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-bold px-3 py-1.5 transition-colors">
             <ShoppingCart size={11} />Buy
           </div>
         </div>
@@ -668,14 +667,14 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="flex flex-col bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] cursor-pointer transition-colors overflow-hidden"
+      className="flex flex-col rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors overflow-hidden"
       onClick={() => onBuy(product)}
     >
       {/* Image */}
-      <div className="relative w-full bg-[#F9F7F4]" style={{ height: 140 }}>
+      <div className="relative w-full bg-[#F5F5F7]" style={{ height: 140 }}>
         {img
           ? <img src={img} alt={product.name} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={24} className="text-[#C9C3BB]" /></div>
+          : <div className="w-full h-full flex items-center justify-center"><ShoppingCart size={24} className="text-[#BFBFC4]" /></div>
         }
         {product.badge && (
           <div className="absolute top-2 left-2">
@@ -685,14 +684,14 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
       </div>
       {/* Info */}
       <div className="p-3 flex flex-col flex-1">
-        <h3 className="font-semibold text-xs text-[#1C1917] leading-tight mb-1 line-clamp-1">{product.name}</h3>
-        {product.description && <p className="text-[11px] text-[#78716C] mb-2 line-clamp-2">{product.description}</p>}
+        <h3 className="font-semibold text-xs text-[#1D1D1F] leading-tight mb-1 line-clamp-1">{product.name}</h3>
+        {product.description && <p className="text-[11px] text-[#6E6E73] mb-2 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between mt-auto">
           <div>
-            {discount > 0 && <p className="text-[10px] text-[#A8A29E] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-sm font-black text-[#1C1917]">${(finalPrice / 100).toFixed(2)}</p>
+            {discount > 0 && <p className="text-[10px] text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
+            <p className="text-sm font-black text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
-          <span className="text-[10px] font-bold text-white bg-[#1C1917] px-2 py-1">Get</span>
+          <span className="text-[10px] font-bold text-white bg-[#1D1D1F] px-2 py-1">Get</span>
         </div>
       </div>
     </div>

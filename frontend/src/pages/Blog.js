@@ -20,23 +20,22 @@ export const BlogList = () => {
   }, []);
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
         {/* Page header */}
-        <div className="bg-white border-b border-[#E8E3DB] py-16 px-6">
+        <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <div className="max-w-4xl mx-auto">
-            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">
+            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">
               Vakar Games
             </p>
             <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1C1917] leading-tight"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1D1D1F] leading-tight"
             >
               BLOG
             </h1>
-            <p className="text-[#78716C] mt-3">
+            <p className="text-[#6E6E73] mt-3">
               News, updates and announcements from the studio.
             </p>
           </div>
@@ -44,16 +43,15 @@ export const BlogList = () => {
 
         <div className="max-w-4xl mx-auto px-6 py-14">
           {loading ? (
-            <div className="text-center py-20 text-[#A8A29E]">Loading…</div>
+            <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-20">
               <h2
-                className="text-3xl font-black text-[#A8A29E] mb-2"
-                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                className="text-3xl font-black text-[#A1A1A6] mb-2"
               >
                 NO POSTS YET
               </h2>
-              <p className="text-[#78716C]">Check back soon for updates.</p>
+              <p className="text-[#6E6E73]">Check back soon for updates.</p>
             </div>
           ) : (
             <div className="space-y-4" data-testid="blog-posts-list">
@@ -61,7 +59,7 @@ export const BlogList = () => {
                 <Link
                   key={post.slug}
                   to={`/blog/${post.slug}`}
-                  className="group block bg-white border border-[#E8E3DB] hover:border-[#C9C3BB] hover:shadow-sm transition-all overflow-hidden"
+                  className="group block rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] hover:shadow-sm transition-all overflow-hidden"
                   data-testid={`blog-post-${post.slug}`}
                 >
                   <div className="flex flex-col sm:flex-row">
@@ -75,13 +73,13 @@ export const BlogList = () => {
                       </div>
                     )}
                     <div className="p-6 flex-1">
-                      <h2 className="text-lg font-bold text-[#1C1917] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
+                      <h2 className="text-lg font-bold text-[#1D1D1F] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
                         {post.title}
                       </h2>
-                      <p className="text-[#78716C] text-sm line-clamp-2 mb-4 leading-relaxed">
+                      <p className="text-[#6E6E73] text-sm line-clamp-2 mb-4 leading-relaxed">
                         {post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-[#A8A29E]">
+                      <div className="flex items-center gap-4 text-xs text-[#A1A1A6]">
                         <span className="flex items-center gap-1.5">
                           <User size={11} />{post.author}
                         </span>
@@ -122,25 +120,25 @@ export const BlogPost = () => {
   }, [slug]);
 
   if (loading) return (
-    <div className="bg-[#F9F7F4] min-h-screen flex items-center justify-center text-[#A8A29E]">
+    <div className="bg-[#F5F5F7] min-h-screen flex items-center justify-center text-[#A1A1A6]">
       Loading…
     </div>
   );
   if (!post) return (
-    <div className="bg-[#F9F7F4] min-h-screen flex items-center justify-center text-[#A8A29E]">
+    <div className="bg-[#F5F5F7] min-h-screen flex items-center justify-center text-[#A1A1A6]">
       Post not found
     </div>
   );
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
         <div className="max-w-2xl mx-auto px-6 py-14">
           <Link
             to="/blog"
-            className="inline-flex items-center gap-2 text-sm text-[#78716C] hover:text-[#1C1917] mb-10 transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-[#6E6E73] hover:text-[#1D1D1F] mb-10 transition-colors"
           >
             <ArrowLeft size={14} /> Back to Blog
           </Link>
@@ -149,18 +147,17 @@ export const BlogPost = () => {
             <img
               src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
               alt={post.title}
-              className="w-full mb-10 max-h-80 object-cover border border-[#E8E3DB]"
+              className="w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
             />
           )}
 
           <h1
-            className="text-3xl sm:text-5xl font-black text-[#1C1917] mb-4 leading-tight"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            className="text-3xl sm:text-5xl font-black text-[#1D1D1F] mb-4 leading-tight"
           >
             {post.title}
           </h1>
 
-          <div className="flex items-center gap-5 text-sm text-[#A8A29E] mb-10 pb-10 border-b border-[#E8E3DB]">
+          <div className="flex items-center gap-5 text-sm text-[#A1A1A6] mb-10 pb-10 border-b border-[#D2D2D7]">
             <span className="flex items-center gap-1.5"><User size={13} />{post.author}</span>
             <span className="flex items-center gap-1.5">
               <Calendar size={13} />
@@ -171,7 +168,7 @@ export const BlogPost = () => {
           </div>
 
           <div
-            className="text-[#44403C] leading-relaxed whitespace-pre-wrap text-base"
+            className="text-[#3A3A3C] leading-relaxed whitespace-pre-wrap text-base"
             data-testid="blog-content"
           >
             {post.content}

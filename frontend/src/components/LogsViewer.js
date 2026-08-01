@@ -17,7 +17,7 @@ const TYPE_META = {
   missions:        { label: 'Missions',  icon: ClipboardList, color: '#27AE60' },
   player:          { label: 'Players',   icon: ShieldAlert,   color: '#EB5757' },
   send:            { label: 'Sent',      icon: Gift,          color: '#4ECDC4' },
-  claim:           { label: 'Claims',    icon: Package,       color: '#78716C' },
+  claim:           { label: 'Claims',    icon: Package,       color: '#6E6E73' },
   delete:          { label: 'Deleted',   icon: Trash2,        color: '#EB5757' },
   project:         { label: 'Project',   icon: Flag,          color: '#6C5CE7' },
 };
@@ -26,7 +26,7 @@ const ALL_TYPES = Object.keys(TYPE_META);
 // "claim" fires on every single gift pickup — high volume, low signal. Opt-in rather than on by default.
 const DEFAULT_TYPES = ALL_TYPES.filter(t => t !== 'claim');
 
-const metaFor = (type) => TYPE_META[type] || { label: type, icon: FileText, color: '#78716C' };
+const metaFor = (type) => TYPE_META[type] || { label: type, icon: FileText, color: '#6E6E73' };
 
 const timeAgo = (iso) => {
   const then = new Date(iso).getTime();
@@ -55,7 +55,7 @@ const TypeChip = ({ type, active, onClick }) => {
       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold border transition-colors"
       style={active
         ? { backgroundColor: `${color}18`, borderColor: color, color }
-        : { backgroundColor: 'transparent', borderColor: 'var(--chip-border, #E8E3DB)', color: '#A8A29E' }}
+        : { backgroundColor: 'transparent', borderColor: 'var(--chip-border, #D2D2D7)', color: '#A1A1A6' }}
     >
       <Icon size={12} />
       {label}
@@ -123,18 +123,18 @@ export const LogsViewer = () => {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#9B51E0]/10 flex items-center justify-center">
+          <div className="rounded-lg w-10 h-10 bg-[#9B51E0]/10 flex items-center justify-center">
             <FileText size={20} className="text-[#9B51E0]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#1C1917] dark:text-[#e4e4e7]">Activity Logs</h1>
-            <p className="text-xs text-[#A8A29E]">{total} event{total !== 1 ? 's' : ''} — {selectedProject.name}</p>
+            <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Activity Logs</h1>
+            <p className="text-xs text-[#A1A1A6]">{total} event{total !== 1 ? 's' : ''} — {selectedProject.name}</p>
           </div>
         </div>
         <button
           onClick={fetchLogs}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
@@ -142,16 +142,16 @@ export const LogsViewer = () => {
 
       {/* Search */}
       <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6]" />
         <input
           type="text"
           placeholder="Search log messages..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="w-full pl-9 pr-9 py-2.5 text-sm border border-[#E8E3DB] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1C1917] dark:text-[#e4e4e7]"
+          className="w-full pl-9 pr-9 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
         />
         {searchInput && (
-          <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#1C1917]">
+          <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F]">
             <X size={14} />
           </button>
         )}
@@ -163,7 +163,7 @@ export const LogsViewer = () => {
           type="button"
           onClick={toggleAll}
           className={`inline-flex items-center px-2.5 py-1.5 text-xs font-semibold border transition-colors ${
-            allActive ? 'bg-[#1C1917] border-[#1C1917] text-white' : 'border-[#E8E3DB] dark:border-[#2a2a3c] text-[#A8A29E]'
+            allActive ? 'bg-[#1D1D1F] border-[#1D1D1F] text-white' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6]'
           }`}
         >
           All types
@@ -177,7 +177,7 @@ export const LogsViewer = () => {
       {logs.length === 0 && !loading ? (
         <EmptyState icon={FileText} title="No activity found" description="Try adjusting your filters, or wait for new activity on this project." />
       ) : (
-        <div className="divide-y divide-[#F0EDE8] dark:divide-[#1c1c2e] border border-[#E8E3DB] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]" data-testid="logs-list">
+        <div className="divide-y divide-[#EDEDEF] dark:divide-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]" data-testid="logs-list">
           {logs.map((l, i) => {
             const { label, icon: Icon, color } = metaFor(l.type);
             return (
@@ -188,17 +188,17 @@ export const LogsViewer = () => {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="text-xs font-semibold" style={{ color }}>{label}</span>
-                    {l.user && <span className="text-xs text-[#71717a]">— {l.user}</span>}
-                    <span className="text-[11px] text-[#A8A29E] ml-auto shrink-0" title={exactTime(l.timestamp)}>
+                    {l.user && <span className="text-xs text-[#6E6E73]">— {l.user}</span>}
+                    <span className="text-[11px] text-[#A1A1A6] ml-auto shrink-0" title={exactTime(l.timestamp)}>
                       {timeAgo(l.timestamp)}
                     </span>
                   </div>
-                  <p className="text-sm text-[#1C1917] dark:text-[#e4e4e7] break-words">{l.message}</p>
+                  <p className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] break-words">{l.message}</p>
                   {(l.uid || l.variable || l.amount != null) && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {l.uid && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F9F7F4] dark:bg-[#111118] text-[#78716C]">uid: {l.uid}</span>}
-                      {l.variable && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F9F7F4] dark:bg-[#111118] text-[#78716C]">{l.variable}</span>}
-                      {l.amount != null && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F9F7F4] dark:bg-[#111118] text-[#78716C]">×{l.amount}</span>}
+                      {l.uid && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73]">uid: {l.uid}</span>}
+                      {l.variable && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73]">{l.variable}</span>}
+                      {l.amount != null && <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73]">×{l.amount}</span>}
                     </div>
                   )}
                 </div>
@@ -211,19 +211,19 @@ export const LogsViewer = () => {
       {/* Pagination */}
       {pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-[#A8A29E]">Page {page} of {pages}</p>
+          <p className="text-xs text-[#A1A1A6]">Page {page} of {pages}</p>
           <div className="flex gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:bg-[#F9F7F4] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
             >
               <ChevronLeft size={13} /> Previous
             </button>
             <button
               onClick={() => setPage(p => Math.min(pages, p + 1))}
               disabled={page >= pages}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:bg-[#F9F7F4] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
             >
               Next <ChevronRight size={13} />
             </button>

@@ -69,7 +69,7 @@ const ValueEditor = ({ draft, setDraft }) => {
   if (draft.var_type === 'boolean') {
     return (
       <div>
-        <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Value</p>
+        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Value</p>
         <Button
           variant={draft.boolValue ? 'accent' : 'secondary'}
           onClick={() => patch({ boolValue: !draft.boolValue })}
@@ -84,7 +84,7 @@ const ValueEditor = ({ draft, setDraft }) => {
   if (draft.var_type === 'list') {
     return (
       <div>
-        <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Values</p>
+        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Values</p>
         {draft.listValue.map((v, i) => (
           <div key={i} className="flex gap-2 mb-2">
             <Input
@@ -143,13 +143,13 @@ const ValueEditor = ({ draft, setDraft }) => {
 
 const VisibilityToggle = ({ isPublic, onChange }) => (
   <div>
-    <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-1.5">Visibility</p>
+    <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Visibility</p>
     <div className="flex gap-2">
       <button
         type="button"
         onClick={() => onChange(true)}
         className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border transition-colors ${
-          isPublic ? 'bg-[#4ECDC4]/10 border-[#4ECDC4] text-[#4ECDC4]' : 'border-[#E8E3DB] dark:border-[#2a2a3c] text-[#71717a] hover:border-[#C9C3BB]'
+          isPublic ? 'bg-[#4ECDC4]/10 border-[#4ECDC4] text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:border-[#BFBFC4]'
         }`}
       >
         <Globe size={13} /> Public — readable in-game
@@ -158,7 +158,7 @@ const VisibilityToggle = ({ isPublic, onChange }) => (
         type="button"
         onClick={() => onChange(false)}
         className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border transition-colors ${
-          !isPublic ? 'bg-[#F2994A]/10 border-[#F2994A] text-[#F2994A]' : 'border-[#E8E3DB] dark:border-[#2a2a3c] text-[#71717a] hover:border-[#C9C3BB]'
+          !isPublic ? 'bg-[#F2994A]/10 border-[#F2994A] text-[#F2994A]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:border-[#BFBFC4]'
         }`}
       >
         <Lock size={13} /> Private — dashboard only
@@ -267,12 +267,12 @@ export const VariablesManagement = () => {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
+            <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
               <Database size={20} className="text-[#4ECDC4]" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-[#1C1917] dark:text-[#e4e4e7]">Server Variables</h1>
-              <p className="text-xs text-[#A8A29E]">
+              <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Server Variables</h1>
+              <p className="text-xs text-[#A1A1A6]">
                 {variables.length} variable{variables.length !== 1 ? 's' : ''} — live config the running game can read
               </p>
             </div>
@@ -281,7 +281,7 @@ export const VariablesManagement = () => {
             <button
               onClick={fetchVars}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#E8E3DB] dark:border-[#2a2a3c] text-[#78716C] hover:bg-[#F9F7F4] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
@@ -295,19 +295,19 @@ export const VariablesManagement = () => {
 
         {/* Search */}
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6]" />
           <input
             type="text"
             placeholder="Search by name or description..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#E8E3DB] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1C1917] dark:text-[#e4e4e7]"
+            className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
           />
         </div>
 
         {/* Create form */}
         {showForm && (
-          <div className="bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] p-5" data-testid="create-variable-form">
+          <div className="bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5" data-testid="create-variable-form">
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
@@ -345,7 +345,7 @@ export const VariablesManagement = () => {
         {variables.length === 0 && !loading ? (
           <EmptyState icon={Database} title="No server variables yet" description="Create one to push live config to your running game — no rebuild needed." />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[#A8A29E] text-center py-10">No variable matches "{search}".</p>
+          <p className="text-sm text-[#A1A1A6] text-center py-10">No variable matches "{search}".</p>
         ) : (
           <div className="space-y-3" data-testid="variables-list">
             {filtered.map(v => {
@@ -353,11 +353,11 @@ export const VariablesManagement = () => {
               const meta = TYPE_META[v.var_type] || TYPE_META.string;
               const TypeIcon = meta.icon;
               return (
-                <div key={v.name} className="bg-white dark:bg-[#0d0d14] border border-[#E8E3DB] dark:border-[#2a2a3c] p-4 hover:border-[#4ECDC4]/30 transition-colors">
+                <div key={v.name} className="bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 hover:border-[#4ECDC4]/30 transition-colors">
                   <div className="flex justify-between items-start gap-3 mb-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <code className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7] font-mono">{v.name}</code>
+                        <code className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] font-mono">{v.name}</code>
                         <Badge variant={meta.badge}><TypeIcon size={11} />{meta.label}</Badge>
                         {v.is_public ? (
                           <Badge variant="success"><Globe size={11} />Public</Badge>
@@ -365,8 +365,8 @@ export const VariablesManagement = () => {
                           <Badge variant="orange"><Lock size={11} />Private</Badge>
                         )}
                       </div>
-                      {v.description && <p className="text-xs text-[#71717a] mt-1">{v.description}</p>}
-                      <p className="text-[11px] text-[#A8A29E] mt-1">
+                      {v.description && <p className="text-xs text-[#6E6E73] mt-1">{v.description}</p>}
+                      <p className="text-[11px] text-[#A1A1A6] mt-1">
                         Updated {fmtDate(v.updated_at)}{v.updated_by ? ` by ${v.updated_by}` : ''}
                       </p>
                     </div>
@@ -383,7 +383,7 @@ export const VariablesManagement = () => {
                   </div>
 
                   {isEditing ? (
-                    <div className="space-y-4 pt-2 border-t border-[#E8E3DB] dark:border-[#2a2a3c]">
+                    <div className="space-y-4 pt-2 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
                       <Select
                         label="Type"
                         value={editDraft.var_type}
@@ -405,7 +405,7 @@ export const VariablesManagement = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-[#F9F7F4] dark:bg-[#111118] border border-[#E8E3DB] dark:border-[#2a2a3c] px-3 py-2 font-mono text-xs text-[#1C1917] dark:text-[#e4e4e7] break-all">
+                    <div className="bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 font-mono text-xs text-[#1D1D1F] dark:text-[#e4e4e7] break-all">
                       {formatValuePreview(v)}
                     </div>
                   )}

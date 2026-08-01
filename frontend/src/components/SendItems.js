@@ -106,12 +106,12 @@ export const SendItems = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
+            <div className="rounded-lg w-8 h-8 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
               <Package size={14} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Predefined Items</p>
-              <p className="text-xs text-[#71717a]">Click to pre-fill the form</p>
+              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Predefined Items</p>
+              <p className="text-xs text-[#6E6E73]">Click to pre-fill the form</p>
             </div>
           </div>
           <Button variant="secondary" size="sm" icon={Plus} onClick={openAddTemplate}>
@@ -120,14 +120,14 @@ export const SendItems = () => {
         </CardHeader>
 
         {showAddTpl && (
-          <div className="px-5 py-4 bg-[#F9F7F4] dark:bg-[#111118] border-b border-[#E8E3DB] dark:border-[#2a2a3c]">
+          <div className="px-5 py-4 bg-[#F5F5F7] dark:bg-[#111118] border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2 flex items-start gap-3">
                 <div className="shrink-0">
-                  <div className="w-14 h-14 border-2 border-dashed border-[#D6D0C7] dark:border-[#2a2a3c] overflow-hidden flex items-center justify-center bg-[#F0EDE8] dark:bg-[#0d0d14] relative group cursor-pointer">
+                  <div className="rounded-lg w-14 h-14 border-2 border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden flex items-center justify-center bg-[#EDEDEF] dark:bg-[#0d0d14] relative group cursor-pointer">
                     {tplForm.image_url
                       ? <img src={tplForm.image_url.startsWith('/') ? `${API_URL}${tplForm.image_url}` : tplForm.image_url} alt="" className="w-full h-full object-cover" />
-                      : <Upload size={16} className="text-[#A8A29E]" />}
+                      : <Upload size={16} className="text-[#A1A1A6]" />}
                     <label className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 flex items-center justify-center bg-black/40 transition-opacity">
                       <Upload size={14} className="text-white" />
                       <input type="file" accept="image/*" className="hidden" onChange={e => uploadFile(e, url => setTplForm(f => ({ ...f, image_url: url })))} />
@@ -158,16 +158,16 @@ export const SendItems = () => {
                 const isSelected = selectedTpl?.id === tpl.id;
                 return (
                   <div key={tpl.id}
-                    className={`relative group border-2 cursor-pointer overflow-hidden transition-all ${isSelected ? 'border-[#4ECDC4] shadow-[0_0_0_3px_rgba(78,205,196,0.1)]' : 'border-[#E8E3DB] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50'}`}
+                    className={`relative group border-2 cursor-pointer overflow-hidden transition-all ${isSelected ? 'border-[#4ECDC4] shadow-[0_0_0_3px_rgba(78,205,196,0.1)]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50'}`}
                     onClick={() => isSelected ? clearTemplate() : selectTemplate(tpl)}>
-                    <div className="h-20 bg-[#F0EDE8] dark:bg-[#111118] flex items-center justify-center overflow-hidden">
+                    <div className="h-20 bg-[#EDEDEF] dark:bg-[#111118] flex items-center justify-center overflow-hidden">
                       {tpl.image_url
                         ? <img src={tpl.image_url.startsWith('/') ? `${API_URL}${tpl.image_url}` : tpl.image_url} alt={tpl.name} className="w-full h-full object-cover" />
-                        : <Package size={22} className="text-[#C9C3BB] dark:text-[#2a2a3c]" />}
+                        : <Package size={22} className="text-[#BFBFC4] dark:text-[#2a2a3c]" />}
                     </div>
                     <div className="px-2.5 py-2">
-                      <p className="text-xs font-semibold text-[#1C1917] dark:text-[#e4e4e7] truncate">{tpl.name}</p>
-                      <p className="text-[11px] text-[#71717a] truncate">{tpl.amount}× {tpl.variable}</p>
+                      <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{tpl.name}</p>
+                      <p className="text-[11px] text-[#6E6E73] truncate">{tpl.amount}× {tpl.variable}</p>
                     </div>
                     {isSelected && (
                       <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#4ECDC4] flex items-center justify-center">
@@ -175,8 +175,8 @@ export const SendItems = () => {
                       </div>
                     )}
                     <div className="absolute top-1.5 left-1.5 hidden group-hover:flex gap-1">
-                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#78716C] hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
-                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#78716C] hover:text-red-400 transition-colors"><Trash2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); openEditTemplate(tpl); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] hover:text-[#6C5CE7] transition-colors"><Edit2 size={10} /></button>
+                      <button onClick={e => { e.stopPropagation(); deleteTemplate(tpl.id); }} className="w-6 h-6 rounded-md bg-white/90 dark:bg-[#151520]/90 flex items-center justify-center text-[#6E6E73] hover:text-red-400 transition-colors"><Trash2 size={10} /></button>
                     </div>
                   </div>
                 );
@@ -190,15 +190,15 @@ export const SendItems = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
+            <div className="rounded-lg w-8 h-8 flex items-center justify-center" style={{ backgroundColor: '#F2994A18' }}>
               <Send size={14} style={{ color: '#F2994A' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Send to Player</p>
+              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Send to Player</p>
               {selectedTpl && (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-[11px] text-[#4ECDC4] font-medium">Template: {selectedTpl.name}</span>
-                  <button onClick={clearTemplate} className="text-[#71717a] hover:text-[#44403C] dark:hover:text-white transition-colors"><X size={10} /></button>
+                  <button onClick={clearTemplate} className="text-[#6E6E73] hover:text-[#3A3A3C] dark:hover:text-white transition-colors"><X size={10} /></button>
                 </div>
               )}
             </div>

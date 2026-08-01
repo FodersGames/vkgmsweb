@@ -19,10 +19,10 @@ const timeAgo = (iso) => {
 
 const HealthRow = ({ label, ok, value, neutral }) => {
   const Icon = neutral ? ServerIcon : (ok ? CheckCircle2 : XCircle);
-  const color = neutral ? '#71717a' : (ok ? '#4ECDC4' : '#EB5757');
+  const color = neutral ? '#6E6E73' : (ok ? '#4ECDC4' : '#EB5757');
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5 border-b border-[#F0EDE8] dark:border-[#1c1c2e] last:border-0">
-      <span className="text-xs text-[#78716C]">{label}</span>
+    <div className="flex items-center justify-between gap-3 py-1.5 border-b border-[#EDEDEF] dark:border-[#1c1c2e] last:border-0">
+      <span className="text-xs text-[#6E6E73]">{label}</span>
       <span className="flex items-center gap-1.5 text-xs font-medium shrink-0" style={{ color }}>
         <Icon size={13} />
         {value}
@@ -92,23 +92,23 @@ export const WebsiteSettings = () => {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#71717a]/10 flex items-center justify-center">
-          <Settings size={20} className="text-[#71717a]" />
+        <div className="rounded-lg w-10 h-10 bg-[#6E6E73]/10 flex items-center justify-center">
+          <Settings size={20} className="text-[#6E6E73]" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#1C1917] dark:text-[#e4e4e7]">Website Settings</h1>
-          <p className="text-xs text-[#A8A29E]">Global configuration for the public site</p>
+          <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Website Settings</h1>
+          <p className="text-xs text-[#A1A1A6]">Global configuration for the public site</p>
         </div>
       </div>
 
       {/* Maintenance mode */}
-      <div className={`p-5 border ${maintenance ? 'bg-red-500/5 border-red-500/20' : 'bg-white dark:bg-[#0d0d14] border-[#E8E3DB] dark:border-[#2a2a3c]'}`}>
+      <div className={`p-5 border ${maintenance ? 'bg-red-500/5 border-red-500/20' : 'bg-white dark:bg-[#0d0d14] border-[#D2D2D7] dark:border-[#2a2a3c]'}`}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <AlertTriangle size={20} className={maintenance ? 'text-red-400' : 'text-[#71717a]'} />
+            <AlertTriangle size={20} className={maintenance ? 'text-red-400' : 'text-[#6E6E73]'} />
             <div>
-              <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Maintenance Mode</h4>
-              <p className="text-xs text-[#71717a]">
+              <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Maintenance Mode</h4>
+              <p className="text-xs text-[#6E6E73]">
                 {maintenance ? 'Website is currently in maintenance — only staff accounts can sign in' : 'Website is live and accessible'}
               </p>
             </div>
@@ -123,19 +123,19 @@ export const WebsiteSettings = () => {
           </Button>
         </div>
         {updatedAt && (
-          <p className="text-[11px] text-[#A8A29E] mt-3">
+          <p className="text-[11px] text-[#A1A1A6] mt-3">
             Last changed {timeAgo(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''}
           </p>
         )}
       </div>
 
       {/* Support email */}
-      <div className="p-5 border border-[#E8E3DB] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+      <div className="p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
           <Mail size={18} className="text-[#4ECDC4]" />
           <div>
-            <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">Support Contact Email</h4>
-            <p className="text-xs text-[#71717a]">Shown on the Contact page and the site footer.</p>
+            <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Support Contact Email</h4>
+            <p className="text-xs text-[#6E6E73]">Shown on the Contact page and the site footer.</p>
           </div>
         </div>
         <form onSubmit={saveEmail} className="flex items-end gap-2 flex-wrap">
@@ -151,12 +151,12 @@ export const WebsiteSettings = () => {
       </div>
 
       {/* System health */}
-      <div className="p-5 border border-[#E8E3DB] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+      <div className="p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
           <ShieldCheck size={18} className="text-[#4ECDC4]" />
           <div>
-            <h4 className="text-sm font-semibold text-[#1C1917] dark:text-[#e4e4e7]">System Health</h4>
-            <p className="text-xs text-[#71717a]">Read-only status of key backend configuration.</p>
+            <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">System Health</h4>
+            <p className="text-xs text-[#6E6E73]">Read-only status of key backend configuration.</p>
           </div>
         </div>
         {health ? (
@@ -184,7 +184,7 @@ export const WebsiteSettings = () => {
             />
           </div>
         ) : (
-          <p className="text-xs text-[#A8A29E]">Loading…</p>
+          <p className="text-xs text-[#A1A1A6]">Loading…</p>
         )}
       </div>
     </div>

@@ -69,21 +69,20 @@ const Contact = () => {
   };
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen flex flex-col">
+    <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
       <PublicNav />
 
       <div className="flex-1 pt-16">
         {/* Header */}
-        <div className="bg-white border-b border-[#E8E3DB] py-14 px-6">
+        <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
           <div className="max-w-6xl mx-auto">
-            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">Support</p>
+            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">Support</p>
             <h1
-              className="text-5xl sm:text-7xl font-black text-[#1C1917] leading-none"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-7xl font-black text-[#1D1D1F] leading-none"
             >
               CONTACT &amp; SUPPORT
             </h1>
-            <p className="text-[#78716C] mt-4 max-w-md text-sm leading-relaxed">
+            <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
           </div>
@@ -93,18 +92,17 @@ const Contact = () => {
           {/* Form */}
           <div className="lg:col-span-2">
             {success ? (
-              <div className="bg-white border border-[#E8E3DB] p-10 text-center">
+              <div className="rounded-xl bg-white border border-[#D2D2D7] p-10 text-center">
                 <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
                 <h2
-                  className="text-2xl font-black text-[#1C1917] mb-2"
-                  style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                  className="text-2xl font-black text-[#1D1D1F] mb-2"
                 >
                   TICKET SUBMITTED!
                 </h2>
-                <p className="text-sm text-[#78716C] mb-1">
-                  Your reference: <strong className="text-[#1C1917]">{success}</strong>
+                <p className="text-sm text-[#6E6E73] mb-1">
+                  Your reference: <strong className="text-[#1D1D1F]">{success}</strong>
                 </p>
-                <p className="text-xs text-[#A8A29E] mt-3 mb-6">
+                <p className="text-xs text-[#A1A1A6] mt-3 mb-6">
                   We'll reply by email as soon as possible.
                 </p>
                 {token && (
@@ -117,40 +115,40 @@ const Contact = () => {
                 )}
                 <button
                   onClick={() => setSuccess('')}
-                  className="block mx-auto mt-3 text-xs text-[#A8A29E] hover:text-[#1C1917] transition-colors"
+                  className="block mx-auto mt-3 text-xs text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors"
                 >
                   Send another message
                 </button>
               </div>
             ) : (
-              <div className="bg-white border border-[#E8E3DB] p-8">
-                <h2 className="text-lg font-black text-[#1C1917] mb-6">Send us a message</h2>
+              <div className="rounded-xl bg-white border border-[#D2D2D7] p-8">
+                <h2 className="text-lg font-black text-[#1D1D1F] mb-6">Send us a message</h2>
                 {!token ? (
                   <div className="text-center py-10 space-y-4">
-                    <p className="text-sm font-semibold text-[#1C1917]">Account required</p>
-                    <p className="text-xs text-[#78716C] max-w-xs mx-auto leading-relaxed">You need to be signed in to open a support ticket. This helps us track your request and reply faster.</p>
-                    <a href="/login" className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-6 py-2.5 text-sm font-semibold transition-colors">
+                    <p className="text-sm font-semibold text-[#1D1D1F]">Account required</p>
+                    <p className="text-xs text-[#6E6E73] max-w-xs mx-auto leading-relaxed">You need to be signed in to open a support ticket. This helps us track your request and reply faster.</p>
+                    <a href="/login" className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-6 py-2.5 text-sm font-semibold transition-colors">
                       Sign in or create account
                     </a>
                   </div>
                 ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Your email</label>
+                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Your email</label>
                     <input
                       type="email"
                       required
                       value={form.email}
                       readOnly
-                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] bg-[#F9F7F4] text-[#78716C]"
+                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] bg-[#F5F5F7] text-[#6E6E73]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Category</label>
+                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Category</label>
                     <select
                       value={form.category}
                       onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                     >
                       {CATEGORIES.map(c => (
                         <option key={c.value} value={c.value}>{c.label}</option>
@@ -158,26 +156,26 @@ const Contact = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Subject</label>
+                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Subject</label>
                     <input
                       type="text"
                       required
                       maxLength={200}
                       value={form.subject}
                       onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917]"
+                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       placeholder="Brief description of your issue"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#1C1917] mb-1.5">Message</label>
+                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Message</label>
                     <textarea
                       required
                       maxLength={2000}
                       rows={6}
                       value={form.message}
                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#E8E3DB] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1C1917] resize-none"
+                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
                       placeholder="Describe your issue in detail…"
                     />
                   </div>
@@ -185,7 +183,7 @@ const Contact = () => {
                   <button
                     type="submit"
                     disabled={sending}
-                    className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {sending ? 'Sending…' : 'Send message'}
@@ -198,40 +196,40 @@ const Contact = () => {
 
           {/* Sidebar info */}
           <div className="space-y-4">
-            <div className="bg-white border border-[#E8E3DB] p-5">
+            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                   <Mail size={14} className="text-[#4ECDC4]" />
                 </div>
-                <h3 className="text-sm font-bold text-[#1C1917]">Email</h3>
+                <h3 className="text-sm font-bold text-[#1D1D1F]">Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
-                className="text-sm text-[#78716C] hover:text-[#4ECDC4] transition-colors"
+                className="text-sm text-[#6E6E73] hover:text-[#4ECDC4] transition-colors"
               >
                 {supportEmail}
               </a>
             </div>
 
-            <div className="bg-white border border-[#E8E3DB] p-5">
+            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                   <MessageCircle size={14} className="text-[#4ECDC4]" />
                 </div>
-                <h3 className="text-sm font-bold text-[#1C1917]">Chat support</h3>
+                <h3 className="text-sm font-bold text-[#1D1D1F]">Chat support</h3>
               </div>
-              <p className="text-xs text-[#78716C] leading-relaxed">
+              <p className="text-xs text-[#6E6E73] leading-relaxed">
                 The chat bubble at the bottom right of every page lets you open a ticket or track your existing requests instantly.
               </p>
             </div>
 
             {token && (
-              <div className="bg-white border border-[#E8E3DB] p-5">
+              <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
+                  <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                     <Ticket size={14} className="text-[#4ECDC4]" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#1C1917]">My tickets</h3>
+                  <h3 className="text-sm font-bold text-[#1D1D1F]">My tickets</h3>
                 </div>
                 <Link
                   to="/profile"
@@ -242,9 +240,9 @@ const Contact = () => {
               </div>
             )}
 
-            <div className="bg-white border border-[#E8E3DB] p-5">
-              <p className="text-xs font-semibold text-[#1C1917] mb-1.5">Response time</p>
-              <p className="text-xs text-[#78716C] leading-relaxed">
+            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+              <p className="text-xs font-semibold text-[#1D1D1F] mb-1.5">Response time</p>
+              <p className="text-xs text-[#6E6E73] leading-relaxed">
                 We typically respond within <strong>24–48 hours</strong> during business days.
               </p>
             </div>

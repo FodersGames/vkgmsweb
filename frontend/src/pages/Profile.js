@@ -12,9 +12,9 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   const [show, setShow] = useState(false);
   return (
     <div>
-      <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />
+        <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
         <input
           type={show ? 'text' : 'password'}
           value={value}
@@ -22,9 +22,9 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           autoComplete={autoComplete}
           placeholder={placeholder}
           required
-          className="w-full pl-9 pr-9 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]"
+          className="w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
         />
-        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A29E] hover:text-[#78716C] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
+        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
           {show ? <EyeOff size={13} /> : <Eye size={13} />}
         </button>
       </div>
@@ -34,9 +34,9 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
 
 const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComplete }) => (
   <div>
-    <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">{label}</label>
+    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
-      {Icon && <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E] pointer-events-none" />}
+      {Icon && <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />}
       <input
         type="text"
         value={value}
@@ -44,7 +44,7 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
         placeholder={placeholder}
         autoComplete={autoComplete}
         required
-        className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F9F7F4] border border-[#E8E3DB] text-[#1C1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A8A29E]`}
+        className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]`}
       />
     </div>
   </div>
@@ -71,7 +71,7 @@ const LoyaltyWidget = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="bg-white border border-[#E8E3DB] p-6">
+    <div className="rounded-xl bg-white border border-[#D2D2D7] p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Icon size={13} style={{ color: cfg.color }} />
@@ -79,11 +79,11 @@ const LoyaltyWidget = ({ loyalty }) => {
             {cfg.label} rank
           </h2>
         </div>
-        <span className="text-xs text-[#A8A29E] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
+        <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
       </div>
 
       {/* Track */}
-      <div className="relative h-px bg-[#E8E3DB] mb-2">
+      <div className="relative h-px bg-[#D2D2D7] mb-2">
         <div
           className="absolute top-0 left-0 h-full transition-all duration-700"
           style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
@@ -92,7 +92,7 @@ const LoyaltyWidget = ({ loyalty }) => {
           <div
             key={t}
             className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#E8E3DB' }}
+            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#D2D2D7' }}
           />
         ))}
       </div>
@@ -102,7 +102,7 @@ const LoyaltyWidget = ({ loyalty }) => {
           <span
             key={t}
             className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-            style={{ color: i <= tierIdx ? TIERS[t].color : '#C9C3BB' }}
+            style={{ color: i <= tierIdx ? TIERS[t].color : '#BFBFC4' }}
           >
             {TIERS[t].label}
           </span>
@@ -110,7 +110,7 @@ const LoyaltyWidget = ({ loyalty }) => {
       </div>
 
       {next_threshold_cents && next_tier ? (
-        <p className="text-[10px] text-[#A8A29E]">
+        <p className="text-[10px] text-[#A1A1A6]">
           ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
           <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
         </p>
@@ -119,7 +119,7 @@ const LoyaltyWidget = ({ loyalty }) => {
       )}
 
       {cfg.discount > 0 && (
-        <p className="text-[10px] mt-1 text-[#78716C]">
+        <p className="text-[10px] mt-1 text-[#6E6E73]">
           {cfg.discount}% discount applied on all in-app purchases.
         </p>
       )}
@@ -128,12 +128,12 @@ const LoyaltyWidget = ({ loyalty }) => {
 };
 
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-white border border-[#E8E3DB] p-6 ${className}`}>{children}</div>
+  <div className={`bg-white border border-[#D2D2D7] p-6 ${className}`}>{children}</div>
 );
 
 const CardTitle = ({ icon: Icon, children, action }) => (
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-xs font-bold text-[#1C1917] uppercase tracking-[0.12em] flex items-center gap-2">
+    <h2 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-[0.12em] flex items-center gap-2">
       <Icon size={13} className="text-[#4ECDC4]" />
       {children}
     </h2>
@@ -302,13 +302,13 @@ const Profile = () => {
   const currentTier = TIERS[loyalty?.tier] || TIERS.bronze;
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen flex flex-col">
+    <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
       <PublicNav />
 
       <div className="pt-16 flex-1">
 
         {/* Hero banner */}
-        <div className="bg-white border-b border-[#E8E3DB] px-6 md:px-10 lg:px-16 pt-16 pb-10">
+        <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
           <div className="max-w-5xl mx-auto">
             <p className="text-xs font-semibold text-[#4ECDC4] tracking-[0.16em] uppercase mb-4">My Account</p>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
@@ -320,8 +320,7 @@ const Profile = () => {
                     background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
                     border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
                     color: loyalty ? currentTier.color : '#4ECDC4',
-                    fontFamily: "'Bebas Neue', sans-serif",
-                  }}
+                    }}
                 >
                   {avatarPreview || user.avatar_url ? (
                     <img
@@ -332,7 +331,7 @@ const Profile = () => {
                   ) : initials}
                 </div>
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-[#1C1917]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-[#1D1D1F]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   {avatarUploading
                     ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     : <Camera size={14} className="text-white" />
@@ -359,8 +358,7 @@ const Profile = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <h1
-                    className="text-4xl sm:text-5xl font-black text-[#1C1917] leading-tight"
-                    style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                    className="text-4xl sm:text-5xl font-black text-[#1D1D1F] leading-tight"
                   >
                     {displayName}
                   </h1>
@@ -370,7 +368,7 @@ const Profile = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-[#78716C] text-sm">{user.email}</p>
+                <p className="text-[#6E6E73] text-sm">{user.email}</p>
                 {loyalty && (
                   <p className="text-xs mt-1" style={{ color: currentTier.color }}>
                     {currentTier.label} grade{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
@@ -383,7 +381,7 @@ const Profile = () => {
                 {isAdmin && isAdmin() && (
                   <Link
                     to="/dashboard"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-2 transition-all"
+                    className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
                   >
                     <LayoutDashboard size={12} />
                     Dashboard
@@ -391,7 +389,7 @@ const Profile = () => {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-red-500 border border-[#E8E3DB] hover:border-red-200 px-3 py-2 transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-red-500 border border-[#D2D2D7] hover:border-red-200 px-3 py-2 transition-all"
                 >
                   <LogOut size={12} />
                   Sign Out
@@ -426,7 +424,7 @@ const Profile = () => {
                     !editingProfile ? (
                       <button
                         onClick={() => setEditingProfile(true)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-2.5 py-1.5 transition-all"
+                        className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-2.5 py-1.5 transition-all"
                       >
                         <Edit2 size={11} />Edit
                       </button>
@@ -444,8 +442,8 @@ const Profile = () => {
                     </div>
                     <TextField label="Username" value={profileForm.username} onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))} placeholder="jane_doe" autoComplete="username" />
                     <div>
-                      <p className="text-xs font-semibold text-[#A8A29E] uppercase tracking-wider mb-1">Email</p>
-                      <p className="text-sm text-[#78716C]">{user.email} <span className="text-[#A8A29E] text-xs">(cannot be changed)</span></p>
+                      <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-wider mb-1">Email</p>
+                      <p className="text-sm text-[#6E6E73]">{user.email} <span className="text-[#A1A1A6] text-xs">(cannot be changed)</span></p>
                     </div>
                     {profileError && (
                       <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
@@ -453,10 +451,10 @@ const Profile = () => {
                       </div>
                     )}
                     <div className="flex gap-2 pt-1">
-                      <button type="submit" disabled={profileLoading} className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
+                      <button type="submit" disabled={profileLoading} className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
                         <Save size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
                       </button>
-                      <button type="button" onClick={handleProfileCancel} className="inline-flex items-center gap-2 text-sm font-medium text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-4 py-2 transition-all">
+                      <button type="button" onClick={handleProfileCancel} className="inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-4 py-2 transition-all">
                         <X size={13} />Cancel
                       </button>
                     </div>
@@ -476,8 +474,8 @@ const Profile = () => {
                         { label: 'Email',      value: user.email           },
                       ].map(({ label, value }) => (
                         <div key={label}>
-                          <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-0.5">{label}</p>
-                          <p className="text-sm text-[#1C1917] break-all">{value}</p>
+                          <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-wider mb-0.5">{label}</p>
+                          <p className="text-sm text-[#1D1D1F] break-all">{value}</p>
                         </div>
                       ))}
                     </div>
@@ -487,7 +485,7 @@ const Profile = () => {
 
               {/* Loyalty */}
               {loyaltyLoading
-                ? <div className="bg-white border border-[#E8E3DB] p-6 h-[200px] animate-pulse" />
+                ? <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 h-[200px] animate-pulse" />
                 : <LoyaltyWidget loyalty={loyalty} />
               }
             </div>
@@ -498,16 +496,16 @@ const Profile = () => {
               {/* Vakar Play access */}
               <Link
                 to="/play"
-                className="flex items-center gap-4 bg-white border border-[#E8E3DB] hover:border-[#A7F3D0] p-5 transition-colors group"
+                className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#A7F3D0] p-5 transition-colors group"
               >
-                <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ background: '#D1FAE5' }}>
+                <div className="rounded-lg w-10 h-10 flex items-center justify-center shrink-0" style={{ background: '#D1FAE5' }}>
                   <Gamepad2 size={17} style={{ color: '#059669' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#1C1917]">Vakar Play</p>
-                  <p className="text-xs text-[#78716C]">Your game library and last sessions</p>
+                  <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
+                  <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
                 </div>
-                <ChevronRight size={15} className="text-[#C9C3BB] group-hover:text-[#059669] transition-colors shrink-0" />
+                <ChevronRight size={15} className="text-[#BFBFC4] group-hover:text-[#059669] transition-colors shrink-0" />
               </Link>
 
               {/* Notifications */}
@@ -515,7 +513,7 @@ const Profile = () => {
                 <CardTitle
                   icon={Bell}
                   action={notifUnread > 0 ? (
-                    <button onClick={markAllRead} className="text-xs text-[#78716C] hover:text-[#1C1917] transition-colors">
+                    <button onClick={markAllRead} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
                       Mark all read
                     </button>
                   ) : null}
@@ -530,10 +528,10 @@ const Profile = () => {
 
                 {notifLoading ? (
                   <div className="space-y-2">
-                    {[1,2,3].map(i => <div key={i} className="h-12 bg-[#F9F7F4] animate-pulse" />)}
+                    {[1,2,3].map(i => <div key={i} className="h-12 bg-[#F5F5F7] animate-pulse" />)}
                   </div>
                 ) : notifications.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-[#A8A29E]">No notifications yet.</div>
+                  <div className="py-8 text-center text-sm text-[#A1A1A6]">No notifications yet.</div>
                 ) : (
                   <div className="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
                     {notifications.map(n => (
@@ -541,17 +539,17 @@ const Profile = () => {
                         key={n.id}
                         onClick={() => !n.read && markRead(n.id)}
                         className={`p-3 border transition-all cursor-pointer ${
-                          n.read ? 'border-[#F0EDE8] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
+                          n.read ? 'border-[#EDEDEF] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs leading-snug ${n.read ? 'text-[#78716C]' : 'text-[#1C1917] font-semibold'}`}>{n.title}</p>
-                            {n.message && <p className="text-[10px] text-[#A8A29E] mt-0.5 leading-relaxed">{n.message}</p>}
+                            <p className={`text-xs leading-snug ${n.read ? 'text-[#6E6E73]' : 'text-[#1D1D1F] font-semibold'}`}>{n.title}</p>
+                            {n.message && <p className="text-[10px] text-[#A1A1A6] mt-0.5 leading-relaxed">{n.message}</p>}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />}
-                            <time className="text-[9px] text-[#A8A29E] whitespace-nowrap">
+                            <time className="text-[9px] text-[#A1A1A6] whitespace-nowrap">
                               {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </time>
                           </div>
@@ -579,7 +577,7 @@ const Profile = () => {
                       <CheckCircle size={12} className="shrink-0" />Password updated successfully.
                     </div>
                   )}
-                  <button type="submit" disabled={pwLoading} className="w-full bg-[#1C1917] hover:bg-[#2D2926] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
+                  <button type="submit" disabled={pwLoading} className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
                     {pwLoading ? 'Saving…' : 'Update Password'}
                   </button>
                 </form>

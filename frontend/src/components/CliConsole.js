@@ -96,7 +96,7 @@ export const CliConsole = () => {
     switch (type) {
       case 'input':  return 'text-[#4ECDC4]';
       case 'error':  return 'text-red-400';
-      case 'system': return 'text-[#78716C]';
+      case 'system': return 'text-[#6E6E73]';
       default:       return 'text-[#D6D3D1]';
     }
   };
@@ -106,35 +106,35 @@ export const CliConsole = () => {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
+        <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
           <Terminal size={20} className="text-[#4ECDC4]" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#1C1917]">CLI</h1>
-          <p className="text-xs text-[#A8A29E]">Super admin only — whitelisted commands, every action is confirmed and logged.</p>
+          <h1 className="text-lg font-bold text-[#1D1D1F]">CLI</h1>
+          <p className="text-xs text-[#A1A1A6]">Super admin only — whitelisted commands, every action is confirmed and logged.</p>
         </div>
       </div>
 
       {/* Warning banner */}
       <div className="flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
         <ShieldAlert size={15} className="text-[#F2994A] shrink-0 mt-0.5" />
-        <p className="text-xs text-[#78716C] leading-relaxed">
+        <p className="text-xs text-[#6E6E73] leading-relaxed">
           This console only runs a fixed set of predefined commands — there is no raw database access or code
           execution. Destructive commands (suspend, ban, revoke, loyalty adjust…) always show a preview first
-          and require you to type <span className="font-semibold text-[#1C1917]">y</span> to confirm.
+          and require you to type <span className="font-semibold text-[#1D1D1F]">y</span> to confirm.
         </p>
       </div>
 
       {/* Terminal */}
       <div
-        className="bg-[#12100E] border border-[#292524] overflow-hidden"
+        className="bg-[#12100E] border border-[#3A3A3C] overflow-hidden"
         onClick={() => inputRef.current?.focus()}
       >
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#292524] bg-[#1C1917]">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#3A3A3C] bg-[#1D1D1F]">
           <span className="w-2.5 h-2.5 rounded-full bg-[#EB5757]/70" />
           <span className="w-2.5 h-2.5 rounded-full bg-[#F2994A]/70" />
           <span className="w-2.5 h-2.5 rounded-full bg-[#4ECDC4]/70" />
-          <span className="ml-2 text-[11px] text-[#78716C] font-mono">super-admin-cli</span>
+          <span className="ml-2 text-[11px] text-[#6E6E73] font-mono">super-admin-cli</span>
         </div>
 
         <div
@@ -151,7 +151,7 @@ export const CliConsole = () => {
           )}
         </div>
 
-        <form onSubmit={submit} className="flex items-center gap-2 px-4 py-3 border-t border-[#292524]">
+        <form onSubmit={submit} className="flex items-center gap-2 px-4 py-3 border-t border-[#3A3A3C]">
           <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
             {pending ? 'confirm>' : 'vakargames-cli>'}
           </span>
@@ -166,7 +166,7 @@ export const CliConsole = () => {
             spellCheck={false}
             autoComplete="off"
             placeholder={pending ? 'y / n' : "type a command… ('help' for the list)"}
-            className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#57534E] focus:outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73] focus:outline-none disabled:opacity-50"
           />
         </form>
       </div>

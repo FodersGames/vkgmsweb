@@ -53,7 +53,7 @@ function GameCard({ game }) {
 
       {/* Name + last session */}
       <div className="p-4">
-        <h3 className="font-bold text-[#1C1917] text-sm mb-1.5 truncate">{game.name}</h3>
+        <h3 className="font-bold text-[#1D1D1F] text-sm mb-1.5 truncate">{game.name}</h3>
         <div className="flex items-center gap-1.5">
           <Clock size={11} style={{ color: MINT }} />
           <span className="text-xs text-[#6B7280]">Last session: {timeAgo(game.last_updated)}</span>
@@ -99,13 +99,12 @@ export default function VakarPlay() {
               Vakar Play
             </p>
             <h1
-              className="text-5xl sm:text-6xl font-black text-[#1C1917] leading-tight"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-6xl font-black text-[#1D1D1F] leading-tight"
             >
               MY GAMES
             </h1>
             <p className="text-[#6B7280] text-sm mt-2">
-              Welcome back, <strong className="text-[#1C1917]">{firstName}</strong>.
+              Welcome back, <strong className="text-[#1D1D1F]">{firstName}</strong>.
               {games.length > 0
                 ? ` ${games.length} game${games.length > 1 ? 's' : ''} in your library.`
                 : ' Start playing to build your library.'}
@@ -132,8 +131,8 @@ export default function VakarPlay() {
                 <Gamepad2 size={28} style={{ color: MINT_DARK }} />
               </div>
               <h2
-                className="text-3xl font-black text-[#1C1917] mb-3"
-                style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.06em' }}
+                className="text-3xl font-black text-[#1D1D1F] mb-3"
+                style={{ letterSpacing: '0.06em' }}
               >
                 NO GAMES YET
               </h2>

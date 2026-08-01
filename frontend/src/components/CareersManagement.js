@@ -155,8 +155,8 @@ function ToolIcon({ toolId, size = 18 }) {
   };
   return svgs[toolId] || (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      <rect width="100" height="100" rx="18" fill="#E8E3DB" />
-      <text x="50" y="68" textAnchor="middle" fontSize="44" fill="#78716C">?</text>
+      <rect width="100" height="100" rx="18" fill="#D2D2D7" />
+      <text x="50" y="68" textAnchor="middle" fontSize="44" fill="#6E6E73">?</text>
     </svg>
   );
 }
@@ -244,54 +244,54 @@ export default function CareersManagement() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-[#1C1917]" style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.08em' }}>
+            <h2 className="text-xl font-bold text-[#1D1D1F]" style={{ letterSpacing: '0.08em' }}>
               CAREERS
             </h2>
-            <p className="text-sm text-[#78716C] mt-0.5">{careers.length} position{careers.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-[#6E6E73] mt-0.5">{careers.length} position{careers.length !== 1 ? 's' : ''}</p>
           </div>
           <Button icon={Plus} onClick={openCreate}>New Position</Button>
         </div>
 
         {showForm && (
-          <div className="bg-white border border-[#E8E3DB] p-6 space-y-5">
+          <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-[#1C1917]">{editing ? 'Edit Position' : 'New Position'}</h3>
-              <button onClick={() => setShowForm(false)} className="text-[#78716C] hover:text-[#1C1917]">
+              <h3 className="font-semibold text-[#1D1D1F]">{editing ? 'Edit Position' : 'New Position'}</h3>
+              <button onClick={() => setShowForm(false)} className="text-[#6E6E73] hover:text-[#1D1D1F]">
                 <X size={18} />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Job Title *</label>
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Job Title *</label>
                 <input
-                  className="w-full border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4]"
+                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                   value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. TurboWarp Developer"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Department</label>
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Department</label>
                 <select
-                  className="w-full border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4] bg-white"
+                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] bg-white"
                   value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
                 >
                   {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Contract</label>
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Contract</label>
                 <select
-                  className="w-full border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4] bg-white"
+                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] bg-white"
                   value={form.contract_type} onChange={e => setForm(f => ({ ...f, contract_type: e.target.value }))}
                 >
                   {CONTRACT_TYPES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Location</label>
+                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Location</label>
                 <input
-                  className="w-full border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4]"
+                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                   value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="Remote, Paris, etc."
                 />
@@ -299,20 +299,20 @@ export default function CareersManagement() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Description</label>
+              <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Description</label>
               <textarea
                 rows={4}
-                className="w-full border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4] resize-none"
+                className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] resize-none"
                 value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Describe the role, missions, context..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-1.5">Requirements</label>
+              <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Requirements</label>
               <div className="flex gap-2 mb-2">
                 <input
-                  className="flex-1 border border-[#E8E3DB] px-3 py-2 text-sm text-[#1C1917] focus:outline-none focus:border-[#4ECDC4]"
+                  className="flex-1 border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                   value={newReq} onChange={e => setNewReq(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addReq())}
                   placeholder="Add a requirement and press Enter"
@@ -322,9 +322,9 @@ export default function CareersManagement() {
               {form.requirements.length > 0 && (
                 <ul className="space-y-1">
                   {form.requirements.map((r, i) => (
-                    <li key={i} className="flex items-center justify-between bg-[#F9F7F4] border border-[#E8E3DB] px-3 py-1.5 text-sm text-[#1C1917]">
+                    <li key={i} className="flex items-center justify-between bg-[#F5F5F7] border border-[#D2D2D7] px-3 py-1.5 text-sm text-[#1D1D1F]">
                       <span>{r}</span>
-                      <button onClick={() => removeReq(i)} className="text-[#A8A29E] hover:text-red-500 ml-2">
+                      <button onClick={() => removeReq(i)} className="text-[#A1A1A6] hover:text-red-500 ml-2">
                         <X size={13} />
                       </button>
                     </li>
@@ -334,7 +334,7 @@ export default function CareersManagement() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-2">Tools Required</label>
+              <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-2">Tools Required</label>
               <div className="flex flex-wrap gap-2">
                 {TOOL_OPTIONS.map(t => (
                   <button
@@ -342,8 +342,8 @@ export default function CareersManagement() {
                     onClick={() => toggleTool(t.id)}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-medium transition-all ${
                       form.tools.includes(t.id)
-                        ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1C1917]'
-                        : 'border-[#E8E3DB] text-[#78716C] hover:border-[#C9C3BB]'
+                        ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F]'
+                        : 'border-[#D2D2D7] text-[#6E6E73] hover:border-[#BFBFC4]'
                     }`}
                   >
                     <span className={form.tools.includes(t.id) ? '' : 'grayscale opacity-60'}>
@@ -358,12 +358,12 @@ export default function CareersManagement() {
             <div className="flex items-center gap-3 pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <div
-                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#4ECDC4]' : 'bg-[#E8E3DB]'}`}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7]'}`}
                   onClick={() => setForm(f => ({ ...f, is_open: !f.is_open }))}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${form.is_open ? 'left-5' : 'left-0.5'}`} />
                 </div>
-                <span className="text-sm text-[#78716C]">Position open</span>
+                <span className="text-sm text-[#6E6E73]">Position open</span>
               </label>
             </div>
 
@@ -378,22 +378,22 @@ export default function CareersManagement() {
 
         {loading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#E8E3DB] animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[#D2D2D7] animate-pulse" />)}
           </div>
         ) : careers.length === 0 ? (
-          <div className="text-center py-16 text-[#78716C]">
+          <div className="text-center py-16 text-[#6E6E73]">
             <p className="text-sm">No positions posted yet.</p>
           </div>
         ) : (
           <div className="space-y-3">
             {careers.map(c => (
-              <div key={c._id} className="bg-white border border-[#E8E3DB]">
+              <div key={c._id} className="rounded-xl bg-white border border-[#D2D2D7]">
                 <div className="flex items-center justify-between px-5 py-4 cursor-pointer" onClick={() => setExpandedId(expandedId === c._id ? null : c._id)}>
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${c.is_open ? 'bg-[#4ECDC4]' : 'bg-[#A8A29E]'}`} />
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${c.is_open ? 'bg-[#4ECDC4]' : 'bg-[#A1A1A6]'}`} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#1C1917] text-sm truncate">{c.title}</p>
-                      <p className="text-xs text-[#78716C]">{c.department} · {c.contract_type} · {c.location}</p>
+                      <p className="font-semibold text-[#1D1D1F] text-sm truncate">{c.title}</p>
+                      <p className="text-xs text-[#6E6E73]">{c.department} · {c.contract_type} · {c.location}</p>
                     </div>
                     {c.tools?.length > 0 && (
                       <div className="hidden sm:flex items-center gap-1 ml-2">
@@ -402,45 +402,45 @@ export default function CareersManagement() {
                             <ToolIcon toolId={t} size={16} />
                           </span>
                         ))}
-                        {c.tools.length > 5 && <span className="text-xs text-[#A8A29E]">+{c.tools.length - 5}</span>}
+                        {c.tools.length > 5 && <span className="text-xs text-[#A1A1A6]">+{c.tools.length - 5}</span>}
                       </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
                     <button
                       onClick={e => { e.stopPropagation(); openEdit(c); }}
-                      className="p-1.5 text-[#78716C] hover:text-[#1C1917] hover:bg-[#F9F7F4]"
+                      className="p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]"
                     >
                       <Edit2 size={14} />
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); setConfirm(c._id); }}
-                      className="p-1.5 text-[#78716C] hover:text-red-500 hover:bg-red-50"
+                      className="p-1.5 text-[#6E6E73] hover:text-red-500 hover:bg-red-50"
                     >
                       <Trash2 size={14} />
                     </button>
-                    {expandedId === c._id ? <ChevronUp size={14} className="text-[#A8A29E]" /> : <ChevronDown size={14} className="text-[#A8A29E]" />}
+                    {expandedId === c._id ? <ChevronUp size={14} className="text-[#A1A1A6]" /> : <ChevronDown size={14} className="text-[#A1A1A6]" />}
                   </div>
                 </div>
                 {expandedId === c._id && (
-                  <div className="px-5 pb-5 border-t border-[#E8E3DB] pt-4 space-y-3">
-                    {c.description && <p className="text-sm text-[#44403C] leading-relaxed whitespace-pre-wrap">{c.description}</p>}
+                  <div className="px-5 pb-5 border-t border-[#D2D2D7] pt-4 space-y-3">
+                    {c.description && <p className="text-sm text-[#3A3A3C] leading-relaxed whitespace-pre-wrap">{c.description}</p>}
                     {c.requirements?.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-2">Requirements</p>
+                        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-2">Requirements</p>
                         <ul className="space-y-1">
-                          {c.requirements.map((r, i) => <li key={i} className="text-sm text-[#44403C] flex gap-2"><span className="text-[#4ECDC4]">—</span>{r}</li>)}
+                          {c.requirements.map((r, i) => <li key={i} className="text-sm text-[#3A3A3C] flex gap-2"><span className="text-[#4ECDC4]">—</span>{r}</li>)}
                         </ul>
                       </div>
                     )}
                     {c.tools?.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-[#78716C] uppercase tracking-wider mb-2">Tools</p>
+                        <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-2">Tools</p>
                         <div className="flex flex-wrap gap-2">
                           {c.tools.map(t => {
                             const opt = TOOL_OPTIONS.find(o => o.id === t);
                             return (
-                              <span key={t} className="flex items-center gap-1.5 px-2 py-1 bg-[#F9F7F4] border border-[#E8E3DB] text-xs text-[#78716C]">
+                              <span key={t} className="flex items-center gap-1.5 px-2 py-1 bg-[#F5F5F7] border border-[#D2D2D7] text-xs text-[#6E6E73]">
                                 <span className="grayscale opacity-60"><ToolIcon toolId={t} size={13} /></span>
                                 {opt?.label || t}
                               </span>

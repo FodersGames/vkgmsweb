@@ -94,23 +94,22 @@ const GamesPage = () => {
   };
 
   return (
-    <div className="bg-[#F9F7F4] min-h-screen">
+    <div className="bg-[#F5F5F7] min-h-screen">
       <PublicNav />
 
       <div className="pt-16">
         {/* Page header */}
-        <div className="bg-white border-b border-[#E8E3DB] py-16 px-6">
+        <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <div className="max-w-7xl mx-auto">
-            <p className="text-xs font-semibold text-[#A8A29E] tracking-[0.14em] uppercase mb-3">
+            <p className="text-xs font-semibold text-[#A1A1A6] tracking-[0.14em] uppercase mb-3">
               Vakar Games
             </p>
             <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1C1917] leading-tight"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+              className="text-5xl sm:text-7xl md:text-8xl font-black text-[#1D1D1F] leading-tight"
             >
               OUR GAMES
             </h1>
-            <p className="text-[#78716C] mt-3 max-w-md">
+            <p className="text-[#6E6E73] mt-3 max-w-md">
               Every title we release. Each one built with care.
             </p>
           </div>
@@ -118,16 +117,15 @@ const GamesPage = () => {
 
         <div className="max-w-7xl mx-auto px-6 py-16">
           {loading ? (
-            <div className="text-center py-20 text-[#A8A29E]">Loading…</div>
+            <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : games.length === 0 ? (
             <div className="text-center py-20">
               <h2
-                className="text-4xl font-black text-[#A8A29E] mb-3"
-                style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                className="text-4xl font-black text-[#A1A1A6] mb-3"
               >
                 IN DEVELOPMENT
               </h2>
-              <p className="text-[#78716C]">New games are in progress. Check the blog for updates.</p>
+              <p className="text-[#6E6E73]">New games are in progress. Check the blog for updates.</p>
             </div>
           ) : (
             <div className="space-y-20">
@@ -152,8 +150,8 @@ const GamesPage = () => {
                         className="w-full shadow-md"
                       />
                     ) : (
-                      <div className="w-full aspect-video bg-white border border-[#E8E3DB] flex items-center justify-center">
-                        <span className="text-[#A8A29E] text-2xl font-black" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                      <div className="w-full aspect-video rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center">
+                        <span className="text-[#A1A1A6] text-2xl font-black">
                           {game.name}
                         </span>
                       </div>
@@ -164,20 +162,19 @@ const GamesPage = () => {
                   <div className="lg:w-1/2 space-y-5">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h2
-                        className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1C1917]"
-                        style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+                        className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1D1D1F]"
                       >
                         {game.name}
                       </h2>
                       {game.status === 'coming_soon' && (
-                        <span className="px-2.5 py-1 text-xs font-bold tracking-wider uppercase border border-[#A8A29E] text-[#78716C]">
+                        <span className="px-2.5 py-1 text-xs font-bold tracking-wider uppercase border border-[#A1A1A6] text-[#6E6E73]">
                           COMING SOON
                         </span>
                       )}
                     </div>
 
                     {game.description && (
-                      <p className="text-[#78716C] leading-relaxed">{game.description}</p>
+                      <p className="text-[#6E6E73] leading-relaxed">{game.description}</p>
                     )}
 
                     {game.screenshots?.length > 1 && (
@@ -187,7 +184,7 @@ const GamesPage = () => {
                             key={i}
                             src={s.startsWith('/') ? `${API_URL}${s}` : s}
                             alt=""
-                            className="h-16 sm:h-20 object-cover flex-shrink-0 border border-[#E8E3DB]"
+                            className="h-16 sm:h-20 object-cover flex-shrink-0 border border-[#D2D2D7]"
                           />
                         ))}
                       </div>
@@ -203,12 +200,12 @@ const GamesPage = () => {
                               href={p.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 border border-[#E8E3DB] text-[#78716C] text-sm font-medium hover:border-[#4ECDC4]/50 hover:text-[#1C1917] transition-all"
+                              className="inline-flex items-center gap-2 px-4 py-2 border border-[#D2D2D7] text-[#6E6E73] text-sm font-medium hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F] transition-all"
                               data-testid={`platform-${p.name}`}
                             >
-                              <span className="text-[#A8A29E]">{pl.svg}</span>
+                              <span className="text-[#A1A1A6]">{pl.svg}</span>
                               {pl.label}
-                              <ExternalLink size={11} className="text-[#A8A29E]" />
+                              <ExternalLink size={11} className="text-[#A1A1A6]" />
                             </a>
                           ) : null;
                         })}
@@ -227,12 +224,12 @@ const GamesPage = () => {
                             Owned
                           </span>
                         ) : buyingSlug === game.slug ? (
-                          <div className="border border-[#E8E3DB] bg-white p-4 space-y-3 max-w-xs">
+                          <div className="border border-[#D2D2D7] bg-white p-4 space-y-3 max-w-xs">
                             <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-[#1C1917]">
-                                Promo code <span className="text-[#A8A29E] font-normal">(optional)</span>
+                              <p className="text-xs font-semibold text-[#1D1D1F]">
+                                Promo code <span className="text-[#A1A1A6] font-normal">(optional)</span>
                               </p>
-                              <button onClick={() => setBuyingSlug(null)} className="text-[#A8A29E] hover:text-[#1C1917]">
+                              <button onClick={() => setBuyingSlug(null)} className="text-[#A1A1A6] hover:text-[#1D1D1F]">
                                 <X size={13} />
                               </button>
                             </div>
@@ -242,12 +239,12 @@ const GamesPage = () => {
                                 value={couponCode}
                                 onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                                 placeholder="VG-XXXXXXXX"
-                                className="flex-1 border border-[#E8E3DB] text-[#1C1917] text-xs px-2.5 py-2 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:font-sans placeholder:tracking-normal placeholder:text-[#A8A29E]"
+                                className="flex-1 border border-[#D2D2D7] text-[#1D1D1F] text-xs px-2.5 py-2 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:font-sans placeholder:tracking-normal placeholder:text-[#A1A1A6]"
                               />
                               <button
                                 onClick={() => checkGameCoupon(game.slug)}
                                 disabled={!couponCode.trim() || couponChecking}
-                                className="text-xs font-semibold border border-[#E8E3DB] hover:border-[#4ECDC4] text-[#78716C] hover:text-[#4ECDC4] px-2.5 py-2 transition-colors disabled:opacity-40"
+                                className="text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-2.5 py-2 transition-colors disabled:opacity-40"
                               >
                                 {couponChecking ? '…' : 'Apply'}
                               </button>

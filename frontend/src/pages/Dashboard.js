@@ -116,18 +116,18 @@ const NavItem = ({ item, activeTab, selectedProject, onSelect }) => {
       onClick={() => { if (!disabled) onSelect(item.id); }}
       disabled={disabled}
       data-testid={`sidebar-nav-${item.id}`}
-      className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors duration-150 border-l-2 ${
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors duration-150 ${
         isActive
-          ? 'border-[#4ECDC4] bg-white/[0.06] text-white font-medium'
+          ? 'bg-[#4ECDC4]/10 text-[#4ECDC4] font-medium'
           : disabled
-          ? 'border-transparent text-[#44403C] cursor-not-allowed'
-          : 'border-transparent text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
+          ? 'text-[#BFBFC4] cursor-not-allowed'
+          : 'text-[#6E6E73] hover:bg-black/[0.045] hover:text-[#1D1D1F]'
       }`}
     >
       <Icon
         size={15}
         className={`shrink-0 transition-colors ${
-          isActive ? 'text-[#4ECDC4]' : disabled ? 'text-[#44403C]' : 'text-[#78716C]'
+          isActive ? 'text-[#4ECDC4]' : disabled ? 'text-[#BFBFC4]' : 'text-[#A1A1A6]'
         }`}
       />
       <span className="text-[13px] leading-none">{item.label}</span>
@@ -143,21 +143,20 @@ const SidebarContent = ({
   showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
   displayName, initials, logout,
 }) => (
-  <div className="flex flex-col h-full bg-[#1C1917]">
+  <div className="flex flex-col h-full bg-[#F5F5F7] border-r border-[#D2D2D7]">
 
     {/* Logo */}
-    <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#292524]">
+    <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-[#D2D2D7]">
       <div className="min-w-0 flex-1">
         <p
-          className="text-[15px] font-black tracking-[0.16em] text-white leading-tight"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          className="text-[15px] font-black tracking-[0.16em] text-[#1D1D1F] leading-tight"
         >
           VAKAR GAMES
         </p>
-        <p className="text-[10px] text-[#78716C] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
+        <p className="text-[10px] text-[#A1A1A6] tracking-[0.14em] uppercase leading-tight mt-0.5">Admin</p>
       </div>
       {onClose && (
-        <button onClick={onClose} className="text-[#78716C] hover:text-white transition-colors ml-1">
+        <button onClick={onClose} className="text-[#6E6E73] hover:text-[#1D1D1F] transition-colors ml-1">
           <X size={18} />
         </button>
       )}
@@ -171,7 +170,7 @@ const SidebarContent = ({
 
         return (
           <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#57534E] px-5 mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1A6] px-5 mb-2">
               {group.label}
             </p>
 
@@ -181,20 +180,20 @@ const SidebarContent = ({
                 <button
                   onClick={() => setShowProject(v => !v)}
                   data-testid="project-selector"
-                  className="w-full flex items-center gap-2 px-3 py-2 bg-[#292524] hover:bg-[#33302C] text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] text-left transition-colors"
                 >
                   <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                  <span className="flex-1 text-[12px] font-medium text-white truncate">
+                  <span className="flex-1 text-[12px] font-medium text-[#1D1D1F] truncate">
                     {selectedProject?.name || 'Select project…'}
                   </span>
                   <ChevronDown
                     size={12}
-                    className={`text-[#78716C] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
+                    className={`text-[#6E6E73] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {showProject && (
                   <div
-                    className="absolute z-50 left-0 right-0 mt-1 bg-[#292524] border border-[#33302C] shadow-lg overflow-hidden"
+                    className="absolute z-50 left-0 right-0 mt-1 rounded-lg bg-white border border-[#D2D2D7] shadow-lg overflow-hidden"
                     data-testid="project-dropdown"
                   >
                     {projects.map(p => (
@@ -204,8 +203,8 @@ const SidebarContent = ({
                         data-testid={`project-option-${p.slug}`}
                         className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
                           selectedProject?.slug === p.slug
-                            ? 'bg-white/[0.06] text-white font-medium'
-                            : 'text-[#A8A29E] hover:bg-white/[0.04] hover:text-white'
+                            ? 'bg-[#4ECDC4]/10 text-[#1D1D1F] font-medium'
+                            : 'text-[#6E6E73] hover:bg-[#F5F5F7] hover:text-[#1D1D1F]'
                         }`}
                       >
                         <span className="flex-1 truncate">{p.name}</span>
@@ -228,14 +227,14 @@ const SidebarContent = ({
     </nav>
 
     {/* User card */}
-    <div className="shrink-0 border-t border-[#292524] p-3">
+    <div className="shrink-0 border-t border-[#D2D2D7] p-3">
       <div className="flex items-center gap-3 px-2 py-2">
-        <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold text-white truncate leading-tight">{displayName}</p>
-          <p className="text-[11px] text-[#78716C] leading-tight">
+          <p className="text-[12px] font-semibold text-[#1D1D1F] truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-[#A1A1A6] leading-tight">
             {user?.is_super_admin ? 'Super Admin' : 'Admin'}
           </p>
         </div>
@@ -243,7 +242,7 @@ const SidebarContent = ({
           onClick={logout}
           title="Sign out"
           data-testid="logout-button"
-          className="p-1.5 text-[#78716C] hover:text-red-400 transition-colors shrink-0"
+          className="p-1.5 text-[#A1A1A6] hover:text-red-500 transition-colors shrink-0"
         >
           <LogOut size={15} />
         </button>
@@ -296,7 +295,7 @@ const DashboardContent = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#F9F7F4] overflow-hidden">
+    <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex shrink-0 w-64 h-full">
@@ -320,10 +319,10 @@ const DashboardContent = () => {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Header */}
-        <header className="h-16 shrink-0 bg-white border-b border-[#E8E3DB] flex items-center px-5 gap-4 z-20">
+        <header className="h-16 shrink-0 bg-white border-b border-[#D2D2D7] flex items-center px-5 gap-4 z-20">
           {/* Mobile burger */}
           <button
-            className="lg:hidden p-2 -ml-1 text-[#78716C] hover:text-[#1C1917] transition-colors"
+            className="lg:hidden p-2 -ml-1 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
             onClick={() => setMobileOpen(true)}
           >
             <Menu size={18} />
@@ -331,21 +330,20 @@ const DashboardContent = () => {
 
           {/* Mobile brand */}
           <span
-            className="lg:hidden text-[14px] font-black tracking-[0.14em] text-[#1C1917]"
-            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+            className="lg:hidden text-[14px] font-black tracking-[0.14em] text-[#1D1D1F]"
           >
             VAKAR GAMES
           </span>
 
           {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2">
-            <span className="text-sm text-[#A8A29E]">
+            <span className="text-sm text-[#A1A1A6]">
               {currentGroup?.label || 'Dashboard'}
             </span>
             {currentItem && currentGroup && (
               <>
-                <ChevronRight size={13} className="text-[#C9C3BB]" />
-                <span className="text-sm font-semibold text-[#1C1917]">{currentItem.label}</span>
+                <ChevronRight size={13} className="text-[#BFBFC4]" />
+                <span className="text-sm font-semibold text-[#1D1D1F]">{currentItem.label}</span>
               </>
             )}
           </div>
@@ -356,16 +354,16 @@ const DashboardContent = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[#78716C] hover:text-[#1C1917] border border-[#E8E3DB] hover:border-[#C9C3BB] px-3 py-2 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
             >
               <Home size={12} />
               View site
             </Link>
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
                 {initials}
               </div>
-              <span className="hidden md:block text-[13px] font-semibold text-[#1C1917]">{displayName}</span>
+              <span className="hidden md:block text-[13px] font-semibold text-[#1D1D1F]">{displayName}</span>
             </div>
           </div>
         </header>
@@ -382,20 +380,20 @@ const DashboardContent = () => {
 
             {needsProject && !selectedProject && (
               <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
-                <div className="w-14 h-14 bg-white border border-[#E8E3DB] flex items-center justify-center mb-5">
-                  <Gamepad2 size={22} className="text-[#C9C3BB]" />
+                <div className="w-14 h-14 rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center mb-5">
+                  <Gamepad2 size={22} className="text-[#BFBFC4]" />
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A8A29E] mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#A1A1A6] mb-2">
                   No project selected
                 </p>
-                <h3 className="text-lg font-bold text-[#1C1917] mb-2">Select a Project</h3>
-                <p className="text-sm text-[#78716C] mb-6 leading-relaxed">
+                <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">Select a Project</h3>
+                <p className="text-sm text-[#6E6E73] mb-6 leading-relaxed">
                   Choose a project from the sidebar to access its data.
                 </p>
                 <button
                   onClick={() => setActiveTab('projects')}
                   data-testid="go-to-projects-button"
-                  className="inline-flex items-center gap-2 bg-[#1C1917] hover:bg-[#2D2926] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
                 >
                   View Projects <ArrowRight size={14} />
                 </button>

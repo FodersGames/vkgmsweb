@@ -23,12 +23,12 @@ import { CookieBanner } from './components/CookieBanner';
 import './App.css';
 
 const NotFound = () => (
-  <div className="min-h-screen bg-[#F9F7F4] flex items-center justify-center p-6 text-center">
+  <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-center">
     <div>
-      <p className="text-8xl font-black text-[#1C1917] mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>404</p>
-      <h1 className="text-xl font-bold text-[#1C1917] mb-2">Page not found</h1>
-      <p className="text-sm text-[#78716C] mb-8">This page doesn't exist or has been moved.</p>
-      <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1C1917] hover:bg-[#2D2926] text-white text-sm font-semibold transition-colors">
+      <p className="text-8xl font-black text-[#1D1D1F] mb-2">404</p>
+      <h1 className="text-xl font-bold text-[#1D1D1F] mb-2">Page not found</h1>
+      <p className="text-sm text-[#6E6E73] mb-8">This page doesn't exist or has been moved.</p>
+      <a href="/" className="rounded-full inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold transition-colors">
         Back to homepage
       </a>
     </div>
