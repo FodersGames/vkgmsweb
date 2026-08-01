@@ -18,6 +18,7 @@ const S = {
 };
 
 export const Button = ({
+  as,
   variant = 'primary',
   size = 'md',
   loading = false,
@@ -26,12 +27,17 @@ export const Button = ({
   children,
   className = '',
   disabled,
+  type,
   ...props
 }) => {
   const iconSize = size === 'sm' ? 12 : 14;
+  const Tag = as || 'button';
+  // Default to type="button" so a Button never accidentally submits a form
+  // it happens to sit inside unless a caller explicitly opts in with type="submit".
+  const tagProps = as ? {} : { type: type || 'button', disabled: disabled || loading };
   return (
-    <button
-      disabled={disabled || loading}
+    <Tag
+      {...tagProps}
       className={`inline-flex items-center justify-center font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${pill ? 'rounded-full' : 'rounded-lg'} ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
       {...props}
     >
@@ -39,6 +45,6 @@ export const Button = ({
         ? <Loader2 size={iconSize} className="animate-spin shrink-0" />
         : Icon && <Icon size={iconSize} className="shrink-0" />}
       {children}
-    </button>
+    </Tag>
   );
 };
