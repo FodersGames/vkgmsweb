@@ -171,7 +171,7 @@ export const SupportWidget = ({ user }) => {
                   <>
                     <button
                       onClick={() => { setView('new'); setSuccess(''); setError(''); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
+                      className="rounded-xl w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
                       <Send size={16} className="text-[#4ECDC4] flex-shrink-0" />
                       <div>
@@ -181,7 +181,7 @@ export const SupportWidget = ({ user }) => {
                     </button>
                     <button
                       onClick={() => setView('mytickets')}
-                      className="w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
+                      className="rounded-xl w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
                       <ExternalLink size={16} className="text-[#6E6E73] flex-shrink-0" />
                       <div>
@@ -191,7 +191,7 @@ export const SupportWidget = ({ user }) => {
                     </button>
                   </>
                 ) : (
-                  <div className="px-4 py-4 border border-[#D2D2D7] bg-[#F5F5F7] text-center space-y-2">
+                  <div className="rounded-xl px-4 py-4 border border-[#D2D2D7] bg-[#F5F5F7] text-center space-y-2">
                     <p className="text-sm font-semibold text-[#1D1D1F]">Sign in required</p>
                     <p className="text-xs text-[#A1A1A6]">You need an account to open a support ticket.</p>
                     <a href="/login" className="inline-block mt-1 text-xs font-bold text-[#4ECDC4] hover:underline">Sign in or create account →</a>
@@ -225,7 +225,7 @@ export const SupportWidget = ({ user }) => {
                         required
                         value={form.email}
                         onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                        className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                         placeholder="your@email.com"
                       />
                     </div>
@@ -246,7 +246,7 @@ export const SupportWidget = ({ user }) => {
                         maxLength={200}
                         value={form.subject}
                         onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                        className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                         placeholder="Brief description"
                       />
                     </div>
@@ -258,7 +258,7 @@ export const SupportWidget = ({ user }) => {
                         rows={4}
                         value={form.message}
                         onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
+                        className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
                         placeholder="Describe your issue in detail…"
                       />
                     </div>
@@ -315,7 +315,7 @@ export const SupportWidget = ({ user }) => {
                 <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ maxHeight: '280px' }}>
                   {(activeTicket.messages || []).map((msg, i) => (
                     <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] px-3 py-2 text-xs leading-relaxed ${msg.sender === 'user' ? 'bg-[#1D1D1F] text-white' : 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${msg.sender === 'user' ? 'bg-[#1D1D1F] text-white' : 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]'}`}>
                         <p className={`text-[10px] font-semibold mb-0.5 ${msg.sender === 'user' ? 'text-white/60' : 'text-[#4ECDC4]'}`}>
                           {msg.sender === 'support' ? '⚡ Support' : msg.author_name}
                         </p>
@@ -330,7 +330,7 @@ export const SupportWidget = ({ user }) => {
                       type="text"
                       value={reply}
                       onChange={e => setReply(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                      className="rounded-lg flex-1 px-3 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       placeholder="Reply…"
                     />
                     <button

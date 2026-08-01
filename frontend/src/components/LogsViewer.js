@@ -134,7 +134,7 @@ export const LogsViewer = () => {
         <button
           onClick={fetchLogs}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+          className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
@@ -148,7 +148,7 @@ export const LogsViewer = () => {
           placeholder="Search log messages..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="w-full pl-9 pr-9 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
+          className="rounded-lg w-full pl-9 pr-9 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
         />
         {searchInput && (
           <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F]">
@@ -177,7 +177,7 @@ export const LogsViewer = () => {
       {logs.length === 0 && !loading ? (
         <EmptyState icon={FileText} title="No activity found" description="Try adjusting your filters, or wait for new activity on this project." />
       ) : (
-        <div className="divide-y divide-[#EDEDEF] dark:divide-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]" data-testid="logs-list">
+        <div className="rounded-xl divide-y divide-[#EDEDEF] dark:divide-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]" data-testid="logs-list">
           {logs.map((l, i) => {
             const { label, icon: Icon, color } = metaFor(l.type);
             return (
@@ -216,14 +216,14 @@ export const LogsViewer = () => {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
+              className="rounded-xl inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
             >
               <ChevronLeft size={13} /> Previous
             </button>
             <button
               onClick={() => setPage(p => Math.min(pages, p + 1))}
               disabled={page >= pages}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
+              className="rounded-xl inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] disabled:opacity-40 transition-colors"
             >
               Next <ChevronRight size={13} />
             </button>

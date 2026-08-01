@@ -300,8 +300,8 @@ export const UserManagement = () => {
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
-          <div key={group.label} className="border border-[#D2D2D7] overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 bg-[#F5F5F7] border-b border-[#D2D2D7]">
+          <div key={group.label} className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
               <Icon size={13} style={{ color: group.color }} />
               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: group.color }}>{group.label}</span>
               <div className="flex-1" />
@@ -314,7 +314,7 @@ export const UserManagement = () => {
                     group.permissions.forEach(p => { if (!selectedPerms.includes(p.id)) onToggle(p.id); });
                   }
                 }}
-                className="text-[10px] font-semibold text-[#A1A1A6] hover:text-[#1D1D1F] uppercase"
+                className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white uppercase"
               >
                 {allSelected ? 'Deselect all' : 'Select all'}
               </button>
@@ -356,8 +356,8 @@ export const UserManagement = () => {
                   <Users size={16} style={{ color: '#F2994A' }} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#1D1D1F]">User Management</h3>
-                  <p className="text-xs text-[#A1A1A6]">Manage accounts, permissions, and suspension</p>
+                  <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">User Management</h3>
+                  <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Manage accounts, permissions, and suspension</p>
                 </div>
               </div>
               <Button
@@ -371,13 +371,13 @@ export const UserManagement = () => {
 
             {/* Create user panel */}
             {showCreateUser && (
-              <div className="mt-4 p-4 bg-[#F5F5F7] border border-[#D2D2D7]">
-                <p className="text-xs font-bold text-[#1D1D1F] mb-3">Create user account</p>
+              <div className="rounded-xl mt-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                <p className="text-xs font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-3">Create user account</p>
                 {createResult?.success ? (
                   <div className="text-xs space-y-1">
                     <p className="font-semibold text-[#22C55E]">✓ User created — @{createResult.username}</p>
                     {createResult.generated_password && (
-                      <p className="text-[#6E6E73]">Generated password: <strong className="text-[#1D1D1F] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
+                      <p className="text-[#6E6E73] dark:text-[#a1a1aa]">Generated password: <strong className="text-[#1D1D1F] dark:text-[#e4e4e7] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
                     )}
                     <button onClick={() => setCreateResult(null)} className="text-[#4ECDC4] hover:underline mt-1">Create another</button>
                   </div>
@@ -385,45 +385,45 @@ export const UserManagement = () => {
                   <form onSubmit={handleCreateUser} className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Email *</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Email *</label>
                         <input type="email" required value={createForm.email}
                           onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="user@example.com" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Password (leave blank = auto-generate)</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Password (leave blank = auto-generate)</label>
                         <input type="text" value={createForm.password}
                           onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] font-mono"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] font-mono"
                           placeholder="auto-generated" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">First name</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">First name</label>
                         <input type="text" maxLength={50} value={createForm.firstName}
                           onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="Optional" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Last name</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Last name</label>
                         <input type="text" maxLength={50} value={createForm.lastName}
                           onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="Optional" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Username (leave blank = auto)</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Username (leave blank = auto)</label>
                         <input type="text" maxLength={32} value={createForm.username}
                           onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="auto-generated" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Role</label>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Role</label>
                         <select value={createForm.role}
                           onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
-                          className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]">
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]">
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
                         </select>
@@ -431,7 +431,7 @@ export const UserManagement = () => {
                     </div>
                     {/* Permissions */}
                     <div>
-                      <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-2">Permissions</label>
+                      <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">Permissions</label>
                       <div className="flex flex-wrap gap-1.5">
                         {permissionGroups.flatMap(g => g.permissions).map(p => (
                           <button
@@ -462,13 +462,13 @@ export const UserManagement = () => {
             {/* Search + filter bar */}
             <div className="flex items-center gap-3 mb-4">
               <div className="relative flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by name, username, or email…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
+                  className="rounded-lg w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
                 />
               </div>
               <button
@@ -484,7 +484,7 @@ export const UserManagement = () => {
               </button>
             </div>
 
-            <p className="text-[10px] font-semibold text-[#A1A1A6] mb-4">
+            <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-4">
               Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
             <div className="space-y-3" data-testid="users-list">
@@ -517,10 +517,10 @@ export const UserManagement = () => {
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-[#1D1D1F] text-sm">
+                              <span className="font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm">
                                 {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
                               </span>
-                              <span className="text-xs text-[#A1A1A6]">@{user.username}</span>
+                              <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">@{user.username}</span>
                               {isSuperAdmin && (
                                 <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5">
                                   Super Admin
@@ -532,16 +532,16 @@ export const UserManagement = () => {
                                 </span>
                               )}
                               {isSelf && (
-                                <span className="text-[10px] font-semibold text-[#A1A1A6] bg-[#F5F5F7] px-1.5 py-0.5">
+                                <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5">
                                   You
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <Mail size={10} className="text-[#A1A1A6]" />
-                              <span className="text-xs text-[#6E6E73] truncate">{user.email}</span>
+                              <Mail size={10} className="text-[#A1A1A6] dark:text-[#71717a]" />
+                              <span className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] truncate">{user.email}</span>
                             </div>
-                            <div className="text-xs text-[#A1A1A6] mt-0.5">
+                            <div className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-0.5">
                               {user.permissions?.length || 0} permission(s)
                               {user.lastLogin && ` · Last login ${new Date(user.lastLogin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                             </div>
@@ -603,7 +603,7 @@ export const UserManagement = () => {
 
                       {isEditing ? (
                         <div>
-                          <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">
+                          <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-3">
                             Edit Permissions ({editingUser.permissions.length}/{ALL_PERMISSIONS.length})
                           </p>
                           {renderPermissionGrid(editingUser.permissions, toggleEditPermission)}
@@ -619,7 +619,7 @@ export const UserManagement = () => {
                               All permissions
                             </span>
                           ) : (user.permissions || []).length === 0 ? (
-                            <span className="text-xs text-[#A1A1A6]">No permissions assigned</span>
+                            <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No permissions assigned</span>
                           ) : (
                             (user.permissions || []).map((perm) => {
                               const { label, color } = getPermLabel(perm);
@@ -639,12 +639,12 @@ export const UserManagement = () => {
                     </div>
 
                     {loyaltyUser?.id === user.id && (
-                      <div className="mt-3 pt-3 border-t border-[#D2D2D7]">
+                      <div className="mt-3 pt-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-[10px] font-semibold text-[#F59E0B] tracking-widest uppercase flex items-center gap-1.5">
                             <Trophy size={10} /> Loyalty Adjustment
                           </p>
-                          <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-[#A1A1A6] hover:text-[#1D1D1F]">✕ Close</button>
+                          <button onClick={() => { setLoyaltyUser(null); setLoyaltyResult(null); }} className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white">✕ Close</button>
                         </div>
                         {loyaltyResult && (
                           <div className="text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-2 border border-[#22C55E]/20">
@@ -653,7 +653,7 @@ export const UserManagement = () => {
                         )}
                         <form onSubmit={handleLoyaltyAdjust} className="flex flex-wrap gap-2 items-end">
                           <div>
-                            <label className="block text-[10px] text-[#A1A1A6] mb-1">Amount ($) — use − for removal</label>
+                            <label className="block text-[10px] text-[#A1A1A6] dark:text-[#71717a] mb-1">Amount ($) — use − for removal</label>
                             <input
                               type="number"
                               step="0.01"
@@ -661,17 +661,17 @@ export const UserManagement = () => {
                               value={loyaltyAmount}
                               onChange={e => setLoyaltyAmount(e.target.value)}
                               placeholder="+10.00 or -5.00"
-                              className="w-32 px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1D1D1F]"
+                              className="rounded-lg w-32 px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#F59E0B] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                             />
                           </div>
                           <div className="flex-1 min-w-32">
-                            <label className="block text-[10px] text-[#A1A1A6] mb-1">Reason (optional)</label>
+                            <label className="block text-[10px] text-[#A1A1A6] dark:text-[#71717a] mb-1">Reason (optional)</label>
                             <input
                               type="text"
                               value={loyaltyReason}
                               onChange={e => setLoyaltyReason(e.target.value)}
                               placeholder="e.g. compensation"
-                              className="w-full px-2 py-1.5 text-xs border border-[#D2D2D7] focus:outline-none focus:border-[#F59E0B] bg-white text-[#1D1D1F]"
+                              className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#F59E0B] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                             />
                           </div>
                           <button

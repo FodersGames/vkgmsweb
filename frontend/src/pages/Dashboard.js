@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
@@ -7,7 +8,7 @@ import {
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, Briefcase, Terminal, Search,
+  ChevronRight, Briefcase, Terminal, Search, Sun, Moon,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -138,12 +139,12 @@ const NavItem = ({ item, activeTab, onSelect }) => {
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors duration-150 ${
         isActive
           ? 'bg-[#4ECDC4]/10 text-[#4ECDC4] font-medium'
-          : 'text-[#6E6E73] hover:bg-black/[0.045] hover:text-[#1D1D1F]'
+          : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.045] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
       }`}
     >
       <Icon
         size={15}
-        className={`shrink-0 transition-colors ${isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6]'}`}
+        className={`shrink-0 transition-colors ${isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'}`}
       />
       <span className="text-[13px] leading-none">{item.label}</span>
     </button>
@@ -155,7 +156,7 @@ const NavItem = ({ item, activeTab, onSelect }) => {
 // underline tab bar for the workspace's internal sections.
 
 const WorkspaceTabs = ({ tabs, active, onChange }) => (
-  <div className="flex items-center gap-1 border-b border-[#D2D2D7] mb-6 overflow-x-auto">
+  <div className="flex items-center gap-1 border-b border-[#D2D2D7] dark:border-[#2a2a3c] mb-6 overflow-x-auto">
     {tabs.map(t => {
       const Icon = t.icon;
       const isActive = t.id === active;
@@ -164,10 +165,10 @@ const WorkspaceTabs = ({ tabs, active, onChange }) => (
           key={t.id}
           onClick={() => onChange(t.id)}
           className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            isActive ? 'border-[#4ECDC4] text-[#1D1D1F]' : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F]'
+            isActive ? 'border-[#4ECDC4] text-[#1D1D1F] dark:text-white' : 'border-transparent text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
           }`}
         >
-          <Icon size={14} className={isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6]'} />
+          <Icon size={14} className={isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'} />
           {t.label}
         </button>
       );
@@ -177,18 +178,18 @@ const WorkspaceTabs = ({ tabs, active, onChange }) => (
 
 const NoProjectSelected = ({ onGoToList }) => (
   <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
-    <div className="w-14 h-14 rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center mb-5">
-      <Gamepad2 size={22} className="text-[#BFBFC4]" />
+    <div className="w-14 h-14 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center mb-5">
+      <Gamepad2 size={22} className="text-[#BFBFC4] dark:text-[#52525b]" />
     </div>
-    <p className="text-[11px] font-semibold text-[#A1A1A6] mb-2">No project selected</p>
-    <h3 className="text-lg font-bold text-[#1D1D1F] mb-2">Select a Project</h3>
-    <p className="text-sm text-[#6E6E73] mb-6 leading-relaxed">
+    <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">No project selected</p>
+    <h3 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">Select a Project</h3>
+    <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] mb-6 leading-relaxed">
       Choose a project from the sidebar to access its data.
     </p>
     <button
       onClick={onGoToList}
       data-testid="go-to-projects-button"
-      className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+      className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] dark:bg-[#e4e4e7] dark:text-[#0e0e15] dark:hover:bg-white text-white px-5 py-2.5 text-sm font-semibold transition-colors"
     >
       View Projects <ArrowRight size={14} />
     </button>
@@ -251,15 +252,15 @@ const SidebarContent = ({
   showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
   displayName, initials, logout, onOpenPalette,
 }) => (
-  <div className="flex flex-col h-full bg-[#F5F5F7] border-r border-[#D2D2D7]">
+  <div className="flex flex-col h-full bg-[#F5F5F7] dark:bg-[#151520] border-r border-[#D2D2D7] dark:border-[#2a2a3c]">
 
     {/* Logo */}
-    <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7]">
-      <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] truncate">
+    <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+      <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white truncate">
         Vakar Games
       </p>
       {onClose && (
-        <button onClick={onClose} className="text-[#6E6E73] hover:text-[#1D1D1F] transition-colors ml-1">
+        <button onClick={onClose} className="text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors ml-1">
           <X size={18} />
         </button>
       )}
@@ -269,11 +270,11 @@ const SidebarContent = ({
     <div className="px-3 pt-3">
       <button
         onClick={onOpenPalette}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] text-left transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left transition-colors"
       >
-        <Search size={13} className="text-[#A1A1A6] shrink-0" />
-        <span className="flex-1 text-[12px] text-[#A1A1A6]">Jump to…</span>
-        <kbd className="text-[10px] font-semibold text-[#A1A1A6] border border-[#D2D2D7] rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
+        <Search size={13} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
+        <span className="flex-1 text-[12px] text-[#A1A1A6] dark:text-[#71717a]">Jump to…</span>
+        <kbd className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
       </button>
     </div>
 
@@ -285,7 +286,7 @@ const SidebarContent = ({
 
         return (
           <div key={group.label} className={gi > 0 ? 'mt-6' : ''}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A1A1A6] px-2.5 mb-1.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A1A1A6] dark:text-[#71717a] px-2.5 mb-1.5">
               {group.label}
             </p>
 
@@ -295,20 +296,20 @@ const SidebarContent = ({
                 <button
                   onClick={() => setShowProject(v => !v)}
                   data-testid="project-selector"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left transition-colors"
                 >
                   <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                  <span className="flex-1 text-[12px] font-medium text-[#1D1D1F] truncate">
+                  <span className="flex-1 text-[12px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate">
                     {selectedProject?.name || 'Select project…'}
                   </span>
                   <ChevronDown
                     size={12}
-                    className={`text-[#6E6E73] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
+                    className={`text-[#6E6E73] dark:text-[#a1a1aa] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {showProject && (
                   <div
-                    className="absolute z-50 left-0 right-0 mt-1 rounded-lg bg-white border border-[#D2D2D7] shadow-lg overflow-hidden"
+                    className="absolute z-50 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg overflow-hidden"
                     data-testid="project-dropdown"
                   >
                     {projects.map(p => (
@@ -318,8 +319,8 @@ const SidebarContent = ({
                         data-testid={`project-option-${p.slug}`}
                         className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
                           selectedProject?.slug === p.slug
-                            ? 'bg-[#4ECDC4]/10 text-[#1D1D1F] font-medium'
-                            : 'text-[#6E6E73] hover:bg-[#F5F5F7] hover:text-[#1D1D1F]'
+                            ? 'bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white font-medium'
+                            : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
                         }`}
                       >
                         <span className="flex-1 truncate">{p.name}</span>
@@ -342,14 +343,14 @@ const SidebarContent = ({
     </nav>
 
     {/* User card */}
-    <div className="shrink-0 border-t border-[#D2D2D7] p-3">
+    <div className="shrink-0 border-t border-[#D2D2D7] dark:border-[#2a2a3c] p-3">
       <div className="flex items-center gap-3 px-2 py-2">
         <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold text-[#1D1D1F] truncate leading-tight">{displayName}</p>
-          <p className="text-[11px] text-[#A1A1A6] leading-tight">
+          <p className="text-[12px] font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] leading-tight">
             {user?.is_super_admin ? 'Super Admin' : 'Admin'}
           </p>
         </div>
@@ -357,7 +358,7 @@ const SidebarContent = ({
           onClick={logout}
           title="Sign out"
           data-testid="logout-button"
-          className="p-1.5 text-[#A1A1A6] hover:text-red-500 transition-colors shrink-0"
+          className="p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors shrink-0"
         >
           <LogOut size={15} />
         </button>
@@ -370,6 +371,7 @@ const SidebarContent = ({
 
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const { projects, selectedProject, selectProject } = useProject();
   const isSuperAdmin = !!user?.is_super_admin;
 
@@ -470,7 +472,7 @@ const DashboardContent = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
+    <div className={`flex h-screen overflow-hidden bg-[#F5F5F7] ${isDark ? 'dark dark:bg-[#0e0e15]' : ''}`}>
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex shrink-0 w-[240px] h-full">
@@ -481,10 +483,10 @@ const DashboardContent = () => {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative z-10 w-72 h-full shadow-2xl">
+          <aside className="animate-appear relative z-10 w-72 h-full shadow-2xl">
             <SidebarContent {...sidebarProps} onClose={() => setMobileOpen(false)} />
           </aside>
         </div>
@@ -492,39 +494,40 @@ const DashboardContent = () => {
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} destinations={paletteDestinations} />
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main — header + content share one scroll container so the header can
+          stay sticky and translucent, with content genuinely passing beneath it. */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto theme-transition">
 
-        {/* Header */}
-        <header className="h-14 shrink-0 bg-white border-b border-[#D2D2D7] flex items-center px-5 gap-4 z-20">
+        {/* Header — glass: translucent + blur, floats above scrolled content */}
+        <header className="sticky top-0 z-20 h-14 shrink-0 bg-white/75 dark:bg-[#151520]/75 backdrop-blur-xl backdrop-saturate-150 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center px-5 gap-4">
           {/* Mobile burger */}
           <button
-            className="lg:hidden p-2 -ml-1 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+            className="lg:hidden p-2 -ml-1 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
             onClick={() => setMobileOpen(true)}
           >
             <Menu size={18} />
           </button>
 
           {/* Mobile brand */}
-          <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F]">
+          <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
             Vakar Games
           </span>
 
           {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2 min-w-0">
-            <span className="text-sm text-[#A1A1A6] shrink-0">
+            <span className="text-sm text-[#A1A1A6] dark:text-[#71717a] shrink-0">
               {currentGroup?.label || 'Dashboard'}
             </span>
             {currentItem && currentGroup && (
               <>
-                <ChevronRight size={13} className="text-[#BFBFC4] shrink-0" />
-                <span className={`text-sm font-semibold shrink-0 ${currentSubLabel ? 'text-[#A1A1A6] font-normal' : 'text-[#1D1D1F]'}`}>{currentItem.label}</span>
+                <ChevronRight size={13} className="text-[#BFBFC4] dark:text-[#3a3a4c] shrink-0" />
+                <span className={`text-sm font-semibold shrink-0 ${currentSubLabel ? 'text-[#A1A1A6] dark:text-[#71717a] font-normal' : 'text-[#1D1D1F] dark:text-white'}`}>{currentItem.label}</span>
               </>
             )}
             {currentSubLabel && (
               <>
-                <ChevronRight size={13} className="text-[#BFBFC4] shrink-0" />
-                <span className="text-sm font-semibold text-[#1D1D1F] truncate">{currentSubLabel}</span>
+                <ChevronRight size={13} className="text-[#BFBFC4] dark:text-[#3a3a4c] shrink-0" />
+                <span className="text-sm font-semibold text-[#1D1D1F] dark:text-white truncate">{currentSubLabel}</span>
               </>
             )}
           </div>
@@ -535,15 +538,24 @@ const DashboardContent = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setPaletteOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
+              title="Jump to… (⌘K)"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 py-2 transition-all"
             >
               <Search size={12} />
               Jump to…
-              <kbd className="text-[10px] text-[#A1A1A6]">⌘K</kbd>
+              <kbd className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">⌘K</kbd>
+            </button>
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="p-2 rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] transition-all"
+            >
+              {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <Link
               to="/"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
+              title="View site"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 py-2 transition-all"
             >
               <Home size={12} />
               View site
@@ -552,14 +564,14 @@ const DashboardContent = () => {
               <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
                 {initials}
               </div>
-              <span className="hidden md:block text-[13px] font-semibold text-[#1D1D1F]">{displayName}</span>
+              <span className="hidden md:block text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{displayName}</span>
             </div>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 md:p-8">
+        {/* Content — keyed by the active section so switching tabs replays the appear animation */}
+        <main>
+          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : ''}`} className="p-6 md:p-8 animate-appear">
 
             {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
 

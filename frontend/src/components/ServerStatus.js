@@ -172,7 +172,7 @@ export const ServerStatus = () => {
       </div>
 
       {/* Live version */}
-      <div className="border border-[#D2D2D7] dark:border-[#2a2a3c]">
+      <div className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
           <div className="rounded-lg w-9 h-9 flex items-center justify-center bg-[#4ECDC4]/10">
             <Tag size={15} className="text-[#4ECDC4]" />
@@ -202,7 +202,7 @@ export const ServerStatus = () => {
               <ChevronDown size={13} className={`text-[#A1A1A6] transition-transform ${versionOpen ? 'rotate-180' : ''}`} />
             </button>
             {versionOpen && (
-              <div className="absolute top-full left-0 mt-1 z-20 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg min-w-[220px]">
+              <div className="rounded-xl absolute top-full left-0 mt-1 z-20 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg min-w-[220px]">
                 {versions.map(tag => (
                   <button
                     key={tag}

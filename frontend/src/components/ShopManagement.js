@@ -50,13 +50,13 @@ const IconPicker = ({ value, onChange }) => {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-sm text-[#1D1D1F] hover:border-[#BFBFC4] transition-all w-full">
+        className="rounded-xl flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] transition-all w-full">
         <Comp size={14} className="text-[#4ECDC4] shrink-0" />
-        <span className="flex-1 text-left capitalize text-[#6E6E73]">{value || 'Icon…'}</span>
-        <ChevronDown size={12} className="text-[#A1A1A6] shrink-0" />
+        <span className="flex-1 text-left capitalize text-[#6E6E73] dark:text-[#a1a1aa]">{value || 'Icon…'}</span>
+        <ChevronDown size={12} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 p-2 rounded-xl bg-white border border-[#D2D2D7] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
+        <div className="absolute top-full left-0 mt-1 p-2 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
           {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
             <button key={name} type="button" title={name}
               onClick={() => { onChange(name); setOpen(false); }}
@@ -77,7 +77,7 @@ const defaultForm = {
   active: true, category: '', subcategory: '', featured: false,
 };
 
-const IN = 'w-full bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]';
+const IN = 'w-full rounded-lg bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]';
 const LBL = 'block text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-[0.14em] mb-1.5';
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -288,8 +288,8 @@ export const ShopManagement = () => {
             <ShoppingBag size={20} className="text-[#4ECDC4]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[#1D1D1F]">Shop</h1>
-            <p className="text-xs text-[#A1A1A6]">
+            <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Shop</h1>
+            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">
               {products.length} product{products.length !== 1 ? 's' : ''} across {games.length} game{games.length !== 1 ? 's' : ''} — one unified catalog
             </p>
           </div>
@@ -306,41 +306,41 @@ export const ShopManagement = () => {
 
       {/* ── Categories panel ─────────────────────────────────────────────── */}
       {showCategories && (
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 space-y-5">
-          <p className="text-xs text-[#6E6E73]">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 space-y-5">
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
             One category list, shared across every game. Each category can have optional sub-categories for finer filtering.
           </p>
 
           {categories.length === 0 ? (
-            <p className="text-sm text-[#A1A1A6]">No categories yet. Add one below.</p>
+            <p className="text-sm text-[#A1A1A6] dark:text-[#71717a]">No categories yet. Add one below.</p>
           ) : (
             <div className="space-y-2">
               {categories.map(c => (
-                <div key={c.id} className="border border-[#D2D2D7]">
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7]">
+                <div key={c.id} className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118]">
                     <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
-                    <span className="font-semibold text-[#1D1D1F] text-sm flex-1">{c.label}</span>
-                    <span className="text-[#A1A1A6] text-xs">{(c.subcategories || []).length} sub</span>
+                    <span className="font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm flex-1">{c.label}</span>
+                    <span className="text-[#A1A1A6] dark:text-[#71717a] text-xs">{(c.subcategories || []).length} sub</span>
                     <button
                       onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
-                      className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] px-2 py-0.5 border border-[#D2D2D7] bg-white transition-colors"
+                      className="rounded-xl text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white px-2 py-0.5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] transition-colors"
                     >
                       {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
                     </button>
-                    <button onClick={() => removeCategory(c.id)} className="text-[#A1A1A6] hover:text-red-500 transition-colors">
+                    <button onClick={() => removeCategory(c.id)} className="text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors">
                       <X size={13} />
                     </button>
                   </div>
                   {expandedCat === c.id && (
-                    <div className="px-4 py-3 border-t border-[#D2D2D7] space-y-2">
+                    <div className="px-4 py-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c] space-y-2">
                       {(c.subcategories || []).length === 0 ? (
-                        <p className="text-xs text-[#A1A1A6]">No sub-categories yet.</p>
+                        <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No sub-categories yet.</p>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {(c.subcategories || []).map(s => (
-                            <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white border border-[#D2D2D7] text-xs">
-                              <span className="text-[#1D1D1F] font-medium">{s.label}</span>
-                              <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A1A1A6] hover:text-red-500 transition-colors ml-0.5">
+                            <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-xs">
+                              <span className="text-[#1D1D1F] dark:text-[#e4e4e7] font-medium">{s.label}</span>
+                              <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors ml-0.5">
                                 <X size={10} />
                               </button>
                             </div>
@@ -387,7 +387,7 @@ export const ShopManagement = () => {
 
       {/* ── Product form ─────────────────────────────────────────────────── */}
       {showForm && (
-        <div className="p-5 rounded-xl bg-white border border-[#D2D2D7]">
+        <div className="p-5 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c]">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -417,7 +417,7 @@ export const ShopManagement = () => {
                   <img
                     src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url}
                     alt="preview"
-                    className="mt-2 h-16 w-16 object-cover border border-[#D2D2D7]"
+                    className="rounded-xl mt-2 h-16 w-16 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]"
                   />
                 )}
               </div>
@@ -458,7 +458,7 @@ export const ShopManagement = () => {
                 <div>
                   <label className={LBL}>Display Discount %</label>
                   <input type="number" min="1" max="99" value={form.discount_pct} onChange={e => setForm(f => ({ ...f, discount_pct: e.target.value }))} className={IN} placeholder="20" />
-                  <p className="text-[10px] text-[#A1A1A6] mt-1">Shown on badge label only — does not affect price.</p>
+                  <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Shown on badge label only — does not affect price.</p>
                 </div>
               )}
 
@@ -515,7 +515,7 @@ export const ShopManagement = () => {
                     >
                       <span className={`absolute top-0.5 w-4 h-4 bg-white shadow transition-all ${form[key] ? 'left-4' : 'left-0.5'}`} />
                     </button>
-                    <span className="text-xs font-semibold text-[#6E6E73]">{label}</span>
+                    <span className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa]">{label}</span>
                   </div>
                 ))}
               </div>
@@ -534,13 +534,13 @@ export const ShopManagement = () => {
       {/* ── Filters ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a]" />
           <input
             type="text"
             placeholder="Search products..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white"
+            className="rounded-lg w-full pl-8 pr-3 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#151520]"
           />
         </div>
         <Select value={filterGame} onChange={e => setFilterGame(e.target.value)} wrapperClassName="w-48 shrink-0">
@@ -554,11 +554,11 @@ export const ShopManagement = () => {
       </div>
 
       {/* ── Product list ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+      <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5">
         {products.length === 0 ? (
           <EmptyState icon={ShoppingBag} title="No products yet" description="Add your first product to start selling — across any game." />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[#A1A1A6] text-center py-6">No product matches your filters.</p>
+          <p className="text-sm text-[#A1A1A6] dark:text-[#71717a] text-center py-6">No product matches your filters.</p>
         ) : (
           <div className="space-y-2">
             {filtered.map(p => {
@@ -575,12 +575,12 @@ export const ShopManagement = () => {
                     <img
                       src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url}
                       alt={p.name}
-                      className="w-11 h-11 object-cover shrink-0 border border-[#D2D2D7]"
+                      className="rounded-xl w-11 h-11 object-cover shrink-0 border border-[#D2D2D7] dark:border-[#2a2a3c]"
                     />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-[#1D1D1F]">{p.name}</span>
+                      <span className="font-semibold text-sm text-[#1D1D1F] dark:text-[#e4e4e7]">{p.name}</span>
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#4ECDC4]/10 text-[#379E96]">
                         <Gamepad2 size={9} />{gameName(p.game_slug)}
                       </span>
@@ -591,27 +591,27 @@ export const ShopManagement = () => {
                         </span>
                       )}
                       {cat && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#6E6E73]">
+                        <span className="rounded-xl inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa]">
                           <CategoryIcon name={cat.icon} size={9} />{cat.label}
                         </span>
                       )}
-                      {!p.active && <span className="text-[10px] font-bold text-[#A1A1A6] bg-[#F5F5F7] border border-[#D2D2D7] px-1.5 py-0.5">Hidden</span>}
+                      {!p.active && <span className="rounded-xl text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] px-1.5 py-0.5">Hidden</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-sm font-bold text-[#1D1D1F]">${(p.price / 100).toFixed(2)}</span>
-                      <span className="text-xs text-[#A1A1A6]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
+                      <span className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">${(p.price / 100).toFixed(2)}</span>
+                      <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">→ {p.amount}× {p.variable} ({p.project_slug})</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => toggleActive(p)}
-                      className="p-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#A1A1A6] hover:text-[#1D1D1F] transition-all"
+                      className="rounded-xl p-2 border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white transition-all"
                       title={p.active ? 'Hide' : 'Show'}
                     >
                       {p.active ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
-                    <button onClick={() => openEdit(p)} className="p-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#A1A1A6] hover:text-[#1D1D1F] transition-all"><Edit2 size={13} /></button>
-                    <button onClick={() => handleDelete(p)} className="p-2 border border-[#D2D2D7] hover:border-red-200 text-[#A1A1A6] hover:text-red-500 transition-all"><Trash2 size={13} /></button>
+                    <button onClick={() => openEdit(p)} className="rounded-xl p-2 border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white transition-all"><Edit2 size={13} /></button>
+                    <button onClick={() => handleDelete(p)} className="rounded-xl p-2 border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-red-200 text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-all"><Trash2 size={13} /></button>
                   </div>
                 </div>
               );
@@ -621,7 +621,7 @@ export const ShopManagement = () => {
       </div>
 
       {/* Public shop link */}
-      <div className="rounded-xl bg-white border border-[#D2D2D7] px-5 py-4 flex items-center justify-between gap-4">
+      <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] px-5 py-4 flex items-center justify-between gap-4">
         <div>
           <p className={LBL}>Public Shop URL</p>
           <code className="text-sm text-[#4ECDC4] font-mono">/shop</code>
@@ -630,7 +630,7 @@ export const ShopManagement = () => {
           href="/shop"
           target="_blank"
           rel="noreferrer"
-          className="rounded-full px-4 py-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#6E6E73] hover:text-[#1D1D1F] text-sm font-semibold transition-all"
+          className="rounded-full px-4 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white text-sm font-semibold transition-all"
         >
           Open Shop ↗
         </a>

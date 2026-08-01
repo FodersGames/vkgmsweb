@@ -143,7 +143,7 @@ export const BlogPost = () => {
             <img
               src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
               alt={post.title}
-              className="w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
+              className="rounded-xl w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
             />
           )}
 

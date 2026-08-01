@@ -46,7 +46,7 @@ class ErrorBoundary extends React.Component {
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => (window.location.href = '/')}
-              className="px-4 py-2.5 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#6E6E73] hover:text-[#1D1D1F] text-sm font-medium transition-all flex items-center gap-2"
+              className="rounded-xl px-4 py-2.5 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#6E6E73] hover:text-[#1D1D1F] text-sm font-medium transition-all flex items-center gap-2"
             >
               <Home size={14} />
               Homepage

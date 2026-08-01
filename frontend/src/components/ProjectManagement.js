@@ -55,7 +55,7 @@ export const ProjectManagement = () => {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Projects / Games</h3>
-              <p className="text-xs text-[#6E6E73]">Manage your API projects</p>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Manage your API projects</p>
             </div>
           </div>
           {hasPermission('create_projects') && (
@@ -87,7 +87,7 @@ export const ProjectManagement = () => {
         )}
 
         <CardBody>
-          <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#71717a] dark:text-[#52525b] uppercase tracking-widest mb-4">
             Projects ({projects.length})
           </p>
           {projects.length === 0 ? (
@@ -97,7 +97,7 @@ export const ProjectManagement = () => {
               {projects.map(p => (
                 <div
                   key={p.slug}
-                  className="flex items-center justify-between p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/20 transition-colors"
+                  className="rounded-xl flex items-center justify-between p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/20 transition-colors"
                   data-testid={`project-card-${p.slug}`}
                 >
                   <div className="flex items-center gap-3">
@@ -106,11 +106,11 @@ export const ProjectManagement = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">{p.name}</p>
-                      <p className="text-xs text-[#6E6E73] font-mono">slug: {p.slug}</p>
+                      <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] font-mono">slug: {p.slug}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-[#6E6E73]">by {p.created_by}</span>
+                    <span className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">by {p.created_by}</span>
                     {hasPermission('delete_projects') && (
                       <Button
                         variant="danger"

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
+import { playConfirmTick } from '../utils/sound';
 
 /**
  * Reusable confirmation dialog.
@@ -71,8 +72,7 @@ export const ConfirmDialog = ({
         aria-modal="true"
         aria-labelledby="cdlg-title"
         aria-describedby={description ? 'cdlg-desc' : undefined}
-        className="relative z-10 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 w-full max-w-md shadow-2xl animate-in"
-        style={{ animation: 'cdlgIn 140ms cubic-bezier(0.16,1,0.3,1)' }}
+        className="animate-appear rounded-2xl relative z-10 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 w-full max-w-md shadow-2xl"
       >
         <div className="flex items-start gap-4">
           {variant === 'destructive' && (
@@ -95,7 +95,7 @@ export const ConfirmDialog = ({
           {!loading && (
             <button
               onClick={onClose}
-              className="p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#e4e4e7] hover:bg-[#EDEDEF] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
+              className="rounded-lg p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-[#e4e4e7] hover:bg-[#EDEDEF] dark:hover:bg-[#2a2a3c] transition-all shrink-0"
               aria-label="Close"
             >
               <X size={15} />
@@ -103,20 +103,23 @@ export const ConfirmDialog = ({
           )}
         </div>
 
-        <div className="flex gap-3 mt-6 justify-end">
+        <div className="flex items-center gap-3 mt-6 justify-end">
+          <span className="hidden sm:inline text-[11px] text-[#A1A1A6] dark:text-[#52525b] mr-auto">
+            <kbd className="border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5">esc</kbd> to cancel
+          </span>
           <button
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-[#3A3A3C] dark:text-[#a1a1aa] bg-[#EDEDEF] dark:bg-[#2a2a3c] hover:bg-[#D2D2D7] dark:hover:bg-[#3a3a50] transition-all disabled:opacity-40"
+            className="rounded-full px-4 py-2 text-sm font-medium text-[#3A3A3C] dark:text-[#a1a1aa] bg-[#EDEDEF] dark:bg-[#2a2a3c] hover:bg-[#D2D2D7] dark:hover:bg-[#3a3a50] transition-all disabled:opacity-40"
           >
             {cancelLabel}
           </button>
 
           <button
             ref={confirmBtnRef}
-            onClick={onConfirm}
+            onClick={() => { if (variant === 'destructive') playConfirmTick(); onConfirm(); }}
             disabled={loading}
-            className={`px-4 py-2 text-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-2 min-w-[90px] justify-center ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-2 min-w-[90px] justify-center ${
               variant === 'destructive'
                 ? 'bg-red-500 hover:bg-red-600 text-white'
                 : 'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]'
@@ -133,13 +136,6 @@ export const ConfirmDialog = ({
           </button>
         </div>
       </div>
-
-      <style>{`
-        @keyframes cdlgIn {
-          from { opacity: 0; transform: scale(0.96) translateY(4px); }
-          to   { opacity: 1; transform: scale(1)    translateY(0); }
-        }
-      `}</style>
     </div>,
     document.body
   );

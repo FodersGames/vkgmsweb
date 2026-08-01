@@ -281,7 +281,7 @@ export const VariablesManagement = () => {
             <button
               onClick={fetchVars}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+              className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
@@ -301,13 +301,13 @@ export const VariablesManagement = () => {
             placeholder="Search by name or description..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
+            className="rounded-lg w-full pl-9 pr-4 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
           />
         </div>
 
         {/* Create form */}
         {showForm && (
-          <div className="bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5" data-testid="create-variable-form">
+          <div className="rounded-xl bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5" data-testid="create-variable-form">
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
@@ -353,7 +353,7 @@ export const VariablesManagement = () => {
               const meta = TYPE_META[v.var_type] || TYPE_META.string;
               const TypeIcon = meta.icon;
               return (
-                <div key={v.name} className="bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 hover:border-[#4ECDC4]/30 transition-colors">
+                <div key={v.name} className="rounded-xl bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 hover:border-[#4ECDC4]/30 transition-colors">
                   <div className="flex justify-between items-start gap-3 mb-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -405,7 +405,7 @@ export const VariablesManagement = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 font-mono text-xs text-[#1D1D1F] dark:text-[#e4e4e7] break-all">
+                    <div className="rounded-xl bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 font-mono text-xs text-[#1D1D1F] dark:text-[#e4e4e7] break-all">
                       {formatValuePreview(v)}
                     </div>
                   )}

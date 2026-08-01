@@ -180,7 +180,7 @@ const GamesPage = () => {
                             key={i}
                             src={s.startsWith('/') ? `${API_URL}${s}` : s}
                             alt=""
-                            className="h-16 sm:h-20 object-cover flex-shrink-0 border border-[#D2D2D7]"
+                            className="rounded-xl h-16 sm:h-20 object-cover flex-shrink-0 border border-[#D2D2D7]"
                           />
                         ))}
                       </div>
@@ -196,7 +196,7 @@ const GamesPage = () => {
                               href={p.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 border border-[#D2D2D7] text-[#6E6E73] text-sm font-medium hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F] transition-all"
+                              className="rounded-xl inline-flex items-center gap-2 px-4 py-2 border border-[#D2D2D7] text-[#6E6E73] text-sm font-medium hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F] transition-all"
                               data-testid={`platform-${p.name}`}
                             >
                               <span className="text-[#A1A1A6]">{pl.svg}</span>
@@ -220,7 +220,7 @@ const GamesPage = () => {
                             Owned
                           </span>
                         ) : buyingSlug === game.slug ? (
-                          <div className="border border-[#D2D2D7] bg-white p-4 space-y-3 max-w-xs">
+                          <div className="rounded-xl border border-[#D2D2D7] bg-white p-4 space-y-3 max-w-xs">
                             <div className="flex items-center justify-between">
                               <p className="text-xs font-semibold text-[#1D1D1F]">
                                 Promo code <span className="text-[#A1A1A6] font-normal">(optional)</span>
@@ -235,12 +235,12 @@ const GamesPage = () => {
                                 value={couponCode}
                                 onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                                 placeholder="VG-XXXXXXXX"
-                                className="flex-1 border border-[#D2D2D7] text-[#1D1D1F] text-xs px-2.5 py-2 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:font-sans placeholder:tracking-normal placeholder:text-[#A1A1A6]"
+                                className="rounded-lg flex-1 border border-[#D2D2D7] text-[#1D1D1F] text-xs px-2.5 py-2 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:font-sans placeholder:tracking-normal placeholder:text-[#A1A1A6]"
                               />
                               <button
                                 onClick={() => checkGameCoupon(game.slug)}
                                 disabled={!couponCode.trim() || couponChecking}
-                                className="text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-2.5 py-2 transition-colors disabled:opacity-40"
+                                className="rounded-xl text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-2.5 py-2 transition-colors disabled:opacity-40"
                               >
                                 {couponChecking ? '…' : 'Apply'}
                               </button>

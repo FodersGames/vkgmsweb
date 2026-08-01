@@ -261,7 +261,7 @@ export const ChatManagement = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-xs text-[#1D1D1F] dark:text-[#e4e4e7] font-mono truncate">
+                  <code className="rounded-xl flex-1 bg-white dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-xs text-[#1D1D1F] dark:text-[#e4e4e7] font-mono truncate">
                     {selectedProject.chat_api_key || 'No key — regenerate to create one'}
                   </code>
                   <Button variant="secondary" size="sm" icon={Copy} onClick={copyKey} disabled={!selectedProject.chat_api_key} data-testid="copy-chat-key" />
@@ -339,7 +339,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-1.5 max-h-[500px] overflow-y-auto" data-testid="chat-messages-list">
                   {messages.map(m => (
-                    <div key={m.id} className="flex items-start justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] group hover:border-[#D2D2D7] dark:hover:border-[#3a3a50] transition-colors">
+                    <div key={m.id} className="rounded-xl flex items-start justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] group hover:border-[#D2D2D7] dark:hover:border-[#3a3a50] transition-colors">
                       <div className="min-w-0">
                         <div className="flex items-baseline gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-[#4ECDC4]">{m.username}</span>
@@ -413,7 +413,7 @@ export const ChatManagement = () => {
                 ) : (
                   <div className="space-y-1.5">
                     {moderation.bans.map(b => (
-                      <div key={b.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                      <div key={b.user_id} className="rounded-xl flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                         <div>
                           <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{b.username}</span>
                           <span className="text-xs text-[#A1A1A6] ml-2">blocked {formatTime(b.banned_at)}{b.banned_by ? ` by ${b.banned_by}` : ''}</span>
@@ -432,7 +432,7 @@ export const ChatManagement = () => {
                 ) : (
                   <div className="space-y-1.5">
                     {activeMutes.map(m => (
-                      <div key={m.user_id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                      <div key={m.user_id} className="rounded-xl flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                         <div>
                           <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{m.username}</span>
                           <span className="text-xs text-[#A1A1A6] ml-2">until {formatUntil(m.muted_until)}{m.reason ? ` — "${m.reason}"` : ''}</span>
@@ -481,7 +481,7 @@ export const ChatManagement = () => {
               ) : (
                 <div className="space-y-1.5">
                   {guilds.map(g => (
-                    <div key={g.id} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                    <div key={g.id} className="rounded-xl flex items-center justify-between gap-3 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${g.color}22` }}>
                           <Shield size={14} style={{ color: g.color }} />
@@ -560,7 +560,7 @@ export const ChatManagement = () => {
     {/* Mute modal */}
     {muteTarget && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/50">
-        <div className="bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm">
+        <div className="rounded-xl bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm">
           <div className="px-5 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-between">
             <h3 className="font-bold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm">Mute {muteTarget.username}</h3>
             <button onClick={() => setMuteTarget(null)} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"><X size={16} /></button>

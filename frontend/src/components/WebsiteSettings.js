@@ -130,7 +130,7 @@ export const WebsiteSettings = () => {
       </div>
 
       {/* Support email */}
-      <div className="p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+      <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
           <Mail size={18} className="text-[#4ECDC4]" />
           <div>
@@ -151,7 +151,7 @@ export const WebsiteSettings = () => {
       </div>
 
       {/* System health */}
-      <div className="p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+      <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
           <ShieldCheck size={18} className="text-[#4ECDC4]" />
           <div>

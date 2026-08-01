@@ -100,7 +100,7 @@ function ApplyModal({ career, onClose, token, user }) {
                 <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1">Name</label>
                 <input
                   required
-                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                   value={name} onChange={e => setName(e.target.value)}
                   placeholder="Your name"
                 />
@@ -110,7 +110,7 @@ function ApplyModal({ career, onClose, token, user }) {
                 <input
                   required
                   type="email"
-                  className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                   value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   readOnly={!!user}
@@ -123,7 +123,7 @@ function ApplyModal({ career, onClose, token, user }) {
                 Portfolio / Links <span className="normal-case font-normal text-[#A1A1A6]">(optional)</span>
               </label>
               <input
-                className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
                 value={portfolio} onChange={e => setPortfolio(e.target.value)}
                 placeholder="https://your-portfolio.com or GitHub link"
               />
@@ -136,7 +136,7 @@ function ApplyModal({ career, onClose, token, user }) {
               <textarea
                 required
                 rows={5}
-                className="w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] resize-none"
+                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] resize-none"
                 value={cover} onChange={e => setCover(e.target.value)}
                 placeholder="Tell us about yourself, your experience, and why you want to join Vakar Games..."
               />
@@ -287,7 +287,7 @@ export default function Careers() {
                         <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-3">Tools</h3>
                         <div className="flex flex-wrap gap-2">
                           {c.tools.map(t => (
-                            <span key={t} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#F5F5F7] border border-[#D2D2D7] text-xs text-[#6E6E73]">
+                            <span key={t} className="rounded-xl flex items-center gap-1.5 px-2.5 py-1.5 bg-[#F5F5F7] border border-[#D2D2D7] text-xs text-[#6E6E73]">
                               <span className="grayscale opacity-60"><ToolIcon toolId={t} size={14} /></span>
                               {TOOL_LABELS[t] || t}
                             </span>

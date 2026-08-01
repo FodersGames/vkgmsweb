@@ -131,7 +131,7 @@ export const GamesManagement = () => {
                 <div>
                   <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Logo</p>
                   <div className="flex items-center gap-3">
-                    {form.logo_url && <img src={form.logo_url.startsWith('/') ? `${API_URL}${form.logo_url}` : form.logo_url} alt="logo" className="w-14 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />}
+                    {form.logo_url && <img src={form.logo_url.startsWith('/') ? `${API_URL}${form.logo_url}` : form.logo_url} alt="logo" className="rounded-xl w-14 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />}
                     <label className="cursor-pointer">
                       <Button variant="secondary" size="sm" icon={Upload} loading={uploading} as="span">Upload Logo</Button>
                       <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -144,7 +144,7 @@ export const GamesManagement = () => {
                   <div className="flex flex-wrap gap-2">
                     {form.screenshots.map((s, i) => (
                       <div key={i} className="relative group">
-                        <img src={s.startsWith('/') ? `${API_URL}${s}` : s} alt="" className="w-20 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />
+                        <img src={s.startsWith('/') ? `${API_URL}${s}` : s} alt="" className="rounded-xl w-20 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />
                         <button type="button" onClick={() => setForm(p => ({ ...p, screenshots: p.screenshots.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <X size={10} className="text-white" />
                         </button>
@@ -192,13 +192,13 @@ export const GamesManagement = () => {
                         setForm(p => ({ ...p, price_cents: isNaN(val) ? 0 : Math.round(val * 100) }));
                       }}
                       placeholder="0.00 (free)"
-                      className="w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#4ECDC4]"
+                      className="rounded-lg w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#4ECDC4]"
                     />
                   </div>
                   <p className="text-[10px] text-[#6E6E73] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
                 </div>
 
-                <label className="flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#4ECDC4]/30 transition-colors" data-testid="featured-toggle">
+                <label className="rounded-xl flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#4ECDC4]/30 transition-colors" data-testid="featured-toggle">
                   <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
                   <div>
                     <span className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] font-medium">Featured Game</span>
@@ -223,9 +223,9 @@ export const GamesManagement = () => {
           ) : (
             <div className="space-y-2" data-testid="games-list">
               {games.map(g => (
-                <div key={g.slug} className="flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20 transition-colors">
+                <div key={g.slug} className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20 transition-colors">
                   {g.logo_url
-                    ? <img src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt="" className="w-12 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0" />
+                    ? <img src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt="" className="rounded-xl w-12 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0" />
                     : <div className="rounded-lg w-12 h-12 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><Gamepad2 size={18} className="text-[#6E6E73]" /></div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

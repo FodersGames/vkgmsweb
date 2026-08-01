@@ -137,7 +137,7 @@ const Contact = () => {
                       required
                       value={form.email}
                       readOnly
-                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] bg-[#F5F5F7] text-[#6E6E73]"
+                      className="rounded-xl w-full px-3 py-2.5 text-sm border border-[#D2D2D7] bg-[#F5F5F7] text-[#6E6E73]"
                     />
                   </div>
                   <div>
@@ -159,7 +159,7 @@ const Contact = () => {
                       maxLength={200}
                       value={form.subject}
                       onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                      className="rounded-lg w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       placeholder="Brief description of your issue"
                     />
                   </div>
@@ -171,7 +171,7 @@ const Contact = () => {
                       rows={6}
                       value={form.message}
                       onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
+                      className="rounded-lg w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
                       placeholder="Describe your issue in detail…"
                     />
                   </div>

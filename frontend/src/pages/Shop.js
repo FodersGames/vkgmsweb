@@ -525,7 +525,7 @@ const Shop = () => {
 
             <div className="p-6 space-y-5">
               {/* Product summary */}
-              <div className="flex items-center gap-4 p-4 bg-[#F5F5F7] border border-[#D2D2D7]">
+              <div className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] border border-[#D2D2D7]">
                 {buying.image_url && (
                   <img
                     src={buying.image_url.startsWith('/') ? `${API_URL}${buying.image_url}` : buying.image_url}
@@ -566,12 +566,12 @@ const Shop = () => {
                     value={couponCode}
                     onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                     placeholder="VG-XXXXXXXX"
-                    className="flex-1 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:text-[#A1A1A6] placeholder:font-sans placeholder:tracking-normal"
+                    className="rounded-lg flex-1 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] font-mono tracking-wide placeholder:text-[#A1A1A6] placeholder:font-sans placeholder:tracking-normal"
                   />
                   <button
                     onClick={checkCoupon}
                     disabled={!couponCode.trim() || couponChecking}
-                    className="shrink-0 text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-3 py-2.5 transition-colors disabled:opacity-40"
+                    className="rounded-xl shrink-0 text-xs font-semibold border border-[#D2D2D7] hover:border-[#4ECDC4] text-[#6E6E73] hover:text-[#4ECDC4] px-3 py-2.5 transition-colors disabled:opacity-40"
                   >
                     {couponChecking ? '…' : 'Apply'}
                   </button>
@@ -598,7 +598,7 @@ const Shop = () => {
                   value={uid}
                   onChange={e => { setUid(e.target.value); setBuyError(''); }}
                   placeholder="player_12345"
-                  className="w-full bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-4 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]"
+                  className="rounded-lg w-full bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-4 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]"
                   onKeyDown={e => e.key === 'Enter' && handleBuy()}
                   autoFocus
                 />

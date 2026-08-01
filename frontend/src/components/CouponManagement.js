@@ -138,10 +138,10 @@ export const CouponManagement = () => {
             <Tag size={16} className="text-[#4ECDC4]" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#1D1D1F]">
+            <h2 className="text-base font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
               Promo Coupons
             </h2>
-            <p className="text-xs text-[#6E6E73]">Send unique discount codes to users or tiers</p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Send unique discount codes to users or tiers</p>
           </div>
         </div>
         <button
@@ -154,54 +154,54 @@ export const CouponManagement = () => {
 
       {/* Create form */}
       {showCreate && (
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 space-y-5">
-          <h3 className="text-sm font-bold text-[#1D1D1F] border-b border-[#D2D2D7] pb-3">Create coupon campaign</h3>
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 space-y-5">
+          <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7] border-b border-[#D2D2D7] dark:border-[#2a2a3c] pb-3">Create coupon campaign</h3>
 
           {createResult ? (
             <div className="text-center py-6 space-y-2">
               <CheckCircle size={32} className="text-[#4ECDC4] mx-auto" />
-              <p className="text-sm font-bold text-[#1D1D1F]">Campaign created!</p>
-              <p className="text-xs text-[#6E6E73]"><strong>{createResult.codes_sent}</strong> unique codes sent to users' inboxes.</p>
+              <p className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Campaign created!</p>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]"><strong>{createResult.codes_sent}</strong> unique codes sent to users' inboxes.</p>
               <button onClick={() => { setShowCreate(false); setCreateResult(null); }} className="text-xs text-[#4ECDC4] hover:underline mt-2">Close</button>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Campaign name</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Campaign name</label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Summer promo, Gold exclusive…"
-                  className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                  className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                 />
               </div>
 
               {/* Discount & validity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Discount %</label>
+                  <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Discount %</label>
                   <input
                     type="number" min={1} max={99}
                     value={form.discount_pct}
                     onChange={e => setForm(f => ({ ...f, discount_pct: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1">Valid for (days)</label>
+                  <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Valid for (days)</label>
                   <input
                     type="number" min={1}
                     value={form.valid_days}
                     onChange={e => setForm(f => ({ ...f, valid_days: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   />
                 </div>
               </div>
 
               {/* Scope */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-2">Applicable to</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">Applicable to</label>
                 <div className="flex gap-2 flex-wrap">
                   {[
                     { value: 'all', label: 'All purchases' },
@@ -219,7 +219,7 @@ export const CouponManagement = () => {
                 </div>
                 {form.scope === 'product' && (
                   <select
-                    className="mt-2 w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                    className="rounded-lg mt-2 w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                     value={form.scope_id}
                     onChange={e => {
                       const p = products.find(x => x.id === e.target.value);
@@ -234,7 +234,7 @@ export const CouponManagement = () => {
                 )}
                 {form.scope === 'game' && (
                   <select
-                    className="mt-2 w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                    className="rounded-lg mt-2 w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                     value={form.scope_id}
                     onChange={e => {
                       const g = games.find(x => x.slug === e.target.value);
@@ -251,7 +251,7 @@ export const CouponManagement = () => {
 
               {/* Target */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-2">Target</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">Target</label>
                 <div className="flex gap-2 mb-3">
                   {[
                     { value: 'tier', label: 'By loyalty tier', icon: <Tag size={12} /> },
@@ -288,9 +288,9 @@ export const CouponManagement = () => {
                       value={userSearch}
                       onChange={e => setUserSearch(e.target.value)}
                       placeholder="Search by email or username…"
-                      className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                      className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                     />
-                    <div className="max-h-40 overflow-y-auto border border-[#D2D2D7] divide-y divide-[#F3F0EC]">
+                    <div className="rounded-xl max-h-40 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#F3F0EC]">
                       {filteredUsers.slice(0, 50).map(u => (
                         <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#F5F5F7] cursor-pointer">
                           <input
@@ -299,11 +299,11 @@ export const CouponManagement = () => {
                             onChange={() => toggleUser(u.id)}
                             className="accent-[#4ECDC4]"
                           />
-                          <span className="text-xs text-[#1D1D1F] truncate">{u.email}</span>
-                          {u.username && <span className="text-[10px] text-[#A1A1A6]">@{u.username}</span>}
+                          <span className="text-xs text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{u.email}</span>
+                          {u.username && <span className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">@{u.username}</span>}
                         </label>
                       ))}
-                      {filteredUsers.length === 0 && <p className="text-xs text-[#A1A1A6] p-3">No users found</p>}
+                      {filteredUsers.length === 0 && <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] p-3">No users found</p>}
                     </div>
                     {form.target_user_ids.length > 0 && (
                       <p className="text-xs text-[#4ECDC4] font-semibold">{form.target_user_ids.length} user(s) selected</p>
@@ -314,7 +314,7 @@ export const CouponManagement = () => {
 
               {createError && <p className="text-xs text-red-500">{createError}</p>}
 
-              <div className="flex gap-2 pt-2 border-t border-[#D2D2D7]">
+              <div className="flex gap-2 pt-2 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
                 <button
                   onClick={handleCreate}
                   disabled={creating}
@@ -325,7 +325,7 @@ export const CouponManagement = () => {
                 </button>
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="text-sm text-[#6E6E73] hover:text-[#1D1D1F] px-4 py-2.5 transition-colors"
+                  className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white px-4 py-2.5 transition-colors"
                 >
                   Cancel
                 </button>
@@ -337,15 +337,15 @@ export const CouponManagement = () => {
 
       {/* Campaign list */}
       {loading ? (
-        <div className="text-center py-10 text-[#A1A1A6] text-sm">Loading…</div>
+        <div className="text-center py-10 text-[#A1A1A6] dark:text-[#71717a] text-sm">Loading…</div>
       ) : campaigns.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-[#D2D2D7] text-[#A1A1A6] text-sm">
+        <div className="text-center py-12 border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] text-sm">
           No campaigns yet. Create one to start sending promo codes.
         </div>
       ) : (
         <div className="space-y-2">
           {campaigns.map(c => (
-            <div key={c.id} className="rounded-xl bg-white border border-[#D2D2D7]">
+            <div key={c.id} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c]">
               <button
                 onClick={() => loadDetail(c.id)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F5F5F7] transition-colors text-left"
@@ -353,8 +353,8 @@ export const CouponManagement = () => {
                 <div className="flex items-center gap-4 min-w-0">
                   <Tag size={16} className="text-[#4ECDC4] shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-[#1D1D1F] truncate">{c.name}</p>
-                    <p className="text-xs text-[#6E6E73]">
+                    <p className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{c.name}</p>
+                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
                       {c.discount_pct}% off ·{' '}
                       {c.target_type === 'tier'
                         ? (c.target_tiers || []).map(t => TIER_LABELS[t]).join(', ')
@@ -368,42 +368,42 @@ export const CouponManagement = () => {
                 </div>
                 <div className="flex items-center gap-4 shrink-0 ml-4">
                   <div className="text-right hidden sm:block">
-                    <p className="text-xs font-semibold text-[#1D1D1F]">{c.codes_count} codes</p>
-                    <p className="text-[10px] text-[#A1A1A6]">until {new Date(c.valid_until).toLocaleDateString()}</p>
+                    <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{c.codes_count} codes</p>
+                    <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">until {new Date(c.valid_until).toLocaleDateString()}</p>
                   </div>
-                  {expandedCampaign === c.id ? <ChevronUp size={14} className="text-[#A1A1A6]" /> : <ChevronDown size={14} className="text-[#A1A1A6]" />}
+                  {expandedCampaign === c.id ? <ChevronUp size={14} className="text-[#A1A1A6] dark:text-[#71717a]" /> : <ChevronDown size={14} className="text-[#A1A1A6] dark:text-[#71717a]" />}
                 </div>
               </button>
 
               {expandedCampaign === c.id && (
-                <div className="border-t border-[#D2D2D7] px-5 pb-5">
+                <div className="border-t border-[#D2D2D7] dark:border-[#2a2a3c] px-5 pb-5">
                   {detailLoading ? (
-                    <div className="flex items-center gap-2 py-4 text-xs text-[#A1A1A6]">
+                    <div className="flex items-center gap-2 py-4 text-xs text-[#A1A1A6] dark:text-[#71717a]">
                       <Loader2 size={12} className="animate-spin" /> Loading codes…
                     </div>
                   ) : campaignDetail ? (
                     <div className="mt-4">
                       <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                        <div className="bg-[#F5F5F7] px-3 py-2">
-                          <p className="text-lg font-bold text-[#1D1D1F]">{campaignDetail.codes.length}</p>
-                          <p className="text-[10px] text-[#A1A1A6]">Total codes</p>
+                        <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
+                          <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{campaignDetail.codes.length}</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Total codes</p>
                         </div>
-                        <div className="bg-[#F5F5F7] px-3 py-2">
+                        <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
                           <p className="text-lg font-bold text-[#4ECDC4]">{campaignDetail.codes.filter(x => x.used).length}</p>
-                          <p className="text-[10px] text-[#A1A1A6]">Used</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Used</p>
                         </div>
-                        <div className="bg-[#F5F5F7] px-3 py-2">
-                          <p className="text-lg font-bold text-[#1D1D1F]">{campaignDetail.codes.filter(x => !x.used).length}</p>
-                          <p className="text-[10px] text-[#A1A1A6]">Remaining</p>
+                        <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
+                          <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{campaignDetail.codes.filter(x => !x.used).length}</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Remaining</p>
                         </div>
                       </div>
-                      <div className="max-h-60 overflow-y-auto border border-[#D2D2D7] divide-y divide-[#F3F0EC]">
+                      <div className="rounded-xl max-h-60 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#F3F0EC]">
                         {campaignDetail.codes.map(code => (
                           <div key={code.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                            <span className="font-mono font-semibold text-[#1D1D1F]">{code.code}</span>
-                            <span className="text-[#6E6E73] truncate mx-4 hidden sm:block">{code.assigned_to_email}</span>
+                            <span className="font-mono font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{code.code}</span>
+                            <span className="text-[#6E6E73] dark:text-[#a1a1aa] truncate mx-4 hidden sm:block">{code.assigned_to_email}</span>
                             {code.used
-                              ? <span className="flex items-center gap-1 text-[#A1A1A6] shrink-0"><XCircle size={11} /> Used</span>
+                              ? <span className="flex items-center gap-1 text-[#A1A1A6] dark:text-[#71717a] shrink-0"><XCircle size={11} /> Used</span>
                               : <span className="flex items-center gap-1 text-[#4ECDC4] shrink-0"><CheckCircle size={11} /> Available</span>
                             }
                           </div>

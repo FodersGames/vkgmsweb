@@ -31,23 +31,23 @@ const colorFor = (pct) => {
 const Gauge = ({ label, icon: Icon, percent, detail }) => {
   const { bar, text } = colorFor(percent);
   return (
-    <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 space-y-3">
+    <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icon size={15} className="text-[#A1A1A6]" />
-          <span className="text-xs font-semibold text-[#6E6E73] uppercase tracking-[0.1em]">{label}</span>
+          <Icon size={15} className="text-[#A1A1A6] dark:text-[#71717a]" />
+          <span className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-[0.1em]">{label}</span>
         </div>
         <span className={`text-lg font-bold ${text}`}>
           {percent.toFixed(0)}%
         </span>
       </div>
-      <div className="h-2 bg-[#F5F5F7] rounded-full overflow-hidden">
+      <div className="h-2 bg-[#F5F5F7] dark:bg-[#111118] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: bar }}
         />
       </div>
-      <p className="text-[11px] text-[#A1A1A6]">{detail}</p>
+      <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">{detail}</p>
     </div>
   );
 };
@@ -86,11 +86,11 @@ export const VpsStats = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F]">
+          <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
             VPS Monitor
           </h2>
           {lastUpdate && (
-            <p className="text-[11px] text-[#A1A1A6] mt-0.5 flex items-center gap-1">
+            <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-0.5 flex items-center gap-1">
               <Clock size={10} />
               Mis à jour à {lastUpdate.toLocaleTimeString('fr-FR')} — actualisation auto toutes les 10s
             </p>
@@ -99,7 +99,7 @@ export const VpsStats = () => {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] px-3 py-1.5 transition-colors disabled:opacity-50"
+          className="rounded-xl flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-1.5 transition-colors disabled:opacity-50"
         >
           {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
           Actualiser
@@ -144,24 +144,24 @@ export const VpsStats = () => {
 
           {/* Infos complémentaires */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
-              <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-[0.12em] mb-1">Uptime</p>
-              <p className="text-xl font-bold text-[#1D1D1F]">
+            <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5">
+              <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-[0.12em] mb-1">Uptime</p>
+              <p className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
                 {fmtUptime(stats.uptime_seconds)}
               </p>
-              <p className="text-[11px] text-[#A1A1A6] mt-1">Depuis le dernier redémarrage</p>
+              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Depuis le dernier redémarrage</p>
             </div>
 
             {stats.load_avg && (
-              <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
-                <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-[0.12em] mb-1">Charge système (load avg)</p>
+              <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5">
+                <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-[0.12em] mb-1">Charge système (load avg)</p>
                 <div className="flex items-end gap-4 mt-1">
                   {['1 min', '5 min', '15 min'].map((label, i) => (
                     <div key={i}>
-                      <p className="text-lg font-bold text-[#1D1D1F]">
+                      <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
                         {stats.load_avg[i].toFixed(2)}
                       </p>
-                      <p className="text-[10px] text-[#A1A1A6]">{label}</p>
+                      <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">{label}</p>
                     </div>
                   ))}
                 </div>

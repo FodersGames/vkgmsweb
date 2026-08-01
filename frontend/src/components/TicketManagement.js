@@ -118,25 +118,25 @@ const TicketManagement = () => {
       <div>
         <button
           onClick={() => { setActiveTicket(null); fetchTickets(); }}
-          className="flex items-center gap-2 text-sm text-[#6E6E73] hover:text-[#1D1D1F] mb-6 transition-colors"
+          className="flex items-center gap-2 text-sm text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white mb-6 transition-colors"
         >
           <ChevronLeft size={14} /> Back to tickets
         </button>
 
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 mb-6">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold text-[#4ECDC4] tracking-widest uppercase mb-1">{activeTicket.ticket_number}</p>
-              <h2 className="text-xl font-bold text-[#1D1D1F]">{activeTicket.subject}</h2>
+              <h2 className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{activeTicket.subject}</h2>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
-                <span className="text-xs text-[#A1A1A6]">From: <strong className="text-[#6E6E73]">{activeTicket.username}</strong> ({activeTicket.user_email})</span>
-                <span className="text-xs text-[#A1A1A6]">{CATEGORY_LABELS[activeTicket.category] || activeTicket.category}</span>
-                <span className="text-xs text-[#A1A1A6]">{fmtDate(activeTicket.created_at)}</span>
+                <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">From: <strong className="text-[#6E6E73] dark:text-[#a1a1aa]">{activeTicket.username}</strong> ({activeTicket.user_email})</span>
+                <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{CATEGORY_LABELS[activeTicket.category] || activeTicket.category}</span>
+                <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{fmtDate(activeTicket.created_at)}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase mb-1">Status</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase mb-1">Status</label>
                 <Select
                   size="sm"
                   value={activeTicket.status}
@@ -147,7 +147,7 @@ const TicketManagement = () => {
                 </Select>
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase mb-1">Priority</label>
+                <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase mb-1">Priority</label>
                 <Select
                   size="sm"
                   value={activeTicket.priority || 'normal'}
@@ -163,11 +163,11 @@ const TicketManagement = () => {
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 mb-4">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
           <div className="space-y-4 mb-6" style={{ maxHeight: '400px', overflowY: 'auto' }}>
             {(activeTicket.messages || []).map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[75%] px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]' : 'bg-[#1D1D1F] text-white'}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F]' : 'bg-[#1D1D1F] text-white'}`}>
                   <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A1A1A6]' : 'text-[#4ECDC4]'}`}>
                     {msg.sender === 'support' ? `⚡ ${msg.author_name} (Support)` : msg.author_name}
                     <span className="ml-2 font-normal opacity-60">{fmtDate(msg.timestamp)}</span>
@@ -178,16 +178,16 @@ const TicketManagement = () => {
             ))}
           </div>
 
-          {loadingTicket && <div className="flex justify-center py-4"><Loader2 className="animate-spin text-[#A1A1A6]" size={18} /></div>}
+          {loadingTicket && <div className="flex justify-center py-4"><Loader2 className="animate-spin text-[#A1A1A6] dark:text-[#71717a]" size={18} /></div>}
 
           {activeTicket.status !== 'closed' && (
-            <form onSubmit={sendReply} className="border-t border-[#D2D2D7] pt-4">
-              <label className="block text-xs font-semibold text-[#1D1D1F] mb-2">Reply as support</label>
+            <form onSubmit={sendReply} className="border-t border-[#D2D2D7] dark:border-[#2a2a3c] pt-4">
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">Reply as support</label>
               <textarea
                 rows={3}
                 value={reply}
                 onChange={e => setReply(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none mb-2"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] resize-none mb-2"
                 placeholder="Type your reply…"
               />
               {replyError && <p className="text-xs text-red-500 mb-2">{replyError}</p>}
@@ -202,7 +202,7 @@ const TicketManagement = () => {
             </form>
           )}
           {activeTicket.status === 'closed' && (
-            <p className="text-center text-xs text-[#A1A1A6] pt-4 border-t border-[#D2D2D7]">This ticket is closed.</p>
+            <p className="text-center text-xs text-[#A1A1A6] dark:text-[#71717a] pt-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">This ticket is closed.</p>
           )}
         </div>
       </div>
@@ -213,17 +213,17 @@ const TicketManagement = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#1D1D1F]">SUPPORT TICKETS</h2>
-          <p className="text-xs text-[#A1A1A6] mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
+          <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">SUPPORT TICKETS</h2>
+          <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
         </div>
-        <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
+        <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-[#6E6E73]"><Filter size={12} /> Filters:</div>
+        <div className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa]"><Filter size={12} /> Filters:</div>
         <Select
           size="sm"
           wrapperClassName="w-36"
@@ -247,14 +247,14 @@ const TicketManagement = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#A1A1A6]" size={24} /></div>
+        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#A1A1A6] dark:text-[#71717a]" size={24} /></div>
       ) : tickets.length === 0 ? (
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-16 text-center">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-16 text-center">
           <Ticket size={32} className="text-[#D2D2D7] mx-auto mb-3" />
-          <p className="text-sm text-[#A1A1A6]">No tickets found.</p>
+          <p className="text-sm text-[#A1A1A6] dark:text-[#71717a]">No tickets found.</p>
         </div>
       ) : (
-        <div className="bg-white border border-[#D2D2D7] divide-y divide-[#D2D2D7]">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7]">
           {tickets.map(t => (
             <button
               key={t.id}
@@ -264,7 +264,7 @@ const TicketManagement = () => {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-xs font-mono text-[#A1A1A6]">{t.ticket_number}</span>
+                    <span className="text-xs font-mono text-[#A1A1A6] dark:text-[#71717a]">{t.ticket_number}</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 border ${STATUS_COLORS[t.status] || STATUS_COLORS.open}`}>
                       {STATUS_LABELS[t.status] || t.status}
                     </span>
@@ -274,12 +274,12 @@ const TicketManagement = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-[#1D1D1F] truncate">{t.subject}</p>
-                  <p className="text-xs text-[#A1A1A6] mt-0.5">{t.username} · {t.user_email} · {CATEGORY_LABELS[t.category] || t.category}</p>
+                  <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{t.subject}</p>
+                  <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-0.5">{t.username} · {t.user_email} · {CATEGORY_LABELS[t.category] || t.category}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-[10px] text-[#A1A1A6]">{fmtDate(t.updated_at)}</p>
-                  <p className="text-[10px] text-[#A1A1A6] mt-0.5">{(t.messages || []).length} message{(t.messages || []).length !== 1 ? 's' : ''}</p>
+                  <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">{fmtDate(t.updated_at)}</p>
+                  <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-0.5">{(t.messages || []).length} message{(t.messages || []).length !== 1 ? 's' : ''}</p>
                 </div>
               </div>
             </button>
@@ -289,9 +289,9 @@ const TicketManagement = () => {
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3 mt-6">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] disabled:opacity-40 transition-colors">← Prev</button>
-          <span className="text-xs text-[#A1A1A6]">Page {page} / {pages}</span>
-          <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] disabled:opacity-40 transition-colors">Next →</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-40 transition-colors">← Prev</button>
+          <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Page {page} / {pages}</span>
+          <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages} className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-40 transition-colors">Next →</button>
         </div>
       )}
     </div>

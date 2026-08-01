@@ -66,49 +66,49 @@ export const AccountSettings = () => {
 
   return (
     <div className="max-w-lg">
-      <h2 className="text-2xl font-bold text-[#1D1D1F] mb-1">MY ACCOUNT</h2>
-      <p className="text-xs text-[#A1A1A6] mb-8">Update your display name and username.</p>
+      <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">MY ACCOUNT</h2>
+      <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-8">Update your display name and username.</p>
 
-      <div className="rounded-xl bg-white border border-[#D2D2D7] p-6">
-        <div className="flex items-center gap-3 pb-4 mb-6 border-b border-[#D2D2D7]">
-          <div className="rounded-lg w-10 h-10 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-bold text-[#6E6E73]">
+      <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
+        <div className="flex items-center gap-3 pb-4 mb-6 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+          <div className="rounded-lg w-10 h-10 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-bold text-[#6E6E73] dark:text-[#a1a1aa]">
               {(user?.firstName?.[0] || user?.username?.[0] || '?').toUpperCase()}
             </span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1D1D1F]">{user?.firstName} {user?.lastName}</p>
-            <p className="text-xs text-[#A1A1A6]">@{user?.username} · {user?.email}</p>
+            <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{user?.firstName} {user?.lastName}</p>
+            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">@{user?.username} · {user?.email}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">First name</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">First name</label>
               <input
                 type="text"
                 required
                 maxLength={50}
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Last name</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Last name</label>
               <input
                 type="text"
                 required
                 maxLength={50}
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Username</label>
+            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Username</label>
             <input
               type="text"
               required
@@ -117,9 +117,9 @@ export const AccountSettings = () => {
               pattern="[a-zA-Z0-9_]+"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
             />
-            <p className="text-[10px] text-[#A1A1A6] mt-1">3–32 characters, letters, numbers and underscores only.</p>
+            <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">3–32 characters, letters, numbers and underscores only.</p>
           </div>
 
           {error && <p className="text-xs text-red-500">{error}</p>}
@@ -142,42 +142,42 @@ export const AccountSettings = () => {
         </form>
       </div>
 
-      <p className="text-xs text-[#A1A1A6] mt-4">
+      <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-4">
         To change your email or password, go to your{' '}
-        <a href="/profile" className="underline hover:text-[#1D1D1F] transition-colors">public profile</a>.
+        <a href="/profile" className="underline hover:text-[#1D1D1F] dark:hover:text-white transition-colors">public profile</a>.
       </p>
 
       {/* Loyalty adjustment — admin only */}
       {canAdjustLoyalty && (
-        <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 mt-6">
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mt-6">
           <div className="flex items-center gap-2 mb-1">
             <Trophy size={14} className="text-[#F59E0B]" />
-            <h3 className="text-sm font-bold text-[#1D1D1F]">Loyalty Balance Adjustment</h3>
+            <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Loyalty Balance Adjustment</h3>
           </div>
-          <p className="text-xs text-[#A1A1A6] mb-4">Add or subtract loyalty spend ($) from your own account. Tier recalculates automatically.</p>
+          <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-4">Add or subtract loyalty spend ($) from your own account. Tier recalculates automatically.</p>
 
           <form onSubmit={handleLoyalty} className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Amount ($)</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Amount ($)</label>
               <input
                 type="number"
                 step="0.01"
                 required
                 value={loyaltyAmt}
                 onChange={e => setLoyaltyAmt(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                 placeholder="e.g. 50 or -10"
               />
-              <p className="text-[10px] text-[#A1A1A6] mt-0.5">Positive to add, negative to remove. Tiers: Bronze $0 · Silver $25 · Gold $100 · Diamond $250</p>
+              <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-0.5">Positive to add, negative to remove. Tiers: Bronze $0 · Silver $25 · Gold $100 · Diamond $250</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Reason (optional)</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Reason (optional)</label>
               <input
                 type="text"
                 maxLength={100}
                 value={loyaltyReason}
                 onChange={e => setLoyaltyReason(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                 placeholder="Test, correction, bonus…"
               />
             </div>

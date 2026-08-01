@@ -115,7 +115,7 @@ export const BlogManagement = () => {
                   <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Cover Image</p>
                   <div className="flex items-center gap-3">
                     {form.image_url && (
-                      <img src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url} alt="" className="w-20 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />
+                      <img src={form.image_url.startsWith('/') ? `${API_URL}${form.image_url}` : form.image_url} alt="" className="rounded-xl w-20 h-14 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c]" />
                     )}
                     <label className="cursor-pointer">
                       <Button variant="secondary" size="sm" icon={Upload} loading={uploading} as="span">
@@ -146,10 +146,10 @@ export const BlogManagement = () => {
           ) : (
             <div className="space-y-2" data-testid="blog-list">
               {posts.map(p => (
-                <div key={p.slug} className="flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#F2994A]/20 transition-colors">
+                <div key={p.slug} className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#F2994A]/20 transition-colors">
                   {p.image_url
-                    ? <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt="" className="w-16 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0" />
-                    : <div className="w-16 h-12 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><FileText size={16} className="text-[#6E6E73]" /></div>}
+                    ? <img src={p.image_url.startsWith('/') ? `${API_URL}${p.image_url}` : p.image_url} alt="" className="rounded-xl w-16 h-12 object-cover border border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0" />
+                    : <div className="rounded-xl w-16 h-12 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center shrink-0"><FileText size={16} className="text-[#6E6E73]" /></div>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{p.title}</h4>
