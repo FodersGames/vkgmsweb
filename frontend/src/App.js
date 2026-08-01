@@ -76,7 +76,7 @@ function App() {
             <AppRoutes />
             <CookieBanner />
           </BrowserRouter>
-          <Toaster position="top-right" />
+          <Toaster position="bottom-right" />
         </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>

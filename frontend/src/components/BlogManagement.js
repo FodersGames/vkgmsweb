@@ -41,7 +41,7 @@ export const BlogManagement = () => {
       fd.append('file', file);
       const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setForm(p => ({ ...p, image_url: r.data.url }));
-    } catch (e) { toast.error('Upload failed'); }
+    } catch (e) { toast.error(e.response?.data?.detail || 'Upload failed'); }
     finally { setUploading(false); }
   };
 

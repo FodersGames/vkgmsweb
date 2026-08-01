@@ -53,21 +53,3 @@ export const Textarea = React.forwardRef(function Textarea(
   );
 });
 
-export const Select = React.forwardRef(function Select(
-  { label, error, children, className = '', wrapperClassName = '', ...props },
-  ref
-) {
-  return (
-    <div className={wrapperClassName}>
-      <Label>{label}</Label>
-      <select
-        ref={ref}
-        className={`${BASE_INPUT} h-9 ${borderClass(error)} ${className}`}
-        {...props}
-      >
-        {children}
-      </select>
-      <FieldError>{error}</FieldError>
-    </div>
-  );
-});

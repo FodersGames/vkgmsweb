@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { MessageCircle, X, Send, ChevronLeft, ExternalLink, Loader2, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import { Select } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -230,13 +231,12 @@ export const SupportWidget = ({ user }) => {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Category</label>
-                      <select
+                      <Select
                         value={form.category}
                         onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                       >
                         {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                      </select>
+                      </Select>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Subject</label>

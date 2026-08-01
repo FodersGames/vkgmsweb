@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { Select } from '../ui';
 import { Send, MessageCircle, Mail, Ticket, CheckCircle, Loader2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -141,15 +142,14 @@ const Contact = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Category</label>
-                    <select
+                    <Select
                       value={form.category}
                       onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                     >
                       {CATEGORIES.map(c => (
                         <option key={c.value} value={c.value}>{c.label}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Subject</label>

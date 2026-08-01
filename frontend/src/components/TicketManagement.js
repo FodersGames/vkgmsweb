@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Ticket, ChevronLeft, Send, Loader2, RefreshCw, Filter } from 'lucide-react';
 import axios from 'axios';
+import { Select } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -136,27 +137,27 @@ const TicketManagement = () => {
             <div className="flex items-center gap-3 flex-wrap">
               <div>
                 <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase mb-1">Status</label>
-                <select
+                <Select
+                  size="sm"
                   value={activeTicket.status}
                   onChange={e => updateTicket('status', e.target.value)}
                   disabled={updatingStatus}
-                  className="text-xs border border-[#D2D2D7] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                 >
                   {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="block text-[10px] font-semibold text-[#A1A1A6] uppercase mb-1">Priority</label>
-                <select
+                <Select
+                  size="sm"
                   value={activeTicket.priority || 'normal'}
                   onChange={e => updateTicket('priority', e.target.value)}
                   disabled={updatingStatus}
-                  className="text-xs border border-[#D2D2D7] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
                 >
                   <option value="normal">Normal</option>
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
-                </select>
+                </Select>
               </div>
             </div>
           </div>
@@ -223,24 +224,26 @@ const TicketManagement = () => {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-1.5 text-xs text-[#6E6E73]"><Filter size={12} /> Filters:</div>
-        <select
+        <Select
+          size="sm"
+          wrapperClassName="w-36"
           value={filterStatus}
           onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-          className="text-xs border border-[#D2D2D7] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
         >
           <option value="">All statuses</option>
           {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <select
+        </Select>
+        <Select
+          size="sm"
+          wrapperClassName="w-36"
           value={filterPriority}
           onChange={e => { setFilterPriority(e.target.value); setPage(1); }}
-          className="text-xs border border-[#D2D2D7] px-2 py-1.5 focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
         >
           <option value="">All priorities</option>
           <option value="normal">Normal</option>
           <option value="high">High</option>
           <option value="urgent">Urgent</option>
-        </select>
+        </Select>
       </div>
 
       {loading ? (

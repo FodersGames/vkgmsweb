@@ -50,7 +50,7 @@ export const GamesManagement = () => {
       const fd = new FormData(); fd.append('file', file);
       const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       return r.data.url;
-    } catch (e) { toast.error('Upload failed'); return null; }
+    } catch (e) { toast.error(e.response?.data?.detail || 'Upload failed'); return null; }
     finally { setUploading(false); }
   };
 

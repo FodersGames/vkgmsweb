@@ -125,21 +125,26 @@ export const CliConsole = () => {
         </p>
       </div>
 
-      {/* Terminal */}
+      {/* Terminal window */}
       <div
-        className="bg-[#12100E] border border-[#3A3A3C] overflow-hidden"
+        className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10"
         onClick={() => inputRef.current?.focus()}
       >
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#3A3A3C] bg-[#1D1D1F]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#EB5757]/70" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#F2994A]/70" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#4ECDC4]/70" />
-          <span className="ml-2 text-[11px] text-[#6E6E73] font-mono">super-admin-cli</span>
+        {/* Title bar */}
+        <div className="relative flex items-center h-9 px-3.5 bg-gradient-to-b from-[#4a4a4a] to-[#383838] border-b border-black/40">
+          <div className="flex items-center gap-[7px]">
+            <span className="w-3 h-3 rounded-full bg-[#FF5F57] ring-1 ring-black/10" />
+            <span className="w-3 h-3 rounded-full bg-[#FEBC2E] ring-1 ring-black/10" />
+            <span className="w-3 h-3 rounded-full bg-[#28C840] ring-1 ring-black/10" />
+          </div>
+          <span className="absolute left-1/2 -translate-x-1/2 text-[12.5px] font-medium text-white/70">
+            super-admin — vakargames-cli
+          </span>
         </div>
 
         <div
           ref={scrollRef}
-          className="h-[440px] overflow-y-auto px-4 py-3 font-mono text-[13px] leading-relaxed"
+          className="h-[440px] overflow-y-auto px-4 py-3 bg-[#1a1a1a] font-mono text-[13px] leading-relaxed"
         >
           {lines.map((l, i) => (
             <div key={i} className={`whitespace-pre-wrap break-words ${colorFor(l.type)}`}>
@@ -149,26 +154,26 @@ export const CliConsole = () => {
           {pending && (
             <div className="text-[#F2994A]">Confirm? (y/n)</div>
           )}
-        </div>
 
-        <form onSubmit={submit} className="flex items-center gap-2 px-4 py-3 border-t border-[#3A3A3C]">
-          <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
-            {pending ? 'confirm>' : 'vakargames-cli>'}
-          </span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={onKeyDown}
-            disabled={busy}
-            autoFocus
-            spellCheck={false}
-            autoComplete="off"
-            placeholder={pending ? 'y / n' : "type a command… ('help' for the list)"}
-            className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73] focus:outline-none disabled:opacity-50"
-          />
-        </form>
+          <form onSubmit={submit} className="flex items-center gap-2 mt-0.5">
+            <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
+              {pending ? 'confirm>' : 'vakargames-cli>'}
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              disabled={busy}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+              placeholder={pending ? 'y / n' : "type a command… ('help' for the list)"}
+              className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73]/60 focus:outline-none disabled:opacity-50"
+            />
+          </form>
+        </div>
       </div>
     </div>
   );

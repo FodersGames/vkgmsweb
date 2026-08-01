@@ -10,9 +10,9 @@ import {
 } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Button, Card, CardHeader, CardBody, EmptyState } from '../ui';
+import { Button, Card, CardHeader, CardBody, EmptyState, Select } from '../ui';
 
-const inputClass = 'w-full bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]';
+const inputClass = 'w-full rounded-lg bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm px-3 py-2.5 focus:border-[#6C5CE7] focus:outline-none transition-colors placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]';
 const labelClass = 'block text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] mb-1.5 uppercase tracking-widest';
 
 const PRIORITY = {
@@ -97,7 +97,7 @@ const RefImageCard = ({ url, onZoom }) => {
   const filename = url.split('/').pop();
   const ext = filename.split('.').pop()?.toUpperCase();
   return (
-    <div className="relative group overflow-hidden border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14] flex-shrink-0">
+    <div className="relative group overflow-hidden rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14] flex-shrink-0">
       <img src={src} alt="" className="h-28 w-auto max-w-[140px] object-contain block" />
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -132,7 +132,7 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
             const filename = f.filename || f.url.split('/').pop();
             const ext = filename.split('.').pop()?.toUpperCase();
             return (
-              <div key={i} className="relative group overflow-hidden border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14] aspect-square">
+              <div key={i} className="relative group overflow-hidden rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14] aspect-square">
                 <img src={src} alt={filename} className="w-full h-full object-contain" />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/55 transition-all flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
@@ -166,7 +166,7 @@ const DeliveryFilesDisplay = ({ files, onZoom }) => {
         const filename = f.filename || f.url?.split('/').pop() || 'file';
         return (
           <button key={i} onClick={() => downloadFile(f.url, filename)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 group transition-all text-left">
             <FileText size={13} className="text-[#6E6E73] group-hover:text-[#27AE60] transition-colors shrink-0" />
             <span className="text-xs font-medium text-[#3A3A3C] dark:text-[#e4e4e7] flex-1 truncate">{filename}</span>
             {f.size && <span className="text-[10px] text-[#6E6E73] shrink-0">{fmtSize(f.size)}</span>}
@@ -361,7 +361,7 @@ export const MissionsManagement = () => {
         <div className="flex flex-wrap gap-1.5">
           {FILTERS.map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-xs font-semibold transition-all capitalize flex items-center gap-1.5 ${
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all capitalize flex items-center gap-1.5 ${
                 filter === f
                   ? 'bg-[#6C5CE7] text-white'
                   : 'bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#6E6E73] hover:border-[#6C5CE7]/40'
@@ -385,7 +385,7 @@ export const MissionsManagement = () => {
         <Card className="overflow-hidden border-[#6C5CE7]/30">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
+              <div className="rounded-lg w-7 h-7 flex items-center justify-center" style={{ backgroundColor: '#6C5CE718' }}>
                 <ClipboardList size={13} style={{ color: '#6C5CE7' }} />
               </div>
               <span className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
@@ -403,9 +403,9 @@ export const MissionsManagement = () => {
               </div>
               <div className="w-36 shrink-0">
                 <label className={labelClass}>Priority</label>
-                <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className={inputClass}>
+                <Select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
                   {Object.entries(PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
+                </Select>
               </div>
             </div>
             <div>
@@ -424,7 +424,7 @@ export const MissionsManagement = () => {
               <label className={labelClass}>Reference Files <span className="text-[#6E6E73] normal-case font-normal">(images, SVG…)</span></label>
               <div className="flex flex-wrap gap-2">
                 {form.reference_images.map((url, idx) => (
-                  <div key={idx} className="relative group w-20 h-20 overflow-hidden border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14]">
+                  <div key={idx} className="relative group w-20 h-20 overflow-hidden rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#EDEDEF] dark:bg-[#0d0d14]">
                     <img src={resolveUrl(url)} alt="" className="w-full h-full object-contain" />
                     <button onClick={() => setForm(f => ({ ...f, reference_images: f.reference_images.filter((_, i) => i !== idx) }))}
                       className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -432,7 +432,7 @@ export const MissionsManagement = () => {
                     </button>
                   </div>
                 ))}
-                <label className={`w-20 h-20 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-[#A1A1A6] dark:text-[#6E6E73] ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
+                <label className={`w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors text-[#A1A1A6] dark:text-[#6E6E73] ${uploadingRef ? 'opacity-50 cursor-wait' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#6C5CE7]/50 hover:text-[#6C5CE7]'}`}>
                   <Upload size={16} />
                   <span className="text-[10px] mt-1">{uploadingRef ? '…' : 'Add'}</span>
                   <input type="file" accept="image/*,.svg" className="hidden" onChange={uploadRefImage} disabled={uploadingRef} />
@@ -478,7 +478,7 @@ export const MissionsManagement = () => {
 
             return (
               <div key={m.id}
-                className={`bg-white dark:bg-[#151520] border transition-all overflow-hidden ${
+                className={`rounded-xl bg-white dark:bg-[#151520] border transition-all overflow-hidden ${
                   m.status === 'completed'   ? 'border-[#27AE60]/30' :
                   m.status === 'cancelled'   ? 'border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60' :
                   m.status === 'in_progress' ? 'border-[#F2994A]/40' :
@@ -515,7 +515,7 @@ export const MissionsManagement = () => {
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                       {hasDetails && (
                         <button onClick={() => { setExpandedMission(isExpanded ? null : m.id); resetCompletionForm(); resetReopenForm(); }}
-                          className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium bg-[#EDEDEF] dark:bg-[#1c1c2e] text-[#6E6E73] dark:text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-white transition-all">
+                          className="rounded-full flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium bg-[#EDEDEF] dark:bg-[#1c1c2e] text-[#6E6E73] dark:text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-white transition-all">
                           <ImageIcon size={11} />
                           {m.reference_images?.length > 0 && m.reference_images.length}
                           <ChevronDown size={10} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -523,7 +523,7 @@ export const MissionsManagement = () => {
                       )}
                       {m.status === 'open' && canClaim && (
                         <button onClick={() => claimMission(m.id)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] border border-[#4ECDC4]/30 transition-all">
+                          className="rounded-full flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] border border-[#4ECDC4]/30 transition-all">
                           <UserCheck size={12} />Claim
                         </button>
                       )}
@@ -531,31 +531,31 @@ export const MissionsManagement = () => {
                         <>
                           {!isCompleting && (
                             <button onClick={() => { setCompletingId(m.id); setPendingFiles([]); resetReopenForm(); setExpandedMission(m.id); }}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#27AE60]/10 hover:bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30 transition-all">
+                              className="rounded-full flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#27AE60]/10 hover:bg-[#27AE60]/20 text-[#27AE60] border border-[#27AE60]/30 transition-all">
                               <CheckCircle size={12} />Submit Work
                             </button>
                           )}
                           <button onClick={() => unclaimMission(m.id)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#EDEDEF] dark:bg-[#111118] text-[#6E6E73] dark:text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] transition-all">
+                            className="rounded-full flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#EDEDEF] dark:bg-[#111118] text-[#6E6E73] dark:text-[#6E6E73] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] transition-all">
                             <Undo2 size={12} />Unclaim
                           </button>
                         </>
                       )}
                       {m.status === 'completed' && canReopenThis && !isReopening && (
                         <button onClick={() => { setReopeningId(m.id); setReopenFeedback(''); setKeepAssigned(true); resetCompletionForm(); setExpandedMission(m.id); }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#EB5757]/10 hover:bg-[#EB5757]/20 text-[#EB5757] border border-[#EB5757]/30 transition-all">
+                          className="rounded-full flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-[#EB5757]/10 hover:bg-[#EB5757]/20 text-[#EB5757] border border-[#EB5757]/30 transition-all">
                           <RotateCcw size={12} />Reopen
                         </button>
                       )}
                       {canEditThis && m.status !== 'completed' && m.status !== 'cancelled' && (
                         <button onClick={() => openEdit(m)}
-                          className="p-1.5 text-[#A1A1A6] dark:text-[#6E6E73] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
+                          className="rounded-lg p-1.5 text-[#A1A1A6] dark:text-[#6E6E73] hover:text-[#6C5CE7] hover:bg-[#6C5CE7]/10 transition-all">
                           <Edit2 size={13} />
                         </button>
                       )}
                       {canDeleteThis && (
                         <button onClick={() => deleteMission(m)}
-                          className="p-1.5 text-[#A1A1A6] dark:text-[#6E6E73] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
+                          className="rounded-lg p-1.5 text-[#A1A1A6] dark:text-[#6E6E73] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all">
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -573,7 +573,7 @@ export const MissionsManagement = () => {
                         <p className="text-xs font-semibold text-[#27AE60] mb-3 flex items-center gap-1.5">
                           <CheckCircle size={13} />Submit your work files
                         </p>
-                        <label className={`flex flex-col items-center justify-center gap-2 w-full py-5 border-2 border-dashed cursor-pointer transition-all ${uploadingDelivery ? 'opacity-50 cursor-wait border-[#27AE60]/30' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5'}`}>
+                        <label className={`rounded-xl flex flex-col items-center justify-center gap-2 w-full py-5 border-2 border-dashed cursor-pointer transition-all ${uploadingDelivery ? 'opacity-50 cursor-wait border-[#27AE60]/30' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#27AE60]/50 hover:bg-[#27AE60]/5'}`}>
                           <Upload size={20} className="text-[#A1A1A6] dark:text-[#6E6E73]" />
                           <div className="text-center">
                             <p className="text-xs font-semibold text-[#3A3A3C] dark:text-[#e4e4e7]">{uploadingDelivery ? 'Uploading…' : 'Click to add files'}</p>
@@ -599,11 +599,11 @@ export const MissionsManagement = () => {
                         )}
                         <div className="flex gap-2 mt-3">
                           <button onClick={submitCompletion}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#27AE60] hover:bg-[#219a52] text-white text-sm font-semibold transition-all">
+                            className="rounded-full flex items-center gap-1.5 px-4 py-2 bg-[#27AE60] hover:bg-[#219a52] text-white text-sm font-semibold transition-all">
                             <CheckCircle size={13} />Mark as Done
                           </button>
                           <button onClick={resetCompletionForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-[#EDEDEF] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#6E6E73] text-sm font-semibold transition-all">
+                            className="rounded-full flex items-center gap-1.5 px-3 py-2 bg-[#EDEDEF] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#6E6E73] text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>
@@ -625,11 +625,11 @@ export const MissionsManagement = () => {
                         </label>
                         <div className="flex gap-2 mt-3">
                           <button onClick={submitReopen} disabled={!reopenFeedback.trim()}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#EB5757] hover:bg-[#d44] disabled:opacity-40 text-white text-sm font-semibold transition-all">
+                            className="rounded-full flex items-center gap-1.5 px-4 py-2 bg-[#EB5757] hover:bg-[#d44] disabled:opacity-40 text-white text-sm font-semibold transition-all">
                             <RotateCcw size={13} />Reopen Mission
                           </button>
                           <button onClick={resetReopenForm}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-[#EDEDEF] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#6E6E73] text-sm font-semibold transition-all">
+                            className="rounded-full flex items-center gap-1.5 px-3 py-2 bg-[#EDEDEF] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#6E6E73] text-sm font-semibold transition-all">
                             <X size={13} />Cancel
                           </button>
                         </div>
