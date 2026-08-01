@@ -3026,7 +3026,8 @@ async def create_coupon_campaign(req: CouponCampaignRequest, user=Depends(requir
             f"🎁 You received a promo code: {code} — {req.discount_pct}% off{scope_str}. "
             f"Valid until {valid_until.strftime('%Y-%m-%d')}. Enter it at checkout!"
         )
-        await _create_notification(str(u["_id"]), msg, notif_type="coupon", link="/shop")
+        coupon_link = "/games" if req.scope == "game" else "/shop"
+        await _create_notification(str(u["_id"]), msg, notif_type="coupon", link=coupon_link)
         codes_sent += 1
 
     await db.coupon_campaigns.insert_one({

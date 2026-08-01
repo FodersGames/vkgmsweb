@@ -77,8 +77,8 @@ const defaultForm = {
   active: true, category: '', subcategory: '', featured: false,
 };
 
-const IN = 'w-full rounded-lg bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6]';
-const LBL = 'block text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-[0.14em] mb-1.5';
+const IN = 'w-full rounded-lg bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]';
+const LBL = 'block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-[0.14em] mb-1.5';
 
 // ── Main component ────────────────────────────────────────────────────────────
 export const ShopManagement = () => {

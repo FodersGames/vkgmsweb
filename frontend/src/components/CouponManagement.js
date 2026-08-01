@@ -290,7 +290,7 @@ export const CouponManagement = () => {
                       placeholder="Search by email or username…"
                       className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                     />
-                    <div className="rounded-xl max-h-40 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#F3F0EC]">
+                    <div className="rounded-xl max-h-40 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c]">
                       {filteredUsers.slice(0, 50).map(u => (
                         <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] cursor-pointer">
                           <input
@@ -397,7 +397,7 @@ export const CouponManagement = () => {
                           <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Remaining</p>
                         </div>
                       </div>
-                      <div className="rounded-xl max-h-60 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#F3F0EC]">
+                      <div className="rounded-xl max-h-60 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c]">
                         {campaignDetail.codes.map(code => (
                           <div key={code.id} className="flex items-center justify-between px-3 py-2 text-xs">
                             <span className="font-mono font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{code.code}</span>

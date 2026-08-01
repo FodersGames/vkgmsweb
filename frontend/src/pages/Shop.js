@@ -514,10 +514,10 @@ const Shop = () => {
 
       {/* Buy modal */}
       {buying && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1D1D1F]/50">
-          <div className="rounded-xl bg-white border border-[#D2D2D7] w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+          <div className="animate-appear rounded-2xl liquid-glass w-full max-w-md">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-[#D2D2D7] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-[#D2D2D7]/60 flex items-center justify-between">
               <h3 className="font-bold text-[#1D1D1F] text-sm">{buying.name}</h3>
               <button onClick={() => setBuying(null)} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
                 <X size={16} />

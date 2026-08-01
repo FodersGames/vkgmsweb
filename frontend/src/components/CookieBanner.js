@@ -30,12 +30,12 @@ export const CookieBanner = () => {
 
   return (
     <div
-      className="fixed bottom-6 left-6 z-[60] w-[320px] rounded-2xl overflow-hidden bg-[#1D1D1F] border border-[#3A3A3C] shadow-2xl"
+      className="animate-appear fixed bottom-6 left-6 z-[60] w-[320px] rounded-2xl overflow-hidden liquid-glass-dark"
       role="dialog"
       aria-label="Cookie consent"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#3A3A3C]">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
           <Cookie size={14} className="text-[#4ECDC4]" />
           <span className="text-sm font-bold text-white tracking-wide">Cookies</span>

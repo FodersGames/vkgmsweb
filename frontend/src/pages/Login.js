@@ -62,7 +62,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="rounded-xl bg-white border border-[#D2D2D7] max-w-md w-full p-8 shadow-xl">
+      <div className="animate-appear rounded-2xl liquid-glass max-w-md w-full p-8">
         <div className="mb-6">
           <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <AlertTriangle size={18} className="text-amber-600" />
@@ -184,7 +184,11 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F5F5F7]">
+    <div className="relative min-h-screen overflow-hidden flex items-center justify-center p-4 bg-[#F5F5F7]">
+      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
+        <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
+      </div>
 
       {mustChange && (
         <ChangePasswordModal onSuccess={() => navigate('/dashboard')} />
@@ -203,9 +207,9 @@ export const Login = () => {
           </p>
         </div>
 
-        <div className="rounded-xl bg-white border border-[#D2D2D7] shadow-sm overflow-hidden">
+        <div className="animate-appear rounded-2xl liquid-glass overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-[#D2D2D7]">
+          <div className="flex border-b border-[#D2D2D7]/60">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}

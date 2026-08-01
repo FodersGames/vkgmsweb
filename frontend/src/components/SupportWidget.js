@@ -133,7 +133,7 @@ export const SupportWidget = ({ user }) => {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shadow-lg hover:bg-[#3A3A3C] transition-colors"
+        className="glass-sheen fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shadow-lg hover:bg-[#3A3A3C] transition-colors"
         aria-label="Support"
       >
         <MessageCircle size={20} />
@@ -143,9 +143,9 @@ export const SupportWidget = ({ user }) => {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 rounded-2xl overflow-hidden bg-white border border-[#D2D2D7] shadow-xl flex flex-col" style={{ maxHeight: '520px' }}>
+        <div className="animate-appear fixed bottom-24 right-6 z-50 w-80 rounded-2xl overflow-hidden liquid-glass flex flex-col" style={{ maxHeight: '520px' }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#1D1D1F] text-white">
+          <div className="flex items-center justify-between px-4 py-3 liquid-glass-dark rounded-none border-x-0 border-t-0">
             <div className="flex items-center gap-2">
               {view !== 'menu' && (
                 <button onClick={() => { setView('menu'); setSuccess(''); setError(''); setActiveTicket(null); }} className="hover:text-white/70 transition-colors mr-1">

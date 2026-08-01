@@ -27,8 +27,8 @@ export const PublicNav = ({ onAbout }) => {
   return (
     <>
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 ${scrolled ? 'border-[#D2D2D7]' : 'border-transparent'}`}
-      style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(14px) saturate(180%)', WebkitBackdropFilter: 'blur(14px) saturate(180%)' }}
+      className="fixed top-0 left-0 right-0 z-50 liquid-glass rounded-none transition-[box-shadow] duration-500"
+      style={scrolled ? {} : { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }}
     >
       <div className="max-w-[1040px] mx-auto px-6 h-[52px] flex items-center justify-between">
         <div className="flex items-center gap-8">
@@ -76,7 +76,7 @@ export const PublicNav = ({ onAbout }) => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] rounded-full px-2.5 py-1.5 transition-all"
+                  className="liquid-glass liquid-glass-interactive inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] rounded-full px-2.5 py-1.5"
                 >
                   <LayoutDashboard size={12} />
                   Admin
@@ -95,7 +95,7 @@ export const PublicNav = ({ onAbout }) => {
           ) : (
             <Link
               to="/login"
-              className="inline-flex items-center text-[13px] font-medium px-4 py-1.5 rounded-full bg-[#1D1D1F] text-white hover:opacity-80 transition-opacity"
+              className="glass-sheen inline-flex items-center text-[13px] font-medium px-4 py-1.5 rounded-full bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] transition-colors"
             >
               Sign In
             </Link>
@@ -113,7 +113,7 @@ export const PublicNav = ({ onAbout }) => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-white border-t border-[#D2D2D7] px-6 py-3 space-y-0.5">
+        <div className="md:hidden liquid-glass rounded-none px-6 py-3 space-y-0.5">
           {onAbout && (
             <button
               onClick={() => { onAbout(); setOpen(false); }}

@@ -51,10 +51,18 @@ const Home = () => {
       <PublicNav onAbout={scrollToAbout} />
 
       {/* Hero */}
-      <section className="pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
+      <section className="relative overflow-hidden pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
+        {/* Ambient glow — the color the glass badge below refracts */}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+          <div className="absolute -top-40 left-1/2 -translate-x-[62%] w-[560px] h-[560px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
+          <div className="absolute -top-24 left-1/2 translate-x-[8%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
+        </div>
+
         <div className="max-w-[1040px] mx-auto">
-          <Reveal as="p" className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">
-            Independent Software Company — Est. 2024
+          <Reveal as="div" className="mb-6 flex justify-center">
+            <span className="liquid-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-[#3A3A3C]">
+              Independent Software Company — Est. 2024
+            </span>
           </Reveal>
           <Reveal
             as="h1"
@@ -67,12 +75,18 @@ const Home = () => {
           <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
             Vakar Games is a software company crafting applications, tools and games — for the public and for professionals alike. Small team, deliberate choices, no shortcuts on what matters.
           </Reveal>
-          <Reveal as="div" className="flex items-center justify-center gap-7 mt-8 flex-wrap">
-            <button onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })} className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
-              Explore our work <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+          <Reveal as="div" className="flex items-center justify-center gap-3 mt-9 flex-wrap">
+            <button
+              onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
+              className="liquid-glass liquid-glass-interactive rounded-full inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1D1D1F] px-5 py-2.5 group"
+            >
+              Explore our work <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
             </button>
-            <button onClick={scrollToAbout} className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
-              Meet the company <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            <button
+              onClick={scrollToAbout}
+              className="rounded-full inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#1D1D1F] px-5 py-2.5 transition-colors group"
+            >
+              Meet the company <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
             </button>
           </Reveal>
         </div>

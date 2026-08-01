@@ -118,3 +118,65 @@
   .theme-transition,
   .theme-transition * { transition: none; }
 }
+
+/* ── Liquid glass (public site) ───────────────────────────────────────────
+   Apple's translucent, light-catching material: heavy blur+saturation to
+   pull color from whatever sits behind it, a bright inset edge that reads
+   as a highlight rather than a flat border, and a soft floating shadow so
+   the surface feels like it's hovering above the page, not stuck to it. */
+.liquid-glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -1px 0 rgba(0,0,0,0.02),
+    0 1px 2px rgba(0,0,0,0.04),
+    0 12px 32px -10px rgba(0,0,0,0.14);
+}
+
+.liquid-glass-dark {
+  background: linear-gradient(180deg, rgba(24,24,26,0.82), rgba(24,24,26,0.64));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    0 1px 2px rgba(0,0,0,0.2),
+    0 20px 50px -14px rgba(0,0,0,0.5);
+}
+
+.liquid-glass-interactive {
+  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s ease;
+}
+.liquid-glass-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset 0 -1px 0 rgba(0,0,0,0.02),
+    0 2px 6px rgba(0,0,0,0.05),
+    0 18px 44px -10px rgba(0,0,0,0.18);
+}
+.liquid-glass-interactive:active {
+  transform: translateY(0px) scale(0.985);
+}
+
+/* Diagonal specular sweep for glass buttons/pills — only used on elements
+   with no overflowing children, since it relies on overflow:hidden. */
+.glass-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.glass-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 28%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-interactive,
+  .liquid-glass-interactive:hover { transition: none; transform: none; }
+}
