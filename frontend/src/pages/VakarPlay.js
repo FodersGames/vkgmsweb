@@ -8,11 +8,11 @@ import { Gamepad2, Clock, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const MINT = '#10B981';
-const MINT_DARK = '#059669';
-const MINT_BG = '#F0FDF4';
-const MINT_LIGHT = '#D1FAE5';
-const MINT_MID = '#6EE7B7';
+const MINT = '#7C3AED';
+const MINT_DARK = '#5B21B6';
+const MINT_BG = '#F5F3FF';
+const MINT_LIGHT = '#EDE9FE';
+const MINT_MID = '#A78BFA';
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Never';
@@ -34,9 +34,9 @@ function GameCard({ game }) {
     : null;
 
   return (
-    <div className="bg-white border border-[#E2F5EC] hover:border-[#A7F3D0] transition-colors overflow-hidden">
+    <div className="rounded-xl bg-white border border-[#EDE4FD] hover:border-[#C4B5FD] transition-colors overflow-hidden">
       {/* Game logo / cover */}
-      <div className="relative w-full bg-[#F0FDF4]" style={{ height: 160 }}>
+      <div className="relative w-full bg-[#F5F3FF]" style={{ height: 160 }}>
         {coverUrl && !imgError ? (
           <img
             src={coverUrl}
@@ -93,7 +93,7 @@ export default function VakarPlay() {
       <div className="pt-[52px] flex-1">
 
         {/* Hero */}
-        <section className="bg-white border-b border-[#E2F5EC] px-6 md:px-10 lg:px-16 pt-14 pb-10">
+        <section className="bg-white border-b border-[#EDE4FD] px-6 md:px-10 lg:px-16 pt-14 pb-10">
           <div className="max-w-screen-xl mx-auto">
             <p className="text-xs font-semibold mb-3" style={{ color: MINT }}>
               Vakar Play
@@ -114,7 +114,7 @@ export default function VakarPlay() {
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map(i => <div key={i} className="h-56 bg-[#D1FAE5] animate-pulse" />)}
+              {[1, 2, 3, 4].map(i => <div key={i} className="rounded-xl h-56 bg-[#EDE9FE] animate-pulse" />)}
             </div>
           ) : error ? (
             <div className="text-center py-24">
@@ -123,7 +123,7 @@ export default function VakarPlay() {
           ) : games.length === 0 ? (
             <div className="text-center py-24">
               <div
-                className="w-16 h-16 flex items-center justify-center mx-auto mb-5"
+                className="rounded-xl w-16 h-16 flex items-center justify-center mx-auto mb-5"
                 style={{ background: MINT_LIGHT }}
               >
                 <Gamepad2 size={28} style={{ color: MINT_DARK }} />
@@ -136,7 +136,7 @@ export default function VakarPlay() {
               </p>
               <Link
                 to="/games"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 transition-colors"
+                className="rounded-full inline-flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 transition-colors"
                 style={{ background: MINT_DARK }}
               >
                 Discover our games <ChevronRight size={14} />

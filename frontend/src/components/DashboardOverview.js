@@ -43,7 +43,7 @@ const PanelHead = ({ title, action }) => (
   </div>
 );
 
-export const DashboardOverview = ({ setActiveTab }) => {
+export const DashboardOverview = ({ goTo }) => {
   const { user, hasPermission } = useAuth();
   const { projects, selectedProject } = useProject();
 
@@ -195,7 +195,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
           </p>
           {canSeeProjects && (
             <button
-              onClick={() => setActiveTab('projects')}
+              onClick={() => goTo('projects')}
               className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
             >
               View projects <ArrowRight size={13} />
@@ -215,7 +215,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
                 title="Recent activity"
                 action={
                   <button
-                    onClick={() => setActiveTab('logs')}
+                    onClick={() => goTo('projects', 'logs')}
                     className="text-[12.5px] font-medium text-[#4ECDC4] hover:text-[#45b8b0] flex items-center gap-1 transition-colors"
                   >
                     View all logs
@@ -279,7 +279,7 @@ export const DashboardOverview = ({ setActiveTab }) => {
                     return (
                       <button
                         key={action.tab}
-                        onClick={() => setActiveTab(action.tab)}
+                        onClick={() => goTo('projects', action.tab)}
                         className="w-full flex items-center gap-3 px-5 py-3.5 border-b border-[#EDEDEF] last:border-0 hover:bg-[#F5F5F7] transition-colors text-left"
                       >
                         <Icon size={15} className="text-[#A1A1A6] shrink-0" />
@@ -317,16 +317,16 @@ export const DashboardOverview = ({ setActiveTab }) => {
 
                 <div className="flex items-center gap-2 flex-wrap mt-4">
                   {canSeeLogs && (
-                    <button onClick={() => setActiveTab('logs')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
+                    <button onClick={() => goTo('projects', 'logs')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
                       Logs
                     </button>
                   )}
                   {canSeeVariables && (
-                    <button onClick={() => setActiveTab('variables')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
+                    <button onClick={() => goTo('projects', 'variables')} className="text-xs font-medium rounded-full text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-1.5 transition-colors">
                       Variables
                     </button>
                   )}
-                  <button onClick={() => setActiveTab('status')} className="text-xs font-medium rounded-full bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] px-3 py-1.5 transition-colors">
+                  <button onClick={() => goTo('projects', 'status')} className="text-xs font-medium rounded-full bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] px-3 py-1.5 transition-colors">
                     Manage status
                   </button>
                 </div>

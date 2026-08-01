@@ -22,7 +22,7 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           autoComplete={autoComplete}
           placeholder={placeholder}
           required
-          className="w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
+          className="w-full rounded-lg pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
         />
         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
           {show ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -44,7 +44,7 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
         placeholder={placeholder}
         autoComplete={autoComplete}
         required
-        className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]`}
+        className={`w-full rounded-lg ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]`}
       />
     </div>
   </div>
@@ -83,9 +83,9 @@ const LoyaltyWidget = ({ loyalty }) => {
       </div>
 
       {/* Track */}
-      <div className="relative h-px bg-[#D2D2D7] mb-2">
+      <div className="relative h-1 rounded-full bg-[#D2D2D7] mb-2">
         <div
-          className="absolute top-0 left-0 h-full transition-all duration-700"
+          className="absolute top-0 left-0 h-full rounded-full transition-all duration-700"
           style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
         />
         {[{ pct: 10, t: 'bronze' }, { pct: 33, t: 'silver' }, { pct: 66, t: 'gold' }, { pct: 100, t: 'diamond' }].map(({ pct, t }) => (
@@ -128,18 +128,24 @@ const LoyaltyWidget = ({ loyalty }) => {
 };
 
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-white border border-[#D2D2D7] p-6 ${className}`}>{children}</div>
+  <div className={`rounded-xl bg-white border border-[#D2D2D7] p-6 ${className}`}>{children}</div>
 );
 
 const CardTitle = ({ icon: Icon, children, action }) => (
   <div className="flex items-center justify-between mb-5">
-    <h2 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-[0.12em] flex items-center gap-2">
-      <Icon size={13} className="text-[#4ECDC4]" />
+    <h2 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
+      <Icon size={15} className="text-[#4ECDC4]" />
       {children}
     </h2>
     {action}
   </div>
 );
+
+const TABS = [
+  { id: 'account',       label: 'Account',       icon: User },
+  { id: 'security',      label: 'Security',      icon: Lock },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+];
 
 const Profile = () => {
   const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser } = useAuth();
@@ -148,6 +154,8 @@ const Profile = () => {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState('account');
 
   const DEFAULT_LOYALTY = { total_spent_cents: 0, tier: 'bronze', discount_pct: 0, next_tier: 'silver', next_threshold_cents: 2500 };
   const [loyalty, setLoyalty] = useState(null);
@@ -307,116 +315,145 @@ const Profile = () => {
 
       <div className="pt-[52px] flex-1">
 
-        {/* Hero banner */}
-        <div className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
-          <div className="max-w-5xl mx-auto">
-            <p className="text-xs font-semibold text-[#4ECDC4] mb-4">My Account</p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              {/* Avatar */}
-              <div className="relative shrink-0 group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+        {/* Hero — centered Apple-ID-style summary */}
+        <div className="bg-white border-b border-[#D2D2D7] px-6 pt-14 pb-8">
+          <div className="max-w-lg mx-auto flex flex-col items-center text-center">
+
+            {/* Avatar */}
+            <div className="relative shrink-0 group cursor-pointer mb-4" onClick={() => avatarInputRef.current?.click()}>
+              <div
+                className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold"
+                style={{
+                  background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
+                  border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
+                  color: loyalty ? currentTier.color : '#4ECDC4',
+                  }}
+              >
+                {avatarPreview || user.avatar_url ? (
+                  <img
+                    src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : initials}
+              </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 rounded-full bg-[#1D1D1F]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {avatarUploading
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Camera size={16} className="text-white" />
+                }
+              </div>
+              {loyalty && !avatarPreview && !user.avatar_url && (
                 <div
-                  className="w-16 h-16 overflow-hidden flex items-center justify-center text-xl font-bold"
-                  style={{
-                    background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
-                    border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
-                    color: loyalty ? currentTier.color : '#4ECDC4',
-                    }}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-white"
+                  style={{ background: currentTier.color }}
                 >
-                  {avatarPreview || user.avatar_url ? (
-                    <img
-                      src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
-                      alt="avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : initials}
+                  {React.createElement(currentTier.icon, { size: 11, color: 'white' })}
                 </div>
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-[#1D1D1F]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  {avatarUploading
-                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <Camera size={14} className="text-white" />
-                  }
-                </div>
-                {loyalty && !avatarPreview && !user.avatar_url && (
-                  <div
-                    className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: currentTier.color }}
-                  >
-                    {React.createElement(currentTier.icon, { size: 10, color: 'white' })}
-                  </div>
-                )}
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.svg"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </div>
+              )}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.svg"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </div>
 
-              {/* Name + email */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h1
-                    className="text-4xl sm:text-5xl font-bold text-[#1D1D1F] leading-tight"
-                  >
-                    {displayName}
-                  </h1>
-                  {user.is_super_admin && (
-                    <span className="text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5">
-                      SUPER ADMIN
-                    </span>
-                  )}
-                </div>
-                <p className="text-[#6E6E73] text-sm">{user.email}</p>
-                {loyalty && (
-                  <p className="text-xs mt-1" style={{ color: currentTier.color }}>
-                    {currentTier.label} grade{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
-                  </p>
-                )}
-              </div>
+            {/* Name + badges */}
+            <div className="flex items-center gap-2 flex-wrap justify-center mb-1">
+              <h1 className="text-2xl font-bold tracking-[-0.01em] text-[#1D1D1F]">{displayName}</h1>
+              {user.is_super_admin && (
+                <span className="rounded-full text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5">
+                  SUPER ADMIN
+                </span>
+              )}
+            </div>
+            <p className="text-[#6E6E73] text-sm">{user.email}</p>
+            {loyalty && (
+              <p className="text-xs mt-1.5 font-medium" style={{ color: currentTier.color }}>
+                {currentTier.label} grade{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
+              </p>
+            )}
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 shrink-0">
-                {isAdmin && isAdmin() && (
-                  <Link
-                    to="/dashboard"
-                    className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
-                  >
-                    <LayoutDashboard size={12} />
-                    Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-red-500 border border-[#D2D2D7] hover:border-red-200 px-3 py-2 transition-all"
+            {/* Actions */}
+            <div className="flex items-center gap-2 mt-5">
+              {isAdmin && isAdmin() && (
+                <Link
+                  to="/dashboard"
+                  className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
                 >
-                  <LogOut size={12} />
-                  Sign Out
-                </button>
-              </div>
+                  <LayoutDashboard size={12} />
+                  Dashboard
+                </Link>
+              )}
+              <button
+                onClick={handleLogout}
+                className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-red-500 border border-[#D2D2D7] hover:border-red-200 px-3 py-2 transition-all"
+              >
+                <LogOut size={12} />
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
 
         {/* Avatar error */}
         {avatarError && (
-          <div className="max-w-5xl mx-auto px-6 pt-4">
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
+          <div className="max-w-lg mx-auto px-6 pt-4">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
               <AlertTriangle size={12} className="shrink-0" />{avatarError}
               <button onClick={() => setAvatarError('')} className="ml-auto"><X size={12} /></button>
             </div>
           </div>
         )}
 
-        {/* Main content — 2-column on desktop */}
-        <div className="max-w-5xl mx-auto px-6 py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Vakar Play quick link — always visible, independent of the tabs below */}
+        <div className="max-w-lg mx-auto px-6 pt-6">
+          <Link
+            to="/play"
+            className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#C4B5FD] p-4 transition-colors group"
+          >
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0" style={{ background: '#EDE9FE' }}>
+              <Gamepad2 size={16} style={{ color: '#5B21B6' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
+              <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
+            </div>
+            <ChevronRight size={15} className="text-[#BFBFC4] group-hover:text-[#5B21B6] transition-colors shrink-0" />
+          </Link>
+        </div>
 
-            {/* Left column — Account + Loyalty */}
-            <div className="lg:col-span-3 space-y-6">
+        {/* Settings tabs — segmented control, System-Settings style */}
+        <div className="max-w-lg mx-auto px-6 pt-6">
+          <div className="inline-flex w-full rounded-full bg-[#EDEDEF] p-1 gap-1">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`relative flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-all ${
+                  activeTab === id ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                }`}
+              >
+                <Icon size={13} />
+                {label}
+                {id === 'notifications' && notifUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#4ECDC4] text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {notifUnread > 9 ? '9+' : notifUnread}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {/* Account Info */}
+        {/* Tab content */}
+        <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
+
+          {activeTab === 'account' && (
+            <>
               <Card>
                 <CardTitle
                   icon={User}
@@ -446,7 +483,7 @@ const Profile = () => {
                       <p className="text-sm text-[#6E6E73]">{user.email} <span className="text-[#A1A1A6] text-xs">(cannot be changed)</span></p>
                     </div>
                     {profileError && (
-                      <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
                         <AlertTriangle size={13} className="shrink-0" />{profileError}
                       </div>
                     )}
@@ -454,7 +491,7 @@ const Profile = () => {
                       <button type="submit" disabled={profileLoading} className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
                         <Save size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
                       </button>
-                      <button type="button" onClick={handleProfileCancel} className="inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-4 py-2 transition-all">
+                      <button type="button" onClick={handleProfileCancel} className="rounded-full inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-4 py-2 transition-all">
                         <X size={13} />Cancel
                       </button>
                     </div>
@@ -462,7 +499,7 @@ const Profile = () => {
                 ) : (
                   <>
                     {profileSuccess && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-sm mb-4">
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm mb-4">
                         <CheckCircle size={13} className="shrink-0" />Profile updated successfully.
                       </div>
                     )}
@@ -483,108 +520,85 @@ const Profile = () => {
                 )}
               </Card>
 
-              {/* Loyalty */}
               {loyaltyLoading
                 ? <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 h-[200px] animate-pulse" />
                 : <LoyaltyWidget loyalty={loyalty} />
               }
-            </div>
+            </>
+          )}
 
-            {/* Right column — Vakar Play + Notifications + Password */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Vakar Play access */}
-              <Link
-                to="/play"
-                className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#A7F3D0] p-5 transition-colors group"
-              >
-                <div className="rounded-lg w-10 h-10 flex items-center justify-center shrink-0" style={{ background: '#D1FAE5' }}>
-                  <Gamepad2 size={17} style={{ color: '#059669' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
-                  <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
-                </div>
-                <ChevronRight size={15} className="text-[#BFBFC4] group-hover:text-[#059669] transition-colors shrink-0" />
-              </Link>
-
-              {/* Notifications */}
-              <Card>
-                <CardTitle
-                  icon={Bell}
-                  action={notifUnread > 0 ? (
-                    <button onClick={markAllRead} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
-                      Mark all read
-                    </button>
-                  ) : null}
-                >
-                  Notifications
-                  {notifUnread > 0 && (
-                    <span className="ml-1.5 bg-[#4ECDC4] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                      {notifUnread}
-                    </span>
-                  )}
-                </CardTitle>
-
-                {notifLoading ? (
-                  <div className="space-y-2">
-                    {[1,2,3].map(i => <div key={i} className="h-12 bg-[#F5F5F7] animate-pulse" />)}
-                  </div>
-                ) : notifications.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-[#A1A1A6]">No notifications yet.</div>
-                ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
-                    {notifications.map(n => (
-                      <div
-                        key={n.id}
-                        onClick={() => !n.read && markRead(n.id)}
-                        className={`p-3 border transition-all cursor-pointer ${
-                          n.read ? 'border-[#EDEDEF] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs leading-snug ${n.read ? 'text-[#6E6E73]' : 'text-[#1D1D1F] font-semibold'}`}>{n.title}</p>
-                            {n.message && <p className="text-[10px] text-[#A1A1A6] mt-0.5 leading-relaxed">{n.message}</p>}
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />}
-                            <time className="text-[9px] text-[#A1A1A6] whitespace-nowrap">
-                              {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </time>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+          {activeTab === 'security' && (
+            <Card>
+              <CardTitle icon={Lock}>Change Password</CardTitle>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
+                <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
+                <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
+                {pwError && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
+                    <AlertTriangle size={12} className="shrink-0" />{pwError}
                   </div>
                 )}
-              </Card>
+                {pwSuccess && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-xs">
+                    <CheckCircle size={12} className="shrink-0" />Password updated successfully.
+                  </div>
+                )}
+                <button type="submit" disabled={pwLoading} className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
+                  {pwLoading ? 'Saving…' : 'Update Password'}
+                </button>
+              </form>
+            </Card>
+          )}
 
-              {/* Change Password */}
-              <Card>
-                <CardTitle icon={Lock}>Change Password</CardTitle>
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
-                  <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
-                  <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
-                  {pwError && (
-                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
-                      <AlertTriangle size={12} className="shrink-0" />{pwError}
-                    </div>
-                  )}
-                  {pwSuccess && (
-                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-100 text-green-600 text-xs">
-                      <CheckCircle size={12} className="shrink-0" />Password updated successfully.
-                    </div>
-                  )}
-                  <button type="submit" disabled={pwLoading} className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
-                    {pwLoading ? 'Saving…' : 'Update Password'}
+          {activeTab === 'notifications' && (
+            <Card>
+              <CardTitle
+                icon={Bell}
+                action={notifUnread > 0 ? (
+                  <button onClick={markAllRead} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
+                    Mark all read
                   </button>
-                </form>
-              </Card>
+                ) : null}
+              >
+                Notifications
+              </CardTitle>
 
-            </div>
-          </div>
+              {notifLoading ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => <div key={i} className="rounded-lg h-12 bg-[#F5F5F7] animate-pulse" />)}
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="py-8 text-center text-sm text-[#A1A1A6]">No notifications yet.</div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto -mx-1 px-1">
+                  {notifications.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => !n.read && markRead(n.id)}
+                      className={`rounded-lg p-3 border transition-all cursor-pointer ${
+                        n.read ? 'border-[#EDEDEF] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs leading-snug ${n.read ? 'text-[#6E6E73]' : 'text-[#1D1D1F] font-semibold'}`}>{n.title}</p>
+                          {n.message && <p className="text-[10px] text-[#A1A1A6] mt-0.5 leading-relaxed">{n.message}</p>}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />}
+                          <time className="text-[9px] text-[#A1A1A6] whitespace-nowrap">
+                            {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </time>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
         </div>
       </div>
 

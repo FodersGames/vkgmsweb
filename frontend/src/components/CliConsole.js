@@ -23,6 +23,12 @@ export const CliConsole = () => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [lines]);
 
+  // Restore focus once the input re-enables (it's briefly disabled while a command runs),
+  // so the user can keep typing without having to click back into the terminal.
+  useEffect(() => {
+    if (!busy) inputRef.current?.focus();
+  }, [busy]);
+
   const appendLines = (type, texts) => {
     setLines(prev => [...prev, ...texts.map(text => ({ type, text }))]);
   };
