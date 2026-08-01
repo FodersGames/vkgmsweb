@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useProject } from '../context/ProjectContext';
 import {
   FileText, Search, RefreshCw, ChevronLeft, ChevronRight, X,
@@ -6,7 +6,7 @@ import {
   ClipboardList, ShieldAlert, Gift, Package, Trash2, Flag,
 } from 'lucide-react';
 import api from '../utils/api';
-import { EmptyState } from '../ui';
+import { EmptyState, Skeleton, DensityToggle, useDensity } from '../ui';
 
 const TYPE_META = {
   files:           { label: 'Files',     icon: HardDrive,     color: '#4ECDC4' },
@@ -73,6 +73,8 @@ export const LogsViewer = () => {
   const [search, setSearch]     = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeTypes, setActiveTypes] = useState(new Set(DEFAULT_TYPES));
+  const searchRef = useRef(null);
+  const [density, setDensity] = useDensity();
   const limit = 50;
 
   const fetchLogs = useCallback(async () => {
@@ -104,6 +106,19 @@ export const LogsViewer = () => {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // "/" focuses the search box, ignored while typing elsewhere.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== '/') return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const toggleType = (type) => {
     setActiveTypes(prev => {
       const next = new Set(prev);
@@ -131,29 +146,35 @@ export const LogsViewer = () => {
             <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{total} event{total !== 1 ? 's' : ''} — {selectedProject.name}</p>
           </div>
         </div>
-        <button
-          onClick={fetchLogs}
-          disabled={loading}
-          className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <DensityToggle density={density} onChange={setDensity} />
+          <button
+            onClick={fetchLogs}
+            disabled={loading}
+            className="rounded-xl inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-[#111118] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search */}
       <div className="relative">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a]" />
         <input
+          ref={searchRef}
           type="text"
           placeholder="Search log messages..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           className="rounded-lg w-full pl-9 pr-9 py-2.5 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] bg-white dark:bg-[#0d0d14] text-[#1D1D1F] dark:text-[#e4e4e7]"
         />
-        {searchInput && (
+        {searchInput ? (
           <button onClick={() => setSearchInput('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white">
             <X size={14} />
           </button>
+        ) : (
+          <kbd className="hidden sm:block absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 pointer-events-none">/</kbd>
         )}
       </div>
 
@@ -174,16 +195,29 @@ export const LogsViewer = () => {
       </div>
 
       {/* Timeline */}
-      {logs.length === 0 && !loading ? (
+      {logs.length === 0 && loading ? (
+        <div className="rounded-xl divide-y divide-[#EDEDEF] dark:divide-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3 px-4 py-3">
+              <Skeleton className="w-7 h-7 shrink-0 rounded" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="h-3.5 w-2/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : logs.length === 0 ? (
         <EmptyState icon={FileText} title="No activity found" description="Try adjusting your filters, or wait for new activity on this project." />
       ) : (
         <div className="rounded-xl divide-y divide-[#EDEDEF] dark:divide-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]" data-testid="logs-list">
           {logs.map((l, i) => {
             const { label, icon: Icon, color } = metaFor(l.type);
+            const compact = density === 'compact';
             return (
-              <div key={i} className="flex items-start gap-3 px-4 py-3" style={{ borderLeft: `3px solid ${color}` }}>
-                <div className="w-7 h-7 flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${color}18` }}>
-                  <Icon size={13} style={{ color }} />
+              <div key={i} className={`flex items-start gap-3 ${compact ? 'px-3 py-1.5' : 'px-4 py-3'}`} style={{ borderLeft: `3px solid ${color}` }}>
+                <div className={`flex items-center justify-center shrink-0 mt-0.5 ${compact ? 'w-5 h-5' : 'w-7 h-7'}`} style={{ backgroundColor: `${color}18` }}>
+                  <Icon size={compact ? 11 : 13} style={{ color }} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">

@@ -1,17 +1,21 @@
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast } from "sonner"
+import { useTheme } from "../../context/ThemeContext"
 
 const Toaster = ({
   ...props
 }) => {
-  const { theme = "system" } = useTheme()
+  // Uses the app's own admin-scoped dark mode (not next-themes/OS preference)
+  // so toasts match whatever theme the dashboard is actually rendering in.
+  const { isDark } = useTheme()
 
   return (
     <Sonner
-      theme={theme}
+      theme={isDark ? "dark" : "light"}
       className="toaster group"
       offset="20px"
-      gap={8}
+      gap={10}
+      expand={false}
+      visibleToasts={3}
       toastOptions={{
         unstyled: true,
         classNames: {

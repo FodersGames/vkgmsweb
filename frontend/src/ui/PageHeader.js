@@ -14,7 +14,7 @@ export const PageHeader = ({ icon: Icon, iconColor = '#4ECDC4', title, descripti
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-[#e4e4e7] leading-tight">{title}</h3>
         {description && (
-          <p className="text-xs text-[#6E6E73] mt-0.5 truncate">{description}</p>
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5 truncate">{description}</p>
         )}
       </div>
     </div>

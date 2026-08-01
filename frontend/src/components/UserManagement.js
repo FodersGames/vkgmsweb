@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Button, Card, CardHeader, CardBody, EmptyState } from '../ui';
+import { Button, Card, CardHeader, CardBody, EmptyState, Skeleton, DensityToggle, useDensity } from '../ui';
 
 const STATIC_GROUPS = [
   {
@@ -105,6 +105,7 @@ const buildPermissionGroups = (projects = []) => [
 export const UserManagement = () => {
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
+  const [listLoading, setListLoading] = useState(true);
   const [projectsList, setProjectsList] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -112,6 +113,8 @@ export const UserManagement = () => {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [search, setSearch] = useState('');
+  const searchRef = useRef(null);
+  const [density, setDensity] = useDensity();
   const [onlyWithPerms, setOnlyWithPerms] = useState(false);
   const [loyaltyUser, setLoyaltyUser] = useState(null);
   const [loyaltyAmount, setLoyaltyAmount] = useState('');
@@ -161,11 +164,25 @@ export const UserManagement = () => {
     fetchProjectsList();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "/" focuses the search box — ignored while typing elsewhere or a dialog is open.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== '/' || editingUser || showCreateUser || loyaltyUser || dialog.open) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [editingUser, showCreateUser, loyaltyUser, dialog.open]);
+
   const fetchUsers = async () => {
     try {
       const r = await api.get('/api/users');
       setUsers(r.data.users || []);
     } catch { /* silent */ }
+    finally { setListLoading(false); }
   };
 
   const fetchProjectsList = async () => {
@@ -464,12 +481,16 @@ export const UserManagement = () => {
               <div className="relative flex-1">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] pointer-events-none" />
                 <input
+                  ref={searchRef}
                   type="text"
                   placeholder="Search by name, username, or email…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="rounded-lg w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
+                  className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
                 />
+                {!search && (
+                  <kbd className="hidden sm:block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 pointer-events-none">/</kbd>
+                )}
               </div>
               <button
                 onClick={() => setOnlyWithPerms(v => !v)}
@@ -482,16 +503,29 @@ export const UserManagement = () => {
                 <SlidersHorizontal size={12} />
                 With permissions
               </button>
+              <DensityToggle density={density} onChange={setDensity} />
             </div>
 
             <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-4">
               Users ({filteredUsers.length}{filteredUsers.length !== users.length ? ` / ${users.length}` : ''})
             </p>
-            <div className="space-y-3" data-testid="users-list">
-              {filteredUsers.length === 0 && (
-                <EmptyState icon={Users} title={search || onlyWithPerms ? 'No users match your filters' : 'No users yet'} description={search || onlyWithPerms ? 'Try adjusting the search or filter.' : 'Users who register on the site will appear here.'} />
-              )}
-              {filteredUsers.map((user) => {
+            <div className={density === 'compact' ? 'space-y-1.5' : 'space-y-3'} data-testid="users-list">
+              {listLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 flex items-center gap-3">
+                    <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-40" />
+                      <Skeleton className="h-2.5 w-24" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <>
+                  {filteredUsers.length === 0 && (
+                    <EmptyState icon={Users} title={search || onlyWithPerms ? 'No users match your filters' : 'No users yet'} description={search || onlyWithPerms ? 'Try adjusting the search or filter.' : 'Users who register on the site will appear here.'} />
+                  )}
+                  {filteredUsers.map((user) => {
                 const isEditing = editingUser?.id === user.id;
                 const isSelf = currentUser?.id === user.id;
                 const isSuperAdmin = user.role === 'super_admin';
@@ -507,10 +541,10 @@ export const UserManagement = () => {
                     }`}
                     data-testid={`user-card-${user.username}`}
                   >
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-3">
+                    <div className={density === 'compact' ? 'p-2.5' : 'p-4'}>
+                      <div className={`flex justify-between items-start ${density === 'compact' ? 'mb-1.5' : 'mb-3'}`}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-9 h-9 flex items-center justify-center text-sm font-semibold shrink-0 ${
+                          <div className={`flex items-center justify-center text-sm font-semibold shrink-0 ${density === 'compact' ? 'w-7 h-7' : 'w-9 h-9'} ${
                             user.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
                           }`}>
                             {initials}
@@ -688,6 +722,8 @@ export const UserManagement = () => {
                   </div>
                 );
               })}
+                </>
+              )}
             </div>
           </CardBody>
         </Card>

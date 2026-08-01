@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Save, Loader2, CheckCircle, Trophy } from 'lucide-react';
+import { Save, Loader2, Trophy } from 'lucide-react';
 import axios from 'axios';
+import { SavedFlash, useSavedFlash } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -13,7 +14,7 @@ export const AccountSettings = () => {
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [username, setUsername] = useState(user?.username || '');
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, flashSuccess] = useSavedFlash(3000);
   const [error, setError] = useState('');
 
   const [loyaltyAmt, setLoyaltyAmt] = useState('');
@@ -34,8 +35,7 @@ export const AccountSettings = () => {
         { firstName, lastName, username },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      flashSuccess();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update profile.');
     } finally {
@@ -133,11 +133,7 @@ export const AccountSettings = () => {
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saving ? 'Saving…' : 'Save changes'}
             </button>
-            {success && (
-              <span className="flex items-center gap-1.5 text-xs text-[#22C55E] font-semibold">
-                <CheckCircle size={13} /> Saved!
-              </span>
-            )}
+            <SavedFlash show={success} label="Saved!" />
           </div>
         </form>
       </div>

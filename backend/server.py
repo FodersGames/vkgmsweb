@@ -3336,6 +3336,7 @@ async def reply_to_ticket(request: Request, ticket_number: str, req: TicketReply
 
 @api_router.get("/admin/tickets")
 async def list_all_tickets(status: Optional[str] = None, priority: Optional[str] = None,
+                            search: Optional[str] = None,
                             page: int = 1, limit: int = 50,
                             user=Depends(require_permission("manage_tickets"))):
     q: dict = {}
@@ -3343,6 +3344,14 @@ async def list_all_tickets(status: Optional[str] = None, priority: Optional[str]
         q["status"] = status
     if priority:
         q["priority"] = priority
+    if search:
+        pattern = re.escape(search.strip())
+        q["$or"] = [
+            {"subject": {"$regex": pattern, "$options": "i"}},
+            {"username": {"$regex": pattern, "$options": "i"}},
+            {"user_email": {"$regex": pattern, "$options": "i"}},
+            {"ticket_number": {"$regex": pattern, "$options": "i"}},
+        ]
     skip = (page - 1) * limit
     total = await db.support_tickets.count_documents(q)
     tickets = await db.support_tickets.find(q).sort("updated_at", -1).skip(skip).limit(limit).to_list(limit)

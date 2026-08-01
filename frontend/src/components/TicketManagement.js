@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Ticket, ChevronLeft, Send, Loader2, RefreshCw, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Ticket, ChevronLeft, Send, Loader2, RefreshCw, Filter, Search } from 'lucide-react';
 import axios from 'axios';
-import { Select } from '../ui';
+import { Select, SkeletonRow, DensityToggle, useDensity } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -36,6 +36,10 @@ const TicketManagement = () => {
   const [pages, setPages] = useState(1);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchRef = useRef(null);
+  const [density, setDensity] = useDensity();
   const [activeTicket, setActiveTicket] = useState(null);
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [reply, setReply] = useState('');
@@ -49,6 +53,7 @@ const TicketManagement = () => {
       const params = { page, limit: 20 };
       if (filterStatus) params.status = filterStatus;
       if (filterPriority) params.priority = filterPriority;
+      if (search) params.search = search;
       const r = await api.get('/api/admin/tickets', { params });
       setTickets(r.data.tickets || []);
       setTotal(r.data.total || 0);
@@ -58,9 +63,29 @@ const TicketManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus, filterPriority]);
+  }, [page, filterStatus, filterPriority, search]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
+
+  // Debounce the search box so it doesn't fire a request on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // "/" focuses the search box, same convention as the other dense tables —
+  // ignored while the user is already typing somewhere else.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== '/' || activeTicket) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [activeTicket]);
 
   const openTicket = async (t) => {
     setLoadingTicket(true);
@@ -223,6 +248,20 @@ const TicketManagement = () => {
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative w-56">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] pointer-events-none" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Search tickets…"
+            className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
+          />
+          {!searchInput && (
+            <kbd className="hidden sm:block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 pointer-events-none">/</kbd>
+          )}
+        </div>
         <div className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa]"><Filter size={12} /> Filters:</div>
         <Select
           size="sm"
@@ -244,10 +283,13 @@ const TicketManagement = () => {
           <option value="high">High</option>
           <option value="urgent">Urgent</option>
         </Select>
+        <DensityToggle density={density} onChange={setDensity} className="ml-auto" />
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#A1A1A6] dark:text-[#71717a]" size={24} /></div>
+        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c] px-6">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={4} />)}
+        </div>
       ) : tickets.length === 0 ? (
         <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-16 text-center">
           <Ticket size={32} className="text-[#D2D2D7] mx-auto mb-3" />
@@ -259,7 +301,7 @@ const TicketManagement = () => {
             <button
               key={t.id}
               onClick={() => openTicket(t)}
-              className="w-full px-6 py-4 text-left hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-colors"
+              className={`w-full text-left hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-colors ${density === 'compact' ? 'px-4 py-2' : 'px-6 py-4'}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

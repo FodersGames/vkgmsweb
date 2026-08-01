@@ -4,7 +4,7 @@ import {
   Settings, AlertTriangle, Mail, ShieldCheck, CheckCircle2, XCircle, Save, Server as ServerIcon,
 } from 'lucide-react';
 import api from '../utils/api';
-import { Button, Input } from '../ui';
+import { Button, Input, SavedFlash, useSavedFlash } from '../ui';
 
 const timeAgo = (iso) => {
   if (!iso) return null;
@@ -40,6 +40,7 @@ export const WebsiteSettings = () => {
   const [loadingMaintenance, setLoadingMaintenance] = useState(false);
   const [savingEmail,  setSavingEmail]  = useState(false);
   const [health,       setHealth]       = useState(null);
+  const [emailSaved, flashEmailSaved] = useSavedFlash();
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -80,7 +81,7 @@ export const WebsiteSettings = () => {
       setSupportEmail(r.data.support_email);
       setEmailInput(r.data.support_email);
       setUpdatedAt(new Date().toISOString());
-      toast.success('Support email updated');
+      flashEmailSaved();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to update email'); }
     finally { setSavingEmail(false); }
   };
@@ -147,6 +148,7 @@ export const WebsiteSettings = () => {
             placeholder="support@yourdomain.com"
           />
           <Button type="submit" icon={Save} loading={savingEmail} disabled={!emailDirty}>Save</Button>
+          <SavedFlash show={emailSaved} />
         </form>
       </div>
 

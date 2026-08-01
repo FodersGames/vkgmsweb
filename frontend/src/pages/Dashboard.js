@@ -8,7 +8,7 @@ import {
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon,
+  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -103,6 +103,32 @@ const SYSTEM_SUBTABS = [
   { id: 'cli', label: 'CLI', icon: Terminal, component: CliConsole, superAdminOnly: true    },
 ];
 
+// ── Sidebar order (client-only, drag-to-reorder) ─────────────────────────────
+// Same pattern as the overview stat cards: items can be dragged within their
+// group and the order persists per-browser. Doesn't touch group membership or
+// permissions — just the display order within a group.
+
+const NAV_ORDER_KEY = 'vg_admin_nav_order';
+
+const applyNavOrder = (groups) => {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || '{}'); } catch {}
+  return groups.map(g => {
+    const order = saved[g.label];
+    if (!order || !order.length) return g;
+    const byId = new Map(g.items.map(i => [i.id, i]));
+    const ordered = order.map(id => byId.get(id)).filter(Boolean);
+    const known = new Set(ordered.map(i => i.id));
+    return { ...g, items: [...ordered, ...g.items.filter(i => !known.has(i.id))] };
+  });
+};
+
+const persistNavOrder = (groups) => {
+  const map = {};
+  groups.forEach(g => { map[g.label] = g.items.map(i => i.id); });
+  try { localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(map)); } catch {}
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const itemVisible = (item, hasPermission, isSuperAdmin) => {
@@ -128,7 +154,7 @@ const findCurrentItem = (tabId) => {
 // component reference means React patches the existing DOM on re-render instead of
 // remounting it, which is what preserves the sidebar's scroll position across tab clicks.
 
-const NavItem = ({ item, activeTab, onSelect }) => {
+const NavItem = ({ item, activeTab, onSelect, draggable, onDragStart, onDragOver, onDrop, onDragEnd, dragOver }) => {
   const Icon     = item.icon;
   const isActive = activeTab === item.id;
 
@@ -136,7 +162,14 @@ const NavItem = ({ item, activeTab, onSelect }) => {
     <button
       onClick={() => onSelect(item.id)}
       data-testid={`sidebar-nav-${item.id}`}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors duration-150 ${
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`group w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 ${
+        dragOver ? 'ring-2 ring-inset ring-[#4ECDC4]' : ''
+      } ${
         isActive
           ? 'bg-[#4ECDC4]/10 text-[#4ECDC4] font-medium'
           : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.045] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
@@ -146,7 +179,10 @@ const NavItem = ({ item, activeTab, onSelect }) => {
         size={15}
         className={`shrink-0 transition-colors ${isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'}`}
       />
-      <span className="text-[13px] leading-none">{item.label}</span>
+      <span className="flex-1 text-[13px] leading-none truncate">{item.label}</span>
+      {draggable && (
+        <GripVertical size={12} className="shrink-0 text-[#D2D2D7] dark:text-[#3a3a4c] opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity" />
+      )}
     </button>
   );
 };
@@ -164,7 +200,7 @@ const WorkspaceTabs = ({ tabs, active, onChange }) => (
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+          className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 focus-visible:rounded-md ${
             isActive ? 'border-[#4ECDC4] text-[#1D1D1F] dark:text-white' : 'border-transparent text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
           }`}
         >
@@ -251,6 +287,7 @@ const SidebarContent = ({
   onClose, hasPermission, user, projects, selectedProject, selectProject,
   showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
   displayName, initials, logout, onOpenPalette,
+  navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
 }) => (
   <div className="flex flex-col h-full bg-[#F5F5F7] dark:bg-[#151520] border-r border-[#D2D2D7] dark:border-[#2a2a3c]">
 
@@ -270,7 +307,7 @@ const SidebarContent = ({
     <div className="px-3 pt-3">
       <button
         onClick={onOpenPalette}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
       >
         <Search size={13} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
         <span className="flex-1 text-[12px] text-[#A1A1A6] dark:text-[#71717a]">Jump to…</span>
@@ -280,7 +317,7 @@ const SidebarContent = ({
 
     {/* Nav groups */}
     <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
-      {NAV_GROUPS.map((group, gi) => {
+      {navGroups.map((group, gi) => {
         const visibleItems = group.items.filter(i => itemVisible(i, hasPermission, user?.is_super_admin));
         if (!visibleItems.length) return null;
 
@@ -296,7 +333,7 @@ const SidebarContent = ({
                 <button
                   onClick={() => setShowProject(v => !v)}
                   data-testid="project-selector"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
                 >
                   <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
                   <span className="flex-1 text-[12px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate">
@@ -334,7 +371,18 @@ const SidebarContent = ({
 
             <div className="px-2">
               {visibleItems.map(item => (
-                <NavItem key={item.id} item={item} activeTab={activeTab} onSelect={onSelectTab} />
+                <NavItem
+                  key={item.id}
+                  item={item}
+                  activeTab={activeTab}
+                  onSelect={onSelectTab}
+                  draggable={visibleItems.length > 1}
+                  dragOver={navDragOverId?.groupLabel === group.label && navDragOverId?.itemId === item.id}
+                  onDragStart={() => onNavDragStart(group.label, item.id)}
+                  onDragOver={(e) => onNavDragOver(e, group.label, item.id)}
+                  onDrop={() => onNavDrop(group.label, item.id)}
+                  onDragEnd={onNavDragEnd}
+                />
               ))}
             </div>
           </div>
@@ -358,7 +406,7 @@ const SidebarContent = ({
           onClick={logout}
           title="Sign out"
           data-testid="logout-button"
-          className="p-1.5 text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 hover:bg-red-500/10 outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 transition-colors shrink-0"
         >
           <LogOut size={15} />
         </button>
@@ -392,6 +440,39 @@ const DashboardContent = () => {
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [paletteOpen,  setPaletteOpen]  = useState(false);
 
+  // Sidebar drag-to-reorder — client-only, persisted per-browser (see applyNavOrder).
+  const [navGroups, setNavGroups] = useState(() => applyNavOrder(NAV_GROUPS));
+  const [navDragOverId, setNavDragOverId] = useState(null);
+  const navDragRef = useRef(null);
+
+  const onNavDragStart = (groupLabel, itemId) => { navDragRef.current = { groupLabel, itemId }; };
+  const onNavDragOver = (e, groupLabel, itemId) => {
+    e.preventDefault();
+    if (navDragRef.current?.groupLabel !== groupLabel) return;
+    setNavDragOverId({ groupLabel, itemId });
+  };
+  const onNavDrop = (groupLabel, targetItemId) => {
+    const from = navDragRef.current;
+    navDragRef.current = null;
+    setNavDragOverId(null);
+    if (!from || from.groupLabel !== groupLabel || from.itemId === targetItemId) return;
+    setNavGroups(prev => {
+      const next = prev.map(g => {
+        if (g.label !== groupLabel) return g;
+        const items = [...g.items];
+        const fromIdx = items.findIndex(i => i.id === from.itemId);
+        const toIdx = items.findIndex(i => i.id === targetItemId);
+        if (fromIdx === -1 || toIdx === -1) return g;
+        const [moved] = items.splice(fromIdx, 1);
+        items.splice(toIdx, 0, moved);
+        return { ...g, items };
+      });
+      persistNavOrder(next);
+      return next;
+    });
+  };
+  const onNavDragEnd = () => { navDragRef.current = null; setNavDragOverId(null); };
+
   const [projectTab, setProjectTab] = useState(restored.projectTab || 'list');
   const [shopTab,    setShopTab]    = useState(restored.shopTab || 'shop');
   const [systemTab,  setSystemTab]  = useState(restored.systemTab || 'vps');
@@ -405,6 +486,7 @@ const DashboardContent = () => {
   const suppressHistoryPush = useRef(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+  const [navDirection, setNavDirection] = useState('forward');
 
   useEffect(() => {
     const snap = { activeTab, projectTab, shopTab, systemTab };
@@ -432,11 +514,13 @@ const DashboardContent = () => {
   const goBack = () => {
     if (historyIndex.current <= 0) return;
     historyIndex.current -= 1;
+    setNavDirection('back');
     applySnapshot(historyStack.current[historyIndex.current]);
   };
   const goForward = () => {
     if (historyIndex.current >= historyStack.current.length - 1) return;
     historyIndex.current += 1;
+    setNavDirection('forward');
     applySnapshot(historyStack.current[historyIndex.current]);
   };
 
@@ -484,10 +568,11 @@ const DashboardContent = () => {
     return null;
   }, [activeTab, projectTab, shopTab, systemTab]);
 
-  const onSelectTab = (id) => { setActiveTab(id); setMobileOpen(false); };
+  const onSelectTab = (id) => { setNavDirection('forward'); setActiveTab(id); setMobileOpen(false); };
 
   // Used by DashboardOverview's quick actions to jump straight into a workspace sub-tab.
   const goTo = (tab, subtab) => {
+    setNavDirection('forward');
     setActiveTab(tab);
     if (tab === 'projects' && subtab) setProjectTab(subtab);
     if (tab === 'website-shop' && subtab) setShopTab(subtab);
@@ -504,20 +589,20 @@ const DashboardContent = () => {
         if (item.id === 'projects') {
           for (const t of PROJECT_SUBTABS) {
             if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
-            dest.push({ label: t.label, group: 'Studio', icon: t.icon, onSelect: () => { setActiveTab('projects'); setProjectTab(t.id); } });
+            dest.push({ label: t.label, group: 'Studio', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('projects'); setProjectTab(t.id); } });
           }
         } else if (item.id === 'website-shop') {
           for (const t of SHOP_SUBTABS) {
             if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
-            dest.push({ label: t.label, group: 'Website', icon: t.icon, onSelect: () => { setActiveTab('website-shop'); setShopTab(t.id); } });
+            dest.push({ label: t.label, group: 'Website', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('website-shop'); setShopTab(t.id); } });
           }
         } else if (item.id === 'system') {
           for (const t of SYSTEM_SUBTABS) {
             if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
-            dest.push({ label: t.label, group: 'Team', icon: t.icon, onSelect: () => { setActiveTab('system'); setSystemTab(t.id); } });
+            dest.push({ label: t.label, group: 'Team', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('system'); setSystemTab(t.id); } });
           }
         } else {
-          dest.push({ label: item.label, group: group.label, icon: item.icon, onSelect: () => setActiveTab(item.id) });
+          dest.push({ label: item.label, group: group.label, icon: item.icon, onSelect: () => { setNavDirection('forward'); setActiveTab(item.id); } });
         }
       }
     }
@@ -528,6 +613,7 @@ const DashboardContent = () => {
     hasPermission, user, projects, selectedProject, selectProject,
     showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
     displayName, initials, logout, onOpenPalette: () => setPaletteOpen(true),
+    navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -563,7 +649,7 @@ const DashboardContent = () => {
         <header className="sticky top-0 z-20 h-14 shrink-0 bg-white/75 dark:bg-[#151520]/75 backdrop-blur-xl backdrop-saturate-150 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center px-5 gap-4">
           {/* Mobile burger */}
           <button
-            className="lg:hidden p-2 -ml-1 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+            className="lg:hidden w-8 h-8 flex items-center justify-center -ml-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
             onClick={() => setMobileOpen(true)}
           >
             <Menu size={18} />
@@ -575,22 +661,22 @@ const DashboardContent = () => {
           </span>
 
           {/* Back / forward through recently visited sections */}
-          <div className="hidden lg:flex items-center gap-0.5 -ml-1 shrink-0">
+          <div className="hidden lg:flex items-center gap-0.5 -ml-1.5 shrink-0">
             <button
               onClick={goBack}
               disabled={!canGoBack}
               title="Back (Alt+←)"
-              className="p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
             <button
               onClick={goForward}
               disabled={!canGoForward}
               title="Forward (Alt+→)"
-              className="p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
           </div>
 
@@ -616,32 +702,32 @@ const DashboardContent = () => {
           <div className="flex-1" />
 
           {/* Right actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setPaletteOpen(true)}
               title="Jump to… (⌘K)"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 py-2 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
             >
-              <Search size={12} />
+              <Search size={13} />
               Jump to…
               <kbd className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">⌘K</kbd>
             </button>
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="p-2 rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
             >
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <Link
               to="/"
               title="View site"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 py-2 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
             >
-              <Home size={12} />
+              <Home size={13} />
               View site
             </Link>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 pl-0.5">
               <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
                 {initials}
               </div>
@@ -652,7 +738,7 @@ const DashboardContent = () => {
 
         {/* Content — keyed by the active section so switching tabs replays the appear animation */}
         <main>
-          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : ''}`} className="p-6 md:p-8 animate-appear">
+          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
 
             {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
 

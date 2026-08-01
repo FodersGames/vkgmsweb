@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Gamepad2, Plus, Trash2, X } from 'lucide-react';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Button, Card, CardHeader, CardBody, EmptyState, Input } from '../ui';
+import { Button, Card, CardHeader, CardBody, EmptyState, Input, Skeleton } from '../ui';
 
 export const ProjectManagement = () => {
   const { user, hasPermission } = useAuth();
-  const { projects, createProject, deleteProject } = useProject();
+  const { projects, loading: projectsLoading, createProject, deleteProject } = useProject();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,7 +90,19 @@ export const ProjectManagement = () => {
           <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest mb-4">
             Projects ({projects.length})
           </p>
-          {projects.length === 0 ? (
+          {projectsLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-xl flex items-center gap-3 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                  <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-2.5 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : projects.length === 0 ? (
             <EmptyState icon={Gamepad2} title="No projects yet" description="Create your first project to get started." />
           ) : (
             <div className="space-y-2" data-testid="projects-list">

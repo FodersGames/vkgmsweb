@@ -89,13 +89,32 @@
   animation: vgAppear 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Directional content transitions for Alt+←/→ and back/forward buttons —
+   content slides in from the direction of travel instead of a plain fade. */
+@keyframes vgSlideInForward {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes vgSlideInBack {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-nav-forward {
+  animation: vgSlideInForward 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-nav-back {
+  animation: vgSlideInBack 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .theme-transition,
 .theme-transition * {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-appear { animation: none; }
+  .animate-appear,
+  .animate-nav-forward,
+  .animate-nav-back { animation: none; }
   .theme-transition,
   .theme-transition * { transition: none; }
 }

@@ -10,7 +10,7 @@ const borderClass = (error) =>
 
 const Label = ({ children }) =>
   children ? (
-    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+    <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">
       {children}
     </label>
   ) : null;
