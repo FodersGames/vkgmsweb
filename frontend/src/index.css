@@ -71,12 +71,19 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Belt-and-suspenders against any stray element (decorative blur blobs,
+       third-party injected widgets, etc.) creating a sliver of horizontal
+       scroll on narrow phones — a real site should never scroll sideways. */
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
       "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
   }
 }
 
@@ -163,9 +170,16 @@
 }
 
 /* Diagonal specular sweep for glass buttons/pills — only used on elements
-   with no overflowing children, since it relies on overflow:hidden. */
-.glass-sheen {
+   with no overflowing children, since it relies on overflow:hidden.
+   `position` is wrapped in :where() to keep its specificity at zero, so a
+   Tailwind utility like `fixed`/`absolute` on the same element always wins
+   instead of being silently clobbered by this class loading after the
+   Tailwind layer (this exact thing broke the support button's `fixed`
+   positioning — it computed to `relative` and the button landed top-left). */
+:where(.glass-sheen) {
   position: relative;
+}
+.glass-sheen {
   overflow: hidden;
 }
 .glass-sheen::before {

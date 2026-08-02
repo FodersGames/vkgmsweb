@@ -51,7 +51,7 @@ const Home = () => {
       <PublicNav onAbout={scrollToAbout} />
 
       {/* Hero */}
-      <section className="relative overflow-hidden pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
+      <section className="relative overflow-hidden [contain:paint] pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
         {/* Ambient glow — the color the glass badge below refracts */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <div className="absolute -top-40 left-1/2 -translate-x-[62%] w-[560px] h-[560px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />

@@ -30,7 +30,10 @@ export const CookieBanner = () => {
 
   return (
     <div
-      className="animate-appear fixed bottom-6 left-6 z-[60] w-[320px] rounded-2xl overflow-hidden liquid-glass-dark"
+      // Capped so it never reaches under the support bubble (bottom-right,
+      // ~88px footprint) on narrow phones — anchored bottom-left only,
+      // never spanning the full width like a right-anchored banner would.
+      className="animate-appear fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[60] w-[min(320px,calc(100vw-6.5rem))] rounded-2xl overflow-hidden liquid-glass-dark"
       role="dialog"
       aria-label="Cookie consent"
     >

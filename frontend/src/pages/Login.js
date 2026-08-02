@@ -184,7 +184,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex items-center justify-center p-4 bg-[#F5F5F7]">
+    <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
         <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
