@@ -44,7 +44,7 @@ export const BlogList = () => {
             <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : posts.length === 0 ? (
             <div className="text-center py-20">
-              <h2 className="text-xl font-bold text-[#A1A1A6] mb-2">
+              <h2 className="font-display text-xl font-medium text-[#A1A1A6] mb-2">
                 No posts yet
               </h2>
               <p className="text-[#6E6E73]">Check back soon for updates.</p>
@@ -69,7 +69,7 @@ export const BlogList = () => {
                       </div>
                     )}
                     <div className="p-6 flex-1">
-                      <h2 className="text-lg font-bold text-[#1D1D1F] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
+                      <h2 className="font-display text-lg font-medium text-[#1D1D1F] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
                         {post.title}
                       </h2>
                       <p className="text-[#6E6E73] text-sm line-clamp-2 mb-4 leading-relaxed">

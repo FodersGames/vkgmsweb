@@ -467,21 +467,13 @@ const Shop = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-[#1D1D1F] mt-16 py-8 px-6">
-        <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-sm font-bold tracking-[0.18em] text-white">VAKAR GAMES</span>
-          <p className="text-xs text-[#3A3A3C]">Secure payments powered by Stripe.</p>
-        </div>
-      </footer>
-
       {/* Buy modal */}
       {buying && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
           <div className="animate-appear rounded-2xl liquid-glass w-full max-w-md">
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#D2D2D7]/60 flex items-center justify-between">
-              <h3 className="font-bold text-[#1D1D1F] text-sm">{buying.name}</h3>
+              <h3 className="font-display text-base font-medium text-[#1D1D1F]">{buying.name}</h3>
               <button onClick={() => setBuying(null)} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
                 <X size={16} />
               </button>

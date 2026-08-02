@@ -65,12 +65,12 @@ function ApplyModal({ career, onClose, token, user }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/60">
-      <div className="bg-white w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+      <div className="animate-appear rounded-2xl liquid-glass w-full max-w-lg overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/60">
           <div>
-            <p className="text-xs font-semibold text-[#4ECDC4] uppercase tracking-wider mb-0.5">{career.department}</p>
-            <h3 className="font-bold text-[#1D1D1F] text-sm">{career.title}</h3>
+            <p className="text-xs font-mono font-semibold text-[#4ECDC4] tracking-wide mb-0.5">// {career.department}</p>
+            <h3 className="font-display text-lg font-medium text-[#1D1D1F]">{career.title}</h3>
           </div>
           <button onClick={onClose} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
             <X size={16} />
@@ -224,7 +224,7 @@ export default function Careers() {
           <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-24 bg-[#D2D2D7] animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
-            <p className="text-xl font-bold mb-3 text-[#A1A1A6]">
+            <p className="font-display text-xl font-medium mb-3 text-[#A1A1A6]">
               No open positions
             </p>
             <p className="text-sm text-[#6E6E73]">
@@ -244,7 +244,7 @@ export default function Careers() {
                         <span className="w-1 h-1 rounded-full bg-[#BFBFC4]" />
                         <span className="text-xs text-[#A1A1A6]">{c.contract_type}</span>
                       </div>
-                      <h2 className="text-lg font-bold text-[#1D1D1F] mb-2">{c.title}</h2>
+                      <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-2">{c.title}</h2>
                       <div className="flex items-center flex-wrap gap-4 text-xs text-[#6E6E73]">
                         <span className="flex items-center gap-1"><MapPin size={11} />{c.location}</span>
                         <span className="flex items-center gap-1"><Briefcase size={11} />{c.contract_type}</span>

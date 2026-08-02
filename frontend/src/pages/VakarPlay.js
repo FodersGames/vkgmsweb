@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
+import { PublicButton } from '../ui/PublicButton';
 import { GameController, Clock, CaretRight } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -127,19 +128,15 @@ export default function VakarPlay() {
               >
                 <GameController size={28} style={{ color: MINT_DARK }} />
               </div>
-              <h2 className="text-xl font-bold text-[#1D1D1F] mb-3">
+              <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-3">
                 No games yet
               </h2>
               <p className="text-[#6B7280] text-sm mb-6 max-w-sm mx-auto">
                 Your games will appear here once you start playing Vakar Games titles.
               </p>
-              <Link
-                to="/games"
-                className="rounded-full inline-flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 transition-colors"
-                style={{ background: MINT_DARK }}
-              >
-                Discover our games <CaretRight size={14} />
-              </Link>
+              <PublicButton as={Link} to="/games" icon={CaretRight}>
+                Discover our games
+              </PublicButton>
             </div>
           ) : (
             <>

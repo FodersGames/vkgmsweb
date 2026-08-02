@@ -95,7 +95,7 @@ const Contact = () => {
             {success ? (
               <div className="rounded-xl bg-white border border-[#D2D2D7] p-10 text-center">
                 <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-[#1D1D1F] mb-2">
+                <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-2">
                   Ticket submitted!
                 </h2>
                 <p className="text-sm text-[#6E6E73] mb-1">
@@ -121,7 +121,7 @@ const Contact = () => {
               </div>
             ) : (
               <div className="rounded-xl bg-white border border-[#D2D2D7] p-8">
-                <h2 className="text-lg font-bold text-[#1D1D1F] mb-6">Send us a message</h2>
+                <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-6">Send us a message</h2>
                 {!token ? (
                   <div className="text-center py-10 space-y-4">
                     <p className="text-sm font-semibold text-[#1D1D1F]">Account required</p>

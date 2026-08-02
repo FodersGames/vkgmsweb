@@ -69,7 +69,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <Warning size={18} className="text-amber-600" />
           </div>
-          <h2 className="text-xl font-bold text-[#1D1D1F] mb-1">Change your password</h2>
+          <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-1">Change your password</h2>
           <p className="text-sm text-[#6E6E73]">
             You must set a new password before continuing.
           </p>
@@ -198,7 +198,7 @@ export const Login = () => {
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="text-[17px] font-bold tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors"
+            className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors"
           >
             Vakar Games
           </Link>
@@ -278,7 +278,7 @@ export const Login = () => {
                   <div className="rounded-lg w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle size={18} className="text-[#4ECDC4]" />
                   </div>
-                  <h3 className="text-base font-bold text-[#1D1D1F] mb-1">Account created</h3>
+                  <h3 className="font-display text-lg font-medium text-[#1D1D1F] mb-1">Account created</h3>
                   <p className="text-sm text-[#6E6E73] mb-5">
                     You can now sign in with your email and password.
                   </p>

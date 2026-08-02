@@ -15,7 +15,7 @@ const MaintenancePage = () => (
 
     {/* Top bar */}
     <div className="bg-white/80 backdrop-blur-sm border-b border-[#D2D2D7] px-6 py-4">
-      <span className="text-[17px] font-bold tracking-tight text-[#1D1D1F]">
+      <span className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F]">
         Vakar Games
       </span>
     </div>
@@ -31,9 +31,9 @@ const MaintenancePage = () => (
         </div>
 
         <h1
-          className="text-5xl sm:text-7xl font-bold text-[#1D1D1F] mb-4 leading-none"
+          className="font-display text-5xl sm:text-7xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-4 leading-none"
         >
-          UNDER<br />MAINTENANCE
+          Under<br />maintenance
         </h1>
 
         <p className="text-[#6E6E73] mb-2 leading-relaxed">

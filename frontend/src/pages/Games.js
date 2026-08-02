@@ -119,7 +119,7 @@ const GamesPage = () => {
             <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
           ) : games.length === 0 ? (
             <div className="text-center py-20">
-              <h2 className="text-2xl font-bold text-[#A1A1A6] mb-3">
+              <h2 className="font-display text-2xl font-medium text-[#A1A1A6] mb-3">
                 In development
               </h2>
               <p className="text-[#6E6E73]">New games are in progress. Check the blog for updates.</p>
@@ -148,7 +148,7 @@ const GamesPage = () => {
                       />
                     ) : (
                       <div className="w-full aspect-video rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center">
-                        <span className="text-[#A1A1A6] text-2xl font-bold">
+                        <span className="font-display text-[#A1A1A6] text-2xl font-medium">
                           {game.name}
                         </span>
                       </div>
@@ -159,7 +159,7 @@ const GamesPage = () => {
                   <div className="lg:w-1/2 space-y-5">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h2
-                        className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#1D1D1F]"
+                        className="font-display text-3xl sm:text-4xl md:text-5xl font-medium tracking-[-0.015em] text-[#1D1D1F]"
                       >
                         {game.name}
                       </h2>

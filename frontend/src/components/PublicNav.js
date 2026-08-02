@@ -77,7 +77,7 @@ export const PublicNav = ({ onAbout }) => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="liquid-glass liquid-glass-interactive inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] rounded-full px-2.5 py-1.5"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-2.5 py-1.5 transition-colors"
                 >
                   <SquaresFour size={12} />
                   Admin
