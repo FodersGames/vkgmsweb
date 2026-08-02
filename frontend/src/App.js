@@ -1,4 +1,5 @@
 import React from 'react';
+import { IconContext } from '@phosphor-icons/react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -70,15 +71,19 @@ const AppRoutes = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppRoutes />
-            <CookieBanner />
-          </BrowserRouter>
-          <Toaster position="bottom-right" />
-        </AuthProvider>
-      </ThemeProvider>
+      {/* Phosphor's default weight for the whole app — public pages use it for
+          every icon; the admin dashboard keeps lucide-react untouched. */}
+      <IconContext.Provider value={{ weight: 'regular' }}>
+        <ThemeProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+              <CookieBanner />
+            </BrowserRouter>
+            <Toaster position="bottom-right" />
+          </AuthProvider>
+        </ThemeProvider>
+      </IconContext.Provider>
     </ErrorBoundary>
   );
 }

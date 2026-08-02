@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Loader2, CheckCircle, ShoppingCart, Tag, X } from 'lucide-react';
+import { ArrowSquareOut, CircleNotch, CheckCircle, ShoppingCart, Tag, X } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -207,7 +207,7 @@ const GamesPage = () => {
                             >
                               <span className="text-[#A1A1A6]">{pl.svg}</span>
                               {pl.label}
-                              <ExternalLink size={11} className="text-[#A1A1A6]" />
+                              <ArrowSquareOut size={11} className="text-[#A1A1A6]" />
                             </a>
                           ) : null;
                         })}
@@ -265,7 +265,7 @@ const GamesPage = () => {
                               className="w-full flex items-center justify-center gap-2 bg-[#4ECDC4] hover:bg-[#3BB8B0] text-white py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
                             >
                               {purchasing === game.slug
-                                ? <><Loader2 size={14} className="animate-spin" /> Processing…</>
+                                ? <><CircleNotch size={14} className="animate-spin" /> Processing…</>
                                 : <>
                                     <ShoppingCart size={14} />
                                     {couponStatus?.valid

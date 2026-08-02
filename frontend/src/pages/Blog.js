@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, User } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';

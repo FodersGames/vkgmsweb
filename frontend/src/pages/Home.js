@@ -1,30 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code2, Users, Wrench } from 'lucide-react';
+import { ArrowRight } from '@phosphor-icons/react';
 import axios from 'axios';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
+import { LiveTerminal } from '../components/LiveTerminal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-const FEATURES = [
-  {
-    icon: Code2,
-    title: 'Software & game development',
-    text: 'From web platforms to native apps and games — built end-to-end, with no outsourced core systems.',
-  },
-  {
-    icon: Users,
-    title: 'Community & clients',
-    text: 'Direct feedback loops that shape the roadmap, not just the release notes.',
-  },
-  {
-    icon: Wrench,
-    title: 'In-house tooling',
-    text: 'Accounts, shop and live-ops systems we build and own outright.',
-  },
-];
 
 const Home = () => {
   const aboutRef = useRef(null);
@@ -52,28 +35,24 @@ const Home = () => {
 
       {/* Hero */}
       <section className="relative overflow-hidden [contain:paint] pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
-        {/* Ambient glow — the color the glass badge below refracts */}
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          <div className="absolute -top-40 left-1/2 -translate-x-[62%] w-[560px] h-[560px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
-          <div className="absolute -top-24 left-1/2 translate-x-[8%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
-        </div>
+        <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
 
         <div className="max-w-[1040px] mx-auto">
           <Reveal as="div" className="mb-6 flex justify-center">
-            <span className="liquid-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-[#3A3A3C]">
-              Independent Software Company — Est. 2024
+            <span className="liquid-glass rounded-full px-4 py-1.5 text-[12px] font-mono font-medium tracking-wide text-[#3A3A3C]">
+              vakar-games · independent software co. · est. 2024
             </span>
           </Reveal>
           <Reveal
             as="h1"
-            className="text-[40px] sm:text-[64px] lg:text-[80px] leading-[1.05] tracking-[-0.03em] font-bold text-[#1D1D1F]"
+            className="font-display text-[42px] sm:text-[68px] lg:text-[84px] leading-[1.03] tracking-[-0.01em] font-medium text-[#1D1D1F]"
           >
             <span style={{ textWrap: 'balance' }} data-testid="hero-title">
-              Software built to<br /><span className="text-[#4ECDC4]">endure.</span>
+              Software built to<br /><em className="not-italic text-[#4ECDC4]">endure.</em>
             </span>
           </Reveal>
-          <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
-            Vakar Games is a software company crafting applications, tools and games — for the public and for professionals alike. Small team, deliberate choices, no shortcuts on what matters.
+          <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-6 leading-relaxed">
+            We build the applications, tools and games we'd want to use ourselves — every core system written and run in-house, nothing rented out to a template.
           </Reveal>
           <Reveal as="div" className="flex items-center justify-center gap-3 mt-9 flex-wrap">
             <button
@@ -92,30 +71,35 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured game */}
-      <section className="bg-[#F5F5F7] py-[132px] px-6 text-center">
-        <div className="max-w-[1040px] mx-auto">
-          <Reveal as="p" className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">Featured release</Reveal>
+      {/* Featured game — asymmetric: image bleeds to the edge, copy sits beside it */}
+      <section className="bg-[#F5F5F7] py-20 sm:py-28 px-6">
+        <div className="max-w-[1120px] mx-auto">
           {featuredGame ? (
-            <>
-              <Reveal as="h2" className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
-                <span style={{ textWrap: 'balance' }}>
-                  {featuredGame.name}
-                  {featuredGame.description ? '.' : ''}
-                </span>
+            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-4 items-center">
+              <Reveal as="div" className="lg:order-2">
+                <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// featured release</p>
+                <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
+                  <span style={{ textWrap: 'balance' }}>{featuredGame.name}</span>
+                </h2>
+                {featuredGame.description && (
+                  <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-4 leading-relaxed max-w-[46ch]">
+                    {featuredGame.description}
+                  </p>
+                )}
+                <Link
+                  to="/shop"
+                  className="mt-6 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group"
+                >
+                  View on the shop <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
               </Reveal>
-              {featuredGame.description && (
-                <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
-                  {featuredGame.description}
-                </Reveal>
-              )}
               <Reveal
-                className="mt-14 rounded-[24px] border border-[#D2D2D7] overflow-hidden flex items-center justify-center"
+                className="lg:order-1 rounded-[20px] border border-[#D2D2D7] overflow-hidden flex items-center justify-center lg:-ml-10"
                 as="div"
               >
                 <div
                   className="w-full h-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(180deg, #FAFAFB 0%, #F0F0F2 100%)', aspectRatio: '16 / 8.2' }}
+                  style={{ background: 'linear-gradient(180deg, #FAFAFB 0%, #F0F0F2 100%)', aspectRatio: '4 / 3' }}
                 >
                   {featuredGame.logo_url || featuredGame.screenshots?.[0] ? (
                     <img
@@ -128,42 +112,38 @@ const Home = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-[48px] sm:text-[80px] font-bold tracking-[-0.03em] text-[#1D1D1F] opacity-90 uppercase">
+                    <span className="text-[40px] sm:text-[64px] font-display font-medium tracking-[-0.02em] text-[#1D1D1F] opacity-90 uppercase px-6 text-center">
                       {featuredGame.name}
                     </span>
                   )}
                 </div>
               </Reveal>
-              <Reveal as="div" className="mt-7">
-                <Link to="/shop" className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
-                  View on the shop <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </Reveal>
-            </>
+            </div>
           ) : (
-            <>
-              <h2 className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
+            <div className="text-center">
+              <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// featured release</p>
+              <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
                 New releases, in the works.
               </h2>
-              <p className="text-[17px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
+              <p className="text-[16px] text-[#6E6E73] max-w-[42ch] mx-auto mt-4 leading-relaxed">
                 Follow the company journal for updates on what's next.
               </p>
-              <div className="mt-7">
-                <Link to="/blog" className="inline-flex items-center gap-1.5 text-base text-[#4ECDC4] group">
-                  Read the journal <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+              <div className="mt-6">
+                <Link to="/blog" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group">
+                  Read the journal <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </div>
-            </>
+            </div>
           )}
         </div>
       </section>
 
       {/* Games grid */}
       {games.length > 0 && (
-        <section id="games" className="py-[132px] px-6 text-center">
+        <section id="games" className="py-20 sm:py-28 px-6 text-center">
           <div className="max-w-[1040px] mx-auto">
-            <Reveal as="p" className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">Games we've shipped</Reveal>
-            <Reveal as="h2" className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// games we've shipped</p>
+            <Reveal as="h2" className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
               {games.length === 1 ? 'One world, one philosophy.' : `${games.length} worlds. One philosophy.`}
             </Reveal>
 
@@ -178,10 +158,10 @@ const Home = () => {
                   to={`/shop?game=${game.slug}`}
                   className="bg-white hover:bg-[#FCFCFD] transition-colors px-[30px] py-9"
                 >
-                  <div className="text-[13px] font-bold text-[#4ECDC4] tracking-[0.04em] mb-[18px] uppercase">
+                  <div className="text-[12px] font-mono text-[#4ECDC4] mb-[18px]">
                     {game.name}
                   </div>
-                  <h3 className="text-xl tracking-[-0.01em] font-bold text-[#1D1D1F] mb-2">{game.name}</h3>
+                  <h3 className="font-display text-xl tracking-[-0.01em] font-medium text-[#1D1D1F] mb-2">{game.name}</h3>
                   <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px]">
                     {game.description || ' '}
                   </p>
@@ -195,58 +175,56 @@ const Home = () => {
         </section>
       )}
 
-      {/* Company */}
-      <section ref={aboutRef} id="studio" className="bg-[#F5F5F7] py-[132px] px-6 text-center" data-testid="about-section">
-        <div className="max-w-[1040px] mx-auto">
-          <Reveal as="p" className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">The company</Reveal>
-          <Reveal as="h2" className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
-            <span style={{ textWrap: 'balance' }}>Made by a small,<br />opinionated team.</span>
-          </Reveal>
-          <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
-            We keep the roster deliberately small — people who ship, support and iterate on every product long after release.
-          </Reveal>
+      {/* Company — asymmetric: the terminal does the talking, not an icon grid */}
+      <section ref={aboutRef} id="studio" className="bg-[#F5F5F7] py-20 sm:py-28 px-6" data-testid="about-section">
+        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-10 lg:gap-16 items-center">
+          <Reveal as="div">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// the company</p>
+            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
+              <span style={{ textWrap: 'balance' }}>Made by a small,<br />opinionated team.</span>
+            </h2>
+            <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
+              We keep the roster deliberately small — people who ship, support and iterate on every product long after release. No offshore core systems, no template stack.
+            </p>
 
-          <div className="mt-16 grid sm:grid-cols-3 gap-12 text-left">
-            {FEATURES.map(({ icon: Icon, title, text }, i) => (
-              <Reveal key={title} className="pt-5 border-t border-[#D2D2D7]" style={{ transitionDelay: `${i * 80}ms` }}>
-                <Icon size={22} className="text-[#4ECDC4] mb-[18px]" strokeWidth={2} />
-                <h3 className="text-[17px] tracking-[-0.01em] font-bold text-[#1D1D1F] mb-2">{title}</h3>
-                <p className="text-sm text-[#6E6E73] leading-relaxed">{text}</p>
-              </Reveal>
-            ))}
-          </div>
-
-          <Reveal as="div" className="mt-16 grid grid-cols-3 gap-8">
-            {[
-              { n: titlesShipped || games.length, label: 'Products shipped' },
-              { n: '2024', label: 'Company founded' },
-              { n: 'Web · Mobile', label: 'Platforms' },
-            ].map(s => (
-              <div key={s.label}>
-                <div className="text-[36px] sm:text-[56px] leading-none font-bold tracking-[-0.02em] text-[#1D1D1F]" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {s.n}
+            <div className="mt-10 grid grid-cols-3 gap-6 max-w-[420px]">
+              {[
+                { n: titlesShipped || games.length, label: 'Products shipped' },
+                { n: '2024', label: 'Founded' },
+                { n: '100%', label: 'In-house stack' },
+              ].map(s => (
+                <div key={s.label}>
+                  <div className="font-mono text-[26px] sm:text-[34px] leading-none font-medium tracking-[-0.01em] text-[#1D1D1F]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {s.n}
+                  </div>
+                  <div className="text-[12.5px] text-[#6E6E73] mt-2">{s.label}</div>
                 </div>
-                <div className="text-[13.5px] text-[#6E6E73] mt-2">{s.label}</div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal as="div" style={{ transitionDelay: '100ms' }}>
+            <LiveTerminal />
           </Reveal>
         </div>
       </section>
 
-      {/* CTA */}
-      <section id="contact" className="py-[132px] px-6 text-center">
-        <div className="max-w-[1040px] mx-auto">
-          <Reveal as="p" className="text-[13px] font-semibold text-[#6E6E73] mb-[18px]">Get in touch</Reveal>
-          <Reveal as="h2" className="text-[32px] sm:text-[44px] leading-[1.08] tracking-[-0.025em] font-bold text-[#1D1D1F]">
-            Let's build together.
-          </Reveal>
-          <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#6E6E73] max-w-[42ch] mx-auto mt-5 leading-relaxed">
-            Press, partnerships, or a question about one of our products — we read everything ourselves.
-          </Reveal>
-          <Reveal as="div" className="flex items-center justify-center gap-3 mt-9 flex-wrap">
+      {/* CTA — a glass bar instead of another centered stack */}
+      <section id="contact" className="py-20 sm:py-28 px-6">
+        <Reveal className="max-w-[1040px] mx-auto liquid-glass rounded-[24px] px-8 sm:px-12 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left" as="div">
+          <div>
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// get in touch</p>
+            <h2 className="font-display text-[26px] sm:text-[32px] leading-[1.1] tracking-[-0.01em] font-medium text-[#1D1D1F]">
+              Let's build together.
+            </h2>
+            <p className="text-[15px] text-[#6E6E73] mt-2 max-w-[38ch]">
+              Press, partnerships, or a question about one of our products — we read everything ourselves.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap justify-center shrink-0">
             <Link
               to="/contact"
-              className="inline-flex items-center rounded-full bg-[#1D1D1F] hover:opacity-80 text-white text-sm font-medium px-5 py-2.5 transition-opacity"
+              className="glass-sheen inline-flex items-center rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-medium px-5 py-2.5 transition-colors"
               data-testid="contact-email-button"
             >
               Open a ticket
@@ -257,8 +235,8 @@ const Home = () => {
             >
               Email us
             </a>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
       </section>
 
       <SiteFooter onAbout={scrollToAbout} />

@@ -194,3 +194,13 @@
   .liquid-glass-interactive,
   .liquid-glass-interactive:hover { transition: none; transform: none; }
 }
+
+/* Fine dot-grid texture — a "considered/technical" backdrop instead of the
+   soft gradient blobs every AI-generated hero reaches for. Fades out toward
+   the edges via mask so it reads as an accent, not a hard-edged grid. */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(29,29,31,0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
+}

@@ -6,7 +6,7 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { Select } from '../ui';
-import { Send, MessageCircle, Mail, Ticket, CheckCircle, Loader2 } from 'lucide-react';
+import { PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle, CircleNotch } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
@@ -182,7 +182,7 @@ const Contact = () => {
                     disabled={sending}
                     className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
                   >
-                    {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
                     {sending ? 'Sending…' : 'Send message'}
                   </button>
                 </form>
@@ -196,7 +196,7 @@ const Contact = () => {
             <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
-                  <Mail size={14} className="text-[#4ECDC4]" />
+                  <EnvelopeSimple size={14} className="text-[#4ECDC4]" />
                 </div>
                 <h3 className="text-sm font-bold text-[#1D1D1F]">Email</h3>
               </div>
@@ -211,7 +211,7 @@ const Contact = () => {
             <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
-                  <MessageCircle size={14} className="text-[#4ECDC4]" />
+                  <ChatCircle size={14} className="text-[#4ECDC4]" />
                 </div>
                 <h3 className="text-sm font-bold text-[#1D1D1F]">Chat support</h3>
               </div>

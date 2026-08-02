@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, User, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
+import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -32,7 +32,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
           onClick={() => setShow(s => !s)}
           tabIndex={-1}
         >
-          {show ? <EyeOff size={13} /> : <Eye size={13} />}
+          {show ? <EyeSlash size={13} /> : <Eye size={13} />}
         </button>
       )}
     </div>
@@ -65,7 +65,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
       <div className="animate-appear rounded-2xl liquid-glass max-w-md w-full p-8">
         <div className="mb-6">
           <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
-            <AlertTriangle size={18} className="text-amber-600" />
+            <Warning size={18} className="text-amber-600" />
           </div>
           <h2 className="text-xl font-bold text-[#1D1D1F] mb-1">Change your password</h2>
           <p className="text-sm text-[#6E6E73]">
@@ -232,7 +232,7 @@ export const Login = () => {
                   Email
                 </label>
                 <InputField
-                  icon={Mail}
+                  icon={EnvelopeSimple}
                   type="email"
                   placeholder="your@email.com"
                   value={email}
@@ -340,7 +340,7 @@ export const Login = () => {
                       Email
                     </label>
                     <InputField
-                      icon={Mail}
+                      icon={EnvelopeSimple}
                       type="email"
                       placeholder="your@email.com"
                       value={reg.email}

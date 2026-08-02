@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Briefcase, ChevronDown, ChevronUp, Send, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, Warning } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
@@ -91,7 +91,7 @@ function ApplyModal({ career, onClose, token, user }) {
           <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
             {!token && (
               <div className="rounded-lg flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 text-xs text-amber-700">
-                <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                <Warning size={13} className="shrink-0 mt-0.5" />
                 You must be signed in to apply. <a href="/login" className="font-semibold underline ml-1">Sign in</a>
               </div>
             )}
@@ -145,7 +145,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
             {error && (
               <div className="rounded-lg flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 text-xs">
-                <AlertTriangle size={12} className="shrink-0" />{error}
+                <Warning size={12} className="shrink-0" />{error}
               </div>
             )}
 
@@ -155,7 +155,7 @@ function ApplyModal({ career, onClose, token, user }) {
                 disabled={sending || !token}
                 className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                <Send size={13} />
+                <PaperPlaneTilt size={13} />
                 {sending ? 'Sending…' : 'Send Application'}
               </button>
               <button type="button" onClick={onClose} className="text-sm text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
@@ -263,7 +263,7 @@ export default function Careers() {
                           {c.tools.length > 4 && <span className="text-xs text-[#A1A1A6] ml-1">+{c.tools.length - 4}</span>}
                         </div>
                       )}
-                      {expanded === c._id ? <ChevronUp size={16} className="text-[#A1A1A6]" /> : <ChevronDown size={16} className="text-[#A1A1A6]" />}
+                      {expanded === c._id ? <CaretUp size={16} className="text-[#A1A1A6]" /> : <CaretDown size={16} className="text-[#A1A1A6]" />}
                     </div>
                   </div>
                 </button>
@@ -301,7 +301,7 @@ export default function Careers() {
                         onClick={() => setApplying(c)}
                         className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#3A3A3C] transition-colors"
                       >
-                        <Send size={13} />
+                        <PaperPlaneTilt size={13} />
                         Apply for this position
                       </button>
                     </div>

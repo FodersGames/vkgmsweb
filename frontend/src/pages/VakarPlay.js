@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
-import { Gamepad2, Clock, ChevronRight } from 'lucide-react';
+import { GameController, Clock, CaretRight } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -47,7 +47,7 @@ function GameCard({ game }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Gamepad2 size={32} style={{ color: MINT_MID }} />
+            <GameController size={32} style={{ color: MINT_MID }} />
           </div>
         )}
       </div>
@@ -127,7 +127,7 @@ export default function VakarPlay() {
                 className="rounded-xl w-16 h-16 flex items-center justify-center mx-auto mb-5"
                 style={{ background: MINT_LIGHT }}
               >
-                <Gamepad2 size={28} style={{ color: MINT_DARK }} />
+                <GameController size={28} style={{ color: MINT_DARK }} />
               </div>
               <h2 className="text-xl font-bold text-[#1D1D1F] mb-3">
                 No games yet
@@ -140,7 +140,7 @@ export default function VakarPlay() {
                 className="rounded-full inline-flex items-center gap-2 text-sm font-semibold text-white px-5 py-2.5 transition-colors"
                 style={{ background: MINT_DARK }}
               >
-                Discover our games <ChevronRight size={14} />
+                Discover our games <CaretRight size={14} />
               </Link>
             </div>
           ) : (

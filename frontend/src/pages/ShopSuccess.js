@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useSearchParams, useParams } from 'react-router-dom';
-import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ShoppingBag, ArrowLeft } from '@phosphor-icons/react';
 import { SiteFooter } from '../components/SiteFooter';
 
 const ShopSuccess = ({ legacy }) => {

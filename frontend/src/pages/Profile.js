@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, LogOut, Bell, Eye, EyeOff, CheckCircle, AlertTriangle, Edit2, X, Save, Shield, Star, Trophy, Gem, LayoutDashboard, Camera, Gamepad2, ChevronRight } from 'lucide-react';
+import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, Shield, Star, Trophy, Diamond, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -25,7 +25,7 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           className="w-full rounded-lg pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
         />
         <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
-          {show ? <EyeOff size={13} /> : <Eye size={13} />}
+          {show ? <EyeSlash size={13} /> : <Eye size={13} />}
         </button>
       </div>
     </div>
@@ -56,7 +56,7 @@ const TIERS = {
   bronze:  { label: 'Bronze',  color: '#CD7F32', icon: Shield,  discount: 0,  min: 0     },
   silver:  { label: 'Silver',  color: '#94A3B8', icon: Star,    discount: 5,  min: 2500  },
   gold:    { label: 'Gold',    color: '#F59E0B', icon: Trophy,  discount: 10, min: 10000 },
-  diamond: { label: 'Diamond', color: '#22D3EE', icon: Gem,     discount: 15, min: 25000 },
+  diamond: { label: 'Diamond', color: '#22D3EE', icon: Diamond,     discount: 15, min: 25000 },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
 
@@ -384,7 +384,7 @@ const Profile = () => {
                   to="/dashboard"
                   className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
                 >
-                  <LayoutDashboard size={12} />
+                  <SquaresFour size={12} />
                   Dashboard
                 </Link>
               )}
@@ -392,7 +392,7 @@ const Profile = () => {
                 onClick={handleLogout}
                 className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-red-500 border border-[#D2D2D7] hover:border-red-200 px-3 py-2 transition-all"
               >
-                <LogOut size={12} />
+                <SignOut size={12} />
                 Sign Out
               </button>
             </div>
@@ -403,7 +403,7 @@ const Profile = () => {
         {avatarError && (
           <div className="max-w-lg mx-auto px-6 pt-4">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
-              <AlertTriangle size={12} className="shrink-0" />{avatarError}
+              <Warning size={12} className="shrink-0" />{avatarError}
               <button onClick={() => setAvatarError('')} className="ml-auto"><X size={12} /></button>
             </div>
           </div>
@@ -416,13 +416,13 @@ const Profile = () => {
             className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#C4B5FD] p-4 transition-colors group"
           >
             <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0" style={{ background: '#EDE9FE' }}>
-              <Gamepad2 size={16} style={{ color: '#5B21B6' }} />
+              <GameController size={16} style={{ color: '#5B21B6' }} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
               <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
             </div>
-            <ChevronRight size={15} className="text-[#BFBFC4] group-hover:text-[#5B21B6] transition-colors shrink-0" />
+            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#5B21B6] transition-colors shrink-0" />
           </Link>
         </div>
 
@@ -463,7 +463,7 @@ const Profile = () => {
                         onClick={() => setEditingProfile(true)}
                         className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-2.5 py-1.5 transition-all"
                       >
-                        <Edit2 size={11} />Edit
+                        <PencilSimple size={11} />Edit
                       </button>
                     ) : null
                   }
@@ -484,12 +484,12 @@ const Profile = () => {
                     </div>
                     {profileError && (
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
-                        <AlertTriangle size={13} className="shrink-0" />{profileError}
+                        <Warning size={13} className="shrink-0" />{profileError}
                       </div>
                     )}
                     <div className="flex gap-2 pt-1">
                       <button type="submit" disabled={profileLoading} className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
-                        <Save size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
+                        <FloppyDisk size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
                       </button>
                       <button type="button" onClick={handleProfileCancel} className="rounded-full inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-4 py-2 transition-all">
                         <X size={13} />Cancel
@@ -536,7 +536,7 @@ const Profile = () => {
                 <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
                 {pwError && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
-                    <AlertTriangle size={12} className="shrink-0" />{pwError}
+                    <Warning size={12} className="shrink-0" />{pwError}
                   </div>
                 )}
                 {pwSuccess && (

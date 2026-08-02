@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { MessageCircle, X, Send, ChevronLeft, ExternalLink, Loader2, CheckCircle } from 'lucide-react';
+import { ChatCircle, X, PaperPlaneTilt, CaretLeft, ArrowSquareOut, CircleNotch, CheckCircle } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Select } from '../ui';
 
@@ -136,7 +136,7 @@ export const SupportWidget = ({ user }) => {
         className="glass-sheen fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shadow-lg hover:bg-[#3A3A3C] transition-colors"
         aria-label="Support"
       >
-        <MessageCircle size={20} />
+        <ChatCircle size={20} />
         {hasUnread && (
           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" />
         )}
@@ -149,7 +149,7 @@ export const SupportWidget = ({ user }) => {
             <div className="flex items-center gap-2">
               {view !== 'menu' && (
                 <button onClick={() => { setView('menu'); setSuccess(''); setError(''); setActiveTicket(null); }} className="hover:text-white/70 transition-colors mr-1">
-                  <ChevronLeft size={16} />
+                  <CaretLeft size={16} />
                 </button>
               )}
               <span className="text-sm font-bold tracking-wide">
@@ -173,7 +173,7 @@ export const SupportWidget = ({ user }) => {
                       onClick={() => { setView('new'); setSuccess(''); setError(''); }}
                       className="rounded-xl w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
-                      <Send size={16} className="text-[#4ECDC4] flex-shrink-0" />
+                      <PaperPlaneTilt size={16} className="text-[#4ECDC4] flex-shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-[#1D1D1F]">Open a ticket</p>
                         <p className="text-xs text-[#A1A1A6]">Send us a support request</p>
@@ -183,7 +183,7 @@ export const SupportWidget = ({ user }) => {
                       onClick={() => setView('mytickets')}
                       className="rounded-xl w-full flex items-center gap-3 px-4 py-3 border border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:bg-[#F5F5F7] transition-all text-left"
                     >
-                      <ExternalLink size={16} className="text-[#6E6E73] flex-shrink-0" />
+                      <ArrowSquareOut size={16} className="text-[#6E6E73] flex-shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-[#1D1D1F]">My tickets</p>
                         <p className="text-xs text-[#A1A1A6]">View your past requests</p>
@@ -268,7 +268,7 @@ export const SupportWidget = ({ user }) => {
                       disabled={sending}
                       className="w-full flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
                     >
-                      {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
                       {sending ? 'Sending…' : 'Submit ticket'}
                     </button>
                   </form>
@@ -280,7 +280,7 @@ export const SupportWidget = ({ user }) => {
             {view === 'mytickets' && (
               <div className="divide-y divide-[#D2D2D7]">
                 {loadingTickets ? (
-                  <div className="p-6 text-center"><Loader2 size={18} className="animate-spin text-[#A1A1A6] mx-auto" /></div>
+                  <div className="p-6 text-center"><CircleNotch size={18} className="animate-spin text-[#A1A1A6] mx-auto" /></div>
                 ) : tickets.length === 0 ? (
                   <div className="p-6 text-center text-xs text-[#A1A1A6]">No tickets yet.</div>
                 ) : (
@@ -338,7 +338,7 @@ export const SupportWidget = ({ user }) => {
                       disabled={sendingReply || !reply.trim()}
                       className="rounded-lg flex items-center justify-center w-8 h-8 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white transition-colors disabled:opacity-50 flex-shrink-0"
                     >
-                      {sendingReply ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      {sendingReply ? <CircleNotch size={12} className="animate-spin" /> : <PaperPlaneTilt size={12} />}
                     </button>
                   </form>
                 )}

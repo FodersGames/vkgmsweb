@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, User } from 'lucide-react';
+import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { SupportWidget } from './SupportWidget';
 
@@ -34,7 +34,7 @@ export const PublicNav = ({ onAbout }) => {
         <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="text-[14.5px] font-bold tracking-tight text-[#1D1D1F] transition-colors"
+            className="font-display text-[16px] font-medium tracking-tight text-[#1D1D1F] transition-colors"
           >
             Vakar Games
           </Link>
@@ -78,7 +78,7 @@ export const PublicNav = ({ onAbout }) => {
                   to="/dashboard"
                   className="liquid-glass liquid-glass-interactive inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] rounded-full px-2.5 py-1.5"
                 >
-                  <LayoutDashboard size={12} />
+                  <SquaresFour size={12} />
                   Admin
                 </Link>
               )}
@@ -107,7 +107,7 @@ export const PublicNav = ({ onAbout }) => {
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
-          {open ? <X size={20} /> : <Menu size={20} />}
+          {open ? <X size={20} /> : <List size={20} />}
         </button>
       </div>
 

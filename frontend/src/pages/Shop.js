@@ -6,12 +6,12 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import {
-  ShoppingCart, X, Loader2, ArrowLeft, ArrowRight, Star,
-  Package, Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
-  Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
-  Award, Map, Cpu, Music, Moon, Sun, Tag, Gift,
-  CheckCircle, LogIn,
-} from 'lucide-react';
+  ShoppingCart, X, CircleNotch, ArrowLeft, ArrowRight, Star,
+  Package, Shield, Lightning, Heart, Leaf, Flame, Target, Trophy, Rocket, Diamond,
+  Key, Lock, Wrench, Hammer, Globe, Sparkle, Cube, Stack, Users,
+  Medal, MapTrifold, Cpu, MusicNotes, Moon, Sun, Tag, Gift,
+  CheckCircle, SignIn,
+} from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,7 +20,7 @@ const TIERS = {
   bronze:  { label: 'Bronze',  color: '#CD7F32', bg: '#CD7F3215', icon: Shield,  discount: 0,  min: 0,    max: 2500  },
   silver:  { label: 'Silver',  color: '#94A3B8', bg: '#94A3B815', icon: Star,    discount: 5,  min: 2500,  max: 10000 },
   gold:    { label: 'Gold',    color: '#F59E0B', bg: '#F59E0B15', icon: Trophy,  discount: 10, min: 10000, max: 25000 },
-  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Gem,     discount: 15, min: 25000, max: null  },
+  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Diamond, discount: 15, min: 25000, max: null  },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
 
@@ -164,11 +164,11 @@ const BadgePill = ({ badge, discount_pct }) => {
 };
 
 // ── Icon picker for categories ────────────────────────────────────────────────
-const ICONS = { package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
-  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
+const ICONS = { package: Package, shield: Shield, zap: Lightning, heart: Heart, leaf: Leaf,
+  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Diamond,
   key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
-  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
-  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun, gift: Gift, tag: Tag, star: Star,
+  sparkles: Sparkle, box: Cube, layers: Stack, users: Users, award: Medal,
+  map: MapTrifold, cpu: Cpu, music: MusicNotes, moon: Moon, sun: Sun, gift: Gift, tag: Tag, star: Star,
 };
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -343,7 +343,7 @@ const Shop = () => {
                   to="/login"
                   className="rounded-full inline-flex items-center gap-2 border border-[#1D1D1F] text-[#1D1D1F] hover:bg-[#1D1D1F] hover:text-white px-5 py-2.5 text-sm font-semibold transition-all"
                 >
-                  <LogIn size={14} />Sign in to purchase
+                  <SignIn size={14} />Sign in to purchase
                 </Link>
               )}
             </div>
@@ -359,7 +359,7 @@ const Shop = () => {
           {!user && (
             <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 flex items-center gap-4">
               <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
-                <LogIn size={16} className="text-[#4ECDC4]" />
+                <SignIn size={16} className="text-[#4ECDC4]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[#1D1D1F]">Sign in to buy</p>
@@ -467,7 +467,7 @@ const Shop = () => {
           {/* Products */}
           {loading ? (
             <div className="py-24 flex justify-center">
-              <Loader2 size={24} className="animate-spin text-[#A1A1A6]" />
+              <CircleNotch size={24} className="animate-spin text-[#A1A1A6]" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-24 text-center">
@@ -613,7 +613,7 @@ const Shop = () => {
                 className="w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-3 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               >
                 {checkoutLoading
-                  ? <><Loader2 size={15} className="animate-spin" />Redirecting…</>
+                  ? <><CircleNotch size={15} className="animate-spin" />Redirecting…</>
                   : `Pay $${(finalPrice / 100).toFixed(2)} with Stripe`
                 }
               </button>

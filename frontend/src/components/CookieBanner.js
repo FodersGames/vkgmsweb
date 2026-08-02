@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Cookie, X } from 'lucide-react';
+import { Cookie, X } from '@phosphor-icons/react';
 
 const CONSENT_KEY = 'vg_cookie_consent';
 
