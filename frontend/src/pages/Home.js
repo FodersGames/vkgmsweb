@@ -158,9 +158,17 @@ const Home = () => {
                   to={`/shop?game=${game.slug}`}
                   className="bg-white hover:bg-[#FCFCFD] transition-colors px-[30px] py-9"
                 >
-                  <div className="text-[12px] font-mono text-[#4ECDC4] mb-[18px]">
-                    {game.name}
-                  </div>
+                  {game.logo_url ? (
+                    <img
+                      src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
+                      alt={game.name}
+                      className="w-11 h-11 rounded-xl object-cover mb-[18px] border border-[#D2D2D7]"
+                    />
+                  ) : (
+                    <div className="text-[12px] font-mono text-[#4ECDC4] mb-[18px]">
+                      {game.name}
+                    </div>
+                  )}
                   <h3 className="font-display text-xl tracking-[-0.01em] font-medium text-[#1D1D1F] mb-2">{game.name}</h3>
                   <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px]">
                     {game.description || ' '}

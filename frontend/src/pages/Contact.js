@@ -78,8 +78,8 @@ const Contact = () => {
         {/* Header */}
         <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
           <Reveal className="max-w-6xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] mb-3">Support</p>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// support</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               Contact &amp; support
             </h1>
             <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">

@@ -31,6 +31,7 @@ import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
+import { NotificationBell }   from '../components/NotificationBell';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 // Each top-level item is either a single view, or a workspace that owns its
@@ -716,6 +717,7 @@ const DashboardContent = () => {
               Jump to…
               <kbd className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">⌘K</kbd>
             </button>
+            <NotificationBell hasPermission={hasPermission} onOpenTicket={() => goTo('support')} />
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}

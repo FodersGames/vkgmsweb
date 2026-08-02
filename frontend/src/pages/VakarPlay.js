@@ -96,10 +96,8 @@ export default function VakarPlay() {
         {/* Hero */}
         <section className="bg-white border-b border-[#EDE4FD] px-6 md:px-10 lg:px-16 pt-14 pb-10">
           <Reveal className="max-w-screen-xl mx-auto">
-            <p className="text-xs font-semibold mb-3" style={{ color: MINT }}>
-              Vakar Play
-            </p>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+            <p className="text-[12px] font-mono mb-3" style={{ color: MINT }}>// vakar play</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               My games
             </h1>
             <p className="text-[#6B7280] text-sm mt-2">

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Tag, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2, Users, Gamepad2, ShoppingBag } from 'lucide-react';
+import { Tag, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock, Loader2, Users, Gamepad2, ShoppingBag, Search } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -26,6 +26,7 @@ export const CouponManagement = () => {
 
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [creating, setCreating] = useState(false);
@@ -128,6 +129,16 @@ export const CouponManagement = () => {
     if (scope === 'product') return <ShoppingBag size={12} className="inline mr-1" />;
     return null;
   };
+
+  const filteredCampaigns = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return campaigns;
+    return campaigns.filter(c =>
+      c.name?.toLowerCase().includes(q) ||
+      c.scope_name?.toLowerCase().includes(q) ||
+      TIER_LABELS[c.target_tiers?.[0]]?.toLowerCase().includes(q)
+    );
+  }, [campaigns, search]);
 
   return (
     <div className="p-6 space-y-6">
@@ -335,6 +346,20 @@ export const CouponManagement = () => {
         </div>
       )}
 
+      {/* Search */}
+      {campaigns.length > 0 && (
+        <div className="relative">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search campaigns by name, tier, or scope…"
+            className="rounded-lg w-full pl-9 pr-3 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
+          />
+        </div>
+      )}
+
       {/* Campaign list */}
       {loading ? (
         <div className="text-center py-10 text-[#A1A1A6] dark:text-[#71717a] text-sm">Loading…</div>
@@ -342,9 +367,13 @@ export const CouponManagement = () => {
         <div className="text-center py-12 border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] text-sm">
           No campaigns yet. Create one to start sending promo codes.
         </div>
+      ) : filteredCampaigns.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] text-sm">
+          No campaigns match "{search}".
+        </div>
       ) : (
         <div className="space-y-2">
-          {campaigns.map(c => (
+          {filteredCampaigns.map(c => (
             <div key={c.id} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c]">
               <button
                 onClick={() => loadDetail(c.id)}
@@ -381,20 +410,29 @@ export const CouponManagement = () => {
                     <div className="flex items-center gap-2 py-4 text-xs text-[#A1A1A6] dark:text-[#71717a]">
                       <Loader2 size={12} className="animate-spin" /> Loading codes…
                     </div>
-                  ) : campaignDetail ? (
+                  ) : campaignDetail ? (() => {
+                    const now = new Date();
+                    const isExpired = (code) => !code.used && new Date(code.valid_until) < now;
+                    const expiredCount = campaignDetail.codes.filter(isExpired).length;
+                    const availableCount = campaignDetail.codes.filter(x => !x.used && !isExpired(x)).length;
+                    return (
                     <div className="mt-4">
-                      <div className="grid grid-cols-3 gap-4 text-center mb-4">
+                      <div className="grid grid-cols-4 gap-3 text-center mb-4">
                         <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
                           <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{campaignDetail.codes.length}</p>
-                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Total codes</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Total</p>
                         </div>
                         <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
                           <p className="text-lg font-bold text-[#4ECDC4]">{campaignDetail.codes.filter(x => x.used).length}</p>
                           <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Used</p>
                         </div>
                         <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
-                          <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{campaignDetail.codes.filter(x => !x.used).length}</p>
-                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Remaining</p>
+                          <p className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{availableCount}</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Available</p>
+                        </div>
+                        <div className="bg-[#F5F5F7] dark:bg-[#111118] px-3 py-2">
+                          <p className="text-lg font-bold text-[#F59E0B]">{expiredCount}</p>
+                          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Expired</p>
                         </div>
                       </div>
                       <div className="rounded-xl max-h-60 overflow-y-auto border border-[#D2D2D7] dark:border-[#2a2a3c] divide-y divide-[#D2D2D7] dark:divide-[#2a2a3c]">
@@ -404,13 +442,16 @@ export const CouponManagement = () => {
                             <span className="text-[#6E6E73] dark:text-[#a1a1aa] truncate mx-4 hidden sm:block">{code.assigned_to_email}</span>
                             {code.used
                               ? <span className="flex items-center gap-1 text-[#A1A1A6] dark:text-[#71717a] shrink-0"><XCircle size={11} /> Used</span>
-                              : <span className="flex items-center gap-1 text-[#4ECDC4] shrink-0"><CheckCircle size={11} /> Available</span>
+                              : isExpired(code)
+                                ? <span className="flex items-center gap-1 text-[#F59E0B] shrink-0"><Clock size={11} /> Expired</span>
+                                : <span className="flex items-center gap-1 text-[#4ECDC4] shrink-0"><CheckCircle size={11} /> Available</span>
                             }
                           </div>
                         ))}
                       </div>
                     </div>
-                  ) : null}
+                    );
+                  })() : null}
                 </div>
               )}
             </div>

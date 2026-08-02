@@ -9,19 +9,12 @@ import {
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Button, EmptyState, Select } from '../ui';
+import { SHOP_BADGES } from '../constants/shopBadges';
 
-// ── Badge system ──────────────────────────────────────────────────────────────
-const BADGE_OPTIONS = [
-  { value: '',          label: '— No badge —' },
-  { value: 'NEW',       label: 'New',          color: '#4ECDC4' },
-  { value: 'SALE',      label: 'Sale',          color: '#EB5757' },
-  { value: 'LIMITED',   label: 'Limited',       color: '#F2994A' },
-  { value: 'HOT',       label: 'Hot 🔥',        color: '#FF6B6B' },
-  { value: 'POPULAR',   label: 'Popular',       color: '#A29BFE' },
-  { value: 'BEST',      label: 'Best Value',    color: '#F59E0B' },
-  { value: 'BUNDLE',    label: 'Bundle',        color: '#6C5CE7' },
-  { value: 'EXCLUSIVE', label: '✦ Exclusive',   color: '#1D1D1F' },
-];
+// Same badge definitions the public shop renders — plus the admin-only
+// "no badge" option, which isn't a real badge so it doesn't belong in the
+// shared list.
+const BADGE_OPTIONS = [{ value: '', label: '— No badge —' }, ...SHOP_BADGES];
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const CATEGORY_ICONS = {
@@ -445,7 +438,7 @@ export const ShopManagement = () => {
                           ? 'border-[#1D1D1F] dark:border-[#e4e4e7] bg-[#1D1D1F] dark:bg-[#e4e4e7] text-white dark:text-[#0e0e15]'
                           : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                       }`}
-                      style={form.badge === b.value && b.color ? { backgroundColor: b.color, borderColor: b.color } : {}}
+                      style={form.badge === b.value && b.bg ? { backgroundColor: b.bg, borderColor: b.bg } : {}}
                     >
                       {b.label}
                     </button>
@@ -586,7 +579,7 @@ export const ShopManagement = () => {
                       </span>
                       {p.featured && <Star size={11} className="text-[#F59E0B] fill-[#F59E0B]" />}
                       {badge?.value && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 text-white" style={{ backgroundColor: badge.color }}>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 text-white" style={{ backgroundColor: badge.bg }}>
                           {badge.label}
                         </span>
                       )}

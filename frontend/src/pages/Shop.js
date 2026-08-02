@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
+import { SHOP_BADGE_MAP } from '../constants/shopBadges';
 import {
   ShoppingCart, X, CircleNotch, ArrowLeft, ArrowRight, Star,
   Package, Shield, Lightning, Heart, Leaf, Flame, Target, Trophy, Rocket, Diamond,
@@ -139,19 +140,8 @@ const LoyaltyBar = ({ loyalty }) => {
 };
 
 // ── Badge system ──────────────────────────────────────────────────────────────
-const BADGE_STYLES = {
-  NEW:     { bg: '#4ECDC4', text: '#fff',     label: 'New'     },
-  SALE:    { bg: '#EB5757', text: '#fff',     label: 'Sale'    },
-  LIMITED: { bg: '#F2994A', text: '#fff',     label: 'Limited' },
-  HOT:     { bg: '#FF6B6B', text: '#fff',     label: 'Hot 🔥'  },
-  POPULAR: { bg: '#A29BFE', text: '#fff',     label: 'Popular' },
-  BEST:    { bg: '#F59E0B', text: '#fff',     label: 'Best Value' },
-  BUNDLE:  { bg: '#6C5CE7', text: '#fff',     label: 'Bundle'  },
-  EXCLUSIVE: { bg: '#1D1D1F', text: '#4ECDC4', label: '✦ Exclusive' },
-};
-
 const BadgePill = ({ badge, discount_pct }) => {
-  const cfg = BADGE_STYLES[badge];
+  const cfg = SHOP_BADGE_MAP[badge];
   if (!cfg) return null;
   return (
     <span
@@ -333,9 +323,9 @@ const Shop = () => {
         {/* Header — same style as home page sections */}
         <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-16 pb-10">
           <Reveal className="max-w-screen-xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] mb-4">Store</p>
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// store</p>
             <div className="flex items-end justify-between gap-6 flex-wrap">
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+              <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
                 Shop
               </h1>
               {!user && (

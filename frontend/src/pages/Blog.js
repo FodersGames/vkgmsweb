@@ -28,10 +28,8 @@ export const BlogList = () => {
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <Reveal className="max-w-4xl mx-auto">
-            <p className="text-xs font-semibold text-[#A1A1A6] mb-3">
-              Vakar Games
-            </p>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F]">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar games</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               Blog
             </h1>
             <p className="text-[#6E6E73] mt-3">
@@ -149,7 +147,7 @@ export const BlogPost = () => {
           )}
 
           <h1
-            className="text-3xl sm:text-5xl font-bold text-[#1D1D1F] mb-4 leading-tight"
+            className="font-display text-3xl sm:text-5xl font-medium text-[#1D1D1F] mb-4 leading-tight"
           >
             {post.title}
           </h1>

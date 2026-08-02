@@ -194,8 +194,8 @@ export default function Careers() {
       {/* Hero */}
       <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-12">
         <Reveal className="max-w-screen-xl mx-auto">
-          <p className="text-xs font-semibold text-[#4ECDC4] mb-4">Join the Company</p>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-[-0.02em] text-[#1D1D1F] mb-4">
+          <p className="text-[12px] font-mono text-[#4ECDC4] mb-4">// join the company</p>
+          <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F] mb-4">
             Careers
           </h1>
           <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
