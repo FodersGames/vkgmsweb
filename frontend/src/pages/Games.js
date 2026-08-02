@@ -8,10 +8,6 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { HoverPreview } from '../components/HoverPreview';
 import { PublicButton } from '../ui/PublicButton';
-import ferrisWheel from '../assets/photos/ferris-wheel.jpg';
-import cozyPlay from '../assets/photos/cozy-play.jpg';
-import icedCoffee from '../assets/photos/iced-coffee.jpg';
-import blueSlime from '../assets/photos/blue-slime.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -106,15 +102,13 @@ const GamesPage = () => {
 
       <div className="pt-[52px]">
         {/* Page header */}
-        <div className="relative overflow-hidden border-b border-[#D2D2D7] py-20 px-6">
-          <img src={ferrisWheel} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F] via-[#1D1D1F]/70 to-[#1D1D1F]/30" />
-          <Reveal className="relative max-w-7xl mx-auto">
-            <p className="text-[12px] font-mono text-[#4ECDC4] mb-3">// vakar games</p>
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-white">
+        <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
+          <Reveal className="max-w-7xl mx-auto">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar games</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               Our games
             </h1>
-            <p className="text-[#D2D2D7] mt-3 max-w-md">
+            <p className="text-[#6E6E73] mt-3 max-w-md">
               Every title we release. Each one built with care.
             </p>
           </Reveal>
@@ -297,21 +291,6 @@ const GamesPage = () => {
           )}
         </div>
 
-        {/* Mood strip — texture, not screenshots */}
-        <div className="max-w-7xl mx-auto px-6 pb-20">
-          <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// the feel we chase</p>
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
-            <div className="rounded-xl overflow-hidden aspect-square sm:aspect-[4/3]">
-              <img src={cozyPlay} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="rounded-xl overflow-hidden aspect-square sm:aspect-[4/3]">
-              <img src={icedCoffee} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="rounded-xl overflow-hidden aspect-square sm:aspect-[4/3]">
-              <img src={blueSlime} alt="" className="w-full h-full object-cover" />
-            </div>
-          </div>
-        </div>
       </div>
 
       <SiteFooter />

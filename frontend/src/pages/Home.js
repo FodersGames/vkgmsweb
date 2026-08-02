@@ -45,10 +45,11 @@ const Home = () => {
         <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
         <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1fr_0.85fr] gap-10 lg:gap-12 items-center">
           <div className="text-center lg:text-left">
-            <Reveal as="div" className="mb-6 flex justify-center lg:justify-start">
-              <span className="liquid-glass rounded-full px-4 py-1.5 text-[12px] font-mono font-medium tracking-wide text-[#3A3A3C]">
-                vakar-games · independent software co. · est. 2024
-              </span>
+            <Reveal
+              as="p"
+              className="text-[12px] font-mono text-[#6E6E73] mb-5"
+            >
+              // vakar-games, est. 2024
             </Reveal>
             <Reveal
               as="h1"
@@ -59,9 +60,9 @@ const Home = () => {
               </span>
             </Reveal>
             <Reveal as="p" className="text-[16px] sm:text-[18px] text-[#6E6E73] max-w-[46ch] mx-auto lg:mx-0 mt-5 leading-relaxed">
-              We build the applications, tools and games we'd want to use ourselves — every core system written and run in-house, nothing rented out to a template.
+              Three products, one small team. We write and host every core system ourselves, so we're the ones who answer for it when something breaks.
             </Reveal>
-            <Reveal as="div" className="flex items-center justify-center lg:justify-start gap-3 mt-8 flex-wrap">
+            <Reveal as="div" className="flex items-center justify-center lg:justify-start mt-8">
               <PublicButton
                 onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
                 variant="secondary"
@@ -69,9 +70,6 @@ const Home = () => {
                 className="group"
               >
                 Explore our work
-              </PublicButton>
-              <PublicButton onClick={scrollToAbout} variant="ghost" icon={ArrowRight} className="group">
-                Meet the company
               </PublicButton>
             </Reveal>
           </div>
@@ -203,23 +201,11 @@ const Home = () => {
               <span style={{ textWrap: 'balance' }}>Made by a small,<br />opinionated team.</span>
             </h2>
             <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
-              We keep the roster deliberately small — people who ship, support and iterate on every product long after release. No offshore core systems, no template stack.
+              We keep the roster small on purpose — the people who build a product are still the ones supporting it a year later. Nothing here runs on someone else's template.
             </p>
-
-            <div className="mt-10 grid grid-cols-3 gap-6 max-w-[420px]">
-              {[
-                { n: titlesShipped || games.length, label: 'Products shipped' },
-                { n: '2024', label: 'Founded' },
-                { n: '100%', label: 'In-house stack' },
-              ].map(s => (
-                <div key={s.label}>
-                  <div className="font-mono text-[26px] sm:text-[34px] leading-none font-medium tracking-[-0.01em] text-[#1D1D1F]" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {s.n}
-                  </div>
-                  <div className="text-[12.5px] text-[#6E6E73] mt-2">{s.label}</div>
-                </div>
-              ))}
-            </div>
+            <p className="text-[14px] text-[#A1A1A6] mt-5">
+              {titlesShipped || games.length} product{(titlesShipped || games.length) === 1 ? '' : 's'} shipped since we started, in 2024.
+            </p>
           </Reveal>
 
           <Reveal as="div" style={{ transitionDelay: '100ms' }}>
