@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from '@phosphor-icons/react';
+import { PublicButton } from '../ui/PublicButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -107,13 +108,9 @@ const ChangePasswordModal = ({ onSuccess }) => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-          >
+          <PublicButton type="submit" disabled={loading} className="w-full">
             {loading ? 'Saving…' : 'Set new password'}
-          </button>
+          </PublicButton>
         </form>
       </div>
     </div>
@@ -262,14 +259,14 @@ export const Login = () => {
                 </div>
               )}
 
-              <button
+              <PublicButton
                 type="submit"
                 disabled={loginLoading}
-                className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
-              </button>
+              </PublicButton>
             </form>
           ) : (
             <div className="px-7 py-7">
@@ -282,12 +279,12 @@ export const Login = () => {
                   <p className="text-sm text-[#6E6E73] mb-5">
                     You can now sign in with your email and password.
                   </p>
-                  <button
+                  <PublicButton
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors"
+                    className="w-full"
                   >
                     Go to Sign In
-                  </button>
+                  </PublicButton>
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
@@ -368,14 +365,14 @@ export const Login = () => {
                     </div>
                   )}
 
-                  <button
+                  <PublicButton
                     type="submit"
                     disabled={regLoading}
-                    className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
-                  </button>
+                  </PublicButton>
                 </form>
               )}
             </div>

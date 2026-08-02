@@ -6,6 +6,7 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { SHOP_BADGE_MAP } from '../constants/shopBadges';
+import { PublicButton } from '../ui/PublicButton';
 import {
   ShoppingCart, X, CircleNotch, ArrowLeft, ArrowRight, Star,
   Package, Shield, Lightning, Heart, Leaf, Flame, Target, Trophy, Rocket, Diamond,
@@ -329,12 +330,9 @@ const Shop = () => {
                 Shop
               </h1>
               {!user && (
-                <Link
-                  to="/login"
-                  className="rounded-full inline-flex items-center gap-2 border border-[#1D1D1F] text-[#1D1D1F] hover:bg-[#1D1D1F] hover:text-white px-5 py-2.5 text-sm font-semibold transition-all"
-                >
-                  <SignIn size={14} />Sign in to purchase
-                </Link>
+                <PublicButton as={Link} to="/login" variant="outline" icon={SignIn} iconPosition="leading">
+                  Sign in to purchase
+                </PublicButton>
               )}
             </div>
           </Reveal>
@@ -355,9 +353,9 @@ const Shop = () => {
                 <p className="text-sm font-semibold text-[#1D1D1F]">Sign in to buy</p>
                 <p className="text-xs text-[#6E6E73]">An account is required to make purchases. Earn loyalty points with every order.</p>
               </div>
-              <Link to="/login" className="rounded-full ml-auto shrink-0 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors">
+              <PublicButton as={Link} to="/login" size="sm" className="ml-auto shrink-0">
                 Sign In
-              </Link>
+              </PublicButton>
             </div>
           )}
 
@@ -597,16 +595,12 @@ const Shop = () => {
                 {buyError && <p className="text-xs text-red-500 mt-1.5 font-medium">{buyError}</p>}
               </div>
 
-              <button
-                onClick={handleBuy}
-                disabled={checkoutLoading}
-                className="w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-3 text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-              >
+              <PublicButton onClick={handleBuy} disabled={checkoutLoading} size="lg" className="w-full">
                 {checkoutLoading
                   ? <><CircleNotch size={15} className="animate-spin" />Redirecting…</>
                   : `Pay $${(finalPrice / 100).toFixed(2)} with Stripe`
                 }
-              </button>
+              </PublicButton>
 
               <p className="text-center text-[10px] text-[#A1A1A6]">
                 Secure payment · Powered by Stripe · Your grade: {loyalty ? TIERS[loyalty.tier]?.label : 'Bronze'}
@@ -627,7 +621,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="flex gap-4 p-5 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors"
+      className="group flex gap-4 p-5 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors"
       onClick={() => onBuy(product)}
     >
       {img && <img src={img} alt={product.name} className="w-20 h-20 object-cover shrink-0" />}
@@ -642,7 +636,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
             {discount > 0 && <p className="text-xs text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
             <p className="text-lg font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
-          <div className="rounded-full flex items-center gap-1.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-xs font-bold px-3 py-1.5 transition-colors">
+          <div className="rounded-lg flex items-center gap-1.5 bg-[#1D1D1F] group-hover:bg-black text-white text-xs font-semibold px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_6px_16px_-8px_rgba(0,0,0,0.45)] transition-colors">
             <ShoppingCart size={11} />Buy
           </div>
         </div>
@@ -656,7 +650,7 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="flex flex-col rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors overflow-hidden"
+      className="group flex flex-col rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors overflow-hidden"
       onClick={() => onBuy(product)}
     >
       {/* Image */}
@@ -680,7 +674,7 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
             {discount > 0 && <p className="text-[10px] text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
             <p className="text-sm font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
           </div>
-          <span className="text-[10px] font-bold text-white bg-[#1D1D1F] px-2 py-1">Get</span>
+          <span className="rounded-md text-[10px] font-semibold text-white bg-[#1D1D1F] group-hover:bg-black px-2 py-1 transition-colors">Get</span>
         </div>
       </div>
     </div>

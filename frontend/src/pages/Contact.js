@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
+import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { Select } from '../ui';
@@ -125,9 +126,9 @@ const Contact = () => {
                   <div className="text-center py-10 space-y-4">
                     <p className="text-sm font-semibold text-[#1D1D1F]">Account required</p>
                     <p className="text-xs text-[#6E6E73] max-w-xs mx-auto leading-relaxed">You need to be signed in to open a support ticket. This helps us track your request and reply faster.</p>
-                    <a href="/login" className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-6 py-2.5 text-sm font-semibold transition-colors">
+                    <PublicButton as="a" href="/login">
                       Sign in or create account
-                    </a>
+                    </PublicButton>
                   </div>
                 ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -177,14 +178,10 @@ const Contact = () => {
                     />
                   </div>
                   {error && <p className="text-xs text-red-500">{error}</p>}
-                  <button
-                    type="submit"
-                    disabled={sending}
-                    className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-6 py-3 text-sm font-semibold transition-colors disabled:opacity-50"
-                  >
+                  <PublicButton type="submit" disabled={sending} size="lg">
                     {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
                     {sending ? 'Sending…' : 'Send message'}
-                  </button>
+                  </PublicButton>
                 </form>
                 )}
               </div>

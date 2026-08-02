@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { SupportWidget } from './SupportWidget';
+import { PublicButton } from '../ui/PublicButton';
 
 export const PublicNav = ({ onAbout }) => {
   const [open, setOpen] = useState(false);
@@ -93,12 +94,9 @@ export const PublicNav = ({ onAbout }) => {
               </Link>
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="glass-sheen inline-flex items-center text-[13px] font-medium px-4 py-1.5 rounded-full bg-[#1D1D1F] text-white hover:bg-[#3A3A3C] transition-colors"
-            >
+            <PublicButton as={Link} to="/login" size="sm" pill>
               Sign In
-            </Link>
+            </PublicButton>
           )}
         </div>
 

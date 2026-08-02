@@ -7,6 +7,7 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { HoverPreview } from '../components/HoverPreview';
+import { PublicButton } from '../ui/PublicButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -257,10 +258,11 @@ const GamesPage = () => {
                             {couponStatus?.valid === false && (
                               <p className="text-xs text-red-500">{couponStatus.error}</p>
                             )}
-                            <button
+                            <PublicButton
                               onClick={() => buyGame(game)}
                               disabled={purchasing === game.slug}
-                              className="w-full flex items-center justify-center gap-2 bg-[#4ECDC4] hover:bg-[#3BB8B0] text-white py-2.5 text-sm font-semibold transition-all disabled:opacity-50"
+                              variant="accent"
+                              className="w-full"
                             >
                               {purchasing === game.slug
                                 ? <><CircleNotch size={14} className="animate-spin" /> Processing…</>
@@ -272,16 +274,13 @@ const GamesPage = () => {
                                     }
                                   </>
                               }
-                            </button>
+                            </PublicButton>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => openBuy(game)}
-                            className="inline-flex items-center gap-2 bg-[#4ECDC4] hover:bg-[#3BB8B0] text-white px-6 py-2.5 text-sm font-semibold transition-all"
-                          >
+                          <PublicButton onClick={() => openBuy(game)} variant="accent">
                             <ShoppingCart size={14} />
                             {`Buy — $${(game.price_cents / 100).toFixed(2)}`}
-                          </button>
+                          </PublicButton>
                         )}
                       </div>
                     )}

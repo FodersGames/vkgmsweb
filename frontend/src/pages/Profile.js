@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
+import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
 import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, Shield, Star, Trophy, Diamond, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
 
@@ -488,12 +489,12 @@ const Profile = () => {
                       </div>
                     )}
                     <div className="flex gap-2 pt-1">
-                      <button type="submit" disabled={profileLoading} className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50">
-                        <FloppyDisk size={13} />{profileLoading ? 'Saving…' : 'Save Changes'}
-                      </button>
-                      <button type="button" onClick={handleProfileCancel} className="rounded-full inline-flex items-center gap-2 text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-4 py-2 transition-all">
-                        <X size={13} />Cancel
-                      </button>
+                      <PublicButton type="submit" disabled={profileLoading} size="sm" icon={FloppyDisk} iconPosition="leading">
+                        {profileLoading ? 'Saving…' : 'Save Changes'}
+                      </PublicButton>
+                      <PublicButton type="button" onClick={handleProfileCancel} variant="outline" size="sm" icon={X} iconPosition="leading">
+                        Cancel
+                      </PublicButton>
                     </div>
                   </form>
                 ) : (
@@ -544,9 +545,9 @@ const Profile = () => {
                     <CheckCircle size={12} className="shrink-0" />Password updated successfully.
                   </div>
                 )}
-                <button type="submit" disabled={pwLoading} className="rounded-full w-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50">
+                <PublicButton type="submit" disabled={pwLoading} className="w-full">
                   {pwLoading ? 'Saving…' : 'Update Password'}
-                </button>
+                </PublicButton>
               </form>
             </Card>
           )}

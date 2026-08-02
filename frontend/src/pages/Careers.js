@@ -3,6 +3,7 @@ import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, 
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
+import { PublicButton } from '../ui/PublicButton';
 import { ToolIcon } from '../components/CareersManagement';
 import { useAuth } from '../context/AuthContext';
 
@@ -150,14 +151,9 @@ function ApplyModal({ career, onClose, token, user }) {
             )}
 
             <div className="flex gap-3 pt-1">
-              <button
-                type="submit"
-                disabled={sending || !token}
-                className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-              >
-                <PaperPlaneTilt size={13} />
+              <PublicButton type="submit" disabled={sending || !token} icon={PaperPlaneTilt} iconPosition="leading">
                 {sending ? 'Sending…' : 'Send Application'}
-              </button>
+              </PublicButton>
               <button type="button" onClick={onClose} className="text-sm text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
                 Cancel
               </button>
@@ -297,13 +293,9 @@ export default function Careers() {
                       </div>
                     )}
                     <div className="pt-2">
-                      <button
-                        onClick={() => setApplying(c)}
-                        className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#3A3A3C] transition-colors"
-                      >
-                        <PaperPlaneTilt size={13} />
+                      <PublicButton onClick={() => setApplying(c)} icon={PaperPlaneTilt} iconPosition="leading">
                         Apply for this position
-                      </button>
+                      </PublicButton>
                     </div>
                   </div>
                 )}

@@ -6,6 +6,7 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { LiveTerminal } from '../components/LiveTerminal';
+import { PublicButton } from '../ui/PublicButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -230,19 +231,12 @@ const Home = () => {
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap justify-center shrink-0">
-            <Link
-              to="/contact"
-              className="glass-sheen inline-flex items-center rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-medium px-5 py-2.5 transition-colors"
-              data-testid="contact-email-button"
-            >
+            <PublicButton as={Link} to="/contact" data-testid="contact-email-button">
               Open a ticket
-            </Link>
-            <a
-              href="mailto:support@vakargames.com"
-              className="inline-flex items-center rounded-full border border-[#D2D2D7] hover:bg-black/[0.03] text-[#1D1D1F] text-sm font-medium px-5 py-2.5 transition-colors"
-            >
+            </PublicButton>
+            <PublicButton as="a" href="mailto:support@vakargames.com" variant="outline">
               Email us
-            </a>
+            </PublicButton>
           </div>
         </Reveal>
       </section>

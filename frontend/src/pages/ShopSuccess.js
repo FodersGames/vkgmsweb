@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useSearchParams, useParams } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from '@phosphor-icons/react';
 import { SiteFooter } from '../components/SiteFooter';
+import { PublicButton } from '../ui/PublicButton';
 
 const ShopSuccess = ({ legacy }) => {
   const [searchParams] = useSearchParams();
@@ -18,13 +19,11 @@ const ShopSuccess = ({ legacy }) => {
           <CheckCircle size={28} className="text-[#4ECDC4]" />
         </div>
 
-        <p className="text-xs font-semibold text-[#4ECDC4] mb-2">
-          Payment confirmed
-        </p>
+        <p className="text-[12px] font-mono text-[#4ECDC4] mb-2">// payment confirmed</p>
         <h1
-          className="text-3xl font-bold text-[#1D1D1F] mb-3"
+          className="font-display text-3xl font-medium text-[#1D1D1F] mb-3"
         >
-          {isGame ? 'GAME UNLOCKED' : 'PURCHASE COMPLETE'}
+          {isGame ? 'Game unlocked' : 'Purchase complete'}
         </h1>
 
         <p className="text-sm text-[#6E6E73] mb-2 leading-relaxed">
@@ -41,18 +40,12 @@ const ShopSuccess = ({ legacy }) => {
         {isGame && <div className="mb-8" />}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            to={legacy && gameSlug ? `/shop/${gameSlug}` : '/shop'}
-            className="rounded-full inline-flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white px-5 py-2.5 text-sm font-semibold transition-colors"
-          >
-            <ShoppingBag size={14} />Back to Shop
-          </Link>
-          <Link
-            to="/"
-            className="rounded-full inline-flex items-center justify-center gap-2 border border-[#D2D2D7] hover:border-[#BFBFC4] text-[#6E6E73] hover:text-[#1D1D1F] px-5 py-2.5 text-sm font-semibold transition-all"
-          >
-            <ArrowLeft size={14} />Home
-          </Link>
+          <PublicButton as={Link} to={legacy && gameSlug ? `/shop/${gameSlug}` : '/shop'} icon={ShoppingBag} iconPosition="leading">
+            Back to Shop
+          </PublicButton>
+          <PublicButton as={Link} to="/" variant="outline" icon={ArrowLeft} iconPosition="leading">
+            Home
+          </PublicButton>
         </div>
       </div>
       </div>
