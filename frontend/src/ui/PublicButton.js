@@ -1,15 +1,14 @@
 import React from 'react';
 
-// Shared button for the public site. Replaces the repeated
-// `rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] ...` markup that was
-// hand-copied into 15+ places — same flat pill everywhere read as generic
-// template UI. Rounded-rect (not full pill) + real depth + a press-scale
-// micro-interaction reads as a considered product rather than a stock
-// "SaaS landing page" button. Pills are kept only for true badges/tags.
+// Shared button for the public site. Square corners + wide-tracked small
+// caps read as drafting-table/editorial rather than the rounded-xl "SaaS
+// landing page" default — matched to the Fraunces/mono type system used
+// throughout the public site. Real depth + a press-scale micro-interaction
+// keep it feeling like a considered product control, not a flat pill.
 const SIZES = {
-  sm: 'h-9 px-4 text-[13px] gap-1.5',
-  md: 'h-10 px-5 text-[14px] gap-2',
-  lg: 'h-12 px-6 text-[15px] gap-2',
+  sm: 'h-9 px-4 text-[11px] gap-1.5 tracking-[0.08em]',
+  md: 'h-10 px-5 text-[12px] gap-2 tracking-[0.09em]',
+  lg: 'h-12 px-6 text-[13px] gap-2 tracking-[0.1em]',
 };
 
 const VARIANTS = {
@@ -28,7 +27,6 @@ export const PublicButton = ({
   size = 'md',
   icon: Icon,
   iconPosition = 'trailing',
-  pill = false,
   className = '',
   children,
   disabled,
@@ -41,7 +39,7 @@ export const PublicButton = ({
   return (
     <Tag
       {...tagProps}
-      className={`inline-flex items-center justify-center font-medium transition-all duration-200 active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 ${pill ? 'rounded-full' : 'rounded-xl'} ${SIZES[size] ?? SIZES.md} ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
+      className={`inline-flex items-center justify-center uppercase font-semibold transition-all duration-200 active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 ${SIZES[size] ?? SIZES.md} ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
       {...props}
     >
       {Icon && iconPosition === 'leading' && <Icon size={iconSize} />}
