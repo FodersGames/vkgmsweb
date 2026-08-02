@@ -8,13 +8,13 @@ import { Reveal } from '../components/Reveal';
 import { LiveTerminal } from '../components/LiveTerminal';
 import { PublicButton } from '../ui/PublicButton';
 import jellyfish from '../assets/photos/jellyfish.jpg';
-import lunarEclipse from '../assets/photos/lunar-eclipse.jpg';
 import tealFronds from '../assets/photos/teal-fronds.jpg';
-import oceanGlow from '../assets/photos/ocean-glow.jpg';
-import motionBlossom from '../assets/photos/motion-blossom.jpg';
-import abstractEmber from '../assets/photos/abstract-ember.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// One recipe for every framed photo on this page — border, radius, ratio —
+// reused instead of inventing a new treatment per section.
+const FRAME_CLS = 'rounded-[20px] border border-[#D2D2D7] overflow-hidden';
 
 const Home = () => {
   const aboutRef = useRef(null);
@@ -40,46 +40,49 @@ const Home = () => {
     <div className="bg-white">
       <PublicNav onAbout={scrollToAbout} />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden [contain:paint] pt-[160px] pb-24 px-6 text-center" data-testid="hero-section">
-        <img src={jellyfish} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1D1D1F]/90 via-[#1D1D1F]/80 to-[#1D1D1F]/95" />
-        <div className="dot-grid pointer-events-none absolute inset-0 -z-0 opacity-40" aria-hidden="true" />
-
-        <div className="relative max-w-[1040px] mx-auto">
-          <Reveal as="div" className="mb-6 flex justify-center">
-            <span className="liquid-glass-dark rounded-full px-4 py-1.5 text-[12px] font-mono font-medium tracking-wide text-[#D2D2D7]">
-              vakar-games · independent software co. · est. 2024
-            </span>
-          </Reveal>
-          <Reveal
-            as="h1"
-            className="font-display text-[42px] sm:text-[68px] lg:text-[84px] leading-[1.03] tracking-[-0.01em] font-medium text-white"
-          >
-            <span style={{ textWrap: 'balance' }} data-testid="hero-title">
-              Software built to<br /><em className="not-italic text-[#4ECDC4]">endure.</em>
-            </span>
-          </Reveal>
-          <Reveal as="p" className="text-[17px] sm:text-[21px] text-[#D2D2D7] max-w-[42ch] mx-auto mt-6 leading-relaxed">
-            We build the applications, tools and games we'd want to use ourselves — every core system written and run in-house, nothing rented out to a template.
-          </Reveal>
-          <Reveal as="div" className="flex items-center justify-center gap-3 mt-9 flex-wrap">
-            <PublicButton
-              onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
-              variant="secondary"
-              icon={ArrowRight}
-              className="group"
+      {/* Hero — same asymmetric grid as every other image section on this page */}
+      <section className="relative overflow-hidden [contain:paint] pt-[132px] pb-20 sm:pb-28 px-6" data-testid="hero-section">
+        <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
+        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1fr_0.85fr] gap-10 lg:gap-12 items-center">
+          <div className="text-center lg:text-left">
+            <Reveal as="div" className="mb-6 flex justify-center lg:justify-start">
+              <span className="liquid-glass rounded-full px-4 py-1.5 text-[12px] font-mono font-medium tracking-wide text-[#3A3A3C]">
+                vakar-games · independent software co. · est. 2024
+              </span>
+            </Reveal>
+            <Reveal
+              as="h1"
+              className="font-display text-[38px] sm:text-[56px] lg:text-[64px] leading-[1.05] tracking-[-0.01em] font-medium text-[#1D1D1F]"
             >
-              Explore our work
-            </PublicButton>
-            <PublicButton onClick={scrollToAbout} variant="ghost" icon={ArrowRight} className="group !text-white hover:!text-[#4ECDC4]">
-              Meet the company
-            </PublicButton>
+              <span style={{ textWrap: 'balance' }} data-testid="hero-title">
+                Software built to <em className="not-italic text-[#4ECDC4]">endure.</em>
+              </span>
+            </Reveal>
+            <Reveal as="p" className="text-[16px] sm:text-[18px] text-[#6E6E73] max-w-[46ch] mx-auto lg:mx-0 mt-5 leading-relaxed">
+              We build the applications, tools and games we'd want to use ourselves — every core system written and run in-house, nothing rented out to a template.
+            </Reveal>
+            <Reveal as="div" className="flex items-center justify-center lg:justify-start gap-3 mt-8 flex-wrap">
+              <PublicButton
+                onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
+                variant="secondary"
+                icon={ArrowRight}
+                className="group"
+              >
+                Explore our work
+              </PublicButton>
+              <PublicButton onClick={scrollToAbout} variant="ghost" icon={ArrowRight} className="group">
+                Meet the company
+              </PublicButton>
+            </Reveal>
+          </div>
+
+          <Reveal as="div" className={`${FRAME_CLS} aspect-[4/3] lg:aspect-[3/4]`} style={{ transitionDelay: '100ms' }}>
+            <img src={jellyfish} alt="" className="w-full h-full object-cover" />
           </Reveal>
         </div>
       </section>
 
-      {/* Featured game — asymmetric: image bleeds to the edge, copy sits beside it */}
+      {/* Featured game — the same asymmetric grid, now with real product content */}
       <section className="bg-[#F5F5F7] py-20 sm:py-28 px-6">
         <div className="max-w-[1120px] mx-auto">
           {featuredGame ? (
@@ -102,7 +105,7 @@ const Home = () => {
                 </Link>
               </Reveal>
               <Reveal
-                className="lg:order-1 rounded-[20px] border border-[#D2D2D7] overflow-hidden flex items-center justify-center lg:-ml-10"
+                className={`lg:order-1 ${FRAME_CLS} flex items-center justify-center lg:-ml-10`}
                 as="div"
               >
                 <div
@@ -148,14 +151,7 @@ const Home = () => {
 
       {/* Games grid */}
       {games.length > 0 && (
-        <section id="games" className="relative py-20 sm:py-28 px-6 text-center overflow-hidden">
-          <Reveal
-            as="div"
-            className="hidden lg:block absolute top-16 right-[6%] w-[120px] h-[150px] rounded-xl overflow-hidden rotate-[6deg] border-4 border-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.25)]"
-            style={{ transitionDelay: '150ms' }}
-          >
-            <img src={oceanGlow} alt="" className="w-full h-full object-cover" />
-          </Reveal>
+        <section id="games" className="py-20 sm:py-28 px-6 text-center">
           <div className="max-w-[1040px] mx-auto">
             <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// games we've shipped</p>
             <Reveal as="h2" className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
@@ -198,7 +194,7 @@ const Home = () => {
         </section>
       )}
 
-      {/* Company — asymmetric: the terminal does the talking, not an icon grid */}
+      {/* Company — the terminal does the talking, not an icon grid */}
       <section ref={aboutRef} id="studio" className="bg-[#F5F5F7] py-20 sm:py-28 px-6" data-testid="about-section">
         <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-10 lg:gap-16 items-center">
           <Reveal as="div">
@@ -224,15 +220,6 @@ const Home = () => {
                 </div>
               ))}
             </div>
-
-            <div className="mt-10 flex gap-3">
-              <div className="w-[86px] h-[86px] rounded-xl overflow-hidden -rotate-3 border-4 border-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.2)]">
-                <img src={motionBlossom} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className="w-[86px] h-[86px] rounded-xl overflow-hidden rotate-2 border-4 border-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.2)] mt-4">
-                <img src={lunarEclipse} alt="" className="w-full h-full object-cover" />
-              </div>
-            </div>
           </Reveal>
 
           <Reveal as="div" style={{ transitionDelay: '100ms' }}>
@@ -241,26 +228,33 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Pull-quote band — a slim visual break, not a gallery */}
-      <section className="relative py-16 sm:py-20 px-6 overflow-hidden">
-        <img src={abstractEmber} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-[#1D1D1F]/70" />
-        <Reveal as="p" className="relative max-w-[46ch] mx-auto text-center font-display text-[20px] sm:text-[26px] leading-snug text-white" style={{ textWrap: 'balance' }}>
-          Small details, patiently made — the same care we try to put into every release.
-        </Reveal>
+      {/* Craft — same asymmetric grid as the hero and featured release, mirrored */}
+      <section className="py-20 sm:py-28 px-6">
+        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-10 lg:gap-12 items-center">
+          <Reveal as="div" className={`${FRAME_CLS} aspect-[4/3]`}>
+            <img src={tealFronds} alt="" className="w-full h-full object-cover" />
+          </Reveal>
+          <Reveal as="div" style={{ transitionDelay: '100ms' }}>
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// how we work</p>
+            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
+              <span style={{ textWrap: 'balance' }}>Slow, on purpose.</span>
+            </h2>
+            <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
+              We'd rather ship a feature once, working properly, than patch it three times after launch. That means fewer releases than most studios our size — and each one held to a higher bar.
+            </p>
+          </Reveal>
+        </div>
       </section>
 
-      {/* CTA — a glass bar instead of another centered stack */}
-      <section id="contact" className="relative py-20 sm:py-28 px-6 overflow-hidden">
-        <img src={tealFronds} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-[#1D1D1F]/55" />
-        <Reveal className="relative max-w-[1040px] mx-auto liquid-glass-dark rounded-[24px] px-8 sm:px-12 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left" as="div">
+      {/* CTA — a glass bar, same light system as the rest of the page */}
+      <section id="contact" className="py-20 sm:py-28 px-6">
+        <Reveal className="max-w-[1040px] mx-auto liquid-glass rounded-[24px] px-8 sm:px-12 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left" as="div">
           <div>
-            <p className="text-[12px] font-mono text-[#A1A1A6] mb-3">// get in touch</p>
-            <h2 className="font-display text-[26px] sm:text-[32px] leading-[1.1] tracking-[-0.01em] font-medium text-white">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// get in touch</p>
+            <h2 className="font-display text-[26px] sm:text-[32px] leading-[1.1] tracking-[-0.01em] font-medium text-[#1D1D1F]">
               Let's build together.
             </h2>
-            <p className="text-[15px] text-[#D2D2D7] mt-2 max-w-[38ch]">
+            <p className="text-[15px] text-[#6E6E73] mt-2 max-w-[38ch]">
               Press, partnerships, or a question about one of our products — we read everything ourselves.
             </p>
           </div>
@@ -268,7 +262,7 @@ const Home = () => {
             <PublicButton as={Link} to="/contact" data-testid="contact-email-button">
               Open a ticket
             </PublicButton>
-            <PublicButton as="a" href="mailto:support@vakargames.com" variant="outline" className="!border-white/25 !text-white hover:!border-white/50">
+            <PublicButton as="a" href="mailto:support@vakargames.com" variant="outline">
               Email us
             </PublicButton>
           </div>
