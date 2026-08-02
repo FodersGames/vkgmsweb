@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { ChatCircle, X, PaperPlaneTilt, CaretLeft, ArrowSquareOut, CircleNotch, CheckCircle } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Select } from '../ui';
+import { PublicButton } from '../ui/PublicButton';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -131,19 +132,23 @@ export const SupportWidget = ({ user }) => {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="glass-sheen fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-[#1D1D1F] text-white flex items-center justify-center shadow-lg hover:bg-[#3A3A3C] transition-colors"
-        aria-label="Support"
-      >
-        <ChatCircle size={20} />
+      <div className="fixed bottom-6 right-6 z-50">
+        <PublicButton
+          onClick={() => setOpen(true)}
+          icon={ChatCircle}
+          iconPosition="leading"
+          className="shadow-[0_1px_2px_rgba(0,0,0,0.1),0_10px_24px_-10px_rgba(0,0,0,0.45)]"
+          aria-label="Support"
+        >
+          Support
+        </PublicButton>
         {hasUnread && (
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" />
+          <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white pointer-events-none" />
         )}
-      </button>
+      </div>
 
       {open && (
-        <div className="animate-appear fixed bottom-24 right-6 z-50 w-80 rounded-2xl overflow-hidden liquid-glass flex flex-col" style={{ maxHeight: '520px' }}>
+        <div className="animate-appear fixed bottom-24 right-6 z-50 w-80 rounded-[14px] overflow-hidden liquid-glass flex flex-col" style={{ maxHeight: '520px' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 liquid-glass-dark rounded-none border-x-0 border-t-0">
             <div className="flex items-center gap-2">
@@ -263,14 +268,10 @@ export const SupportWidget = ({ user }) => {
                       />
                     </div>
                     {error && <p className="text-xs text-red-500">{error}</p>}
-                    <button
-                      type="submit"
-                      disabled={sending}
-                      className="w-full flex items-center justify-center gap-2 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-                    >
+                    <PublicButton type="submit" disabled={sending} className="w-full">
                       {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
                       {sending ? 'Sending…' : 'Submit ticket'}
-                    </button>
+                    </PublicButton>
                   </form>
                 )}
               </div>

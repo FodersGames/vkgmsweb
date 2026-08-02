@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, Shield, Star, Trophy, Diamond, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
+import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -51,13 +51,13 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
   </div>
 );
 
-// ── Loyalty system ────────────────────────────────────────────────────────────
-
+// ── Loyalty system — one accent color throughout, no per-tier rainbow;
+// reads as a membership level, not a game rank-up bar. ─────────────────────
 const TIERS = {
-  bronze:  { label: 'Bronze',  color: '#CD7F32', icon: Shield,  discount: 0,  min: 0     },
-  silver:  { label: 'Silver',  color: '#94A3B8', icon: Star,    discount: 5,  min: 2500  },
-  gold:    { label: 'Gold',    color: '#F59E0B', icon: Trophy,  discount: 10, min: 10000 },
-  diamond: { label: 'Diamond', color: '#22D3EE', icon: Diamond,     discount: 15, min: 25000 },
+  bronze:  { label: 'Bronze',  discount: 0,  min: 0     },
+  silver:  { label: 'Silver',  discount: 5,  min: 2500  },
+  gold:    { label: 'Gold',    discount: 10, min: 10000 },
+  diamond: { label: 'Diamond', discount: 15, min: 25000 },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
 
@@ -66,7 +66,6 @@ const LoyaltyWidget = ({ loyalty }) => {
   const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
   const cfg = TIERS[tier] || TIERS.bronze;
   const tierIdx = TIER_ORDER.indexOf(tier);
-  const Icon = cfg.icon;
   const progressPct = next_threshold_cents
     ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
     : 100;
@@ -74,36 +73,25 @@ const LoyaltyWidget = ({ loyalty }) => {
   return (
     <div className="rounded-xl bg-white border border-[#D2D2D7] p-6">
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <Icon size={13} style={{ color: cfg.color }} />
-          <h2 className="text-xs font-bold tracking-widest uppercase" style={{ color: cfg.color }}>
-            {cfg.label} rank
-          </h2>
-        </div>
+        <h2 className="text-xs font-mono text-[#6E6E73]">// membership</h2>
         <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
       </div>
 
+      <p className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-4">{cfg.label}</p>
+
       {/* Track */}
-      <div className="relative h-1 rounded-full bg-[#D2D2D7] mb-2">
+      <div className="relative h-1 rounded-full bg-[#EDEDEF] mb-2">
         <div
-          className="absolute top-0 left-0 h-full rounded-full transition-all duration-700"
-          style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
+          className="absolute top-0 left-0 h-full rounded-full bg-[#4ECDC4] transition-all duration-700"
+          style={{ width: `${progressPct}%` }}
         />
-        {[{ pct: 10, t: 'bronze' }, { pct: 33, t: 'silver' }, { pct: 66, t: 'gold' }, { pct: 100, t: 'diamond' }].map(({ pct, t }) => (
-          <div
-            key={t}
-            className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#D2D2D7' }}
-          />
-        ))}
       </div>
 
       <div className="flex justify-between mb-5">
         {TIER_ORDER.map((t, i) => (
           <span
             key={t}
-            className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-            style={{ color: i <= tierIdx ? TIERS[t].color : '#BFBFC4' }}
+            className={`text-[9px] font-semibold tracking-[0.1em] uppercase ${i <= tierIdx ? 'text-[#1D1D1F]' : 'text-[#BFBFC4]'}`}
           >
             {TIERS[t].label}
           </span>
@@ -113,10 +101,10 @@ const LoyaltyWidget = ({ loyalty }) => {
       {next_threshold_cents && next_tier ? (
         <p className="text-[10px] text-[#A1A1A6]">
           ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
-          <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
+          <span className="font-semibold text-[#1D1D1F]">{TIERS[next_tier]?.label}</span>
         </p>
       ) : (
-        <p className="text-[10px] font-semibold" style={{ color: cfg.color }}>Maximum rank achieved.</p>
+        <p className="text-[10px] font-semibold text-[#1D1D1F]">Highest membership level reached.</p>
       )}
 
       {cfg.discount > 0 && (
@@ -322,14 +310,7 @@ const Profile = () => {
 
             {/* Avatar */}
             <div className="relative shrink-0 group cursor-pointer mb-4" onClick={() => avatarInputRef.current?.click()}>
-              <div
-                className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-bold"
-                style={{
-                  background: loyalty ? `${currentTier.color}18` : '#4ECDC418',
-                  border: `2px solid ${loyalty ? currentTier.color + '44' : '#4ECDC444'}`,
-                  color: loyalty ? currentTier.color : '#4ECDC4',
-                  }}
-              >
+              <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-medium font-display bg-[#F5F5F7] border border-[#D2D2D7] text-[#6E6E73]">
                 {avatarPreview || user.avatar_url ? (
                   <img
                     src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
@@ -345,14 +326,6 @@ const Profile = () => {
                   : <Camera size={16} className="text-white" />
                 }
               </div>
-              {loyalty && !avatarPreview && !user.avatar_url && (
-                <div
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center ring-2 ring-white"
-                  style={{ background: currentTier.color }}
-                >
-                  {React.createElement(currentTier.icon, { size: 11, color: 'white' })}
-                </div>
-              )}
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -362,9 +335,11 @@ const Profile = () => {
               />
             </div>
 
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-2">// my account</p>
+
             {/* Name + badges */}
             <div className="flex items-center gap-2 flex-wrap justify-center mb-1">
-              <h1 className="text-2xl font-bold tracking-[-0.01em] text-[#1D1D1F]">{displayName}</h1>
+              <h1 className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F]">{displayName}</h1>
               {user.is_super_admin && (
                 <span className="rounded-full text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5">
                   SUPER ADMIN
@@ -373,8 +348,8 @@ const Profile = () => {
             </div>
             <p className="text-[#6E6E73] text-sm">{user.email}</p>
             {loyalty && (
-              <p className="text-xs mt-1.5 font-medium" style={{ color: currentTier.color }}>
-                {currentTier.label} grade{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
+              <p className="text-xs mt-1.5 font-medium text-[#6E6E73]">
+                {currentTier.label} membership{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
               </p>
             )}
 
@@ -414,16 +389,16 @@ const Profile = () => {
         <div className="max-w-lg mx-auto px-6 pt-6">
           <Link
             to="/play"
-            className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#C4B5FD] p-4 transition-colors group"
+            className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#4ECDC4]/50 p-4 transition-colors group"
           >
-            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0" style={{ background: '#EDE9FE' }}>
-              <GameController size={16} style={{ color: '#5B21B6' }} />
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
+              <GameController size={16} className="text-[#6E6E73]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
               <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
             </div>
-            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#5B21B6] transition-colors shrink-0" />
+            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
           </Link>
         </div>
 
