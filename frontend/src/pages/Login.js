@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from '@phosphor-icons/react';
 import { PublicButton } from '../ui/PublicButton';
+import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -183,6 +184,8 @@ export const Login = () => {
   return (
     <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+        <img src={seaStackDusk} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-[#F5F5F7]/72" />
         <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
         <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
       </div>

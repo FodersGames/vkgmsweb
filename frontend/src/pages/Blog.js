@@ -5,6 +5,8 @@ import { ArrowLeft, Calendar, User } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
+import journalNotebook from '../assets/photos/journal-notebook.jpg';
+import sunTextile from '../assets/photos/sun-textile.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -26,13 +28,15 @@ export const BlogList = () => {
 
       <div className="pt-[52px]">
         {/* Page header */}
-        <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
-          <Reveal className="max-w-4xl mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar games</p>
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
+        <div className="relative overflow-hidden border-b border-[#D2D2D7] py-20 px-6">
+          <img src={journalNotebook} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F] via-[#1D1D1F]/70 to-[#1D1D1F]/30" />
+          <Reveal className="relative max-w-4xl mx-auto">
+            <p className="text-[12px] font-mono text-[#4ECDC4] mb-3">// vakar games</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-white">
               Blog
             </h1>
-            <p className="text-[#6E6E73] mt-3">
+            <p className="text-[#D2D2D7] mt-3">
               News, updates and announcements from the company.
             </p>
           </Reveal>
@@ -138,13 +142,11 @@ export const BlogPost = () => {
             <ArrowLeft size={14} /> Back to Blog
           </Link>
 
-          {post.image_url && (
-            <img
-              src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
-              alt={post.title}
-              className="rounded-xl w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
-            />
-          )}
+          <img
+            src={post.image_url ? (post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url) : sunTextile}
+            alt={post.title}
+            className="rounded-xl w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
+          />
 
           <h1
             className="font-display text-3xl sm:text-5xl font-medium text-[#1D1D1F] mb-4 leading-tight"

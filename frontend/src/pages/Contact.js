@@ -8,6 +8,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { Select } from '../ui';
 import { PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle, CircleNotch } from '@phosphor-icons/react';
+import chapelSunset from '../assets/photos/chapel-sunset.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
@@ -77,13 +78,15 @@ const Contact = () => {
 
       <div className="flex-1 pt-[52px]">
         {/* Header */}
-        <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
-          <Reveal className="max-w-6xl mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// support</p>
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
+        <div className="relative overflow-hidden border-b border-[#D2D2D7] py-20 px-6">
+          <img src={chapelSunset} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F] via-[#1D1D1F]/70 to-[#1D1D1F]/30" />
+          <Reveal className="relative max-w-6xl mx-auto">
+            <p className="text-[12px] font-mono text-[#4ECDC4] mb-3">// support</p>
+            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-white">
               Contact &amp; support
             </h1>
-            <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">
+            <p className="text-[#D2D2D7] mt-4 max-w-md text-sm leading-relaxed">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
           </Reveal>

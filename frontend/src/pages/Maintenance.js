@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
+import cloudSunrise from '../assets/photos/cloud-sunrise.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const MaintenancePage = () => (
-  <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
+  <div className="relative min-h-screen flex flex-col bg-[#F5F5F7] overflow-hidden [contain:paint]">
+    <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+      <img src={cloudSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-[#F5F5F7]/78" />
+    </div>
+
     {/* Top bar */}
-    <div className="bg-white border-b border-[#D2D2D7] px-6 py-4">
+    <div className="bg-white/80 backdrop-blur-sm border-b border-[#D2D2D7] px-6 py-4">
       <span className="text-[17px] font-bold tracking-tight text-[#1D1D1F]">
         Vakar Games
       </span>

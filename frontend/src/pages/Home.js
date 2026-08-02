@@ -7,6 +7,12 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { LiveTerminal } from '../components/LiveTerminal';
 import { PublicButton } from '../ui/PublicButton';
+import jellyfish from '../assets/photos/jellyfish.jpg';
+import lunarEclipse from '../assets/photos/lunar-eclipse.jpg';
+import tealFronds from '../assets/photos/teal-fronds.jpg';
+import oceanGlow from '../assets/photos/ocean-glow.jpg';
+import motionBlossom from '../assets/photos/motion-blossom.jpg';
+import abstractEmber from '../assets/photos/abstract-ember.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -214,6 +220,39 @@ const Home = () => {
           <Reveal as="div" style={{ transitionDelay: '100ms' }}>
             <LiveTerminal />
           </Reveal>
+        </div>
+      </section>
+
+      {/* Visual interlude — a mood board, not a claim; pure pacing between the pitch and the CTA */}
+      <section className="py-20 sm:py-28 px-6" data-testid="mood-section">
+        <div className="max-w-[1120px] mx-auto">
+          <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// what keeps us building</p>
+          <Reveal
+            className="grid grid-cols-2 sm:grid-cols-3 auto-rows-[120px] sm:auto-rows-[140px] gap-3 sm:gap-4"
+            as="div"
+          >
+            <div className="col-span-2 row-span-2 rounded-[18px] overflow-hidden relative group">
+              <img src={jellyfish} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            <div className="rounded-[18px] overflow-hidden relative group">
+              <img src={lunarEclipse} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            <div className="rounded-[18px] overflow-hidden relative group">
+              <img src={tealFronds} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            <div className="rounded-[18px] overflow-hidden relative group">
+              <img src={oceanGlow} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            <div className="rounded-[18px] overflow-hidden relative group">
+              <img src={motionBlossom} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+            <div className="rounded-[18px] overflow-hidden relative group">
+              <img src={abstractEmber} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            </div>
+          </Reveal>
+          <p className="text-[13px] text-[#A1A1A6] mt-5 max-w-[52ch]">
+            Small details, patiently made — the same care we try to put into every release.
+          </p>
         </div>
       </section>
 

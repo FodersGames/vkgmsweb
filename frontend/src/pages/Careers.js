@@ -6,6 +6,9 @@ import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 import { ToolIcon } from '../components/CareersManagement';
 import { useAuth } from '../context/AuthContext';
+import coastalInterior from '../assets/photos/coastal-interior.jpg';
+import mistyLake from '../assets/photos/misty-lake.jpg';
+import homeOffice from '../assets/photos/home-office.jpg';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
@@ -188,17 +191,42 @@ export default function Careers() {
       <PublicNav />
 
       {/* Hero */}
-      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-12">
-        <Reveal className="max-w-screen-xl mx-auto">
+      <section className="relative overflow-hidden border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[104px] pb-16">
+        <img src={coastalInterior} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F] via-[#1D1D1F]/75 to-[#1D1D1F]/35" />
+        <Reveal className="relative max-w-screen-xl mx-auto">
           <p className="text-[12px] font-mono text-[#4ECDC4] mb-4">// join the company</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F] mb-4">
+          <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-white mb-4">
             Careers
           </h1>
-          <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
+          <p className="text-[#D2D2D7] text-base leading-relaxed max-w-xl">
             We're a small independent software company building applications, tools and games we're proud of. If you want to contribute
             to something creative and ambitious, we'd love to hear from you.
           </p>
         </Reveal>
+      </section>
+
+      {/* Remote-first strip */}
+      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 py-12">
+        <div className="max-w-screen-xl mx-auto grid sm:grid-cols-2 gap-6 items-center">
+          <div className="grid grid-cols-2 gap-3 order-2 sm:order-1">
+            <div className="rounded-xl overflow-hidden aspect-[4/3]">
+              <img src={homeOffice} alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="rounded-xl overflow-hidden aspect-[4/3] mt-6">
+              <img src={mistyLake} alt="" className="w-full h-full object-cover" />
+            </div>
+          </div>
+          <div className="order-1 sm:order-2">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// how we work</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-medium tracking-[-0.015em] text-[#1D1D1F] mb-3">
+              Remote-first, on purpose.
+            </h2>
+            <p className="text-[#6E6E73] text-sm leading-relaxed max-w-md">
+              Work from wherever you focus best. We care about what ships, not which desk you're sitting at.
+            </p>
+          </div>
+        </div>
       </section>
 
       <main className="flex-1 max-w-screen-xl mx-auto w-full px-6 md:px-10 lg:px-16 py-12">
