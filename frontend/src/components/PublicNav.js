@@ -94,7 +94,7 @@ export const PublicNav = ({ onAbout }) => {
               </Link>
             </div>
           ) : (
-            <PublicButton as={Link} to="/login" size="sm" pill>
+            <PublicButton as={Link} to="/login" size="sm">
               Sign In
             </PublicButton>
           )}

@@ -466,6 +466,7 @@ class GameCreateRequest(BaseModel):
     status: Literal["published", "draft", "coming_soon"] = "draft"
     featured: bool = False
     price_cents: int = 0
+    product_type: Literal["game", "application", "software"] = "game"
 
 class GameUpdateRequest(BaseModel):
     name: Optional[str] = None
@@ -476,6 +477,7 @@ class GameUpdateRequest(BaseModel):
     status: Optional[Literal["published", "draft", "coming_soon"]] = None
     featured: Optional[bool] = None
     price_cents: Optional[int] = None
+    product_type: Optional[Literal["game", "application", "software"]] = None
 
 class BlogCreateRequest(BaseModel):
     title: str
@@ -1615,7 +1617,7 @@ async def create_game(req: GameCreateRequest, user=Depends(require_permission("c
         await db.website_games.update_many({}, {"$set": {"featured": False}})
     doc = {"name": req.name, "slug": slug, "description": req.description, "logo_url": req.logo_url,
            "screenshots": req.screenshots, "platforms": req.platforms, "status": req.status, "featured": req.featured,
-           "price_cents": req.price_cents,
+           "price_cents": req.price_cents, "product_type": req.product_type,
            "created_at": datetime.now(timezone.utc), "created_by": user["username"],
            "updated_at": datetime.now(timezone.utc)}
     await db.website_games.insert_one(doc)
@@ -1972,6 +1974,7 @@ async def get_shop_categories():
                 "label": g["name"],
                 "product_count": count,
                 "logo_url": g.get("logo_url", ""),
+                "product_type": g.get("product_type", "game"),
             })
     return {"categories": categories}
 

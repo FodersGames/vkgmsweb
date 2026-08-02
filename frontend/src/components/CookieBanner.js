@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X } from '@phosphor-icons/react';
+import { PublicButton } from '../ui/PublicButton';
 
 const CONSENT_KEY = 'vg_cookie_consent';
 
@@ -84,12 +85,9 @@ export const CookieBanner = () => {
 
         {/* Actions */}
         <div className="flex flex-col gap-2">
-          <button
-            onClick={accept}
-            className="w-full py-2.5 text-xs font-bold rounded-lg bg-[#4ECDC4] hover:bg-[#3BB8B0] text-white transition-colors"
-          >
+          <PublicButton onClick={accept} variant="accent" size="sm" className="w-full">
             Accept all
-          </button>
+          </PublicButton>
           <button
             onClick={necessary}
             className="w-full py-2 text-xs font-semibold rounded-lg text-[#6E6E73] hover:text-white border border-[#3D3733] hover:border-[#6E6E73] transition-colors"

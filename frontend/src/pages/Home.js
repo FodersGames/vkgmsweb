@@ -56,18 +56,17 @@ const Home = () => {
             We build the applications, tools and games we'd want to use ourselves — every core system written and run in-house, nothing rented out to a template.
           </Reveal>
           <Reveal as="div" className="flex items-center justify-center gap-3 mt-9 flex-wrap">
-            <button
+            <PublicButton
               onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
-              className="liquid-glass liquid-glass-interactive rounded-full inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1D1D1F] px-5 py-2.5 group"
+              variant="secondary"
+              icon={ArrowRight}
+              className="group"
             >
-              Explore our work <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-            </button>
-            <button
-              onClick={scrollToAbout}
-              className="rounded-full inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#1D1D1F] px-5 py-2.5 transition-colors group"
-            >
-              Meet the company <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-            </button>
+              Explore our work
+            </PublicButton>
+            <PublicButton onClick={scrollToAbout} variant="ghost" icon={ArrowRight} className="group">
+              Meet the company
+            </PublicButton>
           </Reveal>
         </div>
       </section>

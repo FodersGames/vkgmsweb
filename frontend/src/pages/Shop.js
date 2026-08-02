@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -8,11 +8,8 @@ import { Reveal } from '../components/Reveal';
 import { SHOP_BADGE_MAP } from '../constants/shopBadges';
 import { PublicButton } from '../ui/PublicButton';
 import {
-  ShoppingCart, X, CircleNotch, ArrowLeft, ArrowRight, Star,
-  Package, Shield, Lightning, Heart, Leaf, Flame, Target, Trophy, Rocket, Diamond,
-  Key, Lock, Wrench, Hammer, Globe, Sparkle, Cube, Stack, Users,
-  Medal, MapTrifold, Cpu, MusicNotes, Moon, Sun, Tag, Gift,
-  CheckCircle, SignIn,
+  ShoppingCart, X, CircleNotch, Star, Shield, Trophy, Diamond,
+  CheckCircle, SignIn, GameController, AppWindow, Wrench,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -25,6 +22,16 @@ const TIERS = {
   diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Diamond, discount: 15, min: 25000, max: null  },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
+
+// ── Product type — what the Shop's top-level tabs group by. Comes straight
+// from each game/app's own "Type" field (set in the admin's Games manager),
+// not a second hand-maintained taxonomy layered on top. ────────────────────
+const TYPE_ORDER = ['game', 'application', 'software'];
+const TYPE_META = {
+  game:        { label: 'Games',        icon: GameController },
+  application: { label: 'Applications', icon: AppWindow },
+  software:    { label: 'Software',     icon: Wrench },
+};
 
 const GradeBadge = ({ tier, size = 'sm' }) => {
   const cfg = TIERS[tier] || TIERS.bronze;
@@ -154,14 +161,6 @@ const BadgePill = ({ badge, discount_pct }) => {
   );
 };
 
-// ── Icon picker for categories ────────────────────────────────────────────────
-const ICONS = { package: Package, shield: Shield, zap: Lightning, heart: Heart, leaf: Leaf,
-  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Diamond,
-  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
-  sparkles: Sparkle, box: Cube, layers: Stack, users: Users, award: Medal,
-  map: MapTrifold, cpu: Cpu, music: MusicNotes, moon: Moon, sun: Sun, gift: Gift, tag: Tag, star: Star,
-};
-
 // ── Main component ────────────────────────────────────────────────────────────
 const Shop = () => {
   const { user, token } = useAuth();
@@ -169,13 +168,13 @@ const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [products, setProducts]         = useState([]);
-  const [categories, setCategories]     = useState([]);
-  const [productCategories, setProductCategories] = useState([]);
+  // Games/apps that have at least one active shop product — the Shop's
+  // "browse by product" level, each tagged with its own product_type.
+  const [gamesWithProducts, setGamesWithProducts] = useState([]);
   const [loyalty, setLoyalty]           = useState(null);
   const [loading, setLoading]           = useState(true);
+  const [activeType, setActiveType]     = useState(searchParams.get('type') || '');
   const [activeGame, setActiveGame]     = useState(searchParams.get('game') || 'all');
-  const [activeCat, setActiveCat]       = useState(searchParams.get('cat') || '');
-  const [activeSub, setActiveSub]       = useState(searchParams.get('sub') || '');
 
   const [buying, setBuying]             = useState(null);
   const [uid, setUid]                   = useState('');
@@ -189,26 +188,21 @@ const Shop = () => {
 
   // Sync state with URL params
   useEffect(() => {
-    const g = searchParams.get('game') || 'all';
-    const c = searchParams.get('cat') || '';
-    const s = searchParams.get('sub') || '';
-    setActiveGame(g);
-    setActiveCat(c);
-    setActiveSub(s);
+    setActiveType(searchParams.get('type') || '');
+    setActiveGame(searchParams.get('game') || 'all');
   }, [searchParams]);
 
-  // Fetch products (+ the global category list) and the "browse by game" list
+  // Fetch products + the "browse by game/app" list (each tagged with its type)
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [prodRes, catRes] = await Promise.all([
+        const [prodRes, gamesRes] = await Promise.all([
           axios.get(`${API_URL}/api/shop/products`),
           axios.get(`${API_URL}/api/shop/categories`),
         ]);
         setProducts(prodRes.data.products || []);
-        setProductCategories(prodRes.data.categories || []);
-        setCategories(catRes.data.categories || []);
+        setGamesWithProducts(gamesRes.data.categories || []);
       } catch { /* silent */ } finally {
         setLoading(false);
       }
@@ -275,27 +269,17 @@ const Shop = () => {
     }
   };
 
-  const setGame = (slug) => {
-    if (slug === 'all') {
-      setSearchParams({});
-    } else {
-      setSearchParams({ game: slug });
-    }
-    setActiveCat('');
-    setActiveSub('');
-  };
-
-  const selectCat = (catId) => {
-    const params = { game: activeGame };
-    if (catId) params.cat = catId;
+  // Selecting a type resets the game filter back to "all" within that type.
+  const selectType = (type) => {
+    const params = {};
+    if (type) params.type = type;
     setSearchParams(params);
-    setActiveSub('');
   };
 
-  const selectSub = (subId) => {
-    const params = { game: activeGame };
-    if (activeCat) params.cat = activeCat;
-    if (subId) params.sub = subId;
+  const selectGame = (slug) => {
+    const params = {};
+    if (activeType) params.type = activeType;
+    if (slug !== 'all') params.game = slug;
     setSearchParams(params);
   };
 
@@ -305,15 +289,28 @@ const Shop = () => {
     ? Math.max(50, Math.round(loyaltyFinalPrice * (1 - couponExtraDiscount / 100)))
     : 0;
 
+  // ── Type tabs — only show types that actually have a product behind them
+  const availableTypes = useMemo(
+    () => TYPE_ORDER.filter(t => gamesWithProducts.some(g => (g.product_type || 'game') === t)),
+    [gamesWithProducts]
+  );
+
+  // ── Games/apps pills for the selected type (or all, if no type selected)
+  const gamesForType = useMemo(
+    () => activeType ? gamesWithProducts.filter(g => (g.product_type || 'game') === activeType) : gamesWithProducts,
+    [gamesWithProducts, activeType]
+  );
+
+  const gameTypeMap = useMemo(
+    () => Object.fromEntries(gamesWithProducts.map(g => [g.id, g.product_type || 'game'])),
+    [gamesWithProducts]
+  );
+
   // ── Filtered products ────────────────────────────────────────────────────
-  const filteredByGame = activeGame === 'all' ? products : products.filter(p => p.game_slug === activeGame);
-  const filteredByCat = activeCat ? filteredByGame.filter(p => p.category === activeCat) : filteredByGame;
-  const filtered = activeSub ? filteredByCat.filter(p => p.subcategory === activeSub) : filteredByCat;
+  const byType = activeType ? products.filter(p => gameTypeMap[p.game_slug] === activeType) : products;
+  const filtered = activeGame === 'all' ? byType : byType.filter(p => p.game_slug === activeGame);
   const featured = filtered.filter(p => p.featured);
   const regular  = filtered.filter(p => !p.featured);
-
-  const activeCatObj = productCategories.find(c => c.id === activeCat);
-  const activeSubcats = activeCatObj?.subcategories || [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -359,64 +356,35 @@ const Shop = () => {
             </div>
           )}
 
-          {/* Category filter */}
-          {categories.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Browse by game</p>
-              <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
-                <button
-                  onClick={() => setGame('all')}
-                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                    activeGame === 'all'
-                      ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
-                      : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
-                  }`}
-                >
-                  All Games
-                </button>
-                {categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setGame(cat.id)}
-                    className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                      activeGame === cat.id
-                        ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
-                        : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
-                    }`}
-                  >
-                    {cat.label}
-                    <span className="opacity-50">({cat.product_count})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Category filter — works across all games, or narrowed to the selected one */}
-          {productCategories.length > 0 && (
+          {/* Type tabs — Games / Applications / Software */}
+          {availableTypes.length > 1 && (
             <div>
               <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Category</p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
-                  onClick={() => selectCat('')}
-                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                    !activeCat ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
+                  onClick={() => selectType('')}
+                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap rounded-lg border transition-colors ${
+                    !activeType
+                      ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                      : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
                   }`}
                 >
                   All
                 </button>
-                {productCategories.map(cat => {
-                  const Icon = ICONS[cat.icon] || Package;
+                {availableTypes.map(t => {
+                  const meta = TYPE_META[t];
+                  const Icon = meta.icon;
                   return (
                     <button
-                      key={cat.id}
-                      onClick={() => selectCat(cat.id)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap border transition-colors ${
-                        activeCat === cat.id ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]' : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
+                      key={t}
+                      onClick={() => selectType(t)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap rounded-lg border transition-colors ${
+                        activeType === t
+                          ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                          : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
                       }`}
                     >
-                      <Icon size={12} />
-                      {cat.label}
+                      <Icon size={13} />{meta.label}
                     </button>
                   );
                 })}
@@ -424,28 +392,35 @@ const Shop = () => {
             </div>
           )}
 
-          {/* Per-category sub-category filter */}
-          {activeCat && activeSubcats.length > 0 && (
+          {/* Specific game/app pills, within the selected type */}
+          {gamesForType.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">Sub-category</p>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] mb-3">
+                {activeType ? TYPE_META[activeType].label : 'Browse'}
+              </p>
               <div className="flex gap-2 overflow-x-auto pb-1 flex-wrap">
                 <button
-                  onClick={() => selectSub('')}
-                  className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
-                    !activeSub ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]' : 'bg-white text-[#A1A1A6] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#6E6E73]'
+                  onClick={() => selectGame('all')}
+                  className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap rounded-lg border transition-colors ${
+                    activeGame === 'all'
+                      ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]'
+                      : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
                   }`}
                 >
                   All
                 </button>
-                {activeSubcats.map(s => (
+                {gamesForType.map(g => (
                   <button
-                    key={s.id}
-                    onClick={() => selectSub(s.id)}
-                    className={`px-3 py-1 text-[11px] font-semibold whitespace-nowrap border transition-colors ${
-                      activeSub === s.id ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]' : 'bg-white text-[#A1A1A6] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#6E6E73]'
+                    key={g.id}
+                    onClick={() => selectGame(g.id)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold whitespace-nowrap rounded-lg border transition-colors ${
+                      activeGame === g.id
+                        ? 'bg-[#4ECDC4] text-white border-[#4ECDC4]'
+                        : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#4ECDC4]/50 hover:text-[#1D1D1F]'
                     }`}
                   >
-                    {s.label}
+                    {g.label}
+                    <span className="opacity-60">({g.product_count})</span>
                   </button>
                 ))}
               </div>
@@ -460,7 +435,7 @@ const Shop = () => {
           ) : filtered.length === 0 ? (
             <div className="py-24 text-center">
               <ShoppingCart size={32} className="mx-auto mb-4 text-[#BFBFC4]" />
-              <p className="text-sm text-[#A1A1A6]">No products available in this category yet.</p>
+              <p className="text-sm text-[#A1A1A6]">No products available here yet.</p>
             </div>
           ) : (
             <>

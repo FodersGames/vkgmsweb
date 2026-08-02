@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
-  ShoppingBag, Plus, Edit2, Trash2, Save, X, Package, Tag, Search,
-  Eye, EyeOff, Star, Shield, Zap, Heart, Leaf, Flame, Target, Trophy, Rocket, Gem,
-  Key, Lock, Wrench, Hammer, Globe, Sparkles, Box, Layers, Users,
-  Award, Map, Cpu, Music, Moon, Sun, Gift, ChevronDown, Gamepad2, Settings2,
+  ShoppingBag, Plus, Edit2, Trash2, Save, X, Search,
+  Eye, EyeOff, Star, Gamepad2,
 } from 'lucide-react';
 import api, { API_URL } from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -16,58 +14,15 @@ import { SHOP_BADGES } from '../constants/shopBadges';
 // shared list.
 const BADGE_OPTIONS = [{ value: '', label: '— No badge —' }, ...SHOP_BADGES];
 
-// ── Icons ────────────────────────────────────────────────────────────────────
-const CATEGORY_ICONS = {
-  package: Package, shield: Shield, zap: Zap, heart: Heart, leaf: Leaf,
-  flame: Flame, target: Target, trophy: Trophy, rocket: Rocket, gem: Gem,
-  key: Key, lock: Lock, wrench: Wrench, hammer: Hammer, globe: Globe,
-  sparkles: Sparkles, box: Box, layers: Layers, users: Users, award: Award,
-  map: Map, cpu: Cpu, music: Music, moon: Moon, sun: Sun,
-  gift: Gift, tag: Tag, star: Star,
-};
-
-const CategoryIcon = ({ name, size = 14, className = '' }) => {
-  const Comp = CATEGORY_ICONS[name] || Package;
-  return <Comp size={size} className={className} />;
-};
-
-const IconPicker = ({ value, onChange }) => {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef(null);
-  React.useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-  const Comp = CATEGORY_ICONS[value] || Package;
-  return (
-    <div className="relative" ref={ref}>
-      <button type="button" onClick={() => setOpen(v => !v)}
-        className="rounded-xl flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] transition-all w-full">
-        <Comp size={14} className="text-[#4ECDC4] shrink-0" />
-        <span className="flex-1 text-left capitalize text-[#6E6E73] dark:text-[#a1a1aa]">{value || 'Icon…'}</span>
-        <ChevronDown size={12} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 p-2 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg z-30 grid grid-cols-7 gap-1 min-w-[240px]">
-          {Object.entries(CATEGORY_ICONS).map(([name, IC]) => (
-            <button key={name} type="button" title={name}
-              onClick={() => { onChange(name); setOpen(false); }}
-              className={`rounded-lg p-2 flex items-center justify-center hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] transition-all ${value === name ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}>
-              <IC size={15} />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // ── Form defaults ─────────────────────────────────────────────────────────────
+// Category/sub-category were retired: a second, hand-maintained cross-game
+// taxonomy (Weapons/Skins/…) on top of "which game is this for" was one
+// filtering axis too many. Products now only ever belong to a game — the
+// Shop's Type tabs (Games/Applications/Software) come from the game itself.
 const defaultForm = {
   name: '', description: '', price: '', image_url: '',
   badge: '', discount_pct: '', game_slug: '', project_slug: '', variable: '', amount: '',
-  active: true, category: '', subcategory: '', featured: false,
+  active: true, featured: false,
 };
 
 const IN = 'w-full rounded-lg bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm px-3 py-2.5 focus:outline-none focus:border-[#4ECDC4] focus:ring-2 focus:ring-[#4ECDC4]/20 transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]';
@@ -78,27 +33,17 @@ export const ShopManagement = () => {
   const [games,    setGames]    = useState([]);
   const [projects, setProjects] = useState([]);
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
 
   const [search,       setSearch]       = useState('');
   const [filterGame,   setFilterGame]   = useState('');
-  const [filterCat,    setFilterCat]    = useState('');
 
   const [showForm,        setShowForm]        = useState(false);
-  const [showCategories,  setShowCategories]  = useState(false);
   const [editingProduct,  setEditingProduct]  = useState(null);
   const [form,     setForm]     = useState(defaultForm);
   const [loading,  setLoading]  = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dialog,   setDialog]   = useState({ open: false, title: '', description: '', onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
-
-  // Category management state
-  const [newCatLabel, setNewCatLabel] = useState('');
-  const [newCatIcon, setNewCatIcon]   = useState('package');
-  const [savingCats, setSavingCats]   = useState(false);
-  const [expandedCat, setExpandedCat] = useState(null);
-  const [newSubLabel, setNewSubLabel] = useState('');
 
   const showConfirm = (config) => setDialog({ ...config, open: true });
   const closeConfirm = () => !confirmLoading && setDialog(d => ({ ...d, open: false }));
@@ -116,13 +61,6 @@ export const ShopManagement = () => {
     } catch { toast.error('Failed to load products'); }
   }, []);
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const r = await api.get('/api/shop/settings');
-      setCategories(r.data.categories || []);
-    } catch { setCategories([]); }
-  }, []);
-
   useEffect(() => {
     (async () => {
       try {
@@ -132,8 +70,7 @@ export const ShopManagement = () => {
       } catch {}
     })();
     fetchProducts();
-    fetchCategories();
-  }, [fetchProducts, fetchCategories]);
+  }, [fetchProducts]);
 
   const uploadFile = async (e, setter) => {
     const file = e.target.files[0];
@@ -158,7 +95,7 @@ export const ShopManagement = () => {
       image_url: p.image_url || '', badge: p.badge || '',
       discount_pct: p.discount_pct ?? '',
       game_slug: p.game_slug || '', project_slug: p.project_slug, variable: p.variable, amount: p.amount,
-      active: p.active, category: p.category || '', subcategory: p.subcategory || '', featured: p.featured || false,
+      active: p.active, featured: p.featured || false,
     });
     setShowForm(true);
   };
@@ -171,8 +108,6 @@ export const ShopManagement = () => {
       price: Math.round(parseFloat(form.price) * 100),
       discount_pct: form.discount_pct !== '' ? parseInt(form.discount_pct) : null,
       badge: form.badge || null,
-      category: form.category || null,
-      subcategory: form.subcategory || null,
     };
     try {
       if (editingProduct) {
@@ -205,66 +140,10 @@ export const ShopManagement = () => {
     } catch { toast.error('Failed to update'); }
   };
 
-  const saveCategories = async (updated) => {
-    await api.put(`/api/shop/settings`, { categories: updated });
-    setCategories(updated);
-  };
-
-  const addCategory = async () => {
-    const label = newCatLabel.trim();
-    if (!label) return;
-    const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    if (categories.some(c => c.id === id)) { toast.error('Category already exists'); return; }
-    const newCat = { id, label, icon: newCatIcon, subcategories: [] };
-    setSavingCats(true);
-    try {
-      await saveCategories([...categories, newCat]);
-      setNewCatLabel(''); setNewCatIcon('package');
-      toast.success('Category added');
-    } catch { toast.error('Failed to add category'); }
-    finally { setSavingCats(false); }
-  };
-
-  const removeCategory = async (id) => {
-    try {
-      await saveCategories(categories.filter(c => c.id !== id));
-      if (expandedCat === id) setExpandedCat(null);
-      toast.success('Category removed');
-    } catch { toast.error('Failed to remove category'); }
-  };
-
-  const addSubcategory = async (catId) => {
-    const label = newSubLabel.trim();
-    if (!label) return;
-    const id = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    const updated = categories.map(c => {
-      if (c.id !== catId) return c;
-      const subs = c.subcategories || [];
-      if (subs.some(s => s.id === id)) { toast.error('Sub-category already exists'); return c; }
-      return { ...c, subcategories: [...subs, { id, label }] };
-    });
-    try {
-      await saveCategories(updated);
-      setNewSubLabel('');
-      toast.success('Sub-category added');
-    } catch { toast.error('Failed to add sub-category'); }
-  };
-
-  const removeSubcategory = async (catId, subId) => {
-    const updated = categories.map(c => c.id !== catId ? c : {
-      ...c, subcategories: (c.subcategories || []).filter(s => s.id !== subId),
-    });
-    try {
-      await saveCategories(updated);
-      toast.success('Sub-category removed');
-    } catch { toast.error('Failed to remove sub-category'); }
-  };
-
   const gameName = (slug) => games.find(g => g.slug === slug)?.name || slug;
 
   const filtered = products.filter(p => {
     if (filterGame && p.game_slug !== filterGame) return false;
-    if (filterCat && p.category !== filterCat) return false;
     const q = search.trim().toLowerCase();
     if (q && !p.name.toLowerCase().includes(q) && !(p.description || '').toLowerCase().includes(q)) return false;
     return true;
@@ -287,96 +166,10 @@ export const ShopManagement = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" icon={Settings2} onClick={() => setShowCategories(v => !v)}>
-            {showCategories ? 'Close Categories' : 'Manage Categories'}
-          </Button>
-          <Button icon={showForm ? X : Plus} onClick={() => showForm ? setShowForm(false) : openCreate()}>
-            {showForm ? 'Cancel' : 'Add Product'}
-          </Button>
-        </div>
+        <Button icon={showForm ? X : Plus} onClick={() => showForm ? setShowForm(false) : openCreate()}>
+          {showForm ? 'Cancel' : 'Add Product'}
+        </Button>
       </div>
-
-      {/* ── Categories panel ─────────────────────────────────────────────── */}
-      {showCategories && (
-        <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 space-y-5">
-          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
-            One category list, shared across every game. Each category can have optional sub-categories for finer filtering.
-          </p>
-
-          {categories.length === 0 ? (
-            <p className="text-sm text-[#A1A1A6] dark:text-[#71717a]">No categories yet. Add one below.</p>
-          ) : (
-            <div className="space-y-2">
-              {categories.map(c => (
-                <div key={c.id} className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F5F7] dark:bg-[#111118]">
-                    <CategoryIcon name={c.icon} size={13} className="text-[#4ECDC4]" />
-                    <span className="font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm flex-1">{c.label}</span>
-                    <span className="text-[#A1A1A6] dark:text-[#71717a] text-xs">{(c.subcategories || []).length} sub</span>
-                    <button
-                      onClick={() => setExpandedCat(expandedCat === c.id ? null : c.id)}
-                      className="rounded-xl text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white px-2 py-0.5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] transition-colors"
-                    >
-                      {expandedCat === c.id ? 'Collapse' : 'Sub-categories'}
-                    </button>
-                    <button onClick={() => removeCategory(c.id)} className="text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors">
-                      <X size={13} />
-                    </button>
-                  </div>
-                  {expandedCat === c.id && (
-                    <div className="px-4 py-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c] space-y-2">
-                      {(c.subcategories || []).length === 0 ? (
-                        <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No sub-categories yet.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {(c.subcategories || []).map(s => (
-                            <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-xs">
-                              <span className="text-[#1D1D1F] dark:text-[#e4e4e7] font-medium">{s.label}</span>
-                              <button onClick={() => removeSubcategory(c.id, s.id)} className="text-[#A1A1A6] dark:text-[#71717a] hover:text-red-500 transition-colors ml-0.5">
-                                <X size={10} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-2 items-center mt-2">
-                        <input
-                          type="text"
-                          value={newSubLabel}
-                          onChange={e => setNewSubLabel(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSubcategory(c.id))}
-                          className={`${IN} flex-1`}
-                          placeholder="Sub-category name (e.g. Premium Pass)"
-                        />
-                        <Button icon={Plus} onClick={() => addSubcategory(c.id)} className="shrink-0">Add</Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div>
-            <p className={LBL}>Add Category</p>
-            <div className="flex gap-2 items-center">
-              <div className="w-40 shrink-0">
-                <IconPicker value={newCatIcon} onChange={setNewCatIcon} />
-              </div>
-              <input
-                type="text"
-                value={newCatLabel}
-                onChange={e => setNewCatLabel(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCategory())}
-                className={`${IN} flex-1`}
-                placeholder="Category name (e.g. Weapons)"
-              />
-              <Button icon={Plus} onClick={addCategory} loading={savingCats} className="shrink-0">Add</Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Product form ─────────────────────────────────────────────────── */}
       {showForm && (
@@ -455,31 +248,6 @@ export const ShopManagement = () => {
                 </div>
               )}
 
-              {/* Category */}
-              <div>
-                <label className={LBL}>Category</label>
-                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value, subcategory: '' }))} className={IN}>
-                  <option value="">— No category —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-              </div>
-
-              {/* Sub-category */}
-              {form.category && (() => {
-                const cat = categories.find(c => c.id === form.category);
-                const subs = cat?.subcategories || [];
-                if (subs.length === 0) return null;
-                return (
-                  <div>
-                    <label className={LBL}>Sub-category</label>
-                    <select value={form.subcategory} onChange={e => setForm(f => ({ ...f, subcategory: e.target.value }))} className={IN}>
-                      <option value="">— No sub-category —</option>
-                      {subs.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                    </select>
-                  </div>
-                );
-              })()}
-
               {/* Backend project */}
               <div>
                 <label className={LBL}>Delivers into project</label>
@@ -540,10 +308,6 @@ export const ShopManagement = () => {
           <option value="">All games</option>
           {games.map(g => <option key={g.slug} value={g.slug}>{g.name}</option>)}
         </Select>
-        <Select value={filterCat} onChange={e => setFilterCat(e.target.value)} wrapperClassName="w-48 shrink-0">
-          <option value="">All categories</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </Select>
       </div>
 
       {/* ── Product list ─────────────────────────────────────────────────── */}
@@ -556,7 +320,6 @@ export const ShopManagement = () => {
           <div className="space-y-2">
             {filtered.map(p => {
               const badge = BADGE_OPTIONS.find(b => b.value === p.badge);
-              const cat = categories.find(c => c.id === p.category);
               return (
                 <div
                   key={p.id}
@@ -581,11 +344,6 @@ export const ShopManagement = () => {
                       {badge?.value && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 text-white" style={{ backgroundColor: badge.bg }}>
                           {badge.label}
-                        </span>
-                      )}
-                      {cat && (
-                        <span className="rounded-xl inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa]">
-                          <CategoryIcon name={cat.icon} size={9} />{cat.label}
                         </span>
                       )}
                       {!p.active && <span className="rounded-xl text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] px-1.5 py-0.5">Hidden</span>}

@@ -18,6 +18,7 @@ const PLATFORMS = [
 
 const statusVariant = { published: 'success', coming_soon: 'purple', draft: 'default' };
 const statusLabel = { published: 'Published', coming_soon: 'Coming Soon', draft: 'Draft' };
+const typeLabel = { game: 'Game', application: 'Application', software: 'Software' };
 
 export const GamesManagement = () => {
   const { token, hasPermission } = useAuth();
@@ -26,7 +27,7 @@ export const GamesManagement = () => {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0 });
+  const [form, setForm] = useState({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0, product_type: 'game' });
   const [dialog, setDialog] = useState({ open: false, title: '', description: '', onConfirm: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
@@ -68,10 +69,10 @@ export const GamesManagement = () => {
 
   const setPlatformUrl = (platformId, url) => setForm(p => ({ ...p, platforms: p.platforms.map(pl => pl.name === platformId ? { ...pl, url } : pl) }));
 
-  const resetForm = () => { setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0 }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ name: '', description: '', logo_url: '', screenshots: [], platforms: [], status: 'draft', featured: false, price_cents: 0, product_type: 'game' }); setEditing(null); setShowForm(false); };
 
   const startEdit = (game) => {
-    setForm({ name: game.name, description: game.description, logo_url: game.logo_url || '', screenshots: game.screenshots || [], platforms: game.platforms || [], status: game.status, featured: game.featured || false, price_cents: game.price_cents || 0 });
+    setForm({ name: game.name, description: game.description, logo_url: game.logo_url || '', screenshots: game.screenshots || [], platforms: game.platforms || [], status: game.status, featured: game.featured || false, price_cents: game.price_cents || 0, product_type: game.product_type || 'game' });
     setEditing(game.slug); setShowForm(true);
   };
 
@@ -118,14 +119,22 @@ export const GamesManagement = () => {
           <div className="px-6 py-5 bg-[#F5F5F7] dark:bg-[#111118] border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <form onSubmit={handleSubmit} data-testid="game-form">
               <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Input label="Game Name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required data-testid="game-name-input" />
+                <div className="grid md:grid-cols-3 gap-4">
+                  <Input label="Name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required data-testid="game-name-input" />
+                  <Select label="Type" value={form.product_type} onChange={e => setForm(p => ({ ...p, product_type: e.target.value }))} data-testid="game-type-select">
+                    <option value="game">Game</option>
+                    <option value="application">Application</option>
+                    <option value="software">Software</option>
+                  </Select>
                   <Select label="Status" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} data-testid="game-status-select">
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
                     <option value="coming_soon">Coming Soon</option>
                   </Select>
                 </div>
+                <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] -mt-2">
+                  Type controls how this shows up as a browse category in the Shop.
+                </p>
 
                 <Textarea label="Description" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} required data-testid="game-description-input" />
 
@@ -236,6 +245,7 @@ export const GamesManagement = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{g.name}</h4>
                       <Badge variant={statusVariant[g.status] || 'default'}>{statusLabel[g.status] || g.status}</Badge>
+                      <Badge variant="default">{typeLabel[g.product_type] || 'Game'}</Badge>
                       {g.featured && <Badge variant="orange">Featured</Badge>}
                       {g.price_cents > 0 && <Badge variant="default">${(g.price_cents / 100).toFixed(2)}</Badge>}
                       {(g.price_cents === 0 || !g.price_cents) && <Badge variant="success">Free</Badge>}
