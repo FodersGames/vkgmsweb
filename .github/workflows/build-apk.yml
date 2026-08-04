@@ -1,0 +1,92 @@
+# Builds a debug (unsigned) Android APK for one Studio App Builder app,
+# triggered by the backend (backend/app/routers/apk_builds.py) via the
+# GitHub REST API — never runs on the production VPS. Wraps the app's
+# exported static HTML/CSS/JS bundle (produced client-side by
+# frontend/src/utils/exportApp.js) with Capacitor and reports the result
+# back to the backend via a one-time callback token.
+#
+# NOTE: this workflow has not been run yet — the general shape (Capacitor
+# init flags, Gradle invocation) is correct as of Capacitor 6, but the
+# first real dispatch should be watched closely and may need small fixes
+# (exact `cap init` non-interactive flags, Gradle/AGP version pinning,
+# etc.) before it's reliable. See MEMORY: studio_app_builder.md.
+name: Build Studio App APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: "apk_builds document ID (Mongo)"
+        required: true
+      bundle_url:
+        description: "Public URL of the exported HTML/CSS/JS .zip bundle"
+        required: true
+      callback_url:
+        description: "Backend URL to report the result to"
+        required: true
+      callback_token:
+        description: "One-time secret for the callback (never reused)"
+        required: true
+      app_name:
+        description: "Display name for the generated app"
+        required: false
+        default: "Studio App"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Fetch and unpack the app bundle
+        run: |
+          mkdir -p www build-project
+          curl -sfL "${{ inputs.bundle_url }}" -o bundle.zip
+          unzip -oq bundle.zip -d www
+          ls -la www
+
+      - name: Scaffold a Capacitor project
+        working-directory: build-project
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          cp -r ../www ./www
+          npx cap init "${{ inputs.app_name }}" "com.vakargames.studioapp.${{ inputs.build_id }}" --web-dir www
+          npx cap add android
+
+      - name: Build debug APK
+        working-directory: build-project/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Report success
+        if: success()
+        run: |
+          APK_PATH="build-project/android/app/build/outputs/apk/debug/app-debug.apk"
+          curl -sf -X POST "${{ inputs.callback_url }}" \
+            -F "callback_token=${{ inputs.callback_token }}" \
+            -F "status=ready" \
+            -F "apk=@${APK_PATH};type=application/vnd.android.package-archive"
+
+      - name: Report failure
+        if: failure()
+        run: |
+          curl -sf -X POST "${{ inputs.callback_url }}" \
+            -F "callback_token=${{ inputs.callback_token }}" \
+            -F "status=failed" \
+            -F "error=Build failed — see the GitHub Actions run for ${{ github.run_id }} for details." \
+          || true
