@@ -345,6 +345,36 @@ class PlaySaveBulkUpdateRequest(BaseModel):
     category: str
     data: str
 
+class NutritionGoalsRequest(BaseModel):
+    daily_calories: int = 2000
+    daily_protein_g: int = 120
+    daily_carbs_g: int = 250
+    daily_fat_g: int = 65
+
+class MealEntryCreateRequest(BaseModel):
+    name: str
+    meal_type: Literal["breakfast", "lunch", "dinner", "snack"] = "snack"
+    quantity_g: Optional[float] = None
+    photo_url: Optional[str] = ""
+    calories: float = 0
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
+    logged_at: Optional[str] = None
+    notes: Optional[str] = ""
+
+class MealEntryUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    meal_type: Optional[Literal["breakfast", "lunch", "dinner", "snack"]] = None
+    quantity_g: Optional[float] = None
+    photo_url: Optional[str] = None
+    calories: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    logged_at: Optional[str] = None
+    notes: Optional[str] = None
+
 class CareerCreateRequest(BaseModel):
     title: str
     department: str

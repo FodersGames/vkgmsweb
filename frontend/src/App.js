@@ -18,6 +18,8 @@ import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import VakarApp from './pages/VakarApp';
+import Nutrition from './pages/Nutrition';
+import Careers from './pages/Careers';
 import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
@@ -83,8 +85,9 @@ const AppRoutes = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/app" element={<VakarApp />} />
         <Route path="/play" element={<Navigate to="/app" replace />} />
+        <Route path="/nutrition" element={<Nutrition />} />
         <Route path="/choose-pseudo" element={<ChoosePseudo />} />
-        <Route path="/careers" element={<Navigate to="/" replace />} />
+        <Route path="/careers" element={<Careers />} />
         <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

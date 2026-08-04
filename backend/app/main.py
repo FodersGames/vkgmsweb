@@ -21,7 +21,7 @@ from .deps import ALL_PERMISSIONS
 from .routers import (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
-    play, play_chat, guilds, careers,
+    play, play_chat, guilds, careers, nutrition,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ async def get_all_permissions():
 for _router_module in (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
-    play, play_chat, guilds, careers,
+    play, play_chat, guilds, careers, nutrition,
 ):
     app.include_router(_router_module.router, prefix="/api")
 
@@ -131,6 +131,8 @@ async def startup_event():
         await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
         await db.careers.create_index("created_at")
         await db.careers.create_index("is_open")
+        await db.meal_entries.create_index([("user_id", 1), ("logged_at", -1)])
+        await db.nutrition_goals.create_index("user_id", unique=True)
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
