@@ -19,7 +19,8 @@ import { ProjectManagement }   from '../components/ProjectManagement';
 import { GamesManagement }     from '../components/GamesManagement';
 import { BlogManagement }      from '../components/BlogManagement';
 import { ChatManagement }      from '../components/ChatManagement';
-import { WebsiteSettings }     from '../components/WebsiteSettings';
+import { GlobalManagement }    from '../components/GlobalManagement';
+import { Health }              from '../components/Health';
 import { ShopManagement }      from '../components/ShopManagement';
 import { MissionsManagement }  from '../components/MissionsManagement';
 import { FilesManagement }     from '../components/FilesManagement';
@@ -100,8 +101,13 @@ const SHOP_SUBTABS = [
 ];
 
 const SYSTEM_SUBTABS = [
-  { id: 'vps', label: 'VPS', icon: Server,   component: VpsStats,   permission: 'view_vps' },
-  { id: 'cli', label: 'CLI', icon: Terminal, component: CliConsole, superAdminOnly: true    },
+  { id: 'vps',    label: 'VPS',    icon: Server,   component: VpsStats,   permission: 'view_vps' },
+  { id: 'health', label: 'Health', icon: Activity, component: Health,     permission: 'view_vps' },
+  { id: 'cli',    label: 'CLI',    icon: Terminal, component: CliConsole, superAdminOnly: true    },
+];
+
+const WEBSITE_SETTINGS_SUBTABS = [
+  { id: 'global', label: 'Global Management', icon: Settings, component: GlobalManagement, permission: 'manage_website' },
 ];
 
 // ── Sidebar order (client-only, drag-to-reorder) ─────────────────────────────
@@ -270,6 +276,19 @@ const ShopWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) => {
 
 const SystemWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) => {
   const visible = SYSTEM_SUBTABS.filter(t => subtabVisible(t, hasPermission, isSuperAdmin));
+  const active = visible.find(t => t.id === tab) || visible[0];
+  if (!active) return null;
+  const ActiveComponent = active.component;
+  return (
+    <div>
+      <WorkspaceTabs tabs={visible} active={active.id} onChange={setTab} />
+      <ActiveComponent />
+    </div>
+  );
+};
+
+const WebsiteSettingsWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) => {
+  const visible = WEBSITE_SETTINGS_SUBTABS.filter(t => subtabVisible(t, hasPermission, isSuperAdmin));
   const active = visible.find(t => t.id === tab) || visible[0];
   if (!active) return null;
   const ActiveComponent = active.component;
@@ -477,6 +496,7 @@ const DashboardContent = () => {
   const [projectTab, setProjectTab] = useState(restored.projectTab || 'list');
   const [shopTab,    setShopTab]    = useState(restored.shopTab || 'shop');
   const [systemTab,  setSystemTab]  = useState(restored.systemTab || 'vps');
+  const [websiteSettingsTab, setWebsiteSettingsTab] = useState(restored.websiteSettingsTab || 'global');
 
   const projectDropRef = useRef(null);
 
@@ -490,7 +510,7 @@ const DashboardContent = () => {
   const [navDirection, setNavDirection] = useState('forward');
 
   useEffect(() => {
-    const snap = { activeTab, projectTab, shopTab, systemTab };
+    const snap = { activeTab, projectTab, shopTab, systemTab, websiteSettingsTab };
     try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(snap)); } catch {}
 
     if (suppressHistoryPush.current) {
@@ -503,7 +523,7 @@ const DashboardContent = () => {
     }
     setCanGoBack(historyIndex.current > 0);
     setCanGoForward(historyIndex.current < historyStack.current.length - 1);
-  }, [activeTab, projectTab, shopTab, systemTab]);
+  }, [activeTab, projectTab, shopTab, systemTab, websiteSettingsTab]);
 
   const applySnapshot = (snap) => {
     suppressHistoryPush.current = true;
@@ -511,6 +531,7 @@ const DashboardContent = () => {
     setProjectTab(snap.projectTab);
     setShopTab(snap.shopTab);
     setSystemTab(snap.systemTab);
+    setWebsiteSettingsTab(snap.websiteSettingsTab || 'global');
   };
   const goBack = () => {
     if (historyIndex.current <= 0) return;
@@ -566,8 +587,9 @@ const DashboardContent = () => {
     if (activeTab === 'projects') return PROJECT_SUBTABS.find(t => t.id === projectTab)?.label;
     if (activeTab === 'website-shop') return SHOP_SUBTABS.find(t => t.id === shopTab)?.label;
     if (activeTab === 'system') return SYSTEM_SUBTABS.find(t => t.id === systemTab)?.label;
+    if (activeTab === 'website-settings') return WEBSITE_SETTINGS_SUBTABS.find(t => t.id === websiteSettingsTab)?.label;
     return null;
-  }, [activeTab, projectTab, shopTab, systemTab]);
+  }, [activeTab, projectTab, shopTab, systemTab, websiteSettingsTab]);
 
   const onSelectTab = (id) => { setNavDirection('forward'); setActiveTab(id); setMobileOpen(false); };
 
@@ -578,6 +600,7 @@ const DashboardContent = () => {
     if (tab === 'projects' && subtab) setProjectTab(subtab);
     if (tab === 'website-shop' && subtab) setShopTab(subtab);
     if (tab === 'system' && subtab) setSystemTab(subtab);
+    if (tab === 'website-settings' && subtab) setWebsiteSettingsTab(subtab);
   };
 
   // Flat, permission-filtered list of everything ⌘K can jump straight to —
@@ -601,6 +624,11 @@ const DashboardContent = () => {
           for (const t of SYSTEM_SUBTABS) {
             if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
             dest.push({ label: t.label, group: 'Team', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('system'); setSystemTab(t.id); } });
+          }
+        } else if (item.id === 'website-settings') {
+          for (const t of WEBSITE_SETTINGS_SUBTABS) {
+            if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
+            dest.push({ label: t.label, group: 'Website', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('website-settings'); setWebsiteSettingsTab(t.id); } });
           }
         } else {
           dest.push({ label: item.label, group: group.label, icon: item.icon, onSelect: () => { setNavDirection('forward'); setActiveTab(item.id); } });
@@ -744,7 +772,7 @@ const DashboardContent = () => {
 
         {/* Content — keyed by the active section so switching tabs replays the appear animation */}
         <main>
-          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
+          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
 
             {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
 
@@ -767,7 +795,9 @@ const DashboardContent = () => {
             {activeTab === 'users'    && hasPermission('manage_users')    && <UserManagement />}
             {activeTab === 'website-games'    && <GamesManagement />}
             {activeTab === 'website-blog'     && <BlogManagement />}
-            {activeTab === 'website-settings' && <WebsiteSettings />}
+            {activeTab === 'website-settings' && (
+              <WebsiteSettingsWorkspace tab={websiteSettingsTab} setTab={setWebsiteSettingsTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
+            )}
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
             {activeTab === 'account'          && <AccountSettings />}

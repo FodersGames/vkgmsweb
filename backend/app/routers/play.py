@@ -1,5 +1,6 @@
 import re
 import json
+import math
 import secrets
 import jwt
 from datetime import datetime, timezone, timedelta
@@ -14,11 +15,12 @@ from ..deps import ALL_PERMISSIONS, require_permission, hash_key, verify_key
 from ..utils import log_action
 from ..rate_limit import limiter
 from ..play_auth import (
-    PLAY_REFRESH_TOKEN_DAYS, PLAY_SAVE_CATEGORIES,
+    PLAY_REFRESH_TOKEN_DAYS,
     _create_play_access_token, _create_play_refresh_token, _get_play_user_from_access,
     _is_project_banned, _check_first_time_and_mark,
+    _get_project_categories, _category_allowed,
 )
-from ..schemas import NicknameRequest
+from ..schemas import NicknameRequest, PlaySaveCategoryRequest, PlaySaveBulkUpdateRequest
 
 router = APIRouter()
 
@@ -161,10 +163,10 @@ async def play_save(request: Request, play_user=Depends(_get_play_user_from_acce
     category     = str(body.get("category", "")).strip()
     data         = str(body.get("data", "{}"))
     project_slug = str(body.get("project_slug", "")).strip()
-    if category not in PLAY_SAVE_CATEGORIES:
-        raise HTTPException(400, f"Catégorie invalide. Valeurs: {', '.join(sorted(PLAY_SAVE_CATEGORIES))}")
     if not project_slug:
         raise HTTPException(400, "project_slug requis")
+    if not await _category_allowed(project_slug, category, play_user["_id"]):
+        raise HTTPException(400, "Catégorie invalide ou non autorisée pour ce joueur")
     if await _is_project_banned(play_user["_id"], project_slug):
         raise HTTPException(403, "Banned from this game")
     try:
@@ -181,8 +183,8 @@ async def play_save(request: Request, play_user=Depends(_get_play_user_from_acce
 @router.get("/play/load")
 async def play_load(request: Request, category: str, project_slug: str, response: Response, play_user=Depends(_get_play_user_from_access)):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    if category not in PLAY_SAVE_CATEGORIES:
-        raise HTTPException(400, "Catégorie invalide")
+    if not await _category_allowed(project_slug, category, play_user["_id"]):
+        raise HTTPException(400, "Catégorie invalide ou non autorisée pour ce joueur")
     if await _is_project_banned(play_user["_id"], project_slug):
         raise HTTPException(403, "Banned from this game")
     save = await db.play_saves.find_one({
@@ -213,13 +215,26 @@ async def play_get_nickname(project_slug: str, response: Response, play_user=Dep
 # ── Admin play routes ────────────────────────────────────────────────────────
 
 @router.get("/admin/projects/{slug}/play/players")
-async def admin_play_players(slug: str, user=Depends(require_permission("manage_play"))):
-    saves   = await db.play_saves.find({"project_slug": slug}).to_list(None)
-    p_ids   = list({s["user_id"] for s in saves})
-    players = await db.users.find({"_id": {"$in": p_ids}}).to_list(None)
-    bans    = await db.play_bans.find({"project_slug": slug}).to_list(None)
+async def admin_play_players(slug: str, search: str = "", page: int = 1, limit: int = 30, user=Depends(require_permission("manage_play"))):
+    saves = await db.play_saves.find({"project_slug": slug}, {"user_id": 1, "category": 1}).to_list(None)
+    p_ids = list({s["user_id"] for s in saves})
+    if not p_ids:
+        return {"players": [], "total": 0, "page": page, "limit": limit, "pages": 1}
+
+    query = {"_id": {"$in": p_ids}}
+    if search.strip():
+        pattern = re.escape(search.strip())
+        query["$or"] = [
+            {"username": {"$regex": pattern, "$options": "i"}},
+            {"email": {"$regex": pattern, "$options": "i"}},
+        ]
+    total = await db.users.count_documents(query)
+    skip = (page - 1) * limit
+    players = await db.users.find(query).sort("lastLogin", -1).skip(skip).limit(limit).to_list(limit)
+
+    bans = await db.play_bans.find({"project_slug": slug}).to_list(None)
     banned_ids = {b["user_id"] for b in bans}
-    result  = []
+    result = []
     for p in players:
         p_saves = [s for s in saves if s["user_id"] == p["_id"]]
         result.append({
@@ -231,7 +246,7 @@ async def admin_play_players(slug: str, user=Depends(require_permission("manage_
             "categories": [s["category"] for s in p_saves],
             "banned":     p["_id"] in banned_ids,
         })
-    return {"players": result}
+    return {"players": result, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 @router.patch("/admin/projects/{slug}/play/players/{player_id}/ban")
 async def admin_ban_player(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):
@@ -267,23 +282,37 @@ async def admin_play_player_detail(slug: str, player_id: str, user=Depends(requi
     if not player:
         raise HTTPException(404, "Joueur introuvable")
     saves = await db.play_saves.find({"user_id": oid, "project_slug": slug}).to_list(None)
+    ban = await db.play_bans.find_one({"user_id": oid, "project_slug": slug})
+    nickname_doc = await db.play_nicknames.find_one({"user_id": oid, "project_slug": slug})
+    guild_info = None
+    membership = await db.guild_members.find_one({"user_id": oid, "project_slug": slug})
+    if membership:
+        guild = await db.guilds.find_one({"_id": membership["guild_id"]})
+        if guild:
+            guild_info = {"id": str(guild["_id"]), "name": guild.get("name", ""), "role": membership.get("role", "member")}
     return {
         "player": {
             "id": str(player["_id"]), "username": player["username"], "email": player["email"],
             "created_at": str(player.get("createdAt", "")),
             "last_seen":  str(player.get("lastLogin", "")),
+            "banned": ban is not None,
+            "nickname": nickname_doc["nickname"] if nickname_doc else None,
+            "guild": guild_info,
         },
         "saves": {s["category"]: s["data"] for s in saves}
     }
 
 @router.patch("/admin/projects/{slug}/play/players/{player_id}/saves/{category}")
 async def admin_play_update_save(slug: str, player_id: str, category: str, request: Request, user=Depends(require_permission("manage_play"))):
-    if category not in PLAY_SAVE_CATEGORIES:
-        raise HTTPException(400, "Catégorie invalide")
     try:
         oid = ObjectId(player_id)
     except Exception:
         raise HTTPException(400, "ID invalide")
+    cat_doc = await db.play_save_categories.find_one({"project_slug": slug, "name": category})
+    if not cat_doc:
+        raise HTTPException(400, "Catégorie invalide — créez-la d'abord dans l'onglet Categories")
+    if cat_doc.get("player_scope") == "specific" and oid not in cat_doc.get("target_user_ids", []):
+        raise HTTPException(400, "Cette catégorie n'est pas autorisée pour ce joueur")
     body = await request.json()
     data = str(body.get("data", "{}"))
     try:
@@ -295,7 +324,110 @@ async def admin_play_update_save(slug: str, player_id: str, category: str, reque
         {"$set": {"data": data, "updated_at": datetime.now(timezone.utc)}},
         upsert=True
     )
+    await log_action("player", f"Admin '{user['username']}' updated save '{category}' for player {player_id}", project_slug=slug, user=user["username"])
     return {"ok": True}
+
+@router.delete("/admin/projects/{slug}/play/players/{player_id}/saves/{category}")
+async def admin_play_delete_save(slug: str, player_id: str, category: str, user=Depends(require_permission("manage_play"))):
+    """Manually delete a single save slot — the missing piece next to the
+    upsert-only PATCH above (which creates/updates but never removes)."""
+    try:
+        oid = ObjectId(player_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    r = await db.play_saves.delete_one({"user_id": oid, "project_slug": slug, "category": category})
+    if r.deleted_count == 0:
+        raise HTTPException(404, "Save slot not found")
+    await log_action("player", f"Admin '{user['username']}' deleted save slot '{category}' for player {player_id}", project_slug=slug, user=user["username"])
+    return {"ok": True}
+
+@router.post("/admin/projects/{slug}/play/saves/bulk")
+async def admin_play_bulk_update_saves(slug: str, req: PlaySaveBulkUpdateRequest, user=Depends(require_permission("manage_play"))):
+    """Applies the same save data to multiple players at once."""
+    if not req.user_ids:
+        raise HTTPException(400, "No players selected")
+    try:
+        json.loads(req.data)
+    except Exception:
+        raise HTTPException(400, "JSON invalide")
+    cat_doc = await db.play_save_categories.find_one({"project_slug": slug, "name": req.category})
+    if not cat_doc:
+        raise HTTPException(400, "Catégorie invalide — créez-la d'abord dans l'onglet Categories")
+    try:
+        oids = [ObjectId(uid) for uid in req.user_ids]
+    except Exception:
+        raise HTTPException(400, "ID invalide dans la sélection")
+    if cat_doc.get("player_scope") == "specific":
+        allowed = set(cat_doc.get("target_user_ids", []))
+        oids = [oid for oid in oids if oid in allowed]
+        if not oids:
+            raise HTTPException(400, "Aucun des joueurs sélectionnés n'est autorisé pour cette catégorie")
+    now = datetime.now(timezone.utc)
+    for oid in oids:
+        await db.play_saves.update_one(
+            {"user_id": oid, "project_slug": slug, "category": req.category},
+            {"$set": {"data": req.data, "updated_at": now}},
+            upsert=True,
+        )
+    await log_action("player", f"Admin '{user['username']}' bulk-updated save '{req.category}' for {len(oids)} player(s)", project_slug=slug, user=user["username"])
+    return {"ok": True, "updated": len(oids)}
+
+# ── Admin: save-slot category definitions ───────────────────────────────────
+
+@router.get("/admin/projects/{slug}/play/categories")
+async def admin_list_categories(slug: str, user=Depends(require_permission("manage_play"))):
+    docs = await _get_project_categories(slug)
+    return {"categories": [
+        {
+            "id": str(c["_id"]), "name": c["name"], "label": c.get("label", c["name"]),
+            "player_scope": c.get("player_scope", "all"),
+            "target_user_ids": [str(u) for u in c.get("target_user_ids", [])],
+            "created_at": str(c.get("created_at", "")),
+            "created_by": c.get("created_by", ""),
+        }
+        for c in docs
+    ]}
+
+@router.post("/admin/projects/{slug}/play/categories")
+async def admin_create_category(slug: str, req: PlaySaveCategoryRequest, user=Depends(require_permission("manage_play"))):
+    name = req.name.strip().lower()
+    if not re.match(r'^[a-z0-9_]{2,32}$', name):
+        raise HTTPException(400, "Name must be 2-32 characters (lowercase letters, numbers, underscores)")
+    if await db.play_save_categories.find_one({"project_slug": slug, "name": name}):
+        raise HTTPException(400, f"Category '{name}' already exists for this project")
+    if req.player_scope not in ("all", "specific"):
+        raise HTTPException(400, "player_scope must be 'all' or 'specific'")
+    target_user_ids = []
+    if req.player_scope == "specific":
+        if not req.target_user_ids:
+            raise HTTPException(400, "Select at least one player for a player-specific category")
+        try:
+            target_user_ids = [ObjectId(uid) for uid in req.target_user_ids]
+        except Exception:
+            raise HTTPException(400, "Invalid player ID in selection")
+    doc = {
+        "project_slug": slug, "name": name, "label": (req.label or name).strip()[:50],
+        "player_scope": req.player_scope, "target_user_ids": target_user_ids,
+        "created_at": datetime.now(timezone.utc), "created_by": user["username"],
+    }
+    await db.play_save_categories.insert_one(doc)
+    await log_action("player", f"Admin '{user['username']}' created save category '{name}'", project_slug=slug, user=user["username"])
+    return {"success": True, "id": str(doc["_id"])}
+
+@router.delete("/admin/projects/{slug}/play/categories/{category_id}")
+async def admin_delete_category(slug: str, category_id: str, user=Depends(require_permission("manage_play"))):
+    """Removes the category DEFINITION only — existing play_saves documents
+    under that name are left untouched (delete those via the per-slot DELETE
+    endpoint above if you also want the data gone)."""
+    try:
+        oid = ObjectId(category_id)
+    except Exception:
+        raise HTTPException(400, "ID invalide")
+    r = await db.play_save_categories.delete_one({"_id": oid, "project_slug": slug})
+    if r.deleted_count == 0:
+        raise HTTPException(404, "Category not found")
+    await log_action("player", f"Admin '{user['username']}' deleted a save category", project_slug=slug, user=user["username"])
+    return {"success": True}
 
 @router.delete("/admin/projects/{slug}/play/players/{player_id}/tokens")
 async def admin_play_revoke_tokens(slug: str, player_id: str, user=Depends(require_permission("manage_play"))):

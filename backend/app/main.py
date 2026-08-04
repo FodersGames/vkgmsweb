@@ -1,6 +1,7 @@
 import os
 import logging
 from pathlib import Path
+from datetime import datetime, timezone
 
 import stripe
 from bson import ObjectId
@@ -14,7 +15,7 @@ from . import config
 from .database import db, client
 from .security import SecurityHeadersMiddleware, PlayCORSMiddleware
 from .rate_limit import limiter
-from .play_auth import _ensure_super_admin
+from .play_auth import _ensure_super_admin, LEGACY_PLAY_SAVE_CATEGORIES
 from .deps import ALL_PERMISSIONS
 
 from .routers import (
@@ -125,6 +126,7 @@ async def startup_event():
         await db.user_points.create_index("email", unique=True)
         await db.website_shop_global_settings.create_index("_id")
         await db.play_saves.create_index([("user_id", 1), ("project_slug", 1), ("category", 1)], unique=True)
+        await db.play_save_categories.create_index([("project_slug", 1), ("name", 1)], unique=True)
         await db.play_refresh_tokens.create_index("jti", unique=True)
         await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
         await db.careers.create_index("created_at")
@@ -183,6 +185,33 @@ async def startup_event():
             await db.game_files.update_one({"_id": f["_id"]}, {"$set": {"stable_id": root_id}})
         if legacy:
             logger.info(f"Backfilled stable_id on {len(legacy)} cloned game files")
+
+        # Migration: save-slot categories used to be one hardcoded global enum
+        # (inventory/stats/craft/tech/others) — they're now per-project and
+        # admin-defined, with nothing pre-created by default. For every
+        # project that already has play_saves under one of those legacy
+        # names, backfill a matching "all players" category definition so
+        # existing live data keeps working; a brand-new project is left
+        # untouched (genuinely empty, as intended going forward).
+        legacy_slugs = await db.play_saves.distinct("project_slug", {"category": {"$in": list(LEGACY_PLAY_SAVE_CATEGORIES)}})
+        backfilled = 0
+        for slug in legacy_slugs:
+            used_categories = await db.play_saves.distinct("category", {"project_slug": slug, "category": {"$in": list(LEGACY_PLAY_SAVE_CATEGORIES)}})
+            for cat_name in used_categories:
+                if await db.play_save_categories.find_one({"project_slug": slug, "name": cat_name}):
+                    continue
+                await db.play_save_categories.update_one(
+                    {"project_slug": slug, "name": cat_name},
+                    {"$setOnInsert": {
+                        "project_slug": slug, "name": cat_name, "label": cat_name.capitalize(),
+                        "player_scope": "all", "target_user_ids": [],
+                        "created_at": datetime.now(timezone.utc), "created_by": "system-migration",
+                    }},
+                    upsert=True,
+                )
+                backfilled += 1
+        if backfilled:
+            logger.info(f"Backfilled {backfilled} legacy save-category definition(s) across {len(legacy_slugs)} project(s)")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
 

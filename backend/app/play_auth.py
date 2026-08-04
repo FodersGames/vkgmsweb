@@ -18,7 +18,27 @@ logger = logging.getLogger(__name__)
 
 PLAY_ACCESS_TOKEN_HOURS  = 1
 PLAY_REFRESH_TOKEN_DAYS  = 365
-PLAY_SAVE_CATEGORIES     = {"inventory", "stats", "craft", "tech", "others"}
+
+# Legacy fixed category names — no longer a global whitelist (categories are
+# now per-project, admin-defined in db.play_save_categories), kept only as the
+# seed list for the one-time backward-compat migration in main.py's startup
+# event (see the "auto-migrate legacy save categories" block there).
+LEGACY_PLAY_SAVE_CATEGORIES = {"inventory", "stats", "craft", "tech", "others"}
+
+async def _get_project_categories(project_slug: str):
+    """All category definitions an admin has created for this project."""
+    return await db.play_save_categories.find({"project_slug": project_slug}).to_list(None)
+
+async def _category_allowed(project_slug: str, category: str, user_id) -> bool:
+    """A save/load is only allowed if an admin has explicitly defined this
+    category for this project — "no data slots exist by default" — and, for
+    a category scoped to specific players, only if this player is targeted."""
+    cat = await db.play_save_categories.find_one({"project_slug": project_slug, "name": category})
+    if not cat:
+        return False
+    if cat.get("player_scope") == "specific":
+        return user_id in cat.get("target_user_ids", [])
+    return True
 
 def _create_play_access_token(user_id: str, username: str) -> str:
     payload = {

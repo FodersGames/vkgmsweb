@@ -90,7 +90,7 @@ export const CookieBanner = () => {
           </PublicButton>
           <button
             onClick={necessary}
-            className="w-full py-2 text-xs font-semibold rounded-lg text-[#6E6E73] hover:text-white border border-[#3D3733] hover:border-[#6E6E73] transition-colors"
+            className="w-full py-2 text-xs font-semibold rounded-lg text-[#D6D3D1] hover:text-white border border-white/15 hover:border-white/30 transition-colors"
           >
             Necessary only
           </button>

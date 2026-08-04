@@ -125,18 +125,24 @@ async def delete_blog_post(post_slug: str, user=Depends(require_permission("dele
 # ============== WEBSITE: SETTINGS ==============
 DEFAULT_SUPPORT_EMAIL = "support@vakargames.com"
 
-@router.get("/website/settings")
-async def get_website_settings():
-    doc = await db.website_settings.find_one({}, {"_id": 0})
-    if not doc:
-        return {"maintenance_mode": False, "support_email": DEFAULT_SUPPORT_EMAIL}
+def _serialize_settings(doc: dict) -> dict:
+    doc = doc or {}
     updated_at = doc.get("updated_at")
     return {
         "maintenance_mode": doc.get("maintenance_mode", False),
         "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
+        "announcement_banner": doc.get("announcement_banner", ""),
+        "announcement_active": doc.get("announcement_active", False),
+        "social_links": doc.get("social_links", {}),
+        "seo_description": doc.get("seo_description", ""),
         "updated_at": updated_at.isoformat() if isinstance(updated_at, datetime) else updated_at,
         "updated_by": doc.get("updated_by"),
     }
+
+@router.get("/website/settings")
+async def get_website_settings():
+    doc = await db.website_settings.find_one({}, {"_id": 0})
+    return _serialize_settings(doc)
 
 @router.put("/website/settings")
 async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(require_permission("manage_website"))):
@@ -151,12 +157,25 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
             raise HTTPException(status_code=400, detail="Invalid email address")
         updates["support_email"] = email or DEFAULT_SUPPORT_EMAIL
         log_parts.append(f"support email set to '{updates['support_email']}'")
+    if req.announcement_banner is not None:
+        updates["announcement_banner"] = req.announcement_banner.strip()[:280]
+        log_parts.append("announcement banner updated")
+    if req.announcement_active is not None:
+        updates["announcement_active"] = req.announcement_active
+        log_parts.append(f"announcement {'activated' if req.announcement_active else 'deactivated'}")
+    if req.social_links is not None:
+        # Small fixed set of known keys — avoids storing arbitrary attacker-controlled
+        # key names if this endpoint's permission were ever misconfigured.
+        allowed_keys = {"discord", "twitter", "youtube", "tiktok", "instagram"}
+        updates["social_links"] = {k: str(v)[:300] for k, v in req.social_links.items() if k in allowed_keys and v}
+        log_parts.append("social links updated")
+    if req.seo_description is not None:
+        updates["seo_description"] = req.seo_description.strip()[:300]
+        log_parts.append("SEO description updated")
     await db.website_settings.update_one({}, {"$set": updates}, upsert=True)
     if log_parts:
         await log_action("website", "Settings updated: " + ", ".join(log_parts), user=user["username"])
     doc = await db.website_settings.find_one({}, {"_id": 0})
-    return {
-        "success": True,
-        "maintenance_mode": doc.get("maintenance_mode", False),
-        "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
-    }
+    result = _serialize_settings(doc)
+    result["success"] = True
+    return result

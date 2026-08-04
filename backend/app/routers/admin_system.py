@@ -10,8 +10,8 @@ from typing import List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends, Request
 
-from ..config import VERSION, SETUP_KEY, STRIPE_WEBHOOK_SECRET, _JWT_EPHEMERAL
-from ..database import db
+from ..config import VERSION, SETUP_KEY, STRIPE_WEBHOOK_SECRET, _JWT_EPHEMERAL, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD, ROOT_DIR
+from ..database import db, client
 from ..deps import require_permission, require_super_admin, hash_key, PSEUDO_REGEX
 from ..utils import log_action, _create_notification
 from ..loyalty import get_tier
@@ -57,6 +57,150 @@ async def get_system_stats(user=Depends(require_permission("view_vps"))):
         "disk":   {"total": disk.total, "used": disk.used, "free": disk.free,     "percent": disk.percent},
         "uptime_seconds": uptime_seconds,
         "load_avg": load_avg,
+    }
+
+# ── Deep system health ───────────────────────────────────────────────────────
+# Collections indexed at startup (backend/app/main.py) — used only to report a
+# per-collection custom-index count, not to enforce/recreate anything here.
+_INDEXED_COLLECTIONS = [
+    "users", "projects", "items", "logs", "variables", "website_games",
+    "blog_posts", "chat_messages", "website_shop_products", "missions",
+    "notifications", "support_tickets", "game_purchases", "user_points",
+    "website_shop_global_settings", "play_saves", "play_refresh_tokens",
+    "careers", "play_nicknames", "play_bans", "play_first_seen", "guilds",
+    "guild_members", "chat_bans", "chat_mutes", "cli_destructive_log",
+    "cli_lockouts",
+]
+
+_DEPENDENCY_CATEGORIES = [
+    ("Web framework", ("fastapi", "starlette", "uvicorn", "pydantic", "pydantic_core", "python-multipart", "h11", "anyio")),
+    ("Database", ("motor", "pymongo", "dnspython")),
+    ("Auth & security", ("bcrypt", "PyJWT", "python-jose")),
+    ("Payments", ("stripe",)),
+    ("Rate limiting", ("slowapi", "limits")),
+    ("System", ("psutil",)),
+]
+
+def _categorize_requirements(lines):
+    grouped = {label: [] for label, _ in _DEPENDENCY_CATEGORIES}
+    grouped["Other"] = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        pkg_name = re.split(r"[=<>!~]", line, 1)[0].strip()
+        for label, prefixes in _DEPENDENCY_CATEGORIES:
+            if pkg_name.lower() in [p.lower() for p in prefixes]:
+                grouped[label].append(line)
+                break
+        else:
+            grouped["Other"].append(line)
+    return {k: v for k, v in grouped.items() if v}
+
+@router.get("/admin/system/health/detailed")
+async def get_system_health_detailed(user=Depends(require_permission("view_vps"))):
+    stripe_key = os.environ.get('STRIPE_SECRET_KEY', '')
+
+    # Database — connectivity, size stats, replica-set status (best-effort).
+    db_section = {"connected": False, "stats": None, "replica_set": "standalone"}
+    try:
+        await client.admin.command("ping")
+        db_section["connected"] = True
+    except Exception as e:
+        db_section["error"] = str(e)
+    try:
+        stats = await db.command("dbStats")
+        db_section["stats"] = {
+            "collections": stats.get("collections"),
+            "objects": stats.get("objects"),
+            "data_size_bytes": stats.get("dataSize"),
+            "storage_size_bytes": stats.get("storageSize"),
+            "indexes": stats.get("indexes"),
+            "index_size_bytes": stats.get("indexSize"),
+        }
+    except Exception as e:
+        db_section["stats_error"] = str(e)
+    try:
+        await client.admin.command("replSetGetStatus")
+        db_section["replica_set"] = "replica set"
+    except Exception:
+        pass  # standalone instances reject this command — expected, not an error
+
+    # Configuration status — presence only, never values.
+    cors_raw = os.environ.get("CORS_ORIGINS", "").strip()
+    config_section = {
+        "jwt_persistent": not _JWT_EPHEMERAL,
+        "master_key_configured": bool(SETUP_KEY),
+        "super_admin_bootstrap_configured": bool(SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD),
+        "stripe_configured": bool(stripe_key),
+        "stripe_mode": "live" if stripe_key.startswith("sk_live_") else ("test" if stripe_key.startswith("sk_test_") else None),
+        "stripe_webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
+        "cors_origins_configured": len([o for o in cors_raw.split(",") if o.strip()]) if cors_raw else 0,
+        "frontend_url_configured": bool(os.environ.get("FRONTEND_URL", "").strip()),
+    }
+
+    # Rate limiting — flag the in-memory backend as an explicit operational caveat.
+    rate_limit_section = {
+        "backend": "in-memory",
+        "caveat": "Per-process — limits reset on restart and are not shared across multiple worker processes.",
+    }
+
+    # Storage — game file totals via the same $group/$sum aggregation shape already used in files.py.
+    storage_section = {"uploads_dir": str(ROOT_DIR / "uploads")}
+    try:
+        agg = await db.game_files.aggregate([
+            {"$group": {"_id": None, "count": {"$sum": 1}, "total_bytes": {"$sum": "$size_bytes"}}}
+        ]).to_list(1)
+        storage_section["game_files_count"] = agg[0]["count"] if agg else 0
+        storage_section["game_files_total_bytes"] = agg[0]["total_bytes"] if agg else 0
+    except Exception as e:
+        storage_section["error"] = str(e)
+
+    # Indexes — per-collection custom index count (excludes the default _id_ index).
+    index_section = []
+    for coll_name in _INDEXED_COLLECTIONS:
+        try:
+            info = await db[coll_name].index_information()
+            custom_count = len([k for k in info.keys() if k != "_id_"])
+            index_section.append({"collection": coll_name, "custom_indexes": custom_count, "ok": custom_count > 0})
+        except Exception:
+            index_section.append({"collection": coll_name, "custom_indexes": 0, "ok": False})
+
+    # Dependencies — echo requirements.txt, grouped for readability.
+    dependencies_section = {}
+    try:
+        req_path = ROOT_DIR / "requirements.txt"
+        lines = req_path.read_text(encoding="utf-8").splitlines()
+        dependencies_section = _categorize_requirements(lines)
+    except Exception as e:
+        dependencies_section = {"error": str(e)}
+
+    # Resources — same payload as /admin/system/stats, folded in so Health is one-stop.
+    cpu_percent = psutil.cpu_percent(interval=None)
+    ram = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    uptime_seconds = time.time() - psutil.boot_time()
+    try:
+        load_avg = list(psutil.getloadavg())
+    except Exception:
+        load_avg = None
+    resources_section = {
+        "cpu": {"percent": cpu_percent, "count": psutil.cpu_count(logical=True)},
+        "ram": {"total": ram.total, "used": ram.used, "free": ram.available, "percent": ram.percent},
+        "disk": {"total": disk.total, "used": disk.used, "free": disk.free, "percent": disk.percent},
+        "uptime_seconds": uptime_seconds,
+        "load_avg": load_avg,
+    }
+
+    return {
+        "version": VERSION,
+        "database": db_section,
+        "configuration": config_section,
+        "rate_limiting": rate_limit_section,
+        "storage": storage_section,
+        "indexes": index_section,
+        "dependencies": dependencies_section,
+        "resources": resources_section,
     }
 
 # ============================================================

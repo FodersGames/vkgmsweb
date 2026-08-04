@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Ticket, ChevronLeft, Send, Loader2, RefreshCw, Filter, Search } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import { Select, SkeletonRow, DensityToggle, useDensity } from '../ui';
 
@@ -19,6 +20,12 @@ const STATUS_COLORS = {
   closed: 'bg-[#A1A1A6]/10 text-[#A1A1A6] border-[#A1A1A6]/30',
 };
 const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
+// Plain hex twins of the maps above — Tailwind arbitrary-value classes can't
+// be read by recharts' `fill` prop, so the donut slices need the same colors
+// spelled out literally to stay visually consistent with the status/priority
+// pills elsewhere on this screen.
+const STATUS_HEX = { open: '#4ECDC4', in_progress: '#F59E0B', resolved: '#22C55E', closed: '#A1A1A6' };
+const PRIORITY_HEX = { normal: '#6E6E73', high: '#F59E0B', urgent: '#EF4444' };
 
 const PRIORITY_COLORS = {
   normal: 'text-[#6E6E73]',
@@ -46,6 +53,18 @@ const TicketManagement = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [stats, setStats] = useState(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const r = await api.get('/api/admin/tickets/stats');
+      setStats(r.data);
+    } catch {
+      // silent — the list itself still works without the charts
+    }
+  }, []);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
@@ -125,6 +144,7 @@ const TicketManagement = () => {
       const r = await api.get(`/api/tickets/${activeTicket.ticket_number}`);
       setActiveTicket(r.data.ticket);
       fetchTickets();
+      fetchStats();
     } catch {
       // silent
     } finally {
@@ -241,10 +261,43 @@ const TicketManagement = () => {
           <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">SUPPORT TICKETS</h2>
           <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-0.5">{total} ticket{total !== 1 ? 's' : ''} total</p>
         </div>
-        <button onClick={fetchTickets} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors">
+        <button onClick={() => { fetchTickets(); fetchStats(); }} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors">
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
+
+      {/* Stats donuts */}
+      {stats && stats.total > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {[
+            { title: 'By status', data: stats.by_status, labels: STATUS_LABELS, colors: STATUS_HEX },
+            { title: 'By priority', data: stats.by_priority, labels: { normal: 'Normal', high: 'High', urgent: 'Urgent' }, colors: PRIORITY_HEX },
+          ].map(({ title, data, labels, colors }) => {
+            const chartData = Object.entries(data)
+              .filter(([, count]) => count > 0)
+              .map(([key, count]) => ({ key, name: labels[key] || key, value: count }));
+            return (
+              <div key={title} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4">
+                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">{title} — {stats.total} total</p>
+                <div style={{ width: '100%', height: 180 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={64} paddingAngle={2}>
+                        {chartData.map(d => <Cell key={d.key} fill={colors[d.key] || '#A1A1A6'} />)}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ background: '#1c1c2e', border: '1px solid #2a2a3c', borderRadius: 8, fontSize: 12 }}
+                        itemStyle={{ color: '#e4e4e7' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">

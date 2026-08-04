@@ -109,6 +109,10 @@ class BlogUpdateRequest(BaseModel):
 class WebsiteSettingsRequest(BaseModel):
     maintenance_mode: Optional[bool] = None
     support_email: Optional[str] = None
+    announcement_banner: Optional[str] = None
+    announcement_active: Optional[bool] = None
+    social_links: Optional[dict] = None
+    seo_description: Optional[str] = None
 
 class ChatMessageRequest(BaseModel):
     username: str
@@ -328,6 +332,17 @@ class LiveVersionRequest(BaseModel):
 class NicknameRequest(BaseModel):
     project_slug: str
     nickname: str
+
+class PlaySaveCategoryRequest(BaseModel):
+    name: str
+    label: Optional[str] = None
+    player_scope: Literal["all", "specific"] = "all"
+    target_user_ids: List[str] = []
+
+class PlaySaveBulkUpdateRequest(BaseModel):
+    user_ids: List[str]
+    category: str
+    data: str
 
 class CareerCreateRequest(BaseModel):
     title: str

@@ -196,11 +196,12 @@ export const Login = () => {
     <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <img src={seaStackDusk} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        {/* /72 let the mountain silhouette's dark edge bleed through enough to
-            wash out the text sitting directly on the photo (subtitle, legal
-            line) — this photo has more local contrast than Maintenance's, so
-            it needs a stronger scrim to keep text legible everywhere. */}
-        <div className="absolute inset-0 bg-[#F5F5F7]/90" />
+        {/* A heavy scrim (previously /90) hid the photo almost entirely just to
+            fix text contrast — wrong trade. Keep the photo visible with a light
+            scrim and instead give the two text elements sitting directly on it
+            (subtitle, legal line) a strong halo via text-shadow, which stays
+            legible over both the bright sky and the dark mountain silhouette. */}
+        <div className="absolute inset-0 bg-[#F5F5F7]/55" />
         <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
         <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
       </div>
@@ -213,11 +214,11 @@ export const Login = () => {
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors"
+            className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]"
           >
             Vakar Games
           </Link>
-          <p className="mt-1.5 text-sm text-[#6E6E73] [text-shadow:0_1px_12px_rgba(245,245,247,0.9)]">
+          <p className="mt-1.5 text-sm font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
@@ -382,7 +383,7 @@ export const Login = () => {
           )}
         </div>
 
-        <p className="mt-5 text-center text-xs text-[#6E6E73] [text-shadow:0_1px_12px_rgba(245,245,247,0.9)]">
+        <p className="mt-5 text-center text-xs font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
           By creating an account you agree to our{' '}
           <Link to="/terms" className="underline hover:text-[#1D1D1F] transition-colors">Terms of Service</Link>.
         </p>

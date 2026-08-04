@@ -119,6 +119,19 @@ async def list_all_tickets(status: Optional[str] = None, priority: Optional[str]
         "pages": math.ceil(total / limit) if limit else 1,
     }
 
+@router.get("/admin/tickets/stats")
+async def ticket_stats(user=Depends(require_permission("manage_tickets"))):
+    by_status_raw = await db.support_tickets.aggregate(
+        [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+    ).to_list(10)
+    by_priority_raw = await db.support_tickets.aggregate(
+        [{"$group": {"_id": {"$ifNull": ["$priority", "normal"]}, "count": {"$sum": 1}}}]
+    ).to_list(10)
+    by_status = {d["_id"]: d["count"] for d in by_status_raw if d["_id"]}
+    by_priority = {d["_id"]: d["count"] for d in by_priority_raw if d["_id"]}
+    total = sum(by_status.values())
+    return {"by_status": by_status, "by_priority": by_priority, "total": total}
+
 @router.patch("/admin/tickets/{ticket_number}")
 async def update_ticket_status(ticket_number: str, req: TicketStatusUpdateRequest, user=Depends(require_permission("manage_tickets"))):
     t = await db.support_tickets.find_one({"ticket_number": ticket_number.upper()})
