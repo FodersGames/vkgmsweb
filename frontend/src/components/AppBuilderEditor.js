@@ -1,37 +1,28 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  ArrowLeft, Plus, Trash2, Copy, GripVertical, Eye, Save, Globe, Lock,
-  Check, X, ChevronRight, Type, Palette, Download, Smartphone,
+  ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
+  Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
 } from 'lucide-react';
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { useAuth } from '../context/AuthContext';
 import {
   COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
-  THEME_PRESETS, ICON_IDS, AppIcon,
+  THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
 } from '../constants/appBuilder';
-import AppRuntime from './AppRuntime';
+import AppRuntime, { ComponentVisual } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
-
-function previewLabel(node) {
-  switch (node.type) {
-    case 'text': return node.props?.content || '(empty)';
-    case 'button': return node.props?.label || '(empty)';
-    case 'input': return node.props?.variable ? `bound to "${node.props.variable}"` : 'not bound to a variable';
-    case 'image': return node.props?.url || 'no image set';
-    case 'container': return `${node.props?.direction || 'column'} · ${node.children?.length || 0} item${node.children?.length === 1 ? '' : 's'}`;
-    default: return '';
-  }
-}
+const MIN_SIZE = 16;
+const PACKAGE_ID_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
+const SDK_LEVELS = [
+  { v: 22, label: '22 — Android 5.1' }, { v: 23, label: '23 — Android 6.0' }, { v: 24, label: '24 — Android 7.0' },
+  { v: 25, label: '25 — Android 7.1' }, { v: 26, label: '26 — Android 8.0' }, { v: 27, label: '27 — Android 8.1' },
+  { v: 28, label: '28 — Android 9' }, { v: 29, label: '29 — Android 10' }, { v: 30, label: '30 — Android 11' },
+  { v: 31, label: '31 — Android 12' }, { v: 32, label: '32 — Android 12L' }, { v: 33, label: '33 — Android 13' },
+  { v: 34, label: '34 — Android 14' }, { v: 35, label: '35 — Android 15' },
+];
 
 function findComponent(screen, id) {
   for (const c of screen.components) {
@@ -45,86 +36,135 @@ function findComponent(screen, id) {
 }
 
 // ============================================================
-// Canvas row — draggable/selectable schematic representation of one
-// component. Deliberately not the styled live render (that lives in the
-// Preview modal, via AppRuntime) — keeps click-to-select and drag
-// completely unambiguous.
+// Design canvas — a true WYSIWYG, MIT-App-Inventor-style phone-shaped
+// surface: components render via ComponentVisual (the exact same renderer
+// the real app uses) positioned absolutely per their `layout`, and can be
+// dragged/resized directly with the mouse. No list, no reordering by
+// index — position is the only order that matters now.
 // ============================================================
-function SortableRow({ node, selectedId, onSelect, onDelete, onDuplicate, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.id });
-  const meta = COMPONENT_META[node.type];
-  const Icon = meta?.icon || Type;
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+function resizeHandleStyle(corner) {
+  const base = { position: 'absolute', width: 10, height: 10, background: '#4ECDC4', border: '2px solid white', borderRadius: '50%', zIndex: 5 };
+  const pos = {
+    nw: { top: -5, left: -5, cursor: 'nwse-resize' },
+    ne: { top: -5, right: -5, cursor: 'nesw-resize' },
+    sw: { bottom: -5, left: -5, cursor: 'nesw-resize' },
+    se: { bottom: -5, right: -5, cursor: 'nwse-resize' },
+  };
+  return { ...base, ...pos[corner] };
+}
 
+function ContainerChrome({ node, theme, children }) {
+  const bg = node.props?.background === 'surface' ? theme.colors.surface
+    : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
   return (
-    <div ref={setNodeRef} style={style}>
-      <div
-        onClick={() => onSelect(node.id)}
-        className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-colors ${
-          selectedId === node.id
-            ? 'border-[#4ECDC4] bg-[#4ECDC4]/8'
-            : 'border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
-        }`}
-      >
-        <button
-          {...attributes} {...listeners}
-          onClick={e => e.stopPropagation()}
-          className="text-[#BFBFC4] dark:text-[#52525b] cursor-grab active:cursor-grabbing shrink-0"
-        >
-          <GripVertical size={13} />
-        </button>
-        <Icon size={13} className="text-[#6E6E73] dark:text-[#a1a1aa] shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{meta?.label}</p>
-          <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] truncate">{previewLabel(node)}</p>
-        </div>
-        <button onClick={e => { e.stopPropagation(); onDuplicate(node.id); }} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white shrink-0">
-          <Copy size={12} />
-        </button>
-        <button onClick={e => { e.stopPropagation(); onDelete(node.id); }} className="p-1 text-[#A1A1A6] hover:text-red-500 shrink-0">
-          <Trash2 size={12} />
-        </button>
-      </div>
+    <div style={{
+      position: 'relative', width: '100%', height: '100%', background: bg,
+      border: node.props?.border ? `1px solid ${theme.colors.border}` : '1px dashed #C7C7CC',
+      borderRadius: node.props?.radius ?? 0,
+      boxShadow: node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none',
+      boxSizing: 'border-box', overflow: 'hidden',
+    }}>
       {children}
     </div>
   );
 }
 
-function CanvasPanel({ screen, selectedId, onSelect, onDelete, onDuplicate, onAddInContainer, onDragEnd }) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-  const topIds = useMemo(() => screen.components.map(c => c.id), [screen.components]);
+function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLayout, onDelete }) {
+  const layout = getLayout(node, index);
+  const selected = selectedId === node.id;
+  const isContainer = node.type === 'container';
+
+  const startDrag = (e) => {
+    e.stopPropagation();
+    onSelect(node.id);
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { ...layout };
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      onChangeLayout(node.id, { ...orig, x: Math.max(0, orig.x + dx), y: Math.max(0, orig.y + dy) });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const startResize = (e, corner) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onSelect(node.id);
+    const startX = e.clientX, startY = e.clientY;
+    const orig = { ...layout };
+    const onMove = (ev) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      let { x, y, w, h } = orig;
+      if (corner.includes('e')) w = Math.max(MIN_SIZE, orig.w + dx);
+      if (corner.includes('s')) h = Math.max(MIN_SIZE, orig.h + dy);
+      if (corner.includes('w')) { w = Math.max(MIN_SIZE, orig.w - dx); x = orig.x + (orig.w - w); }
+      if (corner.includes('n')) { h = Math.max(MIN_SIZE, orig.h - dy); y = orig.y + (orig.h - h); }
+      onChangeLayout(node.id, { x, y, w, h });
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-      <div className="space-y-2">
-        <SortableContext items={topIds} strategy={verticalListSortingStrategy}>
-          {screen.components.map(node => (
-            <SortableRow key={node.id} node={node} selectedId={selectedId} onSelect={onSelect} onDelete={onDelete} onDuplicate={onDuplicate}>
-              {node.type === 'container' && (
-                <div className="ml-6 mt-2 pl-3 border-l-2 border-[#D2D2D7] dark:border-[#2a2a3c] space-y-2">
-                  <SortableContext items={(node.children || []).map(c => c.id)} strategy={verticalListSortingStrategy}>
-                    {(node.children || []).map(child => (
-                      <SortableRow key={child.id} node={child} selectedId={selectedId} onSelect={onSelect} onDelete={onDelete} onDuplicate={onDuplicate} />
-                    ))}
-                  </SortableContext>
-                  <button
-                    onClick={() => onAddInContainer(node.id)}
-                    className="text-[10px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] flex items-center gap-1 py-1 transition-colors"
-                  >
-                    <Plus size={11} />Add inside
-                  </button>
-                </div>
-              )}
-            </SortableRow>
-          ))}
-        </SortableContext>
-        {screen.components.length === 0 && (
-          <div className="text-center py-10 text-xs text-[#A1A1A6] dark:text-[#71717a]">
-            Empty screen — add a component from the palette on the left.
-          </div>
+    <div
+      onMouseDown={startDrag}
+      style={{
+        position: 'absolute', left: layout.x, top: layout.y, width: layout.w, height: layout.h,
+        cursor: 'move', outline: selected ? '2px solid #4ECDC4' : '1px dashed transparent', outlineOffset: 1,
+      }}
+    >
+      <div style={{ width: '100%', height: '100%', pointerEvents: isContainer ? 'auto' : 'none' }}>
+        {isContainer ? (
+          <ContainerChrome node={node} theme={theme}>
+            {(node.children || []).map((child, i) => (
+              <EditableBox key={child.id} node={child} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} />
+            ))}
+          </ContainerChrome>
+        ) : (
+          <ComponentVisual node={node} theme={theme} />
         )}
       </div>
-    </DndContext>
+      {selected && (
+        <>
+          {['nw', 'ne', 'sw', 'se'].map(corner => (
+            <div key={corner} onMouseDown={(e) => startResize(e, corner)} style={resizeHandleStyle(corner)} />
+          ))}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}
+            style={{ position: 'absolute', top: -10, right: -10, width: 18, height: 18, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid white', fontSize: 11, lineHeight: '14px', cursor: 'pointer', zIndex: 6 }}
+          >
+            ×
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onDelete }) {
+  return (
+    <div
+      onMouseDown={() => onSelect(null)}
+      style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, background: theme.colors.background, overflow: 'hidden' }}
+    >
+      {(screen.components || []).map((node, i) => (
+        <EditableBox key={node.id} node={node} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} />
+      ))}
+      {(screen.components || []).length === 0 && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: theme.colors.textMuted, textAlign: 'center', padding: 24 }}>
+          Empty screen — add a component from the palette, then drag it into place.
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -200,15 +240,9 @@ function PropsEditor({ node, onChange }) {
             <label className={FIELD_LABEL}>Image URL</label>
             <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://… or /api/uploads/…" className={FIELD_INPUT} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={FIELD_LABEL}>Height (px)</label>
-              <input type="number" min="0" value={node.props.height ?? 160} onChange={e => set('height', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Corner radius</label>
-              <input type="number" min="0" value={node.props.radius ?? 12} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
+          <div>
+            <label className={FIELD_LABEL}>Corner radius</label>
+            <input type="number" min="0" value={node.props.radius ?? 12} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
           </div>
         </div>
       );
@@ -229,35 +263,10 @@ function PropsEditor({ node, onChange }) {
     case 'container':
       return (
         <div className="space-y-3">
+          <p className="text-[10px] text-[#A1A1A6]">While this group is selected, components added from the palette go inside it — drag and resize them freely within its bounds.</p>
           <div>
-            <label className={FIELD_LABEL}>Direction</label>
-            <Select value={node.props.direction || 'column'} onChange={e => set('direction', e.target.value)} size="sm">
-              <option value="column">Column (stacked)</option>
-              <option value="row">Row (side by side)</option>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={FIELD_LABEL}>Gap (px)</label>
-              <input type="number" min="0" value={node.props.gap ?? 12} onChange={e => set('gap', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Align</label>
-              <Select value={node.props.align || 'stretch'} onChange={e => set('align', e.target.value)} size="sm">
-                <option value="stretch">Stretch</option>
-                <option value="flex-start">Start</option>
-                <option value="center">Center</option>
-                <option value="flex-end">End</option>
-              </Select>
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Padding (px)</label>
-              <input type="number" min="0" value={node.props.padding ?? 0} onChange={e => set('padding', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Corner radius</label>
-              <input type="number" min="0" value={node.props.radius ?? 0} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
+            <label className={FIELD_LABEL}>Corner radius</label>
+            <input type="number" min="0" value={node.props.radius ?? 0} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
           </div>
           <div>
             <label className={FIELD_LABEL}>Background</label>
@@ -306,15 +315,9 @@ function PropsEditor({ node, onChange }) {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={FIELD_LABEL}>Size (px)</label>
-              <input type="number" min="8" value={node.props.size ?? 28} onChange={e => set('size', Number(e.target.value))} className={FIELD_INPUT} />
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Color</label>
-              <input type="color" value={node.props.color || '#1D1D1F'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
-            </div>
+          <div>
+            <label className={FIELD_LABEL}>Color</label>
+            <input type="color" value={node.props.color || '#1D1D1F'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
           </div>
         </div>
       );
@@ -338,14 +341,9 @@ function PropsEditor({ node, onChange }) {
         </div>
       );
     case 'spacer':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Height (px)</label>
-          <input type="number" min="0" value={node.props.size ?? 16} onChange={e => set('size', Number(e.target.value))} className={FIELD_INPUT} />
-        </div>
-      );
+      return <p className="text-xs text-[#A1A1A6]">Resize this on the canvas to change how much space it takes up.</p>;
     case 'divider':
-      return <p className="text-xs text-[#A1A1A6]">A divider has no settings.</p>;
+      return <p className="text-xs text-[#A1A1A6]">Resize this on the canvas — width and thickness both follow its box.</p>;
     default:
       return null;
   }
@@ -471,6 +469,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [exporting, setExporting] = useState(false);
   const [apkBuild, setApkBuild] = useState(null);
   const [apkBusy, setApkBusy] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [iconUploading, setIconUploading] = useState(false);
+  const iconInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -489,6 +490,22 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const mutate = (fn) => {
     setApp(a => { const clone = structuredClone(a); fn(clone); return clone; });
     setDirty(true);
+  };
+
+  const handleIconUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIconUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const r = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const data = await r.json();
+      if (r.ok && data.url) mutate(a => { a.app_icon_url = data.url; });
+    } finally {
+      setIconUploading(false);
+      e.target.value = '';
+    }
   };
 
   const activeScreen = app?.screens.find(s => s.id === activeScreenId);
@@ -515,8 +532,15 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     a.screens.splice(newIdx, 0, item);
   });
 
-  const addComponent = (type, containerId = null) => {
-    const comp = createComponent(type);
+  const addComponent = (type) => {
+    // Adds inside the currently selected group, if any — otherwise at the top level.
+    const selectedNode = selectedId ? findComponent(activeScreen, selectedId)?.node : null;
+    const containerId = selectedNode?.type === 'container' ? selectedNode.id : null;
+    const siblingCount = containerId
+      ? (activeScreen.components.find(c => c.id === containerId)?.children.length || 0)
+      : activeScreen.components.length;
+    const cascade = (siblingCount % 6) * 14;
+    const comp = createComponent(type, { x: 20 + cascade, y: 20 + cascade });
     mutate(a => {
       const screen = a.screens.find(s => s.id === activeScreenId);
       if (containerId) screen.components.find(c => c.id === containerId).children.push(comp);
@@ -556,6 +580,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       const found = findComponent(screen, id);
       if (!found) return;
       const clone = { ...structuredClone(found.node), id: genId() };
+      const l = getLayout(clone);
+      clone.layout = { ...l, x: l.x + 16, y: l.y + 16 };
       if (found.containerId) {
         const container = screen.components.find(c => c.id === found.containerId);
         const idx = container.children.findIndex(c => c.id === id);
@@ -567,29 +593,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     });
   };
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    mutate(a => {
-      const screen = a.screens.find(s => s.id === activeScreenId);
-      const fromTop = screen.components.findIndex(c => c.id === active.id);
-      const toTop = screen.components.findIndex(c => c.id === over.id);
-      if (fromTop !== -1 && toTop !== -1) {
-        screen.components = arrayMove(screen.components, fromTop, toTop);
-        return;
-      }
-      for (const c of screen.components) {
-        if (c.type !== 'container') continue;
-        const fromIdx = (c.children || []).findIndex(ch => ch.id === active.id);
-        const toIdx = (c.children || []).findIndex(ch => ch.id === over.id);
-        if (fromIdx !== -1 && toIdx !== -1) {
-          c.children = arrayMove(c.children, fromIdx, toIdx);
-          return;
-        }
-      }
-      // cross-container drag isn't supported in v1 — no-op
-    });
-  };
+  const updateLayout = (id, layout) => mutate(a => {
+    const screen = a.screens.find(s => s.id === activeScreenId);
+    const found = findComponent(screen, id);
+    if (found) found.node.layout = layout;
+  });
 
   const setTheme = (id) => mutate(a => { a.theme = id; });
 
@@ -609,6 +617,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         body: JSON.stringify({
           name: app.name, description: app.description, accent_color: app.accent_color, theme: app.theme,
           screens: app.screens, variables: app.variables,
+          package_id: app.package_id, min_sdk: app.min_sdk, target_sdk: app.target_sdk,
+          app_display_name: app.app_display_name, app_icon_url: app.app_icon_url,
         }),
       });
       if (!r.ok) {
@@ -653,7 +663,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     if (!allowPremium) { setSaveError('Code export requires Vakar+.'); return; }
     setExporting(true);
     try {
-      await exportAppAsZip(app);
+      await exportAppAsZip(app, { showWatermark: !allowPremium });
     } finally {
       setExporting(false);
     }
@@ -688,7 +698,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     setApkBusy(true);
     setSaveError('');
     try {
-      const blob = await generateAppZipBlob(app);
+      const blob = await generateAppZipBlob(app, { showWatermark: !allowPremium });
       const formData = new FormData();
       formData.append('file', blob, 'bundle.zip');
       const uploadRes = await fetch(`${API}${apiBase}/${appId}/apk-bundle`, {
@@ -719,6 +729,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   }
 
   const selected = selectedId ? findComponent(activeScreen, selectedId)?.node : null;
+  const theme = resolveTheme(app.theme);
 
   return (
     <div className="flex flex-col h-full">
@@ -752,6 +763,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
         <div className="flex-1" />
 
+        <Button size="sm" variant="secondary" icon={Settings} onClick={() => setSettingsOpen(true)} title="Package name, SDK, icon">
+          App Settings
+        </Button>
         <Button size="sm" variant="secondary" onClick={toggleVisibility}>
           Make {app.visibility === 'public' ? 'Private' : 'Public'}
         </Button>
@@ -918,16 +932,15 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
 
         {/* Center: canvas */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#FAFAFA] dark:bg-[#0d0d14]">
-          <div className="max-w-lg mx-auto">
-            <CanvasPanel
+        <div className="flex-1 overflow-auto p-8 bg-[#FAFAFA] dark:bg-[#0d0d14] flex items-start justify-center">
+          <div className="rounded-[28px] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-sm overflow-hidden" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
+            <DesignCanvas
               screen={activeScreen}
+              theme={theme}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onChangeLayout={updateLayout}
               onDelete={deleteComponent}
-              onDuplicate={duplicateComponent}
-              onAddInContainer={(cid) => addComponent('text', cid)}
-              onDragEnd={handleDragEnd}
             />
           </div>
         </div>
@@ -940,9 +953,33 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-4">
-                <ChevronRight size={12} className="text-[#A1A1A6]" />
-                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{COMPONENT_META[selected.type]?.label}</p>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <ChevronRight size={12} className="text-[#A1A1A6]" />
+                  <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{COMPONENT_META[selected.type]?.label}</p>
+                </div>
+                <button onClick={() => duplicateComponent(selected.id)} title="Duplicate" className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                  <Copy size={13} />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {['x', 'y', 'w', 'h'].map(key => {
+                  const l = getLayout(selected);
+                  return (
+                    <div key={key}>
+                      <label className="block text-[9px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-wider mb-1">{key}</label>
+                      <input
+                        type="number" value={Math.round(l[key])}
+                        onChange={e => {
+                          const n = Number(e.target.value) || 0;
+                          const min = (key === 'w' || key === 'h') ? MIN_SIZE : 0;
+                          updateLayout(selected.id, { ...l, [key]: Math.max(min, n) });
+                        }}
+                        className="w-full rounded-md px-1.5 py-1 text-xs bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4]"
+                      />
+                    </div>
+                  );
+                })}
               </div>
               {COMPONENT_META[selected.type]?.supportsAction && (
                 <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 mb-4 w-full">
@@ -966,14 +1003,101 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
       </div>
 
-      {/* Preview modal */}
+      {/* Preview modal — same clean device-frame simulation as the canvas, no fake status bar/bezel (that's reserved for the real published app / APK) */}
       {previewOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setPreviewOpen(false)}>
-          <div onClick={e => e.stopPropagation()} className="relative w-[380px] h-[720px] max-h-full bg-white rounded-[36px] border-[10px] border-[#1D1D1F] shadow-2xl overflow-hidden">
+          <div
+            onClick={e => e.stopPropagation()}
+            className="relative bg-white rounded-[28px] border border-[#D2D2D7] shadow-2xl overflow-hidden"
+            style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, maxHeight: '90vh' }}
+          >
             <button onClick={() => setPreviewOpen(false)} className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center">
               <X size={14} />
             </button>
-            <AppRuntime app={app} token={token} className="w-full h-full" />
+            <AppRuntime app={app} token={token} className="w-full h-full" showWatermark={!allowPremium} />
+          </div>
+        </div>
+      )}
+
+      {/* App Settings modal — Android build config for the APK export */}
+      {settingsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setSettingsOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">App Settings</h3>
+              <button onClick={() => setSettingsOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4 overflow-y-auto">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => iconInputRef.current?.click()}
+                  className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center"
+                >
+                  {app.app_icon_url ? (
+                    <img src={app.app_icon_url.startsWith('/') ? `${API}${app.app_icon_url}` : app.app_icon_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Smartphone size={20} className="text-[#A1A1A6]" />
+                  )}
+                </button>
+                <div>
+                  <button onClick={() => iconInputRef.current?.click()} disabled={iconUploading} className="text-xs font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">
+                    {iconUploading ? 'Uploading…' : app.app_icon_url ? 'Change icon' : 'Upload icon'}
+                  </button>
+                  <p className="text-[10px] text-[#A1A1A6] mt-1">Square image, at least 512×512px.</p>
+                </div>
+                <input ref={iconInputRef} type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleIconUpload} />
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>App display name</label>
+                <input
+                  value={app.app_display_name || ''}
+                  onChange={e => mutate(a => { a.app_display_name = e.target.value; })}
+                  placeholder={app.name}
+                  className={FIELD_INPUT}
+                />
+                <p className="mt-1 text-[10px] text-[#A1A1A6]">Shown under the icon on the home screen. Defaults to the app's name above.</p>
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>Package name</label>
+                <input
+                  value={app.package_id || ''}
+                  onChange={e => mutate(a => { a.package_id = e.target.value; })}
+                  placeholder={`com.vakargames.studioapp.app${(app.slug || '').replace(/-/g, '')}`}
+                  className={`${FIELD_INPUT} font-mono`}
+                />
+                {app.package_id && !PACKAGE_ID_RE.test(app.package_id) && (
+                  <p className="mt-1 text-[10px] text-red-500">Invalid — use reverse-DNS style like com.yourname.appname (letters, numbers, underscores, no segment starting with a number).</p>
+                )}
+                <p className="mt-1 text-[10px] text-[#A1A1A6]">Uniquely identifies your app on Android — best set once and left alone.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>Min SDK</label>
+                  <Select value={String(app.min_sdk ?? 22)} onChange={e => mutate(a => { a.min_sdk = Number(e.target.value); })} size="sm">
+                    {SDK_LEVELS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
+                  </Select>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Target SDK</label>
+                  <Select value={String(app.target_sdk ?? 34)} onChange={e => mutate(a => { a.target_sdk = Number(e.target.value); })} size="sm">
+                    {SDK_LEVELS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <Button className="w-full" onClick={() => setSettingsOpen(false)}>Done</Button>
+            </div>
           </div>
         </div>
       )}

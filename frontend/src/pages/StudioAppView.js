@@ -47,19 +47,20 @@ export default function StudioAppView() {
     );
   }
 
+  // No device-frame chrome here — this is the real, shipped app (same
+  // principle as the APK export), so it just fills the screen with its
+  // own content. The phone simulation is a design-time aid only, kept in
+  // the builder's canvas and its Preview modal.
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F5F5F7] px-6 py-10">
-      <Link to="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors mb-6">
+    <div className="min-h-screen flex flex-col bg-[#F5F5F7]">
+      <Link to="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors px-6 py-4">
         <ArrowLeft size={12} />Vakar Games
       </Link>
-      <div
-        className="relative w-full max-w-[380px] bg-white rounded-[36px] border-[10px] border-[#1D1D1F] shadow-2xl overflow-hidden"
-        style={{ height: '78vh', maxHeight: 760 }}
-      >
-        <AppRuntime app={app} token={token} className="w-full h-full" />
+      <div className="relative flex-1">
+        <AppRuntime app={app} token={token} className="w-full h-full" showWatermark={!app.owner_is_vakar_plus} />
       </div>
       {app.visibility === 'private' && (
-        <p className="mt-4 text-[11px] text-[#A1A1A6] flex items-center gap-1"><LockKey size={11} />Internal tool — staff only</p>
+        <p className="text-[11px] text-[#A1A1A6] flex items-center justify-center gap-1 py-3 border-t border-[#D2D2D7]"><LockKey size={11} />Internal tool — staff only</p>
       )}
     </div>
   );

@@ -6,8 +6,10 @@ import {
 // Single source of truth for the Studio App Builder — used by the admin
 // editor (component palette + inspector) and the runtime for defaults.
 // V1 deliberately keeps the component tree flat (max one level of nesting
-// via "container") rather than a free-form canvas — makes drag/drop and
-// the inspector tractable without a full layout-constraint engine.
+// via "container") — components are freely positioned/resized (`layout:
+// {x,y,w,h}`, absolute pixels within CANVAS_WIDTH x CANVAS_HEIGHT, or
+// relative to their parent container) rather than flowed, matching a
+// MIT-App-Inventor-style designer canvas.
 //
 // `tier` on components/themes is a forward-compatible marker for the
 // planned Vakar+ paid tier (design-system upgrade phase) — it's shown as a
@@ -17,6 +19,37 @@ import {
 
 export const genId = () =>
   (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+// Reference design canvas size — a fixed-frame "phone screen" every screen
+// is designed at. The public runtime scales this proportionally to fit the
+// visitor's actual viewport; the editor and preview show it at 1:1 so
+// placement/resizing is precise, like a real design tool.
+export const CANVAS_WIDTH = 360;
+export const CANVAS_HEIGHT = 640;
+
+export const DEFAULT_LAYOUT = {
+  text: { x: 20, y: 20, w: 240, h: 30 },
+  button: { x: 20, y: 20, w: 160, h: 44 },
+  image: { x: 20, y: 20, w: 200, h: 150 },
+  input: { x: 20, y: 20, w: 240, h: 44 },
+  container: { x: 20, y: 20, w: 300, h: 150 },
+  divider: { x: 20, y: 20, w: 300, h: 1 },
+  spacer: { x: 20, y: 20, w: 20, h: 20 },
+  icon: { x: 20, y: 20, w: 32, h: 32 },
+  toggle: { x: 20, y: 20, w: 200, h: 32 },
+  list: { x: 20, y: 20, w: 300, h: 200 },
+};
+
+// `index` is only used as a fallback for components saved before free
+// positioning existed (no `layout` field yet) — instead of stacking every
+// legacy same-type component on the exact same default spot, it cascades
+// them top to bottom by their position in the list, roughly approximating
+// the old flow layout until the user drags them where they actually want.
+export const getLayout = (node, index = 0) => {
+  if (node?.layout) return node.layout;
+  const base = DEFAULT_LAYOUT[node?.type] || { x: 20, y: 20, w: 120, h: 40 };
+  return { ...base, y: base.y + index * (base.h + 12) };
+};
 
 export const COMPONENT_TYPES = [
   {
@@ -29,7 +62,7 @@ export const COMPONENT_TYPES = [
   },
   {
     type: 'image', label: 'Image', icon: Image, isContainer: false, tier: 'free',
-    defaultProps: { url: '', height: 160, radius: 12 },
+    defaultProps: { url: '', radius: 12 },
   },
   {
     type: 'input', label: 'Input', icon: TextCursorInput, isContainer: false, tier: 'free',
@@ -37,7 +70,7 @@ export const COMPONENT_TYPES = [
   },
   {
     type: 'container', label: 'Group', icon: LayoutGrid, isContainer: true, tier: 'free',
-    defaultProps: { direction: 'column', gap: 12, align: 'stretch', padding: 0, background: 'none', border: false, radius: 0, shadow: false },
+    defaultProps: { background: 'none', border: false, radius: 0, shadow: false },
   },
   {
     type: 'divider', label: 'Divider', icon: Minus, isContainer: false, tier: 'free',
@@ -45,11 +78,11 @@ export const COMPONENT_TYPES = [
   },
   {
     type: 'spacer', label: 'Spacer', icon: MoveVertical, isContainer: false, tier: 'free',
-    defaultProps: { size: 16 },
+    defaultProps: {},
   },
   {
     type: 'icon', label: 'Icon', icon: Sparkles, isContainer: false, tier: 'premium',
-    defaultProps: { icon: 'star', size: 28, color: '' },
+    defaultProps: { icon: 'star', color: '' },
   },
   {
     type: 'toggle', label: 'Toggle', icon: ToggleLeft, isContainer: false, tier: 'premium',
@@ -63,7 +96,7 @@ export const COMPONENT_TYPES = [
 
 export const COMPONENT_META = Object.fromEntries(COMPONENT_TYPES.map(c => [c.type, c]));
 
-export function createComponent(type) {
+export function createComponent(type, layoutOverride) {
   const meta = COMPONENT_META[type];
   if (!meta) return null;
   return {
@@ -71,6 +104,7 @@ export function createComponent(type) {
     type,
     props: { ...meta.defaultProps },
     actions: {},
+    layout: { ...DEFAULT_LAYOUT[type], ...(layoutOverride || {}) },
     ...(meta.isContainer ? { children: [] } : {}),
   };
 }

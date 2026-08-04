@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { resolveTheme, AppIcon } from '../constants/appBuilder';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/appBuilder';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -9,12 +9,14 @@ const API = process.env.REACT_APP_BACKEND_URL || '';
 // call_api / open_link). Used both for the editor's live preview and the
 // public /apps/:slug runtime page — this is the one place "what does a
 // published app actually do" is implemented, so both surfaces stay
-// identical.
+// identical. `ComponentVisual` (the per-type content renderer) is also
+// exported standalone so the editor's design canvas can render true
+// WYSIWYG previews without a second implementation.
 
 const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };
 const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-function interpolate(str, vars, scope) {
+export function interpolate(str, vars, scope) {
   if (!str) return '';
   return String(str).replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, path) => {
     const parts = path.split('.');
@@ -24,7 +26,7 @@ function interpolate(str, vars, scope) {
       val = scope[root];
       for (let i = 1; i < parts.length && val != null; i++) val = val[parts[i]];
     } else {
-      val = vars[root];
+      val = vars ? vars[root] : undefined;
     }
     if (val === undefined || val === null) return '';
     return typeof val === 'object' ? JSON.stringify(val) : String(val);
@@ -42,16 +44,23 @@ function buttonStyle(theme, style) {
   }
 }
 
-function RenderNode({ node, vars, setVars, runAction, theme }) {
+// Renders a single component's content, filling 100% of whatever box it's
+// placed in (the box itself — position/size — is the caller's job, see
+// PositionedNode below and AppBuilderEditor.js's design canvas). `vars`/
+// `setVars`/`runAction` can be omitted for a static, non-interactive
+// preview (the editor canvas does this — clicking a button there should
+// select it, not navigate).
+export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) {
   if (!node) return null;
+  const interactive = typeof setVars === 'function';
   switch (node.type) {
     case 'text':
       return (
         <p style={{
-          margin: 0, fontSize: TEXT_SIZE_PX[node.props?.size] || 15,
+          margin: 0, width: '100%', height: '100%', fontSize: TEXT_SIZE_PX[node.props?.size] || 15,
           fontWeight: node.props?.weight === 'bold' ? 700 : 400,
           textAlign: node.props?.align || 'left', color: node.props?.color || theme.colors.text,
-          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden',
         }}>
           {interpolate(node.props?.content, vars)}
         </p>
@@ -59,11 +68,11 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
     case 'button':
       return (
         <button
-          onClick={() => runAction(node.actions?.onClick)}
+          onClick={() => runAction && runAction(node.actions?.onClick)}
           style={{
             ...buttonStyle(theme, node.props?.style),
-            padding: '11px 18px', borderRadius: theme.radius * 0.7, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', width: '100%', fontFamily: FONT_STACK, transition: 'opacity 0.15s',
+            width: '100%', height: '100%', borderRadius: theme.radius * 0.7, fontSize: 14, fontWeight: 600,
+            cursor: interactive ? 'pointer' : 'default', fontFamily: FONT_STACK,
           }}
         >
           {interpolate(node.props?.label, vars) || 'Button'}
@@ -74,22 +83,22 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
         <img
           src={node.props.url.startsWith('/') ? `${API}${node.props.url}` : node.props.url}
           alt=""
-          style={{ width: '100%', height: node.props?.height || 160, objectFit: 'cover', borderRadius: node.props?.radius ?? 12, display: 'block' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: node.props?.radius ?? 12, display: 'block' }}
         />
       ) : (
         <div style={{
-          width: '100%', height: node.props?.height || 160, borderRadius: node.props?.radius ?? 12,
+          width: '100%', height: '100%', borderRadius: node.props?.radius ?? 12,
           background: theme.colors.surface, border: `1px dashed ${theme.colors.border}`,
         }} />
       );
     case 'input': {
       const bound = !!node.props?.variable;
       const style = {
-        width: '100%', padding: '10px 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
+        width: '100%', height: '100%', padding: '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
         fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
         color: theme.colors.text,
       };
-      if (!bound) return <input placeholder={node.props?.placeholder} style={style} disabled title="This input isn't bound to a variable yet" />;
+      if (!bound || !interactive) return <input placeholder={node.props?.placeholder} style={style} disabled title={bound ? '' : "This input isn't bound to a variable yet"} />;
       return (
         <input
           placeholder={node.props?.placeholder}
@@ -103,13 +112,13 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
       const bound = !!node.props?.variable;
       const on = vars[node.props?.variable] === 'true';
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 12 }}>
-          <span style={{ fontSize: 14, color: theme.colors.text }}>{interpolate(node.props?.label, vars) || 'Toggle'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', gap: 12 }}>
+          <span style={{ fontSize: 14, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{interpolate(node.props?.label, vars) || 'Toggle'}</span>
           <button
-            disabled={!bound}
-            onClick={() => bound && setVars(v => ({ ...v, [node.props.variable]: v[node.props.variable] === 'true' ? 'false' : 'true' }))}
+            disabled={!bound || !interactive}
+            onClick={() => interactive && bound && setVars(v => ({ ...v, [node.props.variable]: v[node.props.variable] === 'true' ? 'false' : 'true' }))}
             style={{
-              width: 42, height: 24, borderRadius: 12, border: 'none', cursor: bound ? 'pointer' : 'not-allowed',
+              width: 42, height: 24, borderRadius: 12, border: 'none', cursor: (bound && interactive) ? 'pointer' : 'default',
               position: 'relative', background: on ? theme.colors.primary : theme.colors.border, transition: 'background 0.2s',
               padding: 0, flexShrink: 0, opacity: bound ? 1 : 0.5,
             }}
@@ -123,7 +132,11 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
       );
     }
     case 'icon':
-      return <AppIcon id={node.props?.icon || 'star'} size={node.props?.size || 28} color={node.props?.color || theme.colors.text} />;
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <AppIcon id={node.props?.icon || 'star'} size="100%" color={node.props?.color || theme.colors.text} />
+        </div>
+      );
     case 'list': {
       const raw = vars[node.props?.source_variable];
       let items = [];
@@ -134,14 +147,14 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
         } catch { /* not valid JSON — render as empty */ }
       }
       if (items.length === 0) {
-        return <p style={{ margin: 0, fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
+        return <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
       }
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }}>
           {items.slice(0, 50).map((item, i) => (
             <div key={i} style={{
               padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
             }}>
               {interpolate(node.props?.item_template, vars, { item })}
             </div>
@@ -154,55 +167,63 @@ function RenderNode({ node, vars, setVars, runAction, theme }) {
         : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
       return (
         <div style={{
-          display: 'flex', flexDirection: node.props?.direction || 'column',
-          gap: node.props?.gap ?? 12, alignItems: node.props?.align || 'stretch', width: '100%',
+          position: 'relative', width: '100%', height: '100%',
           background: bg,
           border: node.props?.border ? `1px solid ${theme.colors.border}` : 'none',
           borderRadius: node.props?.radius ?? 0,
-          padding: node.props?.padding ?? 0,
           boxShadow: node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none',
-          boxSizing: 'border-box',
+          boxSizing: 'border-box', overflow: 'hidden',
         }}>
-          {(node.children || []).map(child => (
-            <RenderNode key={child.id} node={child} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+          {(node.children || []).map((child, i) => (
+            <PositionedNode key={child.id} node={child} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
           ))}
         </div>
       );
     }
     case 'divider':
-      return <div style={{ height: 1, background: theme.colors.border, width: '100%' }} />;
+      return <div style={{ width: '100%', height: '100%', background: theme.colors.border }} />;
     case 'spacer':
-      return <div style={{ height: node.props?.size ?? 16 }} />;
+      return <div style={{ width: '100%', height: '100%' }} />;
     default:
       return null;
   }
 }
 
-function StatusBar({ theme }) {
+// Absolute-positions a component within its parent (the screen canvas, or
+// a container) using its own `layout` (falls back to a sane per-type
+// default for older data saved before free positioning existed).
+export function PositionedNode({ node, index = 0, vars, setVars, runAction, theme }) {
+  const l = getLayout(node, index);
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '10px 20px 2px', fontSize: 12, fontWeight: 600, color: theme.colors.text,
-      fontFamily: FONT_STACK, userSelect: 'none', flexShrink: 0,
-    }}>
-      <span>9:41</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <div style={{ width: 14, height: 8, borderRadius: 2, border: `1.3px solid ${theme.colors.text}`, position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 1.5, right: 4, background: theme.colors.text, borderRadius: 0.5 }} />
-        </div>
-      </div>
+    <div style={{ position: 'absolute', left: l.x, top: l.y, width: l.w, height: l.h }}>
+      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
     </div>
   );
 }
 
-export default function AppRuntime({ app, token, className = '' }) {
+export default function AppRuntime({ app, token, className = '', showWatermark = false }) {
   const theme = useMemo(() => resolveTheme(app?.theme), [app?.theme]);
   const screens = useMemo(() => app?.screens || [], [app]);
   const [screenId, setScreenId] = useState(screens[0]?.id);
   const [vars, setVars] = useState(() => Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])));
   const [message, setMessage] = useState(null);
+  const wrapRef = useRef(null);
+  const [scale, setScale] = useState(1);
 
   const screen = useMemo(() => screens.find(s => s.id === screenId) || screens[0], [screens, screenId]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const compute = () => {
+      const w = el.clientWidth, h = el.clientHeight;
+      if (w > 0 && h > 0) setScale(Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT));
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const flash = (text) => {
     setMessage(text);
@@ -269,21 +290,35 @@ export default function AppRuntime({ app, token, className = '' }) {
   }
 
   return (
-    <div className={className} style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', background: theme.colors.background, fontFamily: FONT_STACK, boxSizing: 'border-box' }}>
-      <StatusBar theme={theme} />
-      {message && (
-        <div style={{
-          position: 'absolute', top: 40, left: 12, right: 12, zIndex: 10,
-          background: theme.colors.text, color: theme.colors.background, fontSize: 12, fontWeight: 600,
-          padding: '8px 12px', borderRadius: theme.radius * 0.7, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
-        }}>
-          {message}
-        </div>
-      )}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
-        {(screen.components || []).map(node => (
-          <RenderNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+    <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box' }}>
+      <div style={{
+        position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, flexShrink: 0,
+        transform: `scale(${scale})`, background: theme.colors.background, overflow: 'hidden', fontFamily: FONT_STACK,
+      }}>
+        {message && (
+          <div style={{
+            position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
+            background: theme.colors.text, color: theme.colors.background, fontSize: 12, fontWeight: 600,
+            padding: '8px 12px', borderRadius: theme.radius * 0.7, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+          }}>
+            {message}
+          </div>
+        )}
+        {(screen.components || []).map((node, i) => (
+          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
         ))}
+        {showWatermark && (
+          <a
+            href="https://vakargames.com" target="_blank" rel="noopener noreferrer"
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, textAlign: 'center',
+              padding: '5px 0', fontSize: 10, fontWeight: 600, color: theme.colors.textMuted,
+              background: `${theme.colors.surface}cc`, textDecoration: 'none', letterSpacing: '0.02em',
+            }}
+          >
+            Made with <span style={{ color: '#EB5757' }}>♥</span> by Vakar
+          </a>
+        )}
       </div>
     </div>
   );

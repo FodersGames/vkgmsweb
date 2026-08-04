@@ -15,6 +15,7 @@ from ..deps import get_current_user
 from ..utils import _FORMAT_MAGIC_BYTES
 from ..rate_limit import limiter
 from ..schemas import ApkBuildTriggerRequest
+from .studio_apps import _default_package_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -90,6 +91,7 @@ async def trigger_apk_build(request: Request, app_id: str, body: ApkBuildTrigger
 
     bundle_url = body.bundle_url if body.bundle_url.startswith("http") else f"{BACKEND_PUBLIC_URL}{body.bundle_url}"
     callback_url = f"{BACKEND_PUBLIC_URL}/api/internal/apk-builds/{build_id}/callback"
+    icon_url = doc.get("app_icon_url") or ""
     payload = {
         "ref": GITHUB_WORKFLOW_REF,
         "inputs": {
@@ -97,7 +99,11 @@ async def trigger_apk_build(request: Request, app_id: str, body: ApkBuildTrigger
             "bundle_url": bundle_url,
             "callback_url": callback_url,
             "callback_token": callback_token,
-            "app_name": (doc.get("name") or "Studio App")[:50],
+            "app_name": (doc.get("app_display_name") or doc.get("name") or "Studio App")[:50],
+            "package_id": doc.get("package_id") or _default_package_id(doc),
+            "min_sdk": str(doc.get("min_sdk") or 22),
+            "target_sdk": str(doc.get("target_sdk") or 34),
+            "icon_url": icon_url if icon_url.startswith("http") else (f"{BACKEND_PUBLIC_URL}{icon_url}" if icon_url else ""),
         },
     }
     headers = {

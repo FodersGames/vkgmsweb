@@ -5,11 +5,11 @@
 # frontend/src/utils/exportApp.js) with Capacitor and reports the result
 # back to the backend via a one-time callback token.
 #
-# NOTE: this workflow has not been run yet — the general shape (Capacitor
-# init flags, Gradle invocation) is correct as of Capacitor 6, but the
-# first real dispatch should be watched closely and may need small fixes
-# (exact `cap init` non-interactive flags, Gradle/AGP version pinning,
-# etc.) before it's reliable. See MEMORY: studio_app_builder.md.
+# NOTE: the core build (steps through "Build debug APK") has been verified
+# working end-to-end on a real dispatch. The package-name/SDK/icon
+# customization steps below that are NEW and have not been verified live
+# yet — watch the first real run with a custom icon/SDK closely. See
+# MEMORY: studio_app_builder.md.
 name: Build Studio App APK
 
 on:
@@ -31,6 +31,22 @@ on:
         description: "Display name for the generated app"
         required: false
         default: "Studio App"
+      package_id:
+        description: "Reverse-DNS Android package name, e.g. com.vakar.mypizzaapp"
+        required: false
+        default: "com.vakargames.studioapp"
+      min_sdk:
+        description: "minSdkVersion"
+        required: false
+        default: "22"
+      target_sdk:
+        description: "targetSdkVersion (also used as compileSdkVersion)"
+        required: false
+        default: "34"
+      icon_url:
+        description: "Public URL of a source app icon (square, 1024x1024+) — blank to keep Capacitor's default"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -64,8 +80,25 @@ jobs:
           npm init -y >/dev/null
           npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           cp -r ../www ./www
-          npx cap init "${{ inputs.app_name }}" "com.vakargames.studioapp.b${{ inputs.build_id }}" --web-dir www
+          npx cap init "${{ inputs.app_name }}" "${{ inputs.package_id }}" --web-dir www
           npx cap add android
+
+      - name: Apply Min/Target SDK
+        working-directory: build-project/android
+        run: |
+          sed -i "s/minSdkVersion = .*/minSdkVersion = ${{ inputs.min_sdk }}/" variables.gradle
+          sed -i "s/targetSdkVersion = .*/targetSdkVersion = ${{ inputs.target_sdk }}/" variables.gradle
+          sed -i "s/compileSdkVersion = .*/compileSdkVersion = ${{ inputs.target_sdk }}/" variables.gradle
+          cat variables.gradle
+
+      - name: Apply custom app icon
+        if: inputs.icon_url != ''
+        working-directory: build-project
+        run: |
+          mkdir -p assets
+          curl -sfL "${{ inputs.icon_url }}" -o assets/icon.png
+          npm install --no-audit --no-fund @capacitor/assets
+          npx capacitor-assets generate --android --iconBackgroundColor "#ffffff" --iconBackgroundColorDark "#1D1D1F"
 
       - name: Build debug APK
         working-directory: build-project/android

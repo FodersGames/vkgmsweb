@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from bson import ObjectId
@@ -44,6 +45,38 @@ PLUS_MAX_SCREENS_PER_APP = 15
 # every other cross-stack constant in this codebase. Update both together.
 PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle"}
 FREE_THEME_IDS = {"mint"}
+
+# Android build config (APK export, Phase E). Reverse-DNS package name,
+# letters/digits/underscores per segment, each segment starting with a
+# letter — the exact rule Android's AAPT enforces (this is the same class
+# of bug the "6a725abcd..." package-name incident hit: a segment starting
+# with a digit is rejected by the Android build, not by us).
+PACKAGE_ID_RE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$')
+MIN_SDK_FLOOR = 22   # Capacitor 6's own minimum
+MAX_SDK_CEIL = 35
+
+
+def _default_package_id(doc):
+    # Prefixed with a letter for the same reason genId()-derived build IDs
+    # are — slugs are lowercase/hyphenated but aren't guaranteed to start
+    # with a letter (slugify() just strips characters, doesn't enforce it).
+    return f"com.vakargames.studioapp.app{doc.get('slug', 'app').replace('-', '')}"
+
+def _validate_build_config(update):
+    if update.get("package_id"):
+        if not PACKAGE_ID_RE.match(update["package_id"]):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid package name — use reverse-DNS style like com.yourname.appname (letters, numbers, underscores, at least one dot, no segment starting with a number).",
+            )
+    min_sdk = update.get("min_sdk")
+    target_sdk = update.get("target_sdk")
+    if min_sdk is not None and not (MIN_SDK_FLOOR <= min_sdk <= MAX_SDK_CEIL):
+        raise HTTPException(status_code=400, detail=f"Min SDK must be between {MIN_SDK_FLOOR} and {MAX_SDK_CEIL}.")
+    if target_sdk is not None and not (MIN_SDK_FLOOR <= target_sdk <= MAX_SDK_CEIL):
+        raise HTTPException(status_code=400, detail=f"Target SDK must be between {MIN_SDK_FLOOR} and {MAX_SDK_CEIL}.")
+    if min_sdk is not None and target_sdk is not None and target_sdk < min_sdk:
+        raise HTTPException(status_code=400, detail="Target SDK must be greater than or equal to Min SDK.")
 
 
 async def _unique_slug(base_slug: str, exclude_id=None) -> str:
@@ -95,6 +128,11 @@ def _serialize(doc, full=False, include_owner=False):
         "theme": doc.get("theme", "mint"),
         "visibility": doc.get("visibility", "private"),
         "status": doc.get("status", "draft"),
+        "package_id": doc.get("package_id") or _default_package_id(doc),
+        "min_sdk": doc.get("min_sdk", MIN_SDK_FLOOR),
+        "target_sdk": doc.get("target_sdk", 34),
+        "app_display_name": doc.get("app_display_name") or "",
+        "app_icon_url": doc.get("app_icon_url") or "",
         "created_at": doc["created_at"].isoformat(),
         "updated_at": doc["updated_at"].isoformat(),
     }
@@ -168,6 +206,7 @@ async def update_studio_app(app_id: str, body: StudioAppUpdateRequest, user=Depe
         _validate_screens(update["screens"])
     if "name" in update:
         update["name"] = update["name"].strip()[:80] or "Untitled app"
+    _validate_build_config(update)
     if not update:
         return {"ok": True}
     update["updated_at"] = datetime.now(timezone.utc)
@@ -312,6 +351,7 @@ async def update_my_studio_app(app_id: str, body: StudioAppUpdateRequest, user=D
         _validate_tier(doc.get("screens", []), update["theme"], is_plus)
     if "name" in update:
         update["name"] = update["name"].strip()[:80] or "Untitled app"
+    _validate_build_config(update)
     if not update:
         return {"ok": True}
     update["updated_at"] = datetime.now(timezone.utc)
@@ -375,4 +415,12 @@ async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
         is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
         if not (is_owner or is_staff):
             raise HTTPException(status_code=404, detail="App not found")
-    return _serialize(doc, full=True)
+    result = _serialize(doc, full=True)
+    # Staff/"house" apps (no owner) never show the free-tier watermark —
+    # only self-service apps built by a non-Vakar+ user do.
+    if doc.get("user_id"):
+        owner = await db.users.find_one({"_id": doc["user_id"]}, {"vakar_plus_status": 1})
+        result["owner_is_vakar_plus"] = bool(owner and owner.get("vakar_plus_status") == "active")
+    else:
+        result["owner_is_vakar_plus"] = True
+    return result

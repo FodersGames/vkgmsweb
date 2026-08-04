@@ -412,6 +412,11 @@ class StudioAppUpdateRequest(BaseModel):
     theme: Optional[str] = None
     screens: Optional[List[dict]] = None
     variables: Optional[List[dict]] = None
+    package_id: Optional[str] = None
+    min_sdk: Optional[int] = None
+    target_sdk: Optional[int] = None
+    app_display_name: Optional[str] = None
+    app_icon_url: Optional[str] = None
 
 class StudioAppStatusRequest(BaseModel):
     status: Literal["draft", "published"]
