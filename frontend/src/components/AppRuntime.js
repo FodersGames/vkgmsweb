@@ -1,19 +1,20 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, normalizeActions, UPDATABLE_PROP } from '../constants/appBuilder';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
 // Interprets a Studio App's {screens, variables, theme} into a live,
 // running mini-app: theming, local variable state, screen navigation, and
-// a small action interpreter (navigate / set_variable / show_message /
-// call_api / open_link). Used both for the editor's live preview and the
-// public /apps/:slug runtime page — this is the one place "what does a
-// published app actually do" is implemented, so both surfaces stay
-// identical. `ComponentVisual` (the per-type content renderer) is also
-// exported standalone so the editor's design canvas can render true
-// WYSIWYG previews without a second implementation.
+// a small action interpreter (navigate / set_variable / update_text /
+// show_message / open_link) — a button's onClick runs an ordered list of
+// these (normalizeActions() reads pre-list saves as a one-step list). Used
+// both for the editor's live preview and the public /apps/:slug runtime
+// page — this is the one place "what does a published app actually do" is
+// implemented, so both surfaces stay identical. `ComponentVisual` (the
+// per-type content renderer) is also exported standalone so the editor's
+// design canvas can render true WYSIWYG previews without a second
+// implementation.
 
-const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };
 const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 export function interpolate(str, vars, scope) {
@@ -50,19 +51,20 @@ function buttonStyle(theme, style) {
 // `setVars`/`runAction` can be omitted for a static, non-interactive
 // preview (the editor canvas does this — clicking a button there should
 // select it, not navigate).
-export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) {
+export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, overrides = {} }) {
   if (!node) return null;
   const interactive = typeof setVars === 'function';
+  const override = overrides[node.id];
   switch (node.type) {
     case 'text':
       return (
         <p style={{
-          margin: 0, width: '100%', height: '100%', fontSize: TEXT_SIZE_PX[node.props?.size] || 15,
+          margin: 0, width: '100%', height: '100%', fontSize: resolveTextSizePx(node.props),
           fontWeight: node.props?.weight === 'bold' ? 700 : 400,
           textAlign: node.props?.align || 'left', color: node.props?.color || theme.colors.text,
           lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden',
         }}>
-          {interpolate(node.props?.content, vars)}
+          {override !== undefined ? override : interpolate(node.props?.content, vars)}
         </p>
       );
     case 'button':
@@ -75,7 +77,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) 
             cursor: interactive ? 'pointer' : 'default', fontFamily: FONT_STACK,
           }}
         >
-          {interpolate(node.props?.label, vars) || 'Button'}
+          {(override !== undefined ? override : interpolate(node.props?.label, vars)) || 'Button'}
         </button>
       );
     case 'image':
@@ -113,7 +115,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) 
       const on = vars[node.props?.variable] === 'true';
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', gap: 12 }}>
-          <span style={{ fontSize: 14, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{interpolate(node.props?.label, vars) || 'Toggle'}</span>
+          <span style={{ fontSize: 14, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(override !== undefined ? override : interpolate(node.props?.label, vars)) || 'Toggle'}</span>
           <button
             disabled={!bound || !interactive}
             onClick={() => interactive && bound && setVars(v => ({ ...v, [node.props.variable]: v[node.props.variable] === 'true' ? 'false' : 'true' }))}
@@ -175,7 +177,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) 
           boxSizing: 'border-box', overflow: 'hidden',
         }}>
           {(node.children || []).map((child, i) => (
-            <PositionedNode key={child.id} node={child} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+            <PositionedNode key={child.id} node={child} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
           ))}
         </div>
       );
@@ -192,20 +194,21 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme }) 
 // Absolute-positions a component within its parent (the screen canvas, or
 // a container) using its own `layout` (falls back to a sane per-type
 // default for older data saved before free positioning existed).
-export function PositionedNode({ node, index = 0, vars, setVars, runAction, theme }) {
+export function PositionedNode({ node, index = 0, vars, setVars, runAction, theme, overrides }) {
   const l = getLayout(node, index);
   return (
     <div style={{ position: 'absolute', left: l.x, top: l.y, width: l.w, height: l.h }}>
-      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
     </div>
   );
 }
 
-export default function AppRuntime({ app, token, className = '', showWatermark = false }) {
+export default function AppRuntime({ app, className = '', showWatermark = false }) {
   const theme = useMemo(() => resolveTheme(app?.theme), [app?.theme]);
   const screens = useMemo(() => app?.screens || [], [app]);
   const [screenId, setScreenId] = useState(screens[0]?.id);
   const [vars, setVars] = useState(() => Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])));
+  const [overrides, setOverrides] = useState({});
   const [message, setMessage] = useState(null);
   const wrapRef = useRef(null);
   const [scale, setScale] = useState(1);
@@ -230,7 +233,10 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     setTimeout(() => setMessage(null), 3200);
   };
 
-  const runAction = async (action) => {
+  // vars is read fresh each step (not stale-closed) since set_variable/
+  // update_text steps commonly chain off one another in the same click
+  // (e.g. "add 1 to coins" then "update text1 with coins").
+  const runOne = (action, currentVars) => {
     if (!action?.type) return;
     switch (action.type) {
       case 'navigate':
@@ -238,47 +244,35 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
         break;
       case 'set_variable': {
         if (!action.variable) break;
-        setVars(v => {
-          const current = v[action.variable];
-          let next;
-          if (action.value_mode === 'toggle_bool') next = current === 'true' ? 'false' : 'true';
-          else if (action.value_mode === 'increment') next = String((Number(current) || 0) + (Number(action.value) || 1));
-          else next = interpolate(action.value, v);
-          return { ...v, [action.variable]: next };
-        });
+        const current = currentVars[action.variable];
+        let next;
+        if (action.value_mode === 'toggle_bool') next = current === 'true' ? 'false' : 'true';
+        else if (action.value_mode === 'increment') next = String((Number(current) || 0) + (Number(action.value) || 1));
+        else next = interpolate(action.value, currentVars);
+        currentVars[action.variable] = next;
+        setVars(v => ({ ...v, [action.variable]: next }));
+        break;
+      }
+      case 'update_text': {
+        if (!action.target_id) break;
+        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars);
+        setOverrides(o => ({ ...o, [action.target_id]: value }));
         break;
       }
       case 'show_message':
-        flash(interpolate(action.text, vars) || '…');
+        flash(interpolate(action.text, currentVars) || '…');
         break;
       case 'open_link':
         if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
         break;
-      case 'call_api': {
-        if (!action.url) break;
-        try {
-          const headers = { 'Content-Type': 'application/json' };
-          if (token) headers.Authorization = `Bearer ${token}`;
-          const method = (action.method || 'GET').toUpperCase();
-          const res = await fetch(`${API}${action.url}`, {
-            method,
-            headers,
-            body: ['GET', 'HEAD'].includes(method) ? undefined : interpolate(action.body || '{}', vars),
-          });
-          let data = null;
-          try { data = await res.json(); } catch { /* non-JSON response */ }
-          if (action.store_in_variable) {
-            setVars(v => ({ ...v, [action.store_in_variable]: typeof data === 'string' ? data : JSON.stringify(data ?? {}) }));
-          }
-          if (!res.ok) flash(`Request failed (${res.status})`);
-        } catch {
-          flash('Request failed.');
-        }
-        break;
-      }
       default:
         break;
     }
+  };
+
+  const runAction = (actionOrList) => {
+    const currentVars = { ...vars };
+    for (const action of normalizeActions(actionOrList)) runOne(action, currentVars);
   };
 
   if (!screen) {
@@ -305,7 +299,7 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
           </div>
         )}
         {(screen.components || []).map((node, i) => (
-          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
         ))}
         {showWatermark && (
           <a

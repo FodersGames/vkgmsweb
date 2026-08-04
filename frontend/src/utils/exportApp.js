@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
 
 // Generates a real, standalone HTML/CSS/JS project from a Studio App —
 // no build step, no framework, just open index.html. Deliberately a
@@ -26,8 +26,6 @@ function hexToRgba(hex, alpha) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
-const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };
-
 function renderComponentHTML(node, index = 0) {
   if (!node) return '';
   const l = getLayout(node, index);
@@ -35,13 +33,13 @@ function renderComponentHTML(node, index = 0) {
 
   switch (node.type) {
     case 'text': {
-      const style = `margin:0;width:100%;height:100%;font-size:${TEXT_SIZE_PX[node.props?.size] || 15}px;font-weight:${node.props?.weight === 'bold' ? 700 : 400};text-align:${node.props?.align || 'left'};color:${node.props?.color || 'var(--vk-text)'};line-height:1.45;white-space:pre-wrap;word-break:break-word;overflow:hidden;box-sizing:border-box;`;
-      return `<div style="${pos}"><p class="vk-text" data-tpl="${esc(node.props?.content || '')}" style="${style}"></p></div>`;
+      const style = `margin:0;width:100%;height:100%;font-size:${resolveTextSizePx(node.props)}px;font-weight:${node.props?.weight === 'bold' ? 700 : 400};text-align:${node.props?.align || 'left'};color:${node.props?.color || 'var(--vk-text)'};line-height:1.45;white-space:pre-wrap;word-break:break-word;overflow:hidden;box-sizing:border-box;`;
+      return `<div style="${pos}"><p class="vk-text" data-id="${esc(node.id)}" data-tpl="${esc(node.props?.content || '')}" style="${style}"></p></div>`;
     }
     case 'button': {
       const label = node.props?.label || 'Button';
       const action = node.actions?.onClick ? ` data-action="${esc(JSON.stringify(node.actions.onClick))}"` : '';
-      return `<div style="${pos}"><button class="vk-btn vk-btn-${node.props?.style || 'primary'}"${action} data-tpl="${esc(label)}" style="width:100%;height:100%;">${esc(label)}</button></div>`;
+      return `<div style="${pos}"><button class="vk-btn vk-btn-${node.props?.style || 'primary'}"${action} data-id="${esc(node.id)}" data-tpl="${esc(label)}" style="width:100%;height:100%;">${esc(label)}</button></div>`;
     }
     case 'image':
       return node.props?.url
@@ -55,7 +53,7 @@ function renderComponentHTML(node, index = 0) {
       }</div>`;
     }
     case 'toggle':
-      return `<div style="${pos}"><div class="vk-toggle-row" style="width:100%;height:100%;"><span data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}><span class="vk-toggle-knob"></span></button></div></div>`;
+      return `<div style="${pos}"><div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}><span class="vk-toggle-knob"></span></button></div></div>`;
     case 'icon': {
       const svg = renderToStaticMarkup(
         React.createElement(AppIcon, { id: node.props?.icon || 'star', size: '100%', color: node.props?.color || 'currentColor' })
@@ -154,13 +152,12 @@ body {
 
 function generateJS(app) {
   const initialVars = Object.fromEntries((app.variables || []).map(v => [v.name, v.initial_value ?? '']));
-  const apiBase = process.env.REACT_APP_BACKEND_URL || '';
   return `(function () {
   "use strict";
   var CANVAS_WIDTH = ${CANVAS_WIDTH};
   var CANVAS_HEIGHT = ${CANVAS_HEIGHT};
   var vars = ${JSON.stringify(initialVars, null, 2)};
-  var apiBase = ${JSON.stringify(apiBase)};
+  var overrides = {};
 
   function fitCanvas() {
     var wrap = document.querySelector('.canvas-wrap');
@@ -232,7 +229,8 @@ function generateJS(app) {
 
   function render() {
     document.querySelectorAll('[data-tpl]').forEach(function (el) {
-      el.textContent = interpolate(el.getAttribute('data-tpl'), null);
+      var id = el.getAttribute('data-id');
+      el.textContent = (id && Object.prototype.hasOwnProperty.call(overrides, id)) ? overrides[id] : interpolate(el.getAttribute('data-tpl'), null);
     });
     document.querySelectorAll('input.vk-input[data-variable]').forEach(function (el) {
       if (document.activeElement !== el) el.value = vars[el.getAttribute('data-variable')] || '';
@@ -243,7 +241,10 @@ function generateJS(app) {
     document.querySelectorAll('.vk-list[data-source]').forEach(renderList);
   }
 
-  function runAction(action) {
+  // A button's onClick is an ordered list of steps (e.g. "add 1 to coins"
+  // then "update text1 with coins") — pre-list saves are read as a
+  // one-step list, same normalizeActions() convention as the live editor.
+  function runOne(action) {
     if (!action || !action.type) return;
     switch (action.type) {
       case 'navigate':
@@ -255,7 +256,11 @@ function generateJS(app) {
         if (action.value_mode === 'toggle_bool') vars[action.variable] = current === 'true' ? 'false' : 'true';
         else if (action.value_mode === 'increment') vars[action.variable] = String((Number(current) || 0) + (Number(action.value) || 1));
         else vars[action.variable] = interpolate(action.value, null);
-        render();
+        break;
+      }
+      case 'update_text': {
+        if (!action.target_id) break;
+        overrides[action.target_id] = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, null);
         break;
       }
       case 'show_message':
@@ -264,26 +269,14 @@ function generateJS(app) {
       case 'open_link':
         if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
         break;
-      case 'call_api': {
-        if (!action.url) break;
-        var method = (action.method || 'GET').toUpperCase();
-        fetch(apiBase + action.url, {
-          method: method,
-          headers: { 'Content-Type': 'application/json' },
-          body: (method === 'GET' || method === 'HEAD') ? undefined : interpolate(action.body || '{}', null),
-        }).then(function (res) {
-          return res.json().catch(function () { return null; }).then(function (data) {
-            if (action.store_in_variable) {
-              vars[action.store_in_variable] = typeof data === 'string' ? data : JSON.stringify(data || {});
-              render();
-            }
-            if (!res.ok) flash('Request failed (' + res.status + ')');
-          });
-        }).catch(function () { flash('Request failed.'); });
-        break;
-      }
       default: break;
     }
+  }
+
+  function runAction(actionOrList) {
+    var list = Array.isArray(actionOrList) ? actionOrList : (actionOrList ? [actionOrList] : []);
+    list.forEach(runOne);
+    render();
   }
 
   document.addEventListener('click', function (e) {

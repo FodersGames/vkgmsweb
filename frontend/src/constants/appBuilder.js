@@ -112,8 +112,8 @@ export function createComponent(type, layoutOverride) {
 export const ACTION_TYPES = [
   { type: 'navigate', label: 'Go to screen' },
   { type: 'set_variable', label: 'Set a variable' },
+  { type: 'update_text', label: 'Update an element' },
   { type: 'show_message', label: 'Show a message' },
-  { type: 'call_api', label: 'Call an API' },
   { type: 'open_link', label: 'Open a link' },
 ];
 
@@ -121,14 +121,45 @@ export function createAction(type) {
   switch (type) {
     case 'navigate': return { type, screen_id: '' };
     case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
+    case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
     case 'show_message': return { type, text: '' };
-    case 'call_api': return { type, method: 'GET', url: '', body: '', store_in_variable: '' };
     case 'open_link': return { type, url: '', new_tab: true };
     default: return null;
   }
 }
 
+// A button's onClick used to be a single action object; it's now a list run
+// in order (e.g. "add 1 to coins" then "update text1 with coins"), so both
+// the editor and the two runtimes normalize through this — reading old
+// single-object data as a one-step list, never requiring a backend migration.
+export function normalizeActions(actions) {
+  if (!actions) return [];
+  return Array.isArray(actions) ? actions : [actions];
+}
+
+// Which prop of a component an "Update an element" action writes to, and
+// which component types are valid targets for it — text content is the
+// primary use case, button/toggle labels are the same idea applied to their
+// own visible text.
+export const UPDATABLE_PROP = { text: 'content', button: 'label', toggle: 'label' };
+export const UPDATABLE_TYPES = Object.keys(UPDATABLE_PROP);
+
 export const TEXT_SIZES = ['sm', 'md', 'lg', 'xl'];
+export const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };
+export const MIN_CUSTOM_TEXT_PX = 8;
+export const MAX_CUSTOM_TEXT_PX = 96;
+// A Vakar+ perk: a text can be given an exact pixel size instead of picking
+// from the sm/md/lg/xl presets — `props.size === 'custom'` switches to
+// `props.size_px`. Shared by AppRuntime.js and exportApp.js so both
+// implementations compute the same size the same way.
+export function resolveTextSizePx(props) {
+  if (props?.size === 'custom') {
+    const n = Number(props.size_px);
+    return Number.isFinite(n) && n > 0 ? n : TEXT_SIZE_PX.md;
+  }
+  return TEXT_SIZE_PX[props?.size] || TEXT_SIZE_PX.md;
+}
+
 export const BUTTON_STYLES = ['primary', 'secondary', 'outline'];
 export const DIRECTIONS = ['column', 'row'];
 

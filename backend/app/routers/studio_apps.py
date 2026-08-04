@@ -1,12 +1,15 @@
 import re
+import uuid
+from pathlib import Path
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
 
 from ..database import db
+from ..config import UPLOADS_DIR
 from ..deps import require_permission, get_current_user, get_optional_user
-from ..utils import slugify, log_action
+from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES
 from ..rate_limit import limiter
 from ..schemas import (
     StudioAppCreateRequest, StudioAppUpdateRequest, StudioAppStatusRequest, StudioAppVisibilityRequest,
@@ -36,15 +39,28 @@ MAX_SCREENS = 30
 MAX_COMPONENTS_PER_SCREEN = 120
 
 FREE_MAX_APPS = 2
-FREE_MAX_SCREENS_PER_APP = 3
+FREE_MAX_SCREENS_PER_APP = 15
 PLUS_MAX_APPS = 20
-PLUS_MAX_SCREENS_PER_APP = 15
+# "Unlimited" for Vakar+ in practice means the same hard technical ceiling
+# every app is built against (MAX_SCREENS) — there's no separate, lower
+# Vakar+ cap to enforce, and _validate_screens() only shows the "upgrade"
+# upsell when max_screens < MAX_SCREENS, so this reads as truly unlimited.
+PLUS_MAX_SCREENS_PER_APP = MAX_SCREENS
 
 # Mirrors the `tier` tags in frontend/src/constants/appBuilder.js — kept as
 # a small independent list rather than importing frontend code, same as
 # every other cross-stack constant in this codebase. Update both together.
 PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle"}
 FREE_THEME_IDS = {"mint"}
+
+# App storage quota — every file (icon + any uploaded image component) an
+# app references, combined. Recomputed on demand from what's actually on
+# disk (see _compute_storage_bytes) rather than tracked as a running
+# counter, so deleting/replacing an image can never let usage drift upward
+# forever.
+FREE_MAX_APP_BYTES = 20 * 1024 * 1024
+PLUS_MAX_APP_BYTES = 1024 * 1024 * 1024
+ALLOWED_ASSET_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 # Android build config (APK export, Phase E). Reverse-DNS package name,
 # letters/digits/underscores per segment, each segment starting with a
@@ -105,6 +121,12 @@ def _validate_screens(screens, max_screens=MAX_SCREENS):
 def _check_component_tier(comp):
     if comp.get("type") in PREMIUM_COMPONENT_TYPES:
         raise HTTPException(status_code=402, detail="This component requires Vakar+.")
+    # A text's exact-pixel custom size (vs. the sm/md/lg/xl presets) is a
+    # Vakar+ perk on an otherwise-free component type, so it's checked here
+    # per-instance rather than via PREMIUM_COMPONENT_TYPES (which gates a
+    # whole type, not one prop value of it).
+    if comp.get("type") == "text" and (comp.get("props") or {}).get("size") == "custom":
+        raise HTTPException(status_code=402, detail="Custom text sizing requires Vakar+.")
     for child in comp.get("children") or []:
         _check_component_tier(child)
 
@@ -118,7 +140,51 @@ def _validate_tier(screens, theme, is_vakar_plus):
             _check_component_tier(c)
 
 
-def _serialize(doc, full=False, include_owner=False):
+# ============================================================
+# STORAGE QUOTA — every file an app references (icon + any uploaded image
+# component), combined. Recomputed on demand from actual file sizes on disk
+# rather than tracked as a running counter that could drift after an image
+# is replaced or deleted.
+# ============================================================
+
+def _local_upload_path(url):
+    """Resolves a `/api/uploads/<filename>` URL to its file on disk, or None
+    if it's not a local upload (an external image URL someone pasted in
+    doesn't count toward this app's storage — we don't host it)."""
+    if not url or not isinstance(url, str) or not url.startswith("/api/uploads/"):
+        return None
+    filename = url[len("/api/uploads/"):]
+    if "/" in filename or ".." in filename:
+        return None
+    path = UPLOADS_DIR / filename
+    return path if path.is_file() else None
+
+def _collect_asset_urls(doc):
+    urls = []
+    if doc.get("app_icon_url"):
+        urls.append(doc["app_icon_url"])
+
+    def walk(comp):
+        if comp.get("type") == "image" and comp.get("props", {}).get("url"):
+            urls.append(comp["props"]["url"])
+        for child in comp.get("children") or []:
+            walk(child)
+
+    for s in doc.get("screens") or []:
+        for c in s.get("components", []):
+            walk(c)
+    return urls
+
+def _compute_storage_bytes(doc):
+    total = 0
+    for url in _collect_asset_urls(doc):
+        path = _local_upload_path(url)
+        if path:
+            total += path.stat().st_size
+    return total
+
+
+def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
     result = {
         "id": str(doc["_id"]),
         "name": doc["name"],
@@ -139,6 +205,12 @@ def _serialize(doc, full=False, include_owner=False):
     if full:
         result["screens"] = doc.get("screens", [])
         result["variables"] = doc.get("variables", [])
+        # Staff/house apps (no user_id) aren't storage-quota'd, same as
+        # they aren't app/screen quota'd — only self-service apps are.
+        result["storage_used_bytes"] = _compute_storage_bytes(doc)
+        result["storage_max_bytes"] = (
+            PLUS_MAX_APP_BYTES if (not doc.get("user_id") or is_vakar_plus) else FREE_MAX_APP_BYTES
+        )
     if include_owner:
         result["owner"] = doc.get("created_by", "")
         result["is_user_app"] = doc.get("user_id") is not None
@@ -275,6 +347,35 @@ async def duplicate_studio_app(app_id: str, user=Depends(require_permission("man
     result = await db.studio_apps.insert_one(new_doc)
     return {"id": str(result.inserted_id), "slug": slug}
 
+async def _read_validated_asset_image(file: UploadFile):
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_ASSET_EXTS:
+        raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp).")
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large. Maximum 5 MB per file.")
+    content = _validate_file(content, ext, _IMAGE_MIMES)
+    return content, ext
+
+def _write_asset_file(content: bytes, ext: str) -> str:
+    filename = f"{uuid.uuid4().hex}{ext}"
+    with open(UPLOADS_DIR / filename, "wb") as f:
+        f.write(content)
+    return f"/api/uploads/{filename}"
+
+@router.post("/admin/studio-apps/{app_id}/asset")
+async def upload_studio_app_asset(app_id: str, file: UploadFile = File(...), user=Depends(require_permission("manage_studio_apps"))):
+    """Staff/house apps aren't storage-quota'd, same as they aren't
+    app/screen quota'd — this just saves the file."""
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    if not await db.studio_apps.find_one({"_id": oid}, {"_id": 1}):
+        raise HTTPException(status_code=404, detail="App not found")
+    content, ext = await _read_validated_asset_image(file)
+    return {"url": _write_asset_file(content, ext)}
+
 # ============================================================
 # SELF-SERVICE — public "My Apps": any logged-in user can build their own,
 # quota'd by is_vakar_plus. This is the public rollout surface (Phase B) —
@@ -335,7 +436,7 @@ async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, u
 @router.get("/my/studio-apps/{app_id}")
 async def get_my_studio_app(app_id: str, user=Depends(get_current_user)):
     _oid, doc = await _get_owned_app(app_id, user)
-    return _serialize(doc, full=True)
+    return _serialize(doc, full=True, is_vakar_plus=user.get("is_vakar_plus", False))
 
 @router.put("/my/studio-apps/{app_id}")
 async def update_my_studio_app(app_id: str, body: StudioAppUpdateRequest, user=Depends(get_current_user)):
@@ -377,6 +478,22 @@ async def delete_my_studio_app(app_id: str, user=Depends(get_current_user)):
     oid, _doc = await _get_owned_app(app_id, user)
     await db.studio_apps.delete_one({"_id": oid})
     return {"ok": True}
+
+@router.post("/my/studio-apps/{app_id}/asset")
+async def upload_my_studio_app_asset(app_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+    """App icon or an image component's picture — counts toward this app's
+    storage quota (20MB free / 1GB Vakar+), checked against every asset the
+    app currently references (recomputed from disk, see
+    _compute_storage_bytes) plus this new file, before it's written."""
+    _oid, doc = await _get_owned_app(app_id, user)
+    content, ext = await _read_validated_asset_image(file)
+    is_plus = user.get("is_vakar_plus", False)
+    max_bytes = PLUS_MAX_APP_BYTES if is_plus else FREE_MAX_APP_BYTES
+    current = _compute_storage_bytes(doc)
+    if current + len(content) > max_bytes:
+        limit_label = "1GB" if is_plus else "20MB"
+        raise HTTPException(status_code=402, detail=f"This app has reached its storage limit ({limit_label})." + ("" if is_plus else " Upgrade to Vakar+ for up to 1GB."))
+    return {"url": _write_asset_file(content, ext)}
 
 @router.post("/my/studio-apps/{app_id}/duplicate")
 async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):

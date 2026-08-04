@@ -17,7 +17,7 @@ from ..loyalty import get_tier
 from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest, LoyaltyAdjustRequest,
-    AdminUpdateUserProfileRequest, ResetCooldownRequest,
+    AdminUpdateUserProfileRequest, ResetCooldownRequest, AdminVakarPlusRequest,
 )
 
 router = APIRouter()
@@ -39,6 +39,8 @@ def _user_summary(u: dict) -> dict:
         "pseudo_set": u.get("pseudo_set", False),
         "firstNameChangedAt": _iso(u.get("firstNameChangedAt")),
         "usernameChangedAt": _iso(u.get("usernameChangedAt")),
+        "vakar_plus_status": u.get("vakar_plus_status", "none"),
+        "vakar_plus_plan": u.get("vakar_plus_plan"),
     }
 
 # ============== USERS ==============
@@ -288,6 +290,35 @@ async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Dep
         "previous_tier": previous_tier,
         "new_tier": new_tier,
     }
+
+@router.patch("/admin/users/{user_id}/vakar-plus")
+async def admin_set_vakar_plus(user_id: str, req: AdminVakarPlusRequest, admin=Depends(require_permission("manage_users"))):
+    """Manual comp/revoke of Vakar+, independent of Stripe — for support
+    cases (compensation, promos) rather than a real subscription. Marked
+    with plan "manual" so it's distinguishable from a Stripe-billed one at a
+    glance; granting doesn't touch stripe_customer_id, and if the account
+    also has a real subscription, the next Stripe webhook event for it will
+    overwrite this (this endpoint doesn't fight Stripe, it's a point-in-time
+    override)."""
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if req.grant:
+        update = {"vakar_plus_status": "active", "vakar_plus_plan": "manual", "vakar_plus_current_period_end": None, "vakar_plus_cancel_at_period_end": False}
+        message = "🎉 You've been granted Vakar+ by an admin!"
+        notif_type = "vakar_plus_started"
+    else:
+        update = {"vakar_plus_status": "none", "vakar_plus_plan": None}
+        message = "Your Vakar+ access was revoked by an admin."
+        notif_type = "vakar_plus_ended"
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
+    action = "granted" if req.grant else "revoked"
+    await log_action("user_action", f"Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', user_id)}'", user=admin["username"])
+    await _create_notification(user_id=user_id, message=message, notif_type=notif_type)
+    return {"success": True, "granted": req.grant}
 
 @router.get("/admin/users/{user_id}/export")
 async def export_user_data(user_id: str, admin=Depends(require_permission("manage_users"))):

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
-  Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
+  Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
@@ -9,12 +9,17 @@ import { useAuth } from '../context/AuthContext';
 import {
   COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
+  normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 const MIN_SIZE = 16;
+// Mirrors backend/app/routers/studio_apps.py's FREE_MAX_SCREENS_PER_APP —
+// client-side only for the "Add screen" upsell gate; the backend is the
+// real enforcement (same cross-stack duplication tradeoff as `tier` tags).
+const FREE_MAX_SCREENS = 15;
 const PACKAGE_ID_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
 const SDK_LEVELS = [
   { v: 22, label: '22 — Android 5.1' }, { v: 23, label: '23 — Android 6.0' }, { v: 24, label: '24 — Android 7.0' },
@@ -23,6 +28,13 @@ const SDK_LEVELS = [
   { v: 31, label: '31 — Android 12' }, { v: 32, label: '32 — Android 12L' }, { v: 33, label: '33 — Android 13' },
   { v: 34, label: '34 — Android 14' }, { v: 35, label: '35 — Android 15' },
 ];
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return '—';
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
 
 function findComponent(screen, id) {
   for (const c of screen.components) {
@@ -176,8 +188,10 @@ function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onD
 const FIELD_LABEL = 'block text-[10px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5';
 const FIELD_INPUT = 'w-full rounded-lg px-3 py-2 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm focus:outline-none focus:border-[#4ECDC4]';
 
-function PropsEditor({ node, onChange }) {
+function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlocked }) {
   const set = (key, value) => onChange(n => { n.props[key] = value; });
+  const [imgUploading, setImgUploading] = useState(false);
+  const imgInputRef = useRef(null);
 
   switch (node.type) {
     case 'text':
@@ -190,8 +204,16 @@ function PropsEditor({ node, onChange }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={FIELD_LABEL}>Size</label>
-              <Select value={node.props.size || 'md'} onChange={e => set('size', e.target.value)} size="sm">
+              <Select
+                value={node.props.size || 'md'}
+                onChange={e => {
+                  if (e.target.value === 'custom' && !allowPremium) { onPremiumBlocked?.('Custom text size requires Vakar+.'); return; }
+                  set('size', e.target.value);
+                }}
+                size="sm"
+              >
                 {['sm', 'md', 'lg', 'xl'].map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="custom">{allowPremium ? 'Custom…' : 'Custom… (Vakar+)'}</option>
               </Select>
             </div>
             <div>
@@ -214,6 +236,17 @@ function PropsEditor({ node, onChange }) {
               <input type="color" value={node.props.color || '#1D1D1F'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
             </div>
           </div>
+          {node.props.size === 'custom' && allowPremium && (
+            <div>
+              <label className={FIELD_LABEL}>Exact size (px)</label>
+              <input
+                type="number" min={MIN_CUSTOM_TEXT_PX} max={MAX_CUSTOM_TEXT_PX}
+                value={node.props.size_px ?? 15}
+                onChange={e => set('size_px', Math.max(MIN_CUSTOM_TEXT_PX, Math.min(MAX_CUSTOM_TEXT_PX, Number(e.target.value) || MIN_CUSTOM_TEXT_PX)))}
+                className={FIELD_INPUT}
+              />
+            </div>
+          )}
         </div>
       );
     case 'button':
@@ -238,8 +271,34 @@ function PropsEditor({ node, onChange }) {
         <div className="space-y-3">
           <div>
             <label className={FIELD_LABEL}>Image URL</label>
-            <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://… or /api/uploads/…" className={FIELD_INPUT} />
+            <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://… or upload below" className={FIELD_INPUT} />
           </div>
+          {onUploadImage && (
+            <div>
+              <button
+                type="button" onClick={() => imgInputRef.current?.click()} disabled={imgUploading}
+                className="text-xs font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50"
+              >
+                {imgUploading ? 'Uploading…' : 'Upload an image'}
+              </button>
+              <input
+                ref={imgInputRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp" className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  setImgUploading(true);
+                  try {
+                    const url = await onUploadImage(file);
+                    if (url) set('url', url);
+                  } finally {
+                    setImgUploading(false);
+                  }
+                }}
+              />
+              <p className="mt-1 text-[10px] text-[#A1A1A6]">Counts toward your app's storage quota.</p>
+            </div>
+          )}
           <div>
             <label className={FIELD_LABEL}>Corner radius</label>
             <input type="number" min="0" value={node.props.radius ?? 12} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
@@ -256,7 +315,7 @@ function PropsEditor({ node, onChange }) {
           <div>
             <label className={FIELD_LABEL}>Bound variable</label>
             <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. userName" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">What the visitor types is stored in this variable — usable in {'{{variable}}'} text or a "Call an API" action.</p>
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">What the visitor types is stored in this variable — usable in {'{{variable}}'} text or an "Update an element" action.</p>
           </div>
         </div>
       );
@@ -327,7 +386,7 @@ function PropsEditor({ node, onChange }) {
           <div>
             <label className={FIELD_LABEL}>Source variable</label>
             <input value={node.props.source_variable || ''} onChange={e => set('source_variable', e.target.value)} placeholder="e.g. apiResult" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">Expects a JSON array in this variable — e.g. the result of a "Call an API" action.</p>
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Expects a JSON array in this variable — set it from a "Set a variable" action, or bind it to an Input.</p>
           </div>
           <div>
             <label className={FIELD_LABEL}>Item template</label>
@@ -349,26 +408,27 @@ function PropsEditor({ node, onChange }) {
   }
 }
 
-function ActionEditor({ node, screens, onChange }) {
-  const action = node.actions?.onClick || null;
+// Components a button click can push a value into — text content, or a
+// button/toggle's own label. Flattened one level deep (screen top level +
+// container children), matching the builder's max-one-nesting-level model.
+function flattenUpdatableTargets(screen) {
+  const out = [];
+  const walk = (comp) => {
+    if (UPDATABLE_TYPES.includes(comp.type)) {
+      const prop = UPDATABLE_PROP[comp.type];
+      const preview = String(comp.props?.[prop] || '').slice(0, 24) || '(empty)';
+      out.push({ id: comp.id, label: `${COMPONENT_META[comp.type].label} — "${preview}"` });
+    }
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (screen?.components || []).forEach(walk);
+  return out;
+}
 
-  const setActionType = (type) => onChange(n => {
-    if (!type) { delete n.actions.onClick; return; }
-    n.actions.onClick = createAction(type);
-  });
-  const setField = (field, value) => onChange(n => { n.actions.onClick[field] = value; });
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <label className={FIELD_LABEL}>When clicked</label>
-        <Select value={action?.type || ''} onChange={e => setActionType(e.target.value)} size="sm" placeholder="No action">
-          <option value="">No action</option>
-          {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}
-        </Select>
-      </div>
-
-      {action?.type === 'navigate' && (
+function ActionStepFields({ action, screens, targets, setField }) {
+  switch (action.type) {
+    case 'navigate':
+      return (
         <div>
           <label className={FIELD_LABEL}>Screen</label>
           <Select value={action.screen_id || ''} onChange={e => setField('screen_id', e.target.value)} size="sm">
@@ -376,13 +436,13 @@ function ActionEditor({ node, screens, onChange }) {
             {screens.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </div>
-      )}
-
-      {action?.type === 'set_variable' && (
+      );
+    case 'set_variable':
+      return (
         <>
           <div>
             <label className={FIELD_LABEL}>Variable</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. count" className={FIELD_INPUT} />
+            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. coins" className={FIELD_INPUT} />
           </div>
           <div>
             <label className={FIELD_LABEL}>How</label>
@@ -399,43 +459,44 @@ function ActionEditor({ node, screens, onChange }) {
             </div>
           )}
         </>
-      )}
-
-      {action?.type === 'show_message' && (
+      );
+    case 'update_text':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>Element</label>
+            <Select value={action.target_id || ''} onChange={e => setField('target_id', e.target.value)} size="sm">
+              <option value="">Choose an element…</option>
+              {targets.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+            {targets.length === 0 && <p className="mt-1 text-[10px] text-[#A1A1A6]">Add a Text, Button or Toggle to this screen first.</p>}
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>How</label>
+            <Select value={action.value_mode || 'literal'} onChange={e => setField('value_mode', e.target.value)} size="sm">
+              <option value="literal">Set to a value</option>
+              <option value="variable">Copy a variable's value</option>
+            </Select>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
+            <input
+              value={action.value || ''} onChange={e => setField('value', e.target.value)}
+              placeholder={action.value_mode === 'variable' ? 'e.g. coins' : 'Supports {{other_variable}}'}
+              className={FIELD_INPUT}
+            />
+          </div>
+        </>
+      );
+    case 'show_message':
+      return (
         <div>
           <label className={FIELD_LABEL}>Message</label>
           <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="Supports {{variable}}" className={FIELD_INPUT} />
         </div>
-      )}
-
-      {action?.type === 'call_api' && (
-        <>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-1">
-              <label className={FIELD_LABEL}>Method</label>
-              <Select value={action.method || 'GET'} onChange={e => setField('method', e.target.value)} size="sm">
-                {['GET', 'POST', 'PUT', 'DELETE'].map(m => <option key={m} value={m}>{m}</option>)}
-              </Select>
-            </div>
-            <div className="col-span-2">
-              <label className={FIELD_LABEL}>Endpoint</label>
-              <input value={action.url || ''} onChange={e => setField('url', e.target.value)} placeholder="/api/careers" className={FIELD_INPUT} />
-            </div>
-          </div>
-          {action.method !== 'GET' && (
-            <div>
-              <label className={FIELD_LABEL}>Body (JSON)</label>
-              <textarea rows={3} value={action.body || ''} onChange={e => setField('body', e.target.value)} placeholder='{"name": "{{userName}}"}' className={`${FIELD_INPUT} resize-none font-mono text-xs`} />
-            </div>
-          )}
-          <div>
-            <label className={FIELD_LABEL}>Store response in variable <span className="normal-case font-normal text-[#A1A1A6]">(optional)</span></label>
-            <input value={action.store_in_variable || ''} onChange={e => setField('store_in_variable', e.target.value)} placeholder="e.g. apiResult" className={FIELD_INPUT} />
-          </div>
-        </>
-      )}
-
-      {action?.type === 'open_link' && (
+      );
+    case 'open_link':
+      return (
         <>
           <div>
             <label className={FIELD_LABEL}>URL</label>
@@ -446,7 +507,57 @@ function ActionEditor({ node, screens, onChange }) {
             Open in a new tab
           </label>
         </>
-      )}
+      );
+    default:
+      return null;
+  }
+}
+
+// A click runs an ordered list of steps (e.g. "add 1 to coins", then
+// "update text1 with coins") — normalizeActions() reads a pre-list save
+// (a single action object) as a one-step list, so no backend migration is
+// needed for apps saved before this shipped.
+function ActionEditor({ node, screens, screen, onChange }) {
+  const steps = normalizeActions(node.actions?.onClick);
+  const targets = useMemo(() => flattenUpdatableTargets(screen), [screen]);
+
+  const setSteps = (list) => onChange(n => {
+    if (!list.length) delete n.actions.onClick;
+    else n.actions.onClick = list;
+  });
+  const addStep = () => setSteps([...steps, createAction('set_variable')]);
+  const removeStep = (idx) => setSteps(steps.filter((_, i) => i !== idx));
+  const moveStep = (idx, dir) => {
+    const next = idx + dir;
+    if (next < 0 || next >= steps.length) return;
+    const copy = [...steps];
+    [copy[idx], copy[next]] = [copy[next], copy[idx]];
+    setSteps(copy);
+  };
+  const setStepType = (idx, type) => setSteps(steps.map((s, i) => (i === idx ? createAction(type) : s)));
+  const setField = (idx, field, value) => setSteps(steps.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+
+  return (
+    <div className="space-y-3">
+      <label className={FIELD_LABEL}>When clicked</label>
+      {steps.length === 0 && <p className="text-xs text-[#A1A1A6]">No action yet — add a step below.</p>}
+      {steps.map((action, idx) => (
+        <div key={idx} className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] p-3 space-y-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] w-3.5 shrink-0">{idx + 1}</span>
+            <Select value={action.type} onChange={e => setStepType(idx, e.target.value)} size="sm" wrapperClassName="flex-1">
+              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}
+            </Select>
+            <button type="button" onClick={() => moveStep(idx, -1)} disabled={idx === 0} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronUp size={12} /></button>
+            <button type="button" onClick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronDown size={12} /></button>
+            <button type="button" onClick={() => removeStep(idx)} className="p-1 text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={12} /></button>
+          </div>
+          <ActionStepFields action={action} screens={screens} targets={targets} setField={(field, value) => setField(idx, field, value)} />
+        </div>
+      ))}
+      <button onClick={addStep} className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors">
+        <Plus size={11} />Add a step
+      </button>
     </div>
   );
 }
@@ -492,16 +603,37 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     setDirty(true);
   };
 
+  // App-scoped upload (icon, or an image component's picture) — counts
+  // toward the app's storage quota (20MB free / 1GB Vakar+), unlike the
+  // site-wide /api/upload endpoint. Staff/house apps (apiBase points at
+  // /admin/studio-apps) aren't quota'd, same as everywhere else in this file.
+  const uploadAsset = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const r = await fetch(`${API}${apiBase}/${appId}/asset`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Upload failed.');
+    return data.url;
+  };
+
+  const uploadImageAsset = async (file) => {
+    try {
+      return await uploadAsset(file);
+    } catch (e) {
+      setSaveError(e.message);
+      return null;
+    }
+  };
+
   const handleIconUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIconUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const r = await fetch(`${API}/api/upload`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
-      const data = await r.json();
-      if (r.ok && data.url) mutate(a => { a.app_icon_url = data.url; });
+      const url = await uploadAsset(file);
+      mutate(a => { a.app_icon_url = url; });
+    } catch (err) {
+      setSaveError(err.message);
     } finally {
       setIconUploading(false);
       e.target.value = '';
@@ -859,9 +991,15 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </div>
               ))}
             </div>
-            <button onClick={addScreen} className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors">
-              <Plus size={11} />Add screen
-            </button>
+            {(allowPremium || app.screens.length < FREE_MAX_SCREENS) ? (
+              <button onClick={addScreen} className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors">
+                <Plus size={11} />Add screen
+              </button>
+            ) : (
+              <button onClick={() => setSaveError(`Free plan is limited to ${FREE_MAX_SCREENS} pages.`)} className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#BFBFC4] dark:text-[#52525b]">
+                <Lock size={10} />Add screen (Vakar+)
+              </button>
+            )}
           </div>
 
           <div>
@@ -994,9 +1132,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </div>
               )}
               {(!COMPONENT_META[selected.type]?.supportsAction || inspectorTab === 'props') ? (
-                <PropsEditor node={selected} onChange={updateSelected} />
+                <PropsEditor node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset} onPremiumBlocked={setSaveError} />
               ) : (
-                <ActionEditor node={selected} screens={app.screens} onChange={updateSelected} />
+                <ActionEditor node={selected} screens={app.screens} screen={activeScreen} onChange={updateSelected} />
               )}
             </>
           )}
@@ -1093,6 +1231,24 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   </Select>
                 </div>
               </div>
+
+              {typeof app.storage_used_bytes === 'number' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={FIELD_LABEL}>Storage</label>
+                    <span className="text-[10px] text-[#A1A1A6]">{formatBytes(app.storage_used_bytes)} / {formatBytes(app.storage_max_bytes)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#F5F5F7] dark:bg-[#0d0d14] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${app.storage_used_bytes >= app.storage_max_bytes ? 'bg-red-500' : 'bg-[#4ECDC4]'}`}
+                      style={{ width: `${Math.min(100, (app.storage_used_bytes / app.storage_max_bytes) * 100)}%` }}
+                    />
+                  </div>
+                  {!allowPremium && (
+                    <p className="mt-1 text-[10px] text-[#A1A1A6]">Icon and uploaded images count toward this. <a href="/vakar-plus" className="text-[#4ECDC4] font-semibold hover:underline">Upgrade to Vakar+ for 1GB</a>.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">

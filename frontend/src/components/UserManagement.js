@@ -5,7 +5,7 @@ import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
   Search, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
-  FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow,
+  FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow, Crown,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -162,6 +162,8 @@ export const UserManagement = () => {
   const [loyaltyReason, setLoyaltyReason] = useState('');
   const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const [loyaltyResult, setLoyaltyResult] = useState(null);
+
+  const [vakarPlusLoading, setVakarPlusLoading] = useState(false);
 
   const [copied, setCopied] = useState(false);
   const [activity, setActivity] = useState(null);
@@ -360,6 +362,20 @@ export const UserManagement = () => {
       toast.error(err.response?.data?.detail || 'Failed to adjust loyalty');
     } finally {
       setLoyaltyLoading(false);
+    }
+  };
+
+  const handleVakarPlusToggle = async (grant) => {
+    if (!activeUser) return;
+    setVakarPlusLoading(true);
+    try {
+      await api.patch(`/api/admin/users/${activeUser.id}/vakar-plus`, { grant });
+      setActiveUser(u => ({ ...u, vakar_plus_status: grant ? 'active' : 'none', vakar_plus_plan: grant ? 'manual' : null }));
+      toast.success(grant ? 'Vakar+ granted' : 'Vakar+ revoked');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update Vakar+ status');
+    } finally {
+      setVakarPlusLoading(false);
     }
   };
 
@@ -650,6 +666,40 @@ export const UserManagement = () => {
               </div>
             )}
           </div>
+
+          {/* Vakar+ — manual comp/revoke, independent of Stripe */}
+          {!isSuperAdmin && (
+            <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
+              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4 flex items-center gap-1.5">
+                <Crown size={14} className="text-[#4ECDC4]" /> Vakar+
+              </h3>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                    u.vakar_plus_status === 'active' ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'bg-[#F5F5F7] dark:bg-[#111118] text-[#A1A1A6] dark:text-[#71717a]'
+                  }`}>
+                    {u.vakar_plus_status === 'active' ? 'Active' : 'Not subscribed'}
+                  </span>
+                  {u.vakar_plus_plan && (
+                    <span className="text-xs text-[#A1A1A6] dark:text-[#71717a] capitalize">
+                      {u.vakar_plus_plan === 'manual' ? 'manually granted' : `${u.vakar_plus_plan} — via Stripe`}
+                    </span>
+                  )}
+                </div>
+                {u.vakar_plus_status === 'active' ? (
+                  <Button variant="secondary" size="sm" loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(false)}>Revoke Vakar+</Button>
+                ) : (
+                  <Button size="sm" icon={Crown} loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(true)} className="!bg-[#4ECDC4] hover:!bg-[#3DBDB4] !text-white">Grant Vakar+</Button>
+                )}
+              </div>
+              {u.vakar_plus_plan === 'manual' && u.vakar_plus_status === 'active' && (
+                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Granted manually — doesn't renew or charge; revoke here whenever it should end.</p>
+              )}
+              {u.vakar_plus_plan && u.vakar_plus_plan !== 'manual' && u.vakar_plus_status === 'active' && (
+                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Billed via Stripe — revoking here overrides it until the next billing event syncs status again.</p>
+              )}
+            </div>
+          )}
 
           {/* Loyalty adjustment */}
           {!isSuperAdmin && (

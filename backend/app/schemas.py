@@ -264,6 +264,9 @@ class LoyaltyAdjustRequest(BaseModel):
     adjust_dollars: float
     reason: str = ""
 
+class AdminVakarPlusRequest(BaseModel):
+    grant: bool
+
 class RegisterRequest(BaseModel):
     email: str
     password: str
