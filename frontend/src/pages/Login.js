@@ -77,7 +77,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
               New password
             </label>
             <InputField
@@ -90,7 +90,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
               Confirm new password
             </label>
             <InputField
@@ -130,7 +130,7 @@ export const Login = () => {
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Register state
-  const [reg, setReg] = useState({ email: '', password: '', firstName: '', lastName: '', username: '' });
+  const [reg, setReg] = useState({ email: '', password: '', firstName: '', lastName: '' });
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
@@ -173,11 +173,22 @@ export const Login = () => {
     setRegError('');
     setRegLoading(true);
     const result = await register(reg);
-    setRegLoading(false);
-    if (result.success) {
-      setRegSuccess(true);
-    } else {
+    if (!result.success) {
+      setRegLoading(false);
       setRegError(result.error);
+      return;
+    }
+    // Log the new account straight in and send it to the mandatory pseudo pick —
+    // registration alone used to leave the user logged out on a "go sign in"
+    // panel, which is now only a fallback if this auto-login step itself fails.
+    const loginResult = await login(reg.email, reg.password);
+    setRegLoading(false);
+    if (loginResult.success) {
+      navigate('/choose-pseudo');
+    } else {
+      setTab('login');
+      setEmail(reg.email);
+      setRegSuccess(true);
     }
   };
 
@@ -185,7 +196,11 @@ export const Login = () => {
     <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <img src={seaStackDusk} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-[#F5F5F7]/72" />
+        {/* /72 let the mountain silhouette's dark edge bleed through enough to
+            wash out the text sitting directly on the photo (subtitle, legal
+            line) — this photo has more local contrast than Maintenance's, so
+            it needs a stronger scrim to keep text legible everywhere. */}
+        <div className="absolute inset-0 bg-[#F5F5F7]/90" />
         <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
         <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
       </div>
@@ -202,7 +217,7 @@ export const Login = () => {
           >
             Vakar Games
           </Link>
-          <p className="mt-1.5 text-sm text-[#6E6E73]">
+          <p className="mt-1.5 text-sm text-[#6E6E73] [text-shadow:0_1px_12px_rgba(245,245,247,0.9)]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
@@ -228,7 +243,7 @@ export const Login = () => {
           {tab === 'login' ? (
             <form onSubmit={handleLogin} className="px-7 py-7 space-y-4" data-testid="login-form">
               <div>
-                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
                   Email
                 </label>
                 <InputField
@@ -242,7 +257,7 @@ export const Login = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <InputField
@@ -293,8 +308,8 @@ export const Login = () => {
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
-                        First name <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
+                      <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                        First name
                       </label>
                       <InputField
                         icon={User}
@@ -303,11 +318,10 @@ export const Login = () => {
                         value={reg.firstName}
                         onChange={e => setReg(r => ({ ...r, firstName: e.target.value }))}
                         autoComplete="given-name"
-                        required={false}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
                         Last name <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
                       </label>
                       <InputField
@@ -322,21 +336,7 @@ export const Login = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
-                      Username <span className="text-[#BFBFC4] normal-case font-normal">(optional — auto-generated from email)</span>
-                    </label>
-                    <InputField
-                      icon={User}
-                      type="text"
-                      placeholder="jane_doe"
-                      value={reg.username}
-                      onChange={e => setReg(r => ({ ...r, username: e.target.value }))}
-                      autoComplete="username"
-                      required={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
                       Email
                     </label>
                     <InputField
@@ -349,7 +349,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
                       Password
                     </label>
                     <InputField
@@ -382,9 +382,9 @@ export const Login = () => {
           )}
         </div>
 
-        <p className="mt-5 text-center text-xs text-[#A1A1A6]">
+        <p className="mt-5 text-center text-xs text-[#6E6E73] [text-shadow:0_1px_12px_rgba(245,245,247,0.9)]">
           By creating an account you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-[#6E6E73] transition-colors">Terms of Service</Link>.
+          <Link to="/terms" className="underline hover:text-[#1D1D1F] transition-colors">Terms of Service</Link>.
         </p>
       </div>
     </div>

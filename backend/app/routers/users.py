@@ -1,20 +1,45 @@
 import re
 import math
 import secrets
+from typing import Optional
 from datetime import datetime, timezone
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends
 
 from ..database import db
-from ..deps import require_permission, hash_key, validate_password_strength, is_valid_permission
+from ..deps import (
+    require_permission, hash_key, validate_password_strength, is_valid_permission,
+    PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS, FIRSTNAME_COOLDOWN_DAYS,
+)
 from ..utils import log_action, _create_notification
 from ..loyalty import get_tier
+from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest, LoyaltyAdjustRequest,
+    AdminUpdateUserProfileRequest, ResetCooldownRequest,
 )
 
 router = APIRouter()
+
+def _user_summary(u: dict) -> dict:
+    def _iso(dt):
+        return dt.isoformat() if isinstance(dt, datetime) else None
+    return {
+        "id": str(u["_id"]),
+        "email": u.get("email", ""),
+        "username": u.get("username", ""),
+        "firstName": u.get("firstName", ""),
+        "lastName": u.get("lastName", ""),
+        "role": u.get("role", "user"),
+        "permissions": u.get("permissions", []),
+        "isSuspended": u.get("isSuspended", False),
+        "createdAt": _iso(u.get("createdAt")) or u.get("created_at", ""),
+        "lastLogin": _iso(u.get("lastLogin")),
+        "pseudo_set": u.get("pseudo_set", False),
+        "firstNameChangedAt": _iso(u.get("firstNameChangedAt")),
+        "usernameChangedAt": _iso(u.get("usernameChangedAt")),
+    }
 
 # ============== USERS ==============
 @router.post("/admin/users/create")
@@ -29,14 +54,14 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
     # Auto-generate username if not provided
     raw_username = (body.username or "").strip()
     if not raw_username:
-        base = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:24]
+        base = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:14] or "player"
         raw_username = base
         suffix = 0
         while await db.users.find_one({"username": raw_username}):
             suffix += 1
-            raw_username = f"{base}_{suffix}"
-    if not re.match(r'^[a-zA-Z0-9_]{3,32}$', raw_username):
-        raise HTTPException(status_code=400, detail="Username must be 3-32 characters (letters, numbers, underscores only)")
+            raw_username = f"{base[:14 - len(str(suffix))]}{suffix}"
+    if not re.match(PSEUDO_REGEX, raw_username):
+        raise HTTPException(status_code=400, detail="Pseudo must be 5-14 characters (letters, numbers, underscores only)")
     if await db.users.find_one({"username": raw_username}):
         raise HTTPException(status_code=400, detail="Username already taken")
     # Auto-generate password if not provided
@@ -59,6 +84,11 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
         "createdAt": datetime.now(timezone.utc),
         "lastLogin": None,
         "createdByAdmin": admin["username"],
+        "firstNameChangedAt": None,
+        "usernameChangedAt": None,
+        # An admin-chosen pseudo counts as deliberately set; an auto-generated
+        # placeholder still routes the new user through the onboarding pick.
+        "pseudo_set": bool((body.username or "").strip()),
     })
     await log_action("user_action", f"Admin '{admin['username']}' created user account: {raw_username} ({email})", user=admin["username"])
     return {
@@ -69,24 +99,29 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
     }
 
 @router.get("/users")
-async def list_users(page: int = 1, limit: int = 100, admin=Depends(require_permission("manage_users"))):
+async def list_users(
+    page: int = 1, limit: int = 100,
+    search: str = "", role: Optional[str] = None, suspended: Optional[bool] = None,
+    admin=Depends(require_permission("manage_users")),
+):
     skip = (page - 1) * limit
-    total = await db.users.count_documents({})
-    raw = await db.users.find({}, {"password_hash": 0, "access_key_hash": 0}).skip(skip).limit(limit).to_list(limit)
-    result = []
-    for u in raw:
-        result.append({
-            "id": str(u["_id"]),
-            "email": u.get("email", ""),
-            "username": u.get("username", ""),
-            "firstName": u.get("firstName", ""),
-            "lastName": u.get("lastName", ""),
-            "role": u.get("role", "user"),
-            "permissions": u.get("permissions", []),
-            "isSuspended": u.get("isSuspended", False),
-            "createdAt": u["createdAt"].isoformat() if isinstance(u.get("createdAt"), datetime) else u.get("created_at", ""),
-            "lastLogin": u["lastLogin"].isoformat() if isinstance(u.get("lastLogin"), datetime) else None,
-        })
+    query = {}
+    if search.strip():
+        pattern = re.escape(search.strip())
+        query["$or"] = [
+            {"username": {"$regex": pattern, "$options": "i"}},
+            {"email": {"$regex": pattern, "$options": "i"}},
+            {"firstName": {"$regex": pattern, "$options": "i"}},
+            {"lastName": {"$regex": pattern, "$options": "i"}},
+        ]
+    if role:
+        query["role"] = role
+    if suspended is not None:
+        query["isSuspended"] = suspended
+    total = await db.users.count_documents(query)
+    raw = await db.users.find(query, {"password_hash": 0, "access_key_hash": 0}) \
+        .sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    result = [_user_summary(u) for u in raw]
     return {"users": result, "total": total, "page": page, "limit": limit, "pages": math.ceil(total / limit) if limit else 1}
 
 @router.get("/users/{user_id}")
@@ -97,18 +132,7 @@ async def get_user(user_id: str, admin=Depends(require_permission("manage_users"
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not u:
         raise HTTPException(status_code=404, detail="User not found")
-    return {
-        "id": str(u["_id"]),
-        "email": u.get("email", ""),
-        "username": u.get("username", ""),
-        "firstName": u.get("firstName", ""),
-        "lastName": u.get("lastName", ""),
-        "role": u.get("role", "user"),
-        "permissions": u.get("permissions", []),
-        "isSuspended": u.get("isSuspended", False),
-        "createdAt": u["createdAt"].isoformat() if isinstance(u.get("createdAt"), datetime) else u.get("created_at", ""),
-        "lastLogin": u["lastLogin"].isoformat() if isinstance(u.get("lastLogin"), datetime) else None,
-    }
+    return _user_summary(u)
 
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, admin=Depends(require_permission("manage_users"))):
@@ -164,6 +188,66 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
     await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
     return {"success": True, "id": user_id, "permissions": req.permissions}
+
+@router.patch("/admin/users/{user_id}/profile")
+async def admin_update_user_profile(user_id: str, body: AdminUpdateUserProfileRequest, admin=Depends(require_permission("manage_users"))):
+    """Admin direct-edit of a user's identity fields. Unlike the self-service
+    PATCH /auth/profile, this bypasses the firstName/pseudo cooldowns entirely —
+    an admin action isn't a self-service change — but still enforces the same
+    length/regex/uniqueness/banned-word rules, and still records the change
+    timestamp so a subsequent self-service change still respects its cooldown
+    starting from here."""
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    updates = {}
+    now = datetime.now(timezone.utc)
+    if body.firstName is not None:
+        firstName = body.firstName.strip()[:50]
+        if not firstName:
+            raise HTTPException(status_code=400, detail="First name is required")
+        updates["firstName"] = firstName
+        updates["firstNameChangedAt"] = now
+    if body.lastName is not None:
+        updates["lastName"] = body.lastName.strip()[:50]
+    if body.username is not None:
+        username = body.username.strip()
+        if username != target.get("username", ""):
+            if not re.match(PSEUDO_REGEX, username):
+                raise HTTPException(status_code=400, detail="Pseudo must be 5-14 characters (letters, numbers, underscores only)")
+            if await db.users.find_one({"username": username, "_id": {"$ne": ObjectId(user_id)}}):
+                raise HTTPException(status_code=400, detail="This pseudo is already taken")
+            banned_words = await get_banned_words()
+            if contains_banned_word(username, banned_words):
+                raise HTTPException(status_code=400, detail="This pseudo isn't allowed")
+            updates["username"] = username
+            updates["usernameChangedAt"] = now
+            updates["pseudo_set"] = True
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
+    await log_action("user_action", f"Admin '{admin['username']}' edited profile of '{target.get('username', user_id)}'", user=admin["username"])
+    updated = await db.users.find_one({"_id": ObjectId(user_id)})
+    return _user_summary(updated)
+
+@router.post("/admin/users/{user_id}/reset-cooldown")
+async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=Depends(require_permission("manage_users"))):
+    """Clears the change-cooldown timestamp for one field so the USER's own next
+    self-service change is unblocked immediately — the alternative to an admin
+    picking the new value directly via admin_update_user_profile above."""
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    field_key = "firstNameChangedAt" if body.field == "firstName" else "usernameChangedAt"
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {field_key: None}})
+    await log_action("user_action", f"Admin '{admin['username']}' reset {body.field} cooldown for '{target.get('username', user_id)}'", user=admin["username"])
+    return {"success": True}
 
 @router.patch("/admin/users/{user_id}/loyalty")
 async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Depends(require_permission("manage_users"))):

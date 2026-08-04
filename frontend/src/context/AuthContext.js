@@ -68,6 +68,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const setPseudo = async (username) => {
+    try {
+      await axios.post(
+        `${API_URL}/api/auth/set-pseudo`,
+        { username },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchMe(token);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.detail || 'Failed to set pseudo' };
+    }
+  };
+
   const changePassword = async ({ currentPassword, newPassword }) => {
     try {
       await axios.post(
@@ -106,7 +120,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, changePassword, hasPermission, isAdmin, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, setPseudo, changePassword, hasPermission, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

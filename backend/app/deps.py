@@ -35,6 +35,16 @@ ALL_PERMISSIONS = [
 def is_valid_permission(p: str) -> bool:
     return p in ALL_PERMISSIONS or bool(re.match(r'^project:[a-z0-9_-]+$', p))
 
+# ============== PSEUDO (username) RULES ==============
+# The field is still called "username" in the DB/JWT — it's embedded in the
+# play-token contract consumed by the external TurboWarp game-client extension,
+# so only the rules and the user-facing label ("Pseudo") changed, not the field
+# name. Shared here since both auth.py (self-service) and users.py (admin)
+# enforce the same charset/length.
+PSEUDO_REGEX = r'^[a-zA-Z0-9_]{5,14}$'
+PSEUDO_COOLDOWN_DAYS = 7
+FIRSTNAME_COOLDOWN_DAYS = 30
+
 # ============== AUTH / PASSWORD HELPERS ==============
 def hash_key(key: str) -> str:
     return bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
@@ -80,6 +90,10 @@ async def get_current_user(request: Request):
     if user.get("isSuspended"):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
+
+    def _iso(dt):
+        return dt.isoformat() if dt else None
+
     return {
         "id": str(user["_id"]),
         "email": user.get("email", ""),
@@ -91,6 +105,9 @@ async def get_current_user(request: Request):
         "permissions": ALL_PERMISSIONS if is_super else user.get("permissions", []),
         "mustChangePassword": user.get("mustChangePassword", False),
         "avatar_url": user.get("avatar_url"),
+        "pseudo_set": user.get("pseudo_set", False),
+        "firstNameChangedAt": _iso(user.get("firstNameChangedAt")),
+        "usernameChangedAt": _iso(user.get("usernameChangedAt")),
     }
 
 async def get_optional_user(request: Request):

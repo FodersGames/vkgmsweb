@@ -284,8 +284,19 @@ class CliExecuteRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     firstName: str
-    lastName: str
+    lastName: Optional[str] = ""
     username: str
+
+class SetPseudoRequest(BaseModel):
+    username: str
+
+class AdminUpdateUserProfileRequest(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    username: Optional[str] = None
+
+class ResetCooldownRequest(BaseModel):
+    field: Literal["firstName", "username"]
 
 class UpdateUserRoleRequest(BaseModel):
     role: Literal["user", "admin", "super_admin"]

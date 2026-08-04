@@ -6,10 +6,11 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { SHOP_BADGE_MAP } from '../constants/shopBadges';
+import { TYPE_ORDER, TYPE_META } from '../constants/productTypes';
 import { PublicButton } from '../ui/PublicButton';
 import {
   ShoppingCart, X, CircleNotch, Star, Shield, Trophy, Diamond,
-  CheckCircle, SignIn, GameController, AppWindow, Wrench,
+  CheckCircle, SignIn,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -22,16 +23,6 @@ const TIERS = {
   diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Diamond, discount: 15, min: 25000, max: null  },
 };
 const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
-
-// ── Product type — what the Shop's top-level tabs group by. Comes straight
-// from each game/app's own "Type" field (set in the admin's Games manager),
-// not a second hand-maintained taxonomy layered on top. ────────────────────
-const TYPE_ORDER = ['game', 'application', 'software'];
-const TYPE_META = {
-  game:        { label: 'Games',        icon: GameController },
-  application: { label: 'Applications', icon: AppWindow },
-  software:    { label: 'Software',     icon: Wrench },
-};
 
 const GradeBadge = ({ tier, size = 'sm' }) => {
   const cfg = TIERS[tier] || TIERS.bronze;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowSquareOut, CircleNotch, CheckCircle, ShoppingCart, Tag, X } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { HoverPreview } from '../components/HoverPreview';
 import { PublicButton } from '../ui/PublicButton';
+import { TYPE_ORDER, TYPE_META } from '../constants/productTypes';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -21,11 +22,12 @@ const PLATFORM_ICONS = {
 };
 
 
-const GamesPage = () => {
+const ApplicationsPage = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeType, setActiveType] = useState('');
   const [purchasing, setPurchasing] = useState(null);
   const [purchaseError, setPurchaseError] = useState({ slug: '', msg: '' });
   const [ownedSlugs, setOwnedSlugs] = useState(new Set());
@@ -35,7 +37,7 @@ const GamesPage = () => {
   const [couponChecking, setCouponChecking] = useState(false);
 
   useEffect(() => {
-    document.title = 'Games — Vakar Games';
+    document.title = 'Applications — Vakar Games';
     axios.get(`${API_URL}/api/website/games/public`)
       .then(r => { setGames(r.data.games); setLoading(false); })
       .catch(() => setLoading(false));
@@ -53,6 +55,17 @@ const GamesPage = () => {
       )
     ).then(results => setOwnedSlugs(new Set(results.filter(Boolean))));
   }, [token, games]);
+
+  // Type tabs — only shown once there's more than one type in the catalogue,
+  // same "don't show a pointless single-tab bar" rule Shop.js's own tabs use.
+  const availableTypes = useMemo(
+    () => TYPE_ORDER.filter(t => games.some(g => (g.product_type || 'game') === t)),
+    [games]
+  );
+  const filteredGames = useMemo(
+    () => activeType ? games.filter(g => (g.product_type || 'game') === activeType) : games,
+    [games, activeType]
+  );
 
   const openBuy = (game) => {
     if (!user) { navigate('/login'); return; }
@@ -104,29 +117,61 @@ const GamesPage = () => {
         {/* Page header */}
         <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
           <Reveal className="max-w-7xl mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar games</p>
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar applications</p>
             <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
-              Our games
+              Our catalogue
             </h1>
             <p className="text-[#6E6E73] mt-3 max-w-md">
-              Every title we release. Each one built with care.
+              Every game, app and tool we release. Each one built with care.
             </p>
+
+            {availableTypes.length > 1 && (
+              <div className="flex gap-2 mt-8 flex-wrap">
+                <button
+                  onClick={() => setActiveType('')}
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                    !activeType
+                      ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                      : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
+                  }`}
+                >
+                  All
+                </button>
+                {availableTypes.map(t => {
+                  const meta = TYPE_META[t];
+                  const Icon = meta.icon;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setActiveType(t)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                        activeType === t
+                          ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
+                          : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
+                      }`}
+                    >
+                      <Icon size={13} />{meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Reveal>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-16">
           {loading ? (
             <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
-          ) : games.length === 0 ? (
+          ) : filteredGames.length === 0 ? (
             <div className="text-center py-20">
               <h2 className="font-display text-2xl font-medium text-[#A1A1A6] mb-3">
                 In development
               </h2>
-              <p className="text-[#6E6E73]">New games are in progress. Check the blog for updates.</p>
+              <p className="text-[#6E6E73]">New releases are in progress. Check the blog for updates.</p>
             </div>
           ) : (
             <div className="space-y-20">
-              {games.map((game, idx) => (
+              {filteredGames.map((game, idx) => (
                 <Reveal
                   key={game.slug}
                   className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-16 items-center`}
@@ -298,4 +343,4 @@ const GamesPage = () => {
   );
 };
 
-export default GamesPage;
+export default ApplicationsPage;

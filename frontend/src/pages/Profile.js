@@ -8,6 +8,10 @@ import { SiteFooter } from '../components/SiteFooter';
 import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
+// client-side only for the disabled-field hint; the backend is authoritative.
+const FIRSTNAME_COOLDOWN_DAYS = 30;
+const PSEUDO_COOLDOWN_DAYS = 7;
 
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
@@ -33,9 +37,19 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   );
 };
 
-const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComplete }) => (
+// Days remaining in a cooldown window, or 0 once it's expired / never started.
+const cooldownDaysLeft = (changedAt, cooldownDays) => {
+  if (!changedAt) return 0;
+  const elapsedMs = Date.now() - new Date(changedAt).getTime();
+  const remaining = cooldownDays - Math.floor(elapsedMs / 86400000);
+  return Math.max(0, remaining);
+};
+
+const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComplete, required = true, disabled = false, hint }) => (
   <div>
-    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">{label}</label>
+    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+      {label} {!required && <span className="text-[#A1A1A6] normal-case font-normal">(optional)</span>}
+    </label>
     <div className="relative">
       {Icon && <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />}
       <input
@@ -44,10 +58,12 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
         onChange={onChange}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        required
-        className={`w-full rounded-lg ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]`}
+        required={required}
+        disabled={disabled}
+        className={`w-full rounded-lg ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] disabled:opacity-50 disabled:cursor-not-allowed`}
       />
     </div>
+    {hint && <p className="mt-1 text-[11px] text-[#A1A1A6]">{hint}</p>}
   </div>
 );
 
@@ -156,6 +172,8 @@ const Profile = () => {
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
+  const firstNameDaysLeft = user ? cooldownDaysLeft(user.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS) : 0;
+  const pseudoDaysLeft = user ? cooldownDaysLeft(user.usernameChangedAt, PSEUDO_COOLDOWN_DAYS) : 0;
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -386,17 +404,17 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Vakar Play quick link — always visible, independent of the tabs below */}
+        {/* Vakar App quick link — always visible, independent of the tabs below */}
         <div className="max-w-lg mx-auto px-6 pt-6">
           <Link
-            to="/play"
+            to="/app"
             className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
           >
             <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
               <GameController size={16} className="text-[#6E6E73]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#1D1D1F]">Vakar Play</p>
+              <p className="text-sm font-bold text-[#1D1D1F]">Vakar App</p>
               <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
             </div>
             <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
@@ -451,10 +469,26 @@ const Profile = () => {
                 {editingProfile ? (
                   <form onSubmit={handleProfileSave} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <TextField label="First Name" value={profileForm.firstName} onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jane" icon={User} autoComplete="given-name" />
-                      <TextField label="Last Name" value={profileForm.lastName} onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Doe" icon={User} autoComplete="family-name" />
+                      <TextField
+                        label="First Name" value={profileForm.firstName}
+                        onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))}
+                        placeholder="Jane" icon={User} autoComplete="given-name"
+                        disabled={firstNameDaysLeft > 0}
+                        hint={firstNameDaysLeft > 0 ? `You can change this again in ${firstNameDaysLeft} day${firstNameDaysLeft !== 1 ? 's' : ''}.` : null}
+                      />
+                      <TextField
+                        label="Last Name" value={profileForm.lastName}
+                        onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))}
+                        placeholder="Doe" icon={User} autoComplete="family-name" required={false}
+                      />
                     </div>
-                    <TextField label="Username" value={profileForm.username} onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))} placeholder="jane_doe" autoComplete="username" />
+                    <TextField
+                      label="Pseudo" value={profileForm.username}
+                      onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))}
+                      placeholder="jane_doe" autoComplete="username"
+                      disabled={pseudoDaysLeft > 0}
+                      hint={pseudoDaysLeft > 0 ? `You can change this again in ${pseudoDaysLeft} day${pseudoDaysLeft !== 1 ? 's' : ''}.` : '5-14 characters — letters, numbers and underscores only.'}
+                    />
                     <div>
                       <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-wider mb-1">Email</p>
                       <p className="text-sm text-[#6E6E73]">{user.email} <span className="text-[#A1A1A6] text-xs">(cannot be changed)</span></p>
@@ -484,7 +518,7 @@ const Profile = () => {
                       {[
                         { label: 'First Name', value: user.firstName || '—' },
                         { label: 'Last Name',  value: user.lastName  || '—' },
-                        { label: 'Username',   value: '@' + user.username  },
+                        { label: 'Pseudo',     value: '@' + user.username  },
                         { label: 'Email',      value: user.email           },
                       ].map(({ label, value }) => (
                         <div key={label}>

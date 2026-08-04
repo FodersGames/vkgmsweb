@@ -7,15 +7,28 @@ import { SavedFlash, useSavedFlash } from '../ui';
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TIER_LABELS = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', diamond: 'Diamond' };
+// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
+// client-side only for the disabled-field hint; the backend is authoritative.
+const FIRSTNAME_COOLDOWN_DAYS = 30;
+const PSEUDO_COOLDOWN_DAYS = 7;
+
+const cooldownDaysLeft = (changedAt, cooldownDays) => {
+  if (!changedAt) return 0;
+  const elapsedMs = Date.now() - new Date(changedAt).getTime();
+  const remaining = cooldownDays - Math.floor(elapsedMs / 86400000);
+  return Math.max(0, remaining);
+};
 
 export const AccountSettings = () => {
-  const { user, token, hasPermission } = useAuth();
+  const { user, token, hasPermission, refreshUser } = useAuth();
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [username, setUsername] = useState(user?.username || '');
   const [saving, setSaving] = useState(false);
   const [success, flashSuccess] = useSavedFlash(3000);
   const [error, setError] = useState('');
+  const firstNameDaysLeft = cooldownDaysLeft(user?.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS);
+  const pseudoDaysLeft = cooldownDaysLeft(user?.usernameChangedAt, PSEUDO_COOLDOWN_DAYS);
 
   const [loyaltyAmt, setLoyaltyAmt] = useState('');
   const [loyaltyReason, setLoyaltyReason] = useState('');
@@ -27,7 +40,6 @@ export const AccountSettings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setSuccess(false);
     setError('');
     try {
       await axios.patch(
@@ -36,6 +48,7 @@ export const AccountSettings = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       flashSuccess();
+      refreshUser();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update profile.');
     } finally {
@@ -67,7 +80,7 @@ export const AccountSettings = () => {
   return (
     <div className="max-w-lg">
       <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">MY ACCOUNT</h2>
-      <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-8">Update your display name and username.</p>
+      <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-8">Update your display name and pseudo.</p>
 
       <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
         <div className="flex items-center gap-3 pb-4 mb-6 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
@@ -91,15 +104,18 @@ export const AccountSettings = () => {
                 required
                 maxLength={50}
                 value={firstName}
+                disabled={firstNameDaysLeft > 0}
                 onChange={e => setFirstName(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
               />
+              {firstNameDaysLeft > 0 && (
+                <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Changeable again in {firstNameDaysLeft} day{firstNameDaysLeft !== 1 ? 's' : ''}.</p>
+              )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Last name</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Last name <span className="text-[#A1A1A6] font-normal normal-case">(optional)</span></label>
               <input
                 type="text"
-                required
                 maxLength={50}
                 value={lastName}
                 onChange={e => setLastName(e.target.value)}
@@ -108,18 +124,21 @@ export const AccountSettings = () => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Username</label>
+            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Pseudo</label>
             <input
               type="text"
               required
-              minLength={3}
-              maxLength={32}
+              minLength={5}
+              maxLength={14}
               pattern="[a-zA-Z0-9_]+"
               value={username}
+              disabled={pseudoDaysLeft > 0}
               onChange={e => setUsername(e.target.value)}
-              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
             />
-            <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">3–32 characters, letters, numbers and underscores only.</p>
+            <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">
+              {pseudoDaysLeft > 0 ? `Changeable again in ${pseudoDaysLeft} day${pseudoDaysLeft !== 1 ? 's' : ''}.` : '5–14 characters, letters, numbers and underscores only.'}
+            </p>
           </div>
 
           {error && <p className="text-xs text-red-500">{error}</p>}

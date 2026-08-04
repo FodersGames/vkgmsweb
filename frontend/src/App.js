@@ -1,14 +1,14 @@
 import React from 'react';
 import { IconContext } from '@phosphor-icons/react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
-import GamesPage from './pages/Games';
+import ApplicationsPage from './pages/Applications';
 import { BlogList, BlogPost } from './pages/Blog';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -17,7 +17,8 @@ import ShopSuccess from './pages/ShopSuccess';
 import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
-import VakarPlay from './pages/VakarPlay';
+import VakarApp from './pages/VakarApp';
+import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
@@ -36,6 +37,23 @@ const NotFound = () => (
   </div>
 );
 
+// Forces any logged-in user who hasn't gone through the mandatory pseudo-pick
+// step yet (auto-generated at registration, never a deliberate choice) to
+// /choose-pseudo before touching anything else on the site — catches both a
+// fresh registration and an existing session resuming from a stored token,
+// unlike the ad hoc mustChangePassword gate in Login.js which only fires at
+// the login moment itself.
+const EXEMPT_FROM_PSEUDO_GATE = ['/choose-pseudo', '/login', '/dashboard'];
+
+const PseudoGate = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (user && user.pseudo_set === false && !EXEMPT_FROM_PSEUDO_GATE.some(p => location.pathname.startsWith(p))) {
+    return <Navigate to="/choose-pseudo" replace />;
+  }
+  return null;
+};
+
 const AppRoutes = () => {
   const { maintenance, checked } = useMaintenanceCheck();
 
@@ -46,25 +64,31 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/games" element={<GamesPage />} />
-      <Route path="/blog" element={<BlogList />} />
-      <Route path="/blog/:slug" element={<BlogPost />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/terms" element={<TermsOfService />} />
-      <Route path="/shop" element={<Shop />} />
-      <Route path="/shop/success" element={<ShopSuccess />} />
-      <Route path="/shop/:gameSlug" element={<GameShop />} />
-      <Route path="/shop/:gameSlug/success" element={<ShopSuccess legacy />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/play" element={<VakarPlay />} />
-      <Route path="/careers" element={<Navigate to="/" replace />} />
-      <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <PseudoGate />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/applications" element={<ApplicationsPage />} />
+        <Route path="/games" element={<Navigate to="/applications" replace />} />
+        <Route path="/blog" element={<BlogList />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/shop/success" element={<ShopSuccess />} />
+        <Route path="/shop/:gameSlug" element={<GameShop />} />
+        <Route path="/shop/:gameSlug/success" element={<ShopSuccess legacy />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/app" element={<VakarApp />} />
+        <Route path="/play" element={<Navigate to="/app" replace />} />
+        <Route path="/choose-pseudo" element={<ChoosePseudo />} />
+        <Route path="/careers" element={<Navigate to="/" replace />} />
+        <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 

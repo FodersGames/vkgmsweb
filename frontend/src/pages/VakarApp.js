@@ -105,7 +105,7 @@ function GuildCard({ entry }) {
   );
 }
 
-export default function VakarPlay() {
+export default function VakarApp() {
   const { user, token, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [games, setGames] = useState([]);
@@ -114,7 +114,7 @@ export default function VakarPlay() {
   const [guilds, setGuilds] = useState([]);
 
   useEffect(() => {
-    document.title = 'Vakar Play — My Games';
+    document.title = 'Vakar App — My Games';
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     if (!token) return;
@@ -143,7 +143,7 @@ export default function VakarPlay() {
         {/* Hero */}
         <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-14 pb-10">
           <Reveal className="max-w-screen-xl mx-auto">
-            <p className="text-[12px] font-mono mb-3" style={{ color: MINT }}>// vakar play</p>
+            <p className="text-[12px] font-mono mb-3" style={{ color: MINT }}>// vakar app</p>
             <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               My games
             </h1>
@@ -180,7 +180,7 @@ export default function VakarPlay() {
               <p className="text-[#6E6E73] text-sm mb-6 max-w-sm mx-auto">
                 Your games will appear here once you start playing Vakar Games titles.
               </p>
-              <PublicButton as={Link} to="/games" icon={CaretRight}>
+              <PublicButton as={Link} to="/applications" icon={CaretRight}>
                 Discover our games
               </PublicButton>
             </div>
