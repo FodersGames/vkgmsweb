@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Plus, Trash2, Copy, GripVertical, Eye, Save, Globe, Lock,
-  Check, X, ChevronRight, Type, Palette,
+  Check, X, ChevronRight, Type, Palette, Download, Smartphone,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -18,6 +18,7 @@ import {
   THEME_PRESETS, ICON_IDS, AppIcon,
 } from '../constants/appBuilder';
 import AppRuntime from './AppRuntime';
+import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
@@ -455,7 +456,7 @@ function ActionEditor({ node, screens, onChange }) {
 // ============================================================
 // Main editor
 // ============================================================
-export default function AppBuilderEditor({ appId, onBack }) {
+export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/studio-apps', allowPremium = true, quota = null, enableApkBuild = false }) {
   const { token } = useAuth();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -467,18 +468,21 @@ export default function AppBuilderEditor({ appId, onBack }) {
   const [justSaved, setJustSaved] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [apkBuild, setApkBuild] = useState(null);
+  const [apkBusy, setApkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/admin/studio-apps/${appId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API}${apiBase}/${appId}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await r.json();
       setApp(data);
       setActiveScreenId(data.screens?.[0]?.id || null);
     } finally {
       setLoading(false);
     }
-  }, [appId, token]);
+  }, [appId, token, apiBase]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -593,10 +597,13 @@ export default function AppBuilderEditor({ appId, onBack }) {
   const updateVariable = (idx, field, value) => mutate(a => { a.variables[idx][field] = value; });
   const removeVariable = (idx) => mutate(a => { a.variables.splice(idx, 1); });
 
+  const [saveError, setSaveError] = useState('');
+
   const save = async () => {
     setSaving(true);
+    setSaveError('');
     try {
-      await fetch(`${API}/api/admin/studio-apps/${appId}`, {
+      const r = await fetch(`${API}${apiBase}/${appId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -604,9 +611,15 @@ export default function AppBuilderEditor({ appId, onBack }) {
           screens: app.screens, variables: app.variables,
         }),
       });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.detail || 'Could not save.');
+      }
       setDirty(false);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+    } catch (e) {
+      setSaveError(e.message);
     } finally {
       setSaving(false);
     }
@@ -615,21 +628,91 @@ export default function AppBuilderEditor({ appId, onBack }) {
   const toggleStatus = async () => {
     const next = app.status === 'published' ? 'draft' : 'published';
     if (dirty) await save();
-    await fetch(`${API}/api/admin/studio-apps/${appId}/status`, {
+    const r = await fetch(`${API}${apiBase}/${appId}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status: next }),
     });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      setSaveError(data.detail || 'Could not update status.');
+      return;
+    }
     setApp(a => ({ ...a, status: next }));
   };
 
   const toggleVisibility = async () => {
     const next = app.visibility === 'public' ? 'private' : 'public';
-    await fetch(`${API}/api/admin/studio-apps/${appId}/visibility`, {
+    await fetch(`${API}${apiBase}/${appId}/visibility`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ visibility: next }),
     });
     setApp(a => ({ ...a, visibility: next }));
   };
+
+  const handleExport = async () => {
+    if (!allowPremium) { setSaveError('Code export requires Vakar+.'); return; }
+    setExporting(true);
+    try {
+      await exportAppAsZip(app);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const loadApkStatus = useCallback(async () => {
+    if (!enableApkBuild) return null;
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/build-apk/latest`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return null;
+      const data = await r.json();
+      setApkBuild(data.build);
+      return data.build;
+    } catch {
+      return null;
+    }
+  }, [enableApkBuild, apiBase, appId, token]);
+
+  useEffect(() => { loadApkStatus(); }, [loadApkStatus]);
+
+  useEffect(() => {
+    if (!enableApkBuild) return undefined;
+    if (!apkBuild || (apkBuild.status !== 'queued' && apkBuild.status !== 'building')) return undefined;
+    const t = setInterval(async () => {
+      const b = await loadApkStatus();
+      if (b && b.status !== 'queued' && b.status !== 'building') clearInterval(t);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [enableApkBuild, apkBuild, loadApkStatus]);
+
+  const startApkBuild = async () => {
+    setApkBusy(true);
+    setSaveError('');
+    try {
+      const blob = await generateAppZipBlob(app);
+      const formData = new FormData();
+      formData.append('file', blob, 'bundle.zip');
+      const uploadRes = await fetch(`${API}${apiBase}/${appId}/apk-bundle`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.detail || 'Could not prepare the build.');
+
+      const triggerRes = await fetch(`${API}${apiBase}/${appId}/build-apk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bundle_url: uploadData.url }),
+      });
+      const triggerData = await triggerRes.json();
+      if (!triggerRes.ok) throw new Error(triggerData.detail || 'Could not start the build.');
+      setApkBuild({ status: 'building' });
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setApkBusy(false);
+    }
+  };
+
+  const apkInProgress = apkBusy || apkBuild?.status === 'queued' || apkBuild?.status === 'building';
 
   if (loading || !app || !activeScreen) {
     return <div className="p-6"><div className="h-96 rounded-xl bg-[#F5F5F7] dark:bg-[#1c1c2e] animate-pulse" /></div>;
@@ -676,10 +759,62 @@ export default function AppBuilderEditor({ appId, onBack }) {
           {app.status === 'published' ? 'Unpublish' : 'Publish'}
         </Button>
         <Button size="sm" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>Preview</Button>
+        <Button
+          size="sm" variant="secondary" icon={allowPremium ? Download : Lock}
+          onClick={handleExport} loading={exporting}
+          title={allowPremium ? 'Export as a VS Code project' : 'Requires Vakar+'}
+        >
+          Export
+        </Button>
+        {enableApkBuild && (
+          <Button
+            size="sm" variant="secondary" icon={Smartphone}
+            onClick={startApkBuild} loading={apkInProgress} disabled={apkInProgress}
+            title="Build an installable Android APK"
+          >
+            {apkInProgress ? 'Building…' : 'Build APK'}
+          </Button>
+        )}
         <Button size="sm" icon={justSaved ? Check : Save} onClick={save} loading={saving} disabled={!dirty && !saving}>
           {justSaved ? 'Saved' : dirty ? 'Save' : 'Saved'}
         </Button>
       </div>
+
+      {saveError && (
+        <div className="flex items-center justify-between gap-3 px-5 py-2.5 bg-red-50 dark:bg-red-500/10 border-b border-red-100 dark:border-red-500/20 text-xs text-red-600 dark:text-red-400 shrink-0">
+          <span>{saveError}</span>
+          {!allowPremium && saveError.toLowerCase().includes('vakar+') && (
+            <a href="/vakar-plus" className="font-semibold underline shrink-0">Upgrade</a>
+          )}
+          <button onClick={() => setSaveError('')} className="shrink-0"><X size={12} /></button>
+        </div>
+      )}
+
+      {quota && !allowPremium && (
+        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-[#4ECDC4]/8 border-b border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7] shrink-0">
+          <span>{quota.used}/{quota.max} apps used on your plan.</span>
+          <a href="/vakar-plus" className="font-semibold text-[#4ECDC4] hover:underline shrink-0">Upgrade to Vakar+ for more</a>
+        </div>
+      )}
+
+      {enableApkBuild && apkInProgress && (
+        <div className="flex items-center gap-2 px-5 py-2 bg-zinc-50 dark:bg-white/[0.03] border-b border-[#D2D2D7] dark:border-[#2a2a3c] text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] shrink-0">
+          <div className="w-3 h-3 border-2 border-[#D2D2D7] dark:border-[#2a2a3c] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />
+          <span>Building your APK — this usually takes a few minutes, you can keep editing in the meantime.</span>
+        </div>
+      )}
+      {enableApkBuild && apkBuild?.status === 'ready' && !apkInProgress && (
+        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 shrink-0">
+          <span>Your APK is ready.</span>
+          <a href={`${API}${apkBuild.apk_url}`} className="font-semibold underline shrink-0" download>Download APK</a>
+        </div>
+      )}
+      {enableApkBuild && apkBuild?.status === 'failed' && !apkInProgress && (
+        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-red-50 dark:bg-red-500/10 border-b border-red-100 dark:border-red-500/20 text-[11px] text-red-600 dark:text-red-400 shrink-0">
+          <span>APK build failed{apkBuild.error ? `: ${apkBuild.error}` : '.'}</span>
+          <button onClick={startApkBuild} className="font-semibold underline shrink-0">Try again</button>
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 flex min-h-0">
@@ -718,19 +853,26 @@ export default function AppBuilderEditor({ appId, onBack }) {
           <div>
             <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Add component</p>
             <div className="grid grid-cols-2 gap-1.5">
-              {COMPONENT_TYPES.map(c => (
-                <button
-                  key={c.type}
-                  onClick={() => addComponent(c.type)}
-                  className="relative flex flex-col items-center gap-1 py-2.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4] transition-colors"
-                >
-                  {c.tier === 'premium' && (
-                    <span title="Coming to Vakar+ subscribers" className="absolute top-1 right-1 text-[#F2994A]"><Lock size={9} /></span>
-                  )}
-                  <c.icon size={15} />
-                  <span className="text-[10px] font-medium">{c.label}</span>
-                </button>
-              ))}
+              {COMPONENT_TYPES.map(c => {
+                const locked = c.tier === 'premium' && !allowPremium;
+                return (
+                  <button
+                    key={c.type}
+                    onClick={() => locked ? setSaveError('This component requires Vakar+.') : addComponent(c.type)}
+                    className={`relative flex flex-col items-center gap-1 py-2.5 rounded-lg border transition-colors ${
+                      locked
+                        ? 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] opacity-60'
+                        : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4]'
+                    }`}
+                  >
+                    {c.tier === 'premium' && (
+                      <span title={locked ? 'Requires Vakar+' : 'Vakar+ component'} className="absolute top-1 right-1 text-[#F2994A]"><Lock size={9} /></span>
+                    )}
+                    <c.icon size={15} />
+                    <span className="text-[10px] font-medium">{c.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -739,19 +881,22 @@ export default function AppBuilderEditor({ appId, onBack }) {
               <Palette size={10} />Theme
             </p>
             <div className="grid grid-cols-3 gap-1.5">
-              {THEME_PRESETS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
-                  title={t.label}
-                  className={`relative h-9 rounded-lg border-2 transition-all ${app.theme === t.id || (!app.theme && t.id === 'mint') ? 'border-[#4ECDC4] scale-105' : 'border-transparent'}`}
-                  style={{ background: `linear-gradient(135deg, ${t.colors.primary}, ${t.colors.background})` }}
-                >
-                  {t.tier === 'premium' && (
-                    <span title="Vakar+ theme" className="absolute -top-1 -right-1 bg-white dark:bg-[#151520] rounded-full p-0.5 text-[#F2994A] shadow"><Lock size={8} /></span>
-                  )}
-                </button>
-              ))}
+              {THEME_PRESETS.map(t => {
+                const locked = t.tier === 'premium' && !allowPremium;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => locked ? setSaveError('This theme requires Vakar+.') : setTheme(t.id)}
+                    title={locked ? `${t.label} — requires Vakar+` : t.label}
+                    className={`relative h-9 rounded-lg border-2 transition-all ${app.theme === t.id || (!app.theme && t.id === 'mint') ? 'border-[#4ECDC4] scale-105' : 'border-transparent'} ${locked ? 'opacity-50' : ''}`}
+                    style={{ background: `linear-gradient(135deg, ${t.colors.primary}, ${t.colors.background})` }}
+                  >
+                    {t.tier === 'premium' && (
+                      <span title="Vakar+ theme" className="absolute -top-1 -right-1 bg-white dark:bg-[#151520] rounded-full p-0.5 text-[#F2994A] shadow"><Lock size={8} /></span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

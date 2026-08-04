@@ -419,6 +419,12 @@ class StudioAppStatusRequest(BaseModel):
 class StudioAppVisibilityRequest(BaseModel):
     visibility: Literal["public", "private"]
 
+class VakarPlusCheckoutRequest(BaseModel):
+    plan: Literal["monthly", "yearly"]
+
+class ApkBuildTriggerRequest(BaseModel):
+    bundle_url: str
+
 class CareerCreateRequest(BaseModel):
     title: str
     department: str

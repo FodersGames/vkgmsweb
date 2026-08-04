@@ -508,6 +508,31 @@ async def stripe_webhook(request: Request):
                 except Exception as e:
                     logger.error(f"Game purchase record error: {e}")
 
+        elif checkout_type == "vakar_plus_subscription":
+            user_id = meta.get("user_id", "")
+            plan = meta.get("plan", "")
+            if user_id:
+                try:
+                    await db.users.update_one(
+                        {"_id": ObjectId(user_id)},
+                        {"$set": {
+                            "stripe_customer_id": session.get("customer"),
+                            "stripe_subscription_id": session.get("subscription"),
+                            "vakar_plus_plan": plan,
+                        }},
+                    )
+                    # Status/period_end are set authoritatively by the
+                    # customer.subscription.* handler below, which Stripe
+                    # fires for every new subscription right alongside this
+                    # event — this just links the Stripe customer/plan.
+                    await _create_notification(
+                        user_id=user_id,
+                        message=f"✨ Welcome to Vakar+! Your {plan} subscription is now active.",
+                        notif_type="vakar_plus_started",
+                    )
+                except Exception as e:
+                    logger.error(f"Vakar+ activation error: {e}")
+
         else:
             # Backward compat: old sessions without checkout_type metadata
             uid = meta.get("player_uid", "").strip()
@@ -549,5 +574,56 @@ async def stripe_webhook(request: Request):
                     )
             except Exception as e:
                 logger.error(f"Failed purchase notification error: {e}")
+
+    # ── Vakar+ subscription lifecycle ────────────────────────────────────────
+    elif event["type"] in ("customer.subscription.created", "customer.subscription.updated"):
+        sub = event["data"]["object"]
+        user_id = sub.get("metadata", {}).get("user_id", "")
+        if user_id:
+            try:
+                status = sub.get("status", "")
+                period_end = sub.get("current_period_end")
+                await db.users.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {"$set": {
+                        "vakar_plus_status": "active" if status in ("active", "trialing") else status,
+                        "stripe_subscription_id": sub.get("id"),
+                        "stripe_customer_id": sub.get("customer"),
+                        "vakar_plus_current_period_end": datetime.fromtimestamp(period_end, tz=timezone.utc) if period_end else None,
+                        "vakar_plus_cancel_at_period_end": sub.get("cancel_at_period_end", False),
+                    }},
+                )
+            except Exception as e:
+                logger.error(f"Vakar+ subscription sync error: {e}")
+
+    elif event["type"] == "customer.subscription.deleted":
+        sub = event["data"]["object"]
+        user_id = sub.get("metadata", {}).get("user_id", "")
+        if user_id:
+            try:
+                await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"vakar_plus_status": "canceled"}})
+                await _create_notification(
+                    user_id=user_id,
+                    message="Your Vakar+ subscription has ended. You can resubscribe anytime from your account.",
+                    notif_type="vakar_plus_ended",
+                )
+            except Exception as e:
+                logger.error(f"Vakar+ cancellation error: {e}")
+
+    elif event["type"] == "invoice.payment_failed":
+        invoice = event["data"]["object"]
+        customer_id = invoice.get("customer")
+        if customer_id:
+            try:
+                u = await db.users.find_one({"stripe_customer_id": customer_id})
+                if u:
+                    await db.users.update_one({"_id": u["_id"]}, {"$set": {"vakar_plus_status": "past_due"}})
+                    await _create_notification(
+                        user_id=str(u["_id"]),
+                        message="⚠️ Your Vakar+ payment failed — please update your payment method to keep your subscription active.",
+                        notif_type="vakar_plus_payment_failed",
+                    )
+            except Exception as e:
+                logger.error(f"Vakar+ payment-failed handling error: {e}")
 
     return {"received": True}

@@ -95,6 +95,8 @@ async def get_current_user(request: Request):
     def _iso(dt):
         return dt.isoformat() if dt else None
 
+    vakar_plus_status = user.get("vakar_plus_status", "none")
+
     return {
         "id": str(user["_id"]),
         "email": user.get("email", ""),
@@ -109,6 +111,12 @@ async def get_current_user(request: Request):
         "pseudo_set": user.get("pseudo_set", False),
         "firstNameChangedAt": _iso(user.get("firstNameChangedAt")),
         "usernameChangedAt": _iso(user.get("usernameChangedAt")),
+        "stripe_customer_id": user.get("stripe_customer_id"),
+        "is_vakar_plus": vakar_plus_status == "active",
+        "vakar_plus_status": vakar_plus_status,
+        "vakar_plus_plan": user.get("vakar_plus_plan"),
+        "vakar_plus_current_period_end": _iso(user.get("vakar_plus_current_period_end")),
+        "vakar_plus_cancel_at_period_end": user.get("vakar_plus_cancel_at_period_end", False),
     }
 
 async def get_optional_user(request: Request):

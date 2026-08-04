@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, GameController, CaretRight } from '@phosphor-icons/react';
+import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, GameController, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
@@ -132,6 +132,57 @@ const LoyaltyWidget = ({ loyalty }) => {
   );
 };
 
+const VakarPlusWidget = ({ status, onManage, managing }) => {
+  const isActive = !!status?.is_active;
+  return (
+    <div className="rounded-xl liquid-glass p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xs font-mono text-[#6E6E73]">// vakar+</h2>
+        {isActive && (
+          <span className="rounded-full text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5 flex items-center gap-1">
+            <Crown size={10} />ACTIVE
+          </span>
+        )}
+      </div>
+
+      {isActive ? (
+        <>
+          <p className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-2 capitalize">
+            {status.plan || 'Vakar+'} plan
+          </p>
+          <p className="text-xs text-[#6E6E73] mb-5">
+            {status.cancel_at_period_end
+              ? `Cancels on ${status.current_period_end ? new Date(status.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'the end of your billing period'}.`
+              : status.current_period_end
+                ? `Renews on ${new Date(status.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`
+                : 'Your subscription is active.'}
+          </p>
+          <button
+            onClick={onManage}
+            disabled={managing}
+            className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all disabled:opacity-50"
+          >
+            {managing ? 'Opening…' : 'Manage subscription'}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="font-display text-xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-2">Not subscribed</p>
+          <p className="text-xs text-[#6E6E73] mb-5">
+            Unlock advanced App Builder tools and more, growing over time.
+          </p>
+          <Link
+            to="/vakar-plus"
+            className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#1D1D1F] hover:bg-[#3A3A3C] px-3 py-2 transition-all"
+          >
+            <Crown size={11} />Upgrade to Vakar+
+          </Link>
+        </>
+      )}
+    </div>
+  );
+};
+
 const Card = ({ children, className = '' }) => (
   <div className={`rounded-xl liquid-glass p-6 ${className}`}>{children}</div>
 );
@@ -166,6 +217,9 @@ const Profile = () => {
   const [loyalty, setLoyalty] = useState(null);
   const [loyaltyLoading, setLoyaltyLoading] = useState(true);
 
+  const [vakarPlus, setVakarPlus] = useState(null);
+  const [managingBilling, setManagingBilling] = useState(false);
+
   const [notifications, setNotifications] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
@@ -197,11 +251,24 @@ const Profile = () => {
         .then(r => setLoyalty(r.data))
         .catch(() => setLoyalty(DEFAULT_LOYALTY))
         .finally(() => setLoyaltyLoading(false));
+      axios.get(`${API_URL}/api/vakar-plus/status`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => setVakarPlus(r.data))
+        .catch(() => {});
     } else {
       setLoyalty(DEFAULT_LOYALTY);
       setLoyaltyLoading(false);
     }
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const manageBilling = async () => {
+    setManagingBilling(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/vakar-plus/billing-portal`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      window.location.href = res.data.url;
+    } catch {
+      setManagingBilling(false);
+    }
+  };
 
   const fetchNotifications = async () => {
     if (!token) return;
@@ -404,8 +471,8 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Vakar App quick link — always visible, independent of the tabs below */}
-        <div className="max-w-lg mx-auto px-6 pt-6">
+        {/* Quick links — always visible, independent of the tabs below */}
+        <div className="max-w-lg mx-auto px-6 pt-6 space-y-3">
           <Link
             to="/app"
             className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
@@ -416,6 +483,20 @@ const Profile = () => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-[#1D1D1F]">Vakar App</p>
               <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
+            </div>
+            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
+          </Link>
+
+          <Link
+            to="/my-apps"
+            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
+          >
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
+              <AppWindow size={16} className="text-[#6E6E73]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#1D1D1F]">My Apps</p>
+              <p className="text-xs text-[#6E6E73]">Build your own app — no code required</p>
             </div>
             <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
           </Link>
@@ -535,6 +616,8 @@ const Profile = () => {
                 ? <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 h-[200px] animate-pulse" />
                 : <LoyaltyWidget loyalty={loyalty} />
               }
+
+              <VakarPlusWidget status={vakarPlus} onManage={manageBilling} managing={managingBilling} />
             </>
           )}
 

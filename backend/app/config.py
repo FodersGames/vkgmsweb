@@ -32,3 +32,25 @@ GAME_FILES_DIR.mkdir(exist_ok=True, parents=True)
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+# Recurring Stripe Price IDs for the Vakar+ subscription — created in the Stripe
+# Dashboard (Product "Vakar+" with a monthly and a yearly recurring Price), not
+# hardcoded here since the actual amounts are a business decision made in Stripe,
+# not in code. Left blank until configured — endpoints fail closed (503) until then.
+STRIPE_VAKAR_PLUS_PRICE_MONTHLY = os.environ.get('STRIPE_VAKAR_PLUS_PRICE_MONTHLY', '')
+STRIPE_VAKAR_PLUS_PRICE_YEARLY = os.environ.get('STRIPE_VAKAR_PLUS_PRICE_YEARLY', '')
+
+# This server's own publicly-reachable base URL (e.g. https://api.vakargames.com
+# or https://www.vakargames.com/api, whatever nginx actually exposes) — distinct
+# from FRONTEND_URL above. Needed so an external GitHub Actions runner can fetch
+# an app's exported bundle and POST the finished APK back to this backend.
+BACKEND_PUBLIC_URL = os.environ.get('BACKEND_PUBLIC_URL', '')
+
+# APK export (Phase E) — triggers a GitHub Actions workflow in this repo to build
+# a debug APK via Capacitor, entirely off the production VPS. Requires a GitHub
+# Personal Access Token with `actions:write` (classic PAT: `repo` scope) on the
+# repo below. Left blank until configured — the trigger endpoint fails closed
+# (503) rather than erroring confusingly deep in a GitHub API call.
+GITHUB_PAT = os.environ.get('GITHUB_PAT', '')
+GITHUB_REPO = os.environ.get('GITHUB_REPO', 'FodersGames/vkgmsweb')
+GITHUB_WORKFLOW_FILE = os.environ.get('GITHUB_WORKFLOW_FILE', 'build-apk.yml')
+GITHUB_WORKFLOW_REF = os.environ.get('GITHUB_WORKFLOW_REF', 'version_006')

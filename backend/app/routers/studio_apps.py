@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 
 from ..database import db
-from ..deps import require_permission, get_optional_user
+from ..deps import require_permission, get_current_user, get_optional_user
 from ..utils import slugify, log_action
+from ..rate_limit import limiter
 from ..schemas import (
     StudioAppCreateRequest, StudioAppUpdateRequest, StudioAppStatusRequest, StudioAppVisibilityRequest,
 )
@@ -13,18 +14,36 @@ from ..schemas import (
 router = APIRouter()
 
 # ============================================================
-# STUDIO APP BUILDER — internal low-code tool. A "studio app" is a small
-# multi-screen mini-app (flat component tree per screen, no free-form
-# canvas) that staff assemble visually and publish either as a public
-# player-facing mini-app or a private internal tool. Screens/variables are
-# stored as loosely-typed dicts (matching this codebase's existing pattern
-# for variable-shape nested content, e.g. GameCreateRequest.platforms)
-# rather than a strict recursive Pydantic model — the builder UI is the
-# only writer, and only staff with manage_studio_apps can reach it.
+# STUDIO APP BUILDER — a "studio app" is a small multi-screen mini-app
+# (flat component tree per screen, no free-form canvas) assembled visually
+# and published either as a public mini-app or a private one, at
+# /apps/{slug}. Two ways to own one:
+#   - Staff, via the admin dashboard (require_permission("manage_studio_apps"))
+#     — these have no `user_id` (they're "house" tools, not owned by an
+#     individual) and aren't quota'd.
+#   - Any logged-in user, via the public self-service /my/studio-apps
+#     endpoints below — these carry `user_id` and are quota'd by
+#     is_vakar_plus, which is also what gates premium component types and
+#     themes server-side (never trust the client to enforce this, it's a
+#     real paywall now that this is public).
+# Screens/variables are stored as loosely-typed dicts (matching this
+# codebase's existing pattern for variable-shape nested content, e.g.
+# GameCreateRequest.platforms) rather than a strict recursive model.
 # ============================================================
 
 MAX_SCREENS = 30
 MAX_COMPONENTS_PER_SCREEN = 120
+
+FREE_MAX_APPS = 2
+FREE_MAX_SCREENS_PER_APP = 3
+PLUS_MAX_APPS = 20
+PLUS_MAX_SCREENS_PER_APP = 15
+
+# Mirrors the `tier` tags in frontend/src/constants/appBuilder.js — kept as
+# a small independent list rather than importing frontend code, same as
+# every other cross-stack constant in this codebase. Update both together.
+PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle"}
+FREE_THEME_IDS = {"mint"}
 
 
 async def _unique_slug(base_slug: str, exclude_id=None) -> str:
@@ -40,17 +59,33 @@ async def _unique_slug(base_slug: str, exclude_id=None) -> str:
         slug = f"{base_slug}-{n}"
 
 
-def _validate_screens(screens):
+def _validate_screens(screens, max_screens=MAX_SCREENS):
     if not isinstance(screens, list) or len(screens) == 0:
         raise HTTPException(status_code=400, detail="An app needs at least one screen")
-    if len(screens) > MAX_SCREENS:
-        raise HTTPException(status_code=400, detail=f"Too many screens (max {MAX_SCREENS})")
+    if len(screens) > max_screens:
+        raise HTTPException(status_code=400, detail=f"Too many screens (max {max_screens}). Upgrade to Vakar+ for more." if max_screens < MAX_SCREENS else f"Too many screens (max {max_screens})")
     for s in screens:
         if len(s.get("components", [])) > MAX_COMPONENTS_PER_SCREEN:
             raise HTTPException(status_code=400, detail="Too many components on one screen")
 
 
-def _serialize(doc, full=False):
+def _check_component_tier(comp):
+    if comp.get("type") in PREMIUM_COMPONENT_TYPES:
+        raise HTTPException(status_code=402, detail="This component requires Vakar+.")
+    for child in comp.get("children") or []:
+        _check_component_tier(child)
+
+def _validate_tier(screens, theme, is_vakar_plus):
+    if is_vakar_plus:
+        return
+    if theme and theme not in FREE_THEME_IDS:
+        raise HTTPException(status_code=402, detail="This theme requires Vakar+.")
+    for s in screens or []:
+        for c in s.get("components", []):
+            _check_component_tier(c)
+
+
+def _serialize(doc, full=False, include_owner=False):
     result = {
         "id": str(doc["_id"]),
         "name": doc["name"],
@@ -66,16 +101,23 @@ def _serialize(doc, full=False):
     if full:
         result["screens"] = doc.get("screens", [])
         result["variables"] = doc.get("variables", [])
+    if include_owner:
+        result["owner"] = doc.get("created_by", "")
+        result["is_user_app"] = doc.get("user_id") is not None
     return result
 
 # ============================================================
-# ADMIN — builder CRUD
+# ADMIN — builder CRUD for staff-owned apps + moderation surface. Since
+# `db.studio_apps` holds both staff and public user apps in one collection,
+# this list also doubles as the moderation console: any app (owner or
+# staff-made) can be force-unpublished here via the status endpoint below,
+# regardless of who created it — no separate moderation code needed.
 # ============================================================
 
 @router.get("/admin/studio-apps")
 async def list_studio_apps(user=Depends(require_permission("manage_studio_apps"))):
-    docs = await db.studio_apps.find().sort("updated_at", -1).to_list(200)
-    return {"apps": [_serialize(d) for d in docs]}
+    docs = await db.studio_apps.find().sort("updated_at", -1).to_list(500)
+    return {"apps": [_serialize(d, include_owner=True) for d in docs]}
 
 @router.post("/admin/studio-apps")
 async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_permission("manage_studio_apps"))):
@@ -98,6 +140,7 @@ async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_p
         "created_at": now,
         "updated_at": now,
         "created_by": user["username"],
+        "user_id": None,
     }
     result = await db.studio_apps.insert_one(doc)
     await log_action("studio_apps", f"App '{name}' created", user=user["username"])
@@ -194,12 +237,132 @@ async def duplicate_studio_app(app_id: str, user=Depends(require_permission("man
     return {"id": str(result.inserted_id), "slug": slug}
 
 # ============================================================
+# SELF-SERVICE — public "My Apps": any logged-in user can build their own,
+# quota'd by is_vakar_plus. This is the public rollout surface (Phase B) —
+# the admin endpoints above remain for staff/internal tools only.
+# ============================================================
+
+async def _get_owned_app(app_id: str, user):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc or str(doc.get("user_id")) != user["id"]:
+        raise HTTPException(status_code=404, detail="App not found")
+    return oid, doc
+
+@router.get("/my/studio-apps")
+async def list_my_studio_apps(user=Depends(get_current_user)):
+    docs = await db.studio_apps.find({"user_id": ObjectId(user["id"])}).sort("updated_at", -1).to_list(100)
+    max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
+    return {
+        "apps": [_serialize(d) for d in docs],
+        "quota": {"used": len(docs), "max": max_apps, "is_vakar_plus": user.get("is_vakar_plus", False)},
+    }
+
+@router.post("/my/studio-apps")
+@limiter.limit("20/hour")
+async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, user=Depends(get_current_user)):
+    uid = ObjectId(user["id"])
+    max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
+    existing_count = await db.studio_apps.count_documents({"user_id": uid})
+    if existing_count >= max_apps:
+        raise HTTPException(status_code=402, detail=f"You've reached your app limit ({max_apps}). Upgrade to Vakar+ for more.")
+    name = body.name.strip()[:80]
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+    base_slug = slugify(body.slug or name) or "app"
+    slug = await _unique_slug(base_slug)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "name": name,
+        "slug": slug,
+        "description": "",
+        "accent_color": "#4ECDC4",
+        "theme": "mint",
+        "visibility": "private",
+        "status": "draft",
+        "screens": [{"id": "home", "name": "Home", "components": []}],
+        "variables": [],
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["username"],
+        "user_id": uid,
+    }
+    result = await db.studio_apps.insert_one(doc)
+    return {"id": str(result.inserted_id), "slug": slug}
+
+@router.get("/my/studio-apps/{app_id}")
+async def get_my_studio_app(app_id: str, user=Depends(get_current_user)):
+    _oid, doc = await _get_owned_app(app_id, user)
+    return _serialize(doc, full=True)
+
+@router.put("/my/studio-apps/{app_id}")
+async def update_my_studio_app(app_id: str, body: StudioAppUpdateRequest, user=Depends(get_current_user)):
+    oid, doc = await _get_owned_app(app_id, user)
+    is_plus = user.get("is_vakar_plus", False)
+    max_screens = PLUS_MAX_SCREENS_PER_APP if is_plus else FREE_MAX_SCREENS_PER_APP
+
+    update = {k: v for k, v in body.dict().items() if v is not None}
+    if "screens" in update:
+        _validate_screens(update["screens"], max_screens=max_screens)
+        _validate_tier(update["screens"], update.get("theme", doc.get("theme")), is_plus)
+    elif "theme" in update:
+        _validate_tier(doc.get("screens", []), update["theme"], is_plus)
+    if "name" in update:
+        update["name"] = update["name"].strip()[:80] or "Untitled app"
+    if not update:
+        return {"ok": True}
+    update["updated_at"] = datetime.now(timezone.utc)
+    await db.studio_apps.update_one({"_id": oid}, {"$set": update})
+    return {"ok": True}
+
+@router.patch("/my/studio-apps/{app_id}/status")
+async def set_my_studio_app_status(app_id: str, body: StudioAppStatusRequest, user=Depends(get_current_user)):
+    oid, doc = await _get_owned_app(app_id, user)
+    if body.status == "published" and not doc.get("screens"):
+        raise HTTPException(status_code=400, detail="Add at least one screen before publishing")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {"status": body.status, "updated_at": datetime.now(timezone.utc)}})
+    return {"ok": True}
+
+@router.patch("/my/studio-apps/{app_id}/visibility")
+async def set_my_studio_app_visibility(app_id: str, body: StudioAppVisibilityRequest, user=Depends(get_current_user)):
+    oid, _doc = await _get_owned_app(app_id, user)
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {"visibility": body.visibility, "updated_at": datetime.now(timezone.utc)}})
+    return {"ok": True}
+
+@router.delete("/my/studio-apps/{app_id}")
+async def delete_my_studio_app(app_id: str, user=Depends(get_current_user)):
+    oid, _doc = await _get_owned_app(app_id, user)
+    await db.studio_apps.delete_one({"_id": oid})
+    return {"ok": True}
+
+@router.post("/my/studio-apps/{app_id}/duplicate")
+async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
+    _oid, doc = await _get_owned_app(app_id, user)
+    max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
+    existing_count = await db.studio_apps.count_documents({"user_id": ObjectId(user["id"])})
+    if existing_count >= max_apps:
+        raise HTTPException(status_code=402, detail=f"You've reached your app limit ({max_apps}). Upgrade to Vakar+ for more.")
+    slug = await _unique_slug(f"{doc['slug']}-copy")
+    now = datetime.now(timezone.utc)
+    new_doc = {
+        **{k: v for k, v in doc.items() if k not in ("_id", "created_at", "updated_at", "status")},
+        "name": f"{doc['name']} (Copy)",
+        "slug": slug,
+        "status": "draft",
+        "created_at": now,
+        "updated_at": now,
+    }
+    result = await db.studio_apps.insert_one(new_doc)
+    return {"id": str(result.inserted_id), "slug": slug}
+
+# ============================================================
 # PUBLIC / RUNTIME — served to whoever loads /apps/{slug}. Public apps are
-# open to anyone; private apps are gated to logged-in staff (admin or
-# super_admin role) since "private" here means "internal studio tool",
-# not "requires a specific permission" — any staff member should be able
-# to use an internal tool once it's published, only building/editing it
-# is gated by manage_studio_apps.
+# open to anyone; private apps are visible to their owner (self-service
+# apps) or to staff (admin/super_admin — covers both "internal staff tool"
+# apps and moderation review of a user's private app).
 # ============================================================
 
 @router.get("/apps/{slug}")
@@ -208,6 +371,8 @@ async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
     if not doc:
         raise HTTPException(status_code=404, detail="App not found")
     if doc.get("visibility") == "private":
-        if not user or user.get("role") not in ("admin", "super_admin"):
+        is_owner = bool(user and doc.get("user_id") and str(doc["user_id"]) == user.get("id"))
+        is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
+        if not (is_owner or is_staff):
             raise HTTPException(status_code=404, detail="App not found")
     return _serialize(doc, full=True)

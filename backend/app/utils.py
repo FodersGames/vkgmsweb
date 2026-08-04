@@ -72,6 +72,9 @@ _FORMAT_MAGIC_BYTES: dict = {
     ".tiff":  _has_prefix(b"II*\x00", b"MM\x00*"),
     ".tif":   _has_prefix(b"II*\x00", b"MM\x00*"),
     ".webp":  _is_webp,
+    # APKs are ZIP archives — same signature family as regular ZIPs.
+    ".apk":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
+    ".zip":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
 }
 
 

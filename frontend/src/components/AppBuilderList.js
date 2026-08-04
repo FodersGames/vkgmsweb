@@ -107,6 +107,9 @@ export default function AppBuilderList() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{a.name}</p>
                     <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] font-mono truncate">/{a.slug}</p>
+                    {a.is_user_app && (
+                      <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-0.5">User app · by {a.owner || 'unknown'}</p>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${a.status === 'published' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa]'}`}>

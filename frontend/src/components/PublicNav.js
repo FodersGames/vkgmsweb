@@ -21,6 +21,7 @@ export const PublicNav = ({ onAbout }) => {
     { to: '/applications', label: 'Applications' },
     { to: '/shop',         label: 'Shop'         },
     { to: '/blog',         label: 'Blog'         },
+    { to: '/vakar-plus',   label: 'Vakar+'       },
   ];
 
   const active = (to) => pathname === to || pathname.startsWith(to + '/');
