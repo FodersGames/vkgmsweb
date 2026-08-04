@@ -137,7 +137,7 @@ const TABS = [
 ];
 
 const Profile = () => {
-  const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser } = useAuth();
+  const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser, loading: authLoading } = useAuth();
   const avatarInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -169,6 +169,7 @@ const Profile = () => {
 
   useEffect(() => {
     document.title = 'My Account — Vakar Games';
+    if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
     fetchNotifications();
@@ -182,7 +183,7 @@ const Profile = () => {
       setLoyalty(DEFAULT_LOYALTY);
       setLoyaltyLoading(false);
     }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchNotifications = async () => {
     if (!token) return;
@@ -292,7 +293,7 @@ const Profile = () => {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const initials = ((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
   const displayName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;

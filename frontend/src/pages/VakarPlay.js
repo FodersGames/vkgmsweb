@@ -6,7 +6,16 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
-import { GameController, Clock, CaretRight } from '@phosphor-icons/react';
+import {
+  GameController, Clock, CaretRight,
+  Shield, Sword, Flame, Star, PawPrint, Sparkle, Crown, Skull, Bird, Cat, Anchor, Leaf,
+} from '@phosphor-icons/react';
+
+const GUILD_ICONS = {
+  shield: Shield, sword: Sword, flame: Flame, star: Star,
+  wolf: PawPrint, dragon: Sparkle, crown: Crown, skull: Skull,
+  eagle: Bird, lion: Cat, anchor: Anchor, leaf: Leaf,
+};
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -65,15 +74,46 @@ function GameCard({ game }) {
   );
 }
 
+function GuildCard({ entry }) {
+  const { game_name, guild } = entry;
+  const Icon = GUILD_ICONS[guild.logo_id] || Shield;
+  return (
+    <div className="rounded-xl bg-white border border-[#EDE4FD] hover:border-[#C4B5FD] transition-colors p-4 flex items-center gap-4">
+      <div
+        className="rounded-lg w-11 h-11 flex items-center justify-center shrink-0"
+        style={{ background: `${guild.color}18`, border: `1px solid ${guild.color}44` }}
+      >
+        <Icon size={20} style={{ color: guild.color }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="font-bold text-[#1D1D1F] text-sm truncate">{guild.name}</h3>
+          <span
+            className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
+            style={{ background: `${MINT}18`, color: MINT_DARK }}
+          >
+            {guild.my_role}
+          </span>
+        </div>
+        <p className="text-xs text-[#6B7280] mt-0.5 truncate">
+          {game_name} · {guild.member_count} member{guild.member_count === 1 ? '' : 's'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function VakarPlay() {
-  const { user, token } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [guilds, setGuilds] = useState([]);
 
   useEffect(() => {
     document.title = 'Vakar Play — My Games';
+    if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     if (!token) return;
     setLoading(true);
@@ -82,9 +122,13 @@ export default function VakarPlay() {
       .then(r => setGames(r.data.games || []))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, [user, token]); // eslint-disable-line react-hooks/exhaustive-deps
+    axios
+      .get(`${API_URL}/api/user/guilds`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setGuilds(r.data.guilds || []))
+      .catch(() => {});
+  }, [user, token, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const firstName = user.firstName || user.username;
 
@@ -150,6 +194,17 @@ export default function VakarPlay() {
                 {games.map(g => <GameCard key={g.slug} game={g} />)}
               </div>
             </>
+          )}
+
+          {guilds.length > 0 && (
+            <div className="mt-12">
+              <p className="text-xs font-semibold mb-6" style={{ color: MINT_DARK }}>
+                Your guilds
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {guilds.map(entry => <GuildCard key={entry.project_slug} entry={entry} />)}
+              </div>
+            </div>
           )}
         </div>
       </div>
