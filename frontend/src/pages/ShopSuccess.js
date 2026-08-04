@@ -13,7 +13,7 @@ const ShopSuccess = ({ legacy }) => {
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
       <div className="flex-1 flex items-center justify-center p-6">
-      <div className="rounded-xl bg-white border border-[#D2D2D7] p-10 max-w-md w-full text-center">
+      <div className="rounded-xl liquid-glass p-10 max-w-md w-full text-center">
 
         <div className="rounded-lg w-14 h-14 bg-[#4ECDC4]/10 flex items-center justify-center mx-auto mb-6">
           <CheckCircle size={28} className="text-[#4ECDC4]" />

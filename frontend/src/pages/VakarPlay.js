@@ -19,11 +19,13 @@ const GUILD_ICONS = {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const MINT = '#7C3AED';
-const MINT_DARK = '#5B21B6';
-const MINT_BG = '#F5F3FF';
-const MINT_LIGHT = '#EDE9FE';
-const MINT_MID = '#A78BFA';
+// Unified with the site's brand teal — this page used to run its own violet
+// accent + Tailwind-default greys, out of step with every other public page.
+const MINT = '#4ECDC4';
+const MINT_DARK = '#4ECDC4';
+const MINT_BG = '#F5F5F7';
+const MINT_LIGHT = 'rgba(78, 205, 196, 0.1)';
+const MINT_MID = '#4ECDC4';
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Never';
@@ -45,9 +47,9 @@ function GameCard({ game }) {
     : null;
 
   return (
-    <div className="rounded-xl bg-white border border-[#EDE4FD] hover:border-[#C4B5FD] transition-colors overflow-hidden">
+    <div className="rounded-xl liquid-glass overflow-hidden">
       {/* Game logo / cover */}
-      <div className="relative w-full bg-[#F5F3FF]" style={{ height: 160 }}>
+      <div className="relative w-full bg-[#F5F5F7]" style={{ height: 160 }}>
         {coverUrl && !imgError ? (
           <img
             src={coverUrl}
@@ -67,7 +69,7 @@ function GameCard({ game }) {
         <h3 className="font-bold text-[#1D1D1F] text-sm mb-1.5 truncate">{game.name}</h3>
         <div className="flex items-center gap-1.5">
           <Clock size={11} style={{ color: MINT }} />
-          <span className="text-xs text-[#6B7280]">Last session: {timeAgo(game.last_updated)}</span>
+          <span className="text-xs text-[#6E6E73]">Last session: {timeAgo(game.last_updated)}</span>
         </div>
       </div>
     </div>
@@ -78,7 +80,7 @@ function GuildCard({ entry }) {
   const { game_name, guild } = entry;
   const Icon = GUILD_ICONS[guild.logo_id] || Shield;
   return (
-    <div className="rounded-xl bg-white border border-[#EDE4FD] hover:border-[#C4B5FD] transition-colors p-4 flex items-center gap-4">
+    <div className="rounded-xl liquid-glass p-4 flex items-center gap-4">
       <div
         className="rounded-lg w-11 h-11 flex items-center justify-center shrink-0"
         style={{ background: `${guild.color}18`, border: `1px solid ${guild.color}44` }}
@@ -95,7 +97,7 @@ function GuildCard({ entry }) {
             {guild.my_role}
           </span>
         </div>
-        <p className="text-xs text-[#6B7280] mt-0.5 truncate">
+        <p className="text-xs text-[#6E6E73] mt-0.5 truncate">
           {game_name} · {guild.member_count} member{guild.member_count === 1 ? '' : 's'}
         </p>
       </div>
@@ -139,13 +141,13 @@ export default function VakarPlay() {
       <div className="pt-[52px] flex-1">
 
         {/* Hero */}
-        <section className="bg-white border-b border-[#EDE4FD] px-6 md:px-10 lg:px-16 pt-14 pb-10">
+        <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-14 pb-10">
           <Reveal className="max-w-screen-xl mx-auto">
             <p className="text-[12px] font-mono mb-3" style={{ color: MINT }}>// vakar play</p>
             <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
               My games
             </h1>
-            <p className="text-[#6B7280] text-sm mt-2">
+            <p className="text-[#6E6E73] text-sm mt-2">
               Welcome back, <strong className="text-[#1D1D1F]">{firstName}</strong>.
               {games.length > 0
                 ? ` ${games.length} game${games.length > 1 ? 's' : ''} in your library.`
@@ -158,11 +160,11 @@ export default function VakarPlay() {
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {[1, 2, 3, 4].map(i => <div key={i} className="rounded-xl h-56 bg-[#EDE9FE] animate-pulse" />)}
+              {[1, 2, 3, 4].map(i => <div key={i} className="rounded-xl h-56 bg-[#D2D2D7] animate-pulse" />)}
             </div>
           ) : error ? (
             <div className="text-center py-24">
-              <p className="text-[#9CA3AF] text-sm">Could not load your library. Please try again later.</p>
+              <p className="text-[#A1A1A6] text-sm">Could not load your library. Please try again later.</p>
             </div>
           ) : games.length === 0 ? (
             <div className="text-center py-24">
@@ -175,7 +177,7 @@ export default function VakarPlay() {
               <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-3">
                 No games yet
               </h2>
-              <p className="text-[#6B7280] text-sm mb-6 max-w-sm mx-auto">
+              <p className="text-[#6E6E73] text-sm mb-6 max-w-sm mx-auto">
                 Your games will appear here once you start playing Vakar Games titles.
               </p>
               <PublicButton as={Link} to="/games" icon={CaretRight}>

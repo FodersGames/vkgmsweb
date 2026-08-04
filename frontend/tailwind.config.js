@@ -56,7 +56,16 @@ module.exports = {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
-  			}
+  			},
+  			// Public-site palette — namespaced so it never collides with the
+  			// shadcn/admin-dashboard tokens above (e.g. `secondary`/`accent`
+  			// already mean something else there).
+  			ink: '#1D1D1F',
+  			'ink-secondary': '#6E6E73',
+  			'ink-tertiary': '#A1A1A6',
+  			hairline: '#D2D2D7',
+  			'surface-alt': '#F5F5F7',
+  			brand: '#4ECDC4',
   		},
   		keyframes: {
   			'accordion-down': {

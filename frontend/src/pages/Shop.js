@@ -60,7 +60,7 @@ const LoyaltyBar = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+    <div className="rounded-xl liquid-glass p-5">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <Icon size={14} style={{ color: cfg.color }} />
@@ -342,7 +342,7 @@ const Shop = () => {
 
           {/* Auth notice if not logged in */}
           {!user && (
-            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5 flex items-center gap-4">
+            <div className="rounded-xl liquid-glass p-5 flex items-center gap-4">
               <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
                 <SignIn size={16} className="text-[#4ECDC4]" />
               </div>
@@ -513,8 +513,8 @@ const Shop = () => {
 
               {/* Promo coupon */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1.5">
-                  Promo code <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
+                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
+                  Promo code <span className="text-[#A1A1A6] normal-case font-normal">(optional)</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -546,7 +546,7 @@ const Shop = () => {
 
               {/* Player ID */}
               <div>
-                <label className="block text-[10px] font-semibold text-[#A1A1A6] mb-1.5">
+                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
                   Your in-game Player ID
                 </label>
                 <input
@@ -558,7 +558,7 @@ const Shop = () => {
                   onKeyDown={e => e.key === 'Enter' && handleBuy()}
                   autoFocus
                 />
-                <p className="text-[10px] text-[#A1A1A6] mt-1.5">Item delivered once payment is confirmed.</p>
+                <p className="text-[10px] text-[#6E6E73] mt-1.5">Item delivered once payment is confirmed.</p>
                 {buyError && <p className="text-xs text-red-500 mt-1.5 font-medium">{buyError}</p>}
               </div>
 
@@ -569,7 +569,7 @@ const Shop = () => {
                 }
               </PublicButton>
 
-              <p className="text-center text-[10px] text-[#A1A1A6]">
+              <p className="text-center text-[10px] text-[#6E6E73]">
                 Secure payment · Powered by Stripe · Your grade: {loyalty ? TIERS[loyalty.tier]?.label : 'Bronze'}
               </p>
             </div>
@@ -588,7 +588,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="group flex gap-4 p-5 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors"
+      className="group flex gap-4 p-5 rounded-xl liquid-glass liquid-glass-interactive cursor-pointer"
       onClick={() => onBuy(product)}
     >
       {img && <img src={img} alt={product.name} className="w-20 h-20 object-cover shrink-0" />}
@@ -617,7 +617,7 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
-      className="group flex flex-col rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] cursor-pointer transition-colors overflow-hidden"
+      className="group flex flex-col rounded-xl liquid-glass liquid-glass-interactive cursor-pointer overflow-hidden"
       onClick={() => onBuy(product)}
     >
       {/* Image */}

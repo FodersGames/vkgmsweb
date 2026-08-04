@@ -7,7 +7,7 @@ const DELAY_MS = 500;
 // Quick Look–style hover preview: wrap a thumbnail with this and, after a
 // short hover delay, a larger version floats near the cursor. Cancels
 // cleanly on mouse-leave/scroll so it never gets "stuck" open.
-export const HoverPreview = ({ src, alt = '', children, className = '' }) => {
+export const HoverPreview = ({ src, alt = '', children, className = '', glass = false }) => {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const timerRef = useRef(null);
@@ -51,9 +51,16 @@ export const HoverPreview = ({ src, alt = '', children, className = '' }) => {
         // the marker from ThemeContext. It has to live on a WRAPPING element,
         // not this one: a `dark:` variant on the same element as the `dark`
         // marker itself never matches (dark: needs an ancestor, not self).
+        // `glass` opts into the public-site's light-only liquid-glass material —
+        // admin callers (GamesManagement/FilesManagement) keep the original
+        // dark-mode-aware flat panel since the site's dark theme lives there.
         <div className={isDark ? 'dark' : ''}>
           <div
-            className="animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]"
+            className={
+              glass
+                ? 'animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden liquid-glass'
+                : 'animate-appear fixed z-[200] pointer-events-none rounded-2xl overflow-hidden shadow-2xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]'
+            }
             style={{ left, top, width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
           >
             <img src={src} alt={alt} className="w-full h-full object-contain" />

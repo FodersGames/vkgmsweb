@@ -165,7 +165,7 @@ const Home = () => {
                 <Link
                   key={game.slug}
                   to={`/shop?game=${game.slug}`}
-                  className="bg-white hover:bg-[#FCFCFD] transition-colors px-[30px] py-9"
+                  className="relative bg-white hover:bg-[#FCFCFD] hover:shadow-[0_16px_32px_-16px_rgba(0,0,0,0.18)] hover:-translate-y-px hover:z-10 transition-all duration-300 ease-out px-[30px] py-9"
                 >
                   {game.logo_url ? (
                     <img

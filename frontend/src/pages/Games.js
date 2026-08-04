@@ -147,7 +147,7 @@ const GamesPage = () => {
                         className="w-full shadow-md"
                       />
                     ) : (
-                      <div className="w-full aspect-video rounded-xl bg-white border border-[#D2D2D7] flex items-center justify-center">
+                      <div className="w-full aspect-video rounded-xl liquid-glass flex items-center justify-center">
                         <span className="font-display text-[#A1A1A6] text-2xl font-medium">
                           {game.name}
                         </span>
@@ -179,7 +179,7 @@ const GamesPage = () => {
                         {game.screenshots.slice(1, 4).map((s, i) => {
                           const full = s.startsWith('/') ? `${API_URL}${s}` : s;
                           return (
-                            <HoverPreview key={i} src={full} alt="" className="shrink-0">
+                            <HoverPreview key={i} src={full} alt="" className="shrink-0" glass>
                               <img
                                 src={full}
                                 alt=""
@@ -225,7 +225,7 @@ const GamesPage = () => {
                             Owned
                           </span>
                         ) : buyingSlug === game.slug ? (
-                          <div className="rounded-xl border border-[#D2D2D7] bg-white p-4 space-y-3 max-w-xs">
+                          <div className="rounded-xl liquid-glass p-4 space-y-3 max-w-xs">
                             <div className="flex items-center justify-between">
                               <p className="text-xs font-semibold text-[#1D1D1F]">
                                 Promo code <span className="text-[#A1A1A6] font-normal">(optional)</span>

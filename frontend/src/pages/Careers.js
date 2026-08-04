@@ -235,7 +235,7 @@ export default function Careers() {
         ) : (
           <div className="space-y-4">
             {filtered.map(c => (
-              <div key={c._id} className="rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] transition-colors">
+              <div key={c._id} className="rounded-xl liquid-glass liquid-glass-interactive">
                 <button className="w-full text-left px-6 py-5" onClick={() => setExpanded(expanded === c._id ? null : c._id)}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">

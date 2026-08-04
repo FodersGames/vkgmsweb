@@ -17,7 +17,7 @@ const STATUS_COLORS = {
   open: 'bg-[#4ECDC4]/10 text-[#4ECDC4]',
   in_progress: 'bg-[#F59E0B]/10 text-[#F59E0B]',
   resolved: 'bg-[#22C55E]/10 text-[#22C55E]',
-  closed: 'bg-[#A1A1A6]/10 text-[#A1A1A6]',
+  closed: 'bg-[#A1A1A6]/15 text-[#6E6E73]',
 };
 
 const STATUS_LABELS = {
@@ -149,11 +149,12 @@ export const SupportWidget = ({ user }) => {
 
       {open && (
         <div className="animate-appear fixed bottom-24 right-6 z-50 w-80 rounded-[14px] overflow-hidden liquid-glass flex flex-col" style={{ maxHeight: '520px' }}>
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 liquid-glass-dark rounded-none border-x-0 border-t-0">
+          {/* Header — liquid-glass-dark needs explicit white text; it doesn't
+              inherit a readable color from the light body above it. */}
+          <div className="flex items-center justify-between px-4 py-3 liquid-glass-dark rounded-none border-x-0 border-t-0 text-white">
             <div className="flex items-center gap-2">
               {view !== 'menu' && (
-                <button onClick={() => { setView('menu'); setSuccess(''); setError(''); setActiveTicket(null); }} className="hover:text-white/70 transition-colors mr-1">
+                <button onClick={() => { setView('menu'); setSuccess(''); setError(''); setActiveTicket(null); }} className="text-white/80 hover:text-white transition-colors mr-1">
                   <CaretLeft size={16} />
                 </button>
               )}
@@ -164,7 +165,7 @@ export const SupportWidget = ({ user }) => {
                 {view === 'thread' && (activeTicket?.ticket_number || 'Ticket')}
               </span>
             </div>
-            <button onClick={close} className="hover:text-white/70 transition-colors"><X size={16} /></button>
+            <button onClick={close} className="text-white/80 hover:text-white transition-colors"><X size={16} /></button>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -181,7 +182,7 @@ export const SupportWidget = ({ user }) => {
                       <PaperPlaneTilt size={16} className="text-[#4ECDC4] flex-shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-[#1D1D1F]">Open a ticket</p>
-                        <p className="text-xs text-[#A1A1A6]">Send us a support request</p>
+                        <p className="text-xs text-[#6E6E73]">Send us a support request</p>
                       </div>
                     </button>
                     <button
@@ -191,18 +192,18 @@ export const SupportWidget = ({ user }) => {
                       <ArrowSquareOut size={16} className="text-[#6E6E73] flex-shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-[#1D1D1F]">My tickets</p>
-                        <p className="text-xs text-[#A1A1A6]">View your past requests</p>
+                        <p className="text-xs text-[#6E6E73]">View your past requests</p>
                       </div>
                     </button>
                   </>
                 ) : (
                   <div className="rounded-xl px-4 py-4 border border-[#D2D2D7] bg-[#F5F5F7] text-center space-y-2">
                     <p className="text-sm font-semibold text-[#1D1D1F]">Sign in required</p>
-                    <p className="text-xs text-[#A1A1A6]">You need an account to open a support ticket.</p>
+                    <p className="text-xs text-[#6E6E73]">You need an account to open a support ticket.</p>
                     <a href="/login" className="inline-block mt-1 text-xs font-bold text-[#4ECDC4] hover:underline">Sign in or create account →</a>
                   </div>
                 )}
-                <p className="text-xs text-[#A1A1A6] text-center pt-2">
+                <p className="text-xs text-[#6E6E73] text-center pt-2">
                   Email: <a href="mailto:support@vakargames.com" className="underline hover:text-[#1D1D1F]">support@vakargames.com</a>
                 </p>
               </div>
@@ -216,7 +217,7 @@ export const SupportWidget = ({ user }) => {
                     <CheckCircle size={36} className="text-[#4ECDC4] mx-auto mb-3" />
                     <p className="text-sm font-bold text-[#1D1D1F] mb-1">Ticket submitted!</p>
                     <p className="text-xs text-[#6E6E73]">Ticket number: <strong>{success}</strong></p>
-                    <p className="text-xs text-[#A1A1A6] mt-2">We'll reply as soon as possible.</p>
+                    <p className="text-xs text-[#6E6E73] mt-2">We'll reply as soon as possible.</p>
                     <button onClick={() => { setSuccess(''); setView('menu'); }} className="mt-4 text-xs text-[#4ECDC4] hover:underline">
                       Back to support
                     </button>
@@ -283,7 +284,7 @@ export const SupportWidget = ({ user }) => {
                 {loadingTickets ? (
                   <div className="p-6 text-center"><CircleNotch size={18} className="animate-spin text-[#A1A1A6] mx-auto" /></div>
                 ) : tickets.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#A1A1A6]">No tickets yet.</div>
+                  <div className="p-6 text-center text-xs text-[#6E6E73]">No tickets yet.</div>
                 ) : (
                   tickets.map(t => (
                     <button
@@ -297,7 +298,7 @@ export const SupportWidget = ({ user }) => {
                           {STATUS_LABELS[t.status] || t.status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#A1A1A6] mt-0.5">{t.ticket_number}</p>
+                      <p className="text-[10px] text-[#6E6E73] mt-0.5">{t.ticket_number}</p>
                     </button>
                   ))
                 )}
@@ -344,7 +345,7 @@ export const SupportWidget = ({ user }) => {
                   </form>
                 )}
                 {activeTicket.status === 'closed' && (
-                  <div className="border-t border-[#D2D2D7] px-4 py-2 text-center text-xs text-[#A1A1A6]">This ticket is closed.</div>
+                  <div className="border-t border-[#D2D2D7] px-4 py-2 text-center text-xs text-[#6E6E73]">This ticket is closed.</div>
                 )}
               </div>
             )}

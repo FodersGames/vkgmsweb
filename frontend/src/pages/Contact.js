@@ -93,7 +93,7 @@ const Contact = () => {
           {/* Form */}
           <div className="lg:col-span-2">
             {success ? (
-              <div className="rounded-xl bg-white border border-[#D2D2D7] p-10 text-center">
+              <div className="rounded-xl liquid-glass p-10 text-center">
                 <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
                 <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-2">
                   Ticket submitted!
@@ -120,7 +120,7 @@ const Contact = () => {
                 </button>
               </div>
             ) : (
-              <div className="rounded-xl bg-white border border-[#D2D2D7] p-8">
+              <div className="rounded-xl liquid-glass p-8">
                 <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-6">Send us a message</h2>
                 {!token ? (
                   <div className="text-center py-10 space-y-4">
@@ -190,7 +190,7 @@ const Contact = () => {
 
           {/* Sidebar info */}
           <div className="space-y-4">
-            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+            <div className="rounded-xl liquid-glass p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                   <EnvelopeSimple size={14} className="text-[#4ECDC4]" />
@@ -205,7 +205,7 @@ const Contact = () => {
               </a>
             </div>
 
-            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+            <div className="rounded-xl liquid-glass p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                   <ChatCircle size={14} className="text-[#4ECDC4]" />
@@ -218,7 +218,7 @@ const Contact = () => {
             </div>
 
             {token && (
-              <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+              <div className="rounded-xl liquid-glass p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
                     <Ticket size={14} className="text-[#4ECDC4]" />
@@ -234,7 +234,7 @@ const Contact = () => {
               </div>
             )}
 
-            <div className="rounded-xl bg-white border border-[#D2D2D7] p-5">
+            <div className="rounded-xl liquid-glass p-5">
               <p className="text-xs font-semibold text-[#1D1D1F] mb-1.5">Response time</p>
               <p className="text-xs text-[#6E6E73] leading-relaxed">
                 We typically respond within <strong>24–48 hours</strong> during business days.

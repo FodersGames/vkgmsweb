@@ -55,7 +55,7 @@ export const BlogList = () => {
                 <Link
                   key={post.slug}
                   to={`/blog/${post.slug}`}
-                  className="group block rounded-xl bg-white border border-[#D2D2D7] hover:border-[#BFBFC4] hover:shadow-sm transition-all overflow-hidden"
+                  className="group block rounded-xl liquid-glass liquid-glass-interactive overflow-hidden"
                   data-testid={`blog-post-${post.slug}`}
                 >
                   <div className="flex flex-col sm:flex-row">

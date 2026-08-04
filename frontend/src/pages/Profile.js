@@ -71,7 +71,7 @@ const LoyaltyWidget = ({ loyalty }) => {
     : 100;
 
   return (
-    <div className="rounded-xl bg-white border border-[#D2D2D7] p-6">
+    <div className="rounded-xl liquid-glass p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-xs font-mono text-[#6E6E73]">// membership</h2>
         <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
@@ -117,7 +117,7 @@ const LoyaltyWidget = ({ loyalty }) => {
 };
 
 const Card = ({ children, className = '' }) => (
-  <div className={`rounded-xl bg-white border border-[#D2D2D7] p-6 ${className}`}>{children}</div>
+  <div className={`rounded-xl liquid-glass p-6 ${className}`}>{children}</div>
 );
 
 const CardTitle = ({ icon: Icon, children, action }) => (
@@ -390,7 +390,7 @@ const Profile = () => {
         <div className="max-w-lg mx-auto px-6 pt-6">
           <Link
             to="/play"
-            className="flex items-center gap-4 rounded-xl bg-white border border-[#D2D2D7] hover:border-[#4ECDC4]/50 p-4 transition-colors group"
+            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
           >
             <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
               <GameController size={16} className="text-[#6E6E73]" />
