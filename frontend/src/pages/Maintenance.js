@@ -36,22 +36,22 @@ const MaintenancePage = () => (
           Under<br />maintenance
         </h1>
 
-        <p className="text-[#6E6E73] mb-2 leading-relaxed">
+        <p className="text-[#3A3A3C] mb-2 leading-relaxed font-medium">
           We're currently performing improvements to enhance your experience.
         </p>
-        <p className="text-[#6E6E73] leading-relaxed">
+        <p className="text-[#3A3A3C] leading-relaxed font-medium">
           We'll be back very soon — thank you for your patience!
         </p>
 
         <div className="mt-10 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl liquid-glass">
           <div className="w-2 h-2 rounded-full bg-[#4ECDC4] animate-pulse" />
-          <span className="text-xs font-semibold text-[#A1A1A6] tracking-[0.12em] uppercase">Work in progress</span>
+          <span className="text-xs font-semibold text-[#1D1D1F] tracking-[0.12em] uppercase">Work in progress</span>
         </div>
 
         <div className="mt-6">
           <a
             href="mailto:support@vakargames.com"
-            className="text-xs text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors"
+            className="text-xs font-medium text-[#3A3A3C] hover:text-[#1D1D1F] transition-colors"
           >
             support@vakargames.com
           </a>
@@ -60,7 +60,7 @@ const MaintenancePage = () => (
         <div className="mt-10 pt-8 border-t border-[#D2D2D7]">
           <Link
             to="/login"
-            className="rounded-full inline-flex items-center gap-2 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] bg-white px-4 py-2.5 transition-all"
+            className="rounded-full inline-flex items-center gap-2 text-xs font-semibold text-[#1D1D1F] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] bg-white px-4 py-2.5 transition-all"
           >
             <LogIn size={12} />
             Sign in
@@ -71,7 +71,7 @@ const MaintenancePage = () => (
 
     {/* Footer */}
     <div className="border-t border-[#D2D2D7] px-6 py-4 text-center">
-      <p className="text-xs text-[#BFBFC4]">© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
+      <p className="text-xs text-[#6E6E73] font-medium">© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
     </div>
   </div>
 );
