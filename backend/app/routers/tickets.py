@@ -30,6 +30,15 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
         ticket_number = "TKT-" + secrets.token_hex(3).upper()
     user_id_oid = ObjectId(user["id"])
     username = user.get("username", user["email"])
+    # career_id links a recruitment-category ticket back to the posting it
+    # applied to — lets the admin Careers screen show applications per
+    # position instead of them landing as generic, disconnected tickets.
+    career_id = None
+    if req.career_id:
+        try:
+            career_id = ObjectId(req.career_id)
+        except Exception:
+            career_id = None
     doc = {
         "ticket_number": ticket_number,
         "subject": subject,
@@ -39,6 +48,7 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
         "user_email": email,
         "user_id": user_id_oid,
         "username": username,
+        "career_id": career_id,
         "messages": [{
             "sender": "user",
             "author_name": username,

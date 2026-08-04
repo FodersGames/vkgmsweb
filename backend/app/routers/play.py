@@ -377,11 +377,19 @@ async def admin_play_bulk_update_saves(slug: str, req: PlaySaveBulkUpdateRequest
 @router.get("/admin/projects/{slug}/play/categories")
 async def admin_list_categories(slug: str, user=Depends(require_permission("manage_play"))):
     docs = await _get_project_categories(slug)
+    # Resolve target usernames once so the admin UI can show who a
+    # player-specific category actually applies to, not just a raw ID count.
+    all_target_ids = {uid for c in docs for uid in c.get("target_user_ids", [])}
+    users_by_id = {}
+    if all_target_ids:
+        found = await db.users.find({"_id": {"$in": list(all_target_ids)}}, {"username": 1}).to_list(None)
+        users_by_id = {str(u["_id"]): u.get("username", "?") for u in found}
     return {"categories": [
         {
             "id": str(c["_id"]), "name": c["name"], "label": c.get("label", c["name"]),
             "player_scope": c.get("player_scope", "all"),
             "target_user_ids": [str(u) for u in c.get("target_user_ids", [])],
+            "target_usernames": [users_by_id.get(str(u), "?") for u in c.get("target_user_ids", [])],
             "created_at": str(c.get("created_at", "")),
             "created_by": c.get("created_by", ""),
         }

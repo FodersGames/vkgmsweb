@@ -295,6 +295,15 @@ export const PlayersManagement = () => {
   // ═══════════════════════════════════════════════════════════════════════
   if (activePlayer) {
     const p = activePlayer;
+    // Only show categories this player can actually use — "all players" ones,
+    // plus "specific" ones that explicitly target them. Showing every project
+    // category regardless of scope was the bug: a category scoped to one
+    // player appeared as editable on every player's page, and since players
+    // outside the scope never had a slot there, there was nothing to delete
+    // either — just a card that shouldn't have been visible at all.
+    const relevantCategories = categories.filter(cat =>
+      cat.player_scope === 'all' || (cat.target_user_ids || []).includes(p.id)
+    );
     return (
       <>
         <div className="max-w-4xl">
@@ -336,22 +345,27 @@ export const PlayersManagement = () => {
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Save slots</h3>
-              <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} defined for this project</p>
+              <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">{relevantCategories.length} of {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} apply to this player</p>
             </div>
             {detailLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" />
               </div>
-            ) : categories.length === 0 ? (
-              <EmptyState icon={Tag} title="No save categories yet" description="Create one in the Categories tab before this player can have any save data." />
+            ) : relevantCategories.length === 0 ? (
+              <EmptyState icon={Tag} title="No save categories apply to this player" description={categories.length === 0 ? "Create one in the Categories tab before this player can have any save data." : "This project has categories, but none of them are scoped to 'all players' or to this player specifically."} />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categories.map(cat => {
+                {relevantCategories.map(cat => {
                   const hasSlot = saves[cat.name] !== undefined;
                   return (
                     <div key={cat.id} className="rounded-xl bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#4ECDC4] uppercase tracking-wide">{cat.label}</span>
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-[#4ECDC4] uppercase tracking-wide">
+                          {cat.label}
+                          {cat.player_scope === 'specific' && (
+                            <span className="normal-case font-semibold text-[9px] text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded-full tracking-normal">specific</span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => saveCat(cat.name)} disabled={savingCat[cat.name]}
                             className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 bg-[#4ECDC4]/10 text-[#4ECDC4] hover:bg-[#4ECDC4]/20 rounded transition-colors disabled:opacity-50">
@@ -487,7 +501,9 @@ export const PlayersManagement = () => {
                       <div>
                         <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{cat.label} <span className="text-xs font-mono text-[#A1A1A6] font-normal">({cat.name})</span></p>
                         <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">
-                          {cat.player_scope === 'all' ? 'All players' : `${cat.target_user_ids.length} specific player(s)`}
+                          {cat.player_scope === 'all'
+                            ? 'All players'
+                            : `Specific: ${(cat.target_usernames || []).map(u => `@${u}`).join(', ') || 'none'}`}
                         </p>
                       </div>
                       <button onClick={() => deleteCategory(cat)} className="p-1.5 text-[#A1A1A6] hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
@@ -549,7 +565,11 @@ export const PlayersManagement = () => {
               <div className="flex items-center gap-3 mb-4 px-3 py-2 rounded-lg bg-[#4ECDC4]/10 border border-[#4ECDC4]/30 flex-wrap">
                 <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{selectedIds.size} selected</span>
                 <div className="flex-1" />
-                <Button size="sm" variant="secondary" icon={PencilLine} onClick={() => { setBulkPanel(v => !v); setBulkCategory(categories[0]?.name || ''); }}>Update data</Button>
+                <Button size="sm" variant="secondary" icon={PencilLine} onClick={() => {
+                  setBulkPanel(v => !v);
+                  const eligible = categories.find(cat => cat.player_scope === 'all' || (cat.target_user_ids || []).some(id => selectedIds.has(id)));
+                  setBulkCategory(eligible?.name || '');
+                }}>Update data</Button>
                 <Button size="sm" variant="secondary" icon={ShieldOff} onClick={bulkRevoke}>Disconnect</Button>
                 {canDelete && <Button size="sm" variant="secondary" icon={ShieldCheck} onClick={() => bulkBan(false)}>Unban</Button>}
                 {canDelete && <Button size="sm" variant="danger" icon={Ban} onClick={() => bulkBan(true)}>Ban</Button>}
@@ -557,26 +577,44 @@ export const PlayersManagement = () => {
               </div>
             )}
 
-            {bulkPanel && (
-              <form onSubmit={submitBulkUpdate} className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#F5F5F7] dark:bg-[#111118] p-4 mb-4 space-y-3">
-                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Apply the same save data to {selectedIds.size} player(s)</p>
-                {categories.length === 0 ? (
-                  <p className="text-xs text-[#A1A1A6]">No categories defined yet — create one in the Categories tab first.</p>
-                ) : (
-                  <>
-                    <Select size="sm" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
-                      {categories.map(c => <option key={c.id} value={c.name}>{c.label}</option>)}
-                    </Select>
-                    <textarea value={bulkData} onChange={e => setBulkData(e.target.value)} rows={5} spellCheck={false}
-                      className="rounded-lg w-full text-xs font-mono bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] text-[#3A3A3C] dark:text-[#d4d4d8]" />
-                    <div className="flex gap-2">
-                      <Button type="submit" size="sm" loading={bulkSaving}>Apply to selected</Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => setBulkPanel(false)}>Cancel</Button>
-                    </div>
-                  </>
-                )}
-              </form>
-            )}
+            {bulkPanel && (() => {
+              // Only offer categories that actually apply to at least one of the
+              // selected players — an "all players" category always qualifies;
+              // a "specific" one only if it targets someone currently selected.
+              // Picking one that applies to none of them would silently update
+              // zero players, which is confusing to diagnose after the fact.
+              const bulkEligibleCategories = categories.filter(cat =>
+                cat.player_scope === 'all' || (cat.target_user_ids || []).some(id => selectedIds.has(id))
+              );
+              const chosenCat = bulkEligibleCategories.find(c => c.name === bulkCategory);
+              const partialScope = chosenCat?.player_scope === 'specific';
+              const willApplyCount = partialScope
+                ? [...selectedIds].filter(id => (chosenCat.target_user_ids || []).includes(id)).length
+                : selectedIds.size;
+              return (
+                <form onSubmit={submitBulkUpdate} className="rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#F5F5F7] dark:bg-[#111118] p-4 mb-4 space-y-3">
+                  <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Apply the same save data to {selectedIds.size} player(s)</p>
+                  {bulkEligibleCategories.length === 0 ? (
+                    <p className="text-xs text-[#A1A1A6]">No category applies to the selected player(s) — create one in the Categories tab, or select players a "specific" category actually targets.</p>
+                  ) : (
+                    <>
+                      <Select size="sm" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
+                        {bulkEligibleCategories.map(c => <option key={c.id} value={c.name}>{c.label}{c.player_scope === 'specific' ? ' (specific)' : ''}</option>)}
+                      </Select>
+                      {partialScope && willApplyCount < selectedIds.size && (
+                        <p className="text-[11px] text-[#F2994A]">This category only targets {willApplyCount} of the {selectedIds.size} selected player(s) — the rest will be skipped.</p>
+                      )}
+                      <textarea value={bulkData} onChange={e => setBulkData(e.target.value)} rows={5} spellCheck={false}
+                        className="rounded-lg w-full text-xs font-mono bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30 focus:border-[#4ECDC4] text-[#3A3A3C] dark:text-[#d4d4d8]" />
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm" loading={bulkSaving}>Apply to {willApplyCount} selected</Button>
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setBulkPanel(false)}>Cancel</Button>
+                      </div>
+                    </>
+                  )}
+                </form>
+              );
+            })()}
 
             {listLoading && players.length === 0 ? (
               <div className={density === 'compact' ? 'space-y-1.5' : 'space-y-3'}>

@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, Warning } from '@phosphor-icons/react';
+import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, Warning, Users } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
-import { ToolIcon } from '../components/CareersManagement';
+import { ToolIcon, TOOL_LABELS, DEPARTMENTS, departmentColor } from '../constants/careers';
 import { useAuth } from '../context/AuthContext';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
-
-const TOOL_LABELS = {
-  turbowarp: 'TurboWarp', scratch: 'Scratch', unity: 'Unity', unreal: 'Unreal Engine',
-  blender: 'Blender', godot: 'Godot', figma: 'Figma', canva: 'Canva',
-  illustrator: 'Illustrator', photoshop: 'Photoshop', aftereffects: 'After Effects',
-  premiere: 'Premiere Pro', vscode: 'VS Code', github: 'GitHub', notion: 'Notion', discord: 'Discord',
-};
-
-const DEPARTMENTS = ['All', 'Development', 'Art & Design', 'Game Design', 'Marketing', 'Community', 'Sound', 'Writing', 'Other'];
 
 function ApplyModal({ career, onClose, token, user }) {
   const [name, setName] = useState(user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '');
@@ -46,13 +37,14 @@ function ApplyModal({ career, onClose, token, user }) {
         cover,
       ].filter(l => l !== null).join('\n');
 
-      const res = await fetch(`${API}/api/tickets/new`, {
+      const res = await fetch(`${API}/api/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           subject: `[Recruitment] ${career.title}`,
           category: 'recruitment',
           message,
+          career_id: career._id,
         }),
       });
       if (!res.ok) throw new Error('Failed to send application.');
@@ -64,12 +56,14 @@ function ApplyModal({ career, onClose, token, user }) {
     }
   };
 
+  const deptColor = departmentColor(career.department);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
       <div className="animate-appear rounded-2xl liquid-glass w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/60">
           <div>
-            <p className="text-xs font-mono font-semibold text-[#4ECDC4] tracking-wide mb-0.5">// {career.department}</p>
+            <p className="text-xs font-mono font-semibold tracking-wide mb-0.5" style={{ color: deptColor }}>// {career.department}</p>
             <h3 className="font-display text-lg font-medium text-[#1D1D1F]">{career.title}</h3>
           </div>
           <button onClick={onClose} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
@@ -99,20 +93,20 @@ function ApplyModal({ career, onClose, token, user }) {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1">Name</label>
+                <label className="block text-[10px] font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1">Name</label>
                 <input
                   required
-                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] bg-white focus:outline-none focus:border-[#4ECDC4]"
                   value={name} onChange={e => setName(e.target.value)}
                   placeholder="Your name"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1">Email</label>
+                <label className="block text-[10px] font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1">Email</label>
                 <input
                   required
                   type="email"
-                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] bg-white focus:outline-none focus:border-[#4ECDC4]"
                   value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   readOnly={!!user}
@@ -121,24 +115,24 @@ function ApplyModal({ career, onClose, token, user }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1">
                 Portfolio / Links <span className="normal-case font-normal text-[#A1A1A6]">(optional)</span>
               </label>
               <input
-                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4]"
+                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] bg-white focus:outline-none focus:border-[#4ECDC4]"
                 value={portfolio} onChange={e => setPortfolio(e.target.value)}
                 placeholder="https://your-portfolio.com or GitHub link"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1">
+              <label className="block text-[10px] font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1">
                 Cover letter <span className="text-red-400">*</span>
               </label>
               <textarea
                 required
                 rows={5}
-                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] focus:outline-none focus:border-[#4ECDC4] resize-none"
+                className="rounded-lg w-full border border-[#D2D2D7] px-3 py-2 text-sm text-[#1D1D1F] bg-white focus:outline-none focus:border-[#4ECDC4] resize-none"
                 value={cover} onChange={e => setCover(e.target.value)}
                 placeholder="Tell us about yourself, your experience, and why you want to join Vakar Games..."
               />
@@ -174,6 +168,7 @@ export default function Careers() {
   const [applying, setApplying] = useState(null);
 
   useEffect(() => {
+    document.title = 'Careers — Vakar Games';
     fetch(`${API}/api/careers`)
       .then(r => r.json())
       .then(d => setCareers(d.careers || []))
@@ -181,126 +176,153 @@ export default function Careers() {
   }, []);
 
   const filtered = filter === 'All' ? careers : careers.filter(c => c.department === filter);
-  const available = ['All', ...new Set(careers.map(c => c.department))];
+  const available = ['All', ...DEPARTMENTS.filter(d => careers.some(c => c.department === d))];
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
       <PublicNav />
 
       {/* Hero */}
-      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-12">
+      <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-14">
         <Reveal className="max-w-screen-xl mx-auto">
           <p className="text-[12px] font-mono text-[#4ECDC4] mb-4">// join the company</p>
-          <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F] mb-4">
-            Careers
-          </h1>
-          <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
-            We're a small independent software company building applications, tools and games we're proud of. If you want to contribute
-            to something creative and ambitious, we'd love to hear from you.
-          </p>
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+              <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F] mb-4" style={{ textWrap: 'balance' }}>
+                Build something<br className="hidden sm:block" /> that lasts.
+              </h1>
+              <p className="text-[#6E6E73] text-base leading-relaxed max-w-xl">
+                We're a small independent software company building applications, tools and games we're proud of. If you want to contribute
+                to something creative and ambitious, we'd love to hear from you.
+              </p>
+            </div>
+            {!loading && (
+              <div className="rounded-xl liquid-glass px-5 py-4 flex items-center gap-3 shrink-0 self-start lg:self-auto">
+                <Users size={18} className="text-[#4ECDC4]" />
+                <div>
+                  <p className="font-display text-2xl font-medium text-[#1D1D1F] leading-none">{careers.length}</p>
+                  <p className="text-xs text-[#6E6E73] mt-0.5">open position{careers.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </Reveal>
       </section>
 
       <main className="flex-1 max-w-screen-xl mx-auto w-full px-6 md:px-10 lg:px-16 py-12">
         {!loading && careers.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-10">
-            {available.filter(d => DEPARTMENTS.includes(d)).map(dept => (
-              <button
-                key={dept}
-                onClick={() => setFilter(dept)}
-                className={`px-4 py-1.5 text-sm font-medium border transition-colors ${
-                  filter === dept
-                    ? 'bg-[#1D1D1F] text-white border-[#1D1D1F]'
-                    : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
-                }`}
-              >
-                {dept}
-              </button>
-            ))}
+            {available.map(dept => {
+              const active = filter === dept;
+              const color = dept === 'All' ? '#1D1D1F' : departmentColor(dept);
+              return (
+                <button
+                  key={dept}
+                  onClick={() => setFilter(dept)}
+                  className={`flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                    active ? 'text-white' : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:border-[#BFBFC4] hover:text-[#1D1D1F]'
+                  }`}
+                  style={active ? { backgroundColor: color, borderColor: color } : undefined}
+                >
+                  {dept !== 'All' && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: active ? '#fff' : color }} />}
+                  {dept}
+                </button>
+              );
+            })}
           </div>
         )}
 
         {loading ? (
-          <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-24 bg-[#D2D2D7] animate-pulse" />)}</div>
+          <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-[#D2D2D7] animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
-            <p className="font-display text-xl font-medium mb-3 text-[#A1A1A6]">
-              No open positions
+            <div className="rounded-full w-16 h-16 bg-[#4ECDC4]/10 flex items-center justify-center mx-auto mb-5">
+              <Users size={26} className="text-[#4ECDC4]" />
+            </div>
+            <p className="font-display text-xl font-medium mb-3 text-[#1D1D1F]">
+              {careers.length === 0 ? 'No open positions right now' : 'Nothing in this department'}
             </p>
             <p className="text-sm text-[#6E6E73]">
-              Nothing right now, but feel free to reach out at{' '}
+              {careers.length === 0 ? 'Check back soon, or ' : 'Try another department, or '}
+              reach out at{' '}
               <a href="mailto:support@vakargames.com" className="text-[#4ECDC4] hover:underline">support@vakargames.com</a>
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filtered.map(c => (
-              <div key={c._id} className="rounded-xl liquid-glass liquid-glass-interactive">
-                <button className="w-full text-left px-6 py-5" onClick={() => setExpanded(expanded === c._id ? null : c._id)}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-xs font-semibold text-[#4ECDC4] uppercase tracking-wider">{c.department}</span>
-                        <span className="w-1 h-1 rounded-full bg-[#BFBFC4]" />
-                        <span className="text-xs text-[#A1A1A6]">{c.contract_type}</span>
-                      </div>
-                      <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-2">{c.title}</h2>
-                      <div className="flex items-center flex-wrap gap-4 text-xs text-[#6E6E73]">
-                        <span className="flex items-center gap-1"><MapPin size={11} />{c.location}</span>
-                        <span className="flex items-center gap-1"><Briefcase size={11} />{c.contract_type}</span>
+            {filtered.map(c => {
+              const color = departmentColor(c.department);
+              return (
+                <Reveal key={c._id} className="rounded-xl liquid-glass liquid-glass-interactive overflow-hidden" as="div">
+                  <button className="w-full text-left px-6 py-5" onClick={() => setExpanded(expanded === c._id ? null : c._id)}>
+                    <div className="flex items-start gap-4">
+                      <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      <div className="flex-1 min-w-0 flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color }}>{c.department}</span>
+                            <span className="w-1 h-1 rounded-full bg-[#BFBFC4]" />
+                            <span className="text-xs text-[#6E6E73]">{c.contract_type}</span>
+                          </div>
+                          <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-2">{c.title}</h2>
+                          <div className="flex items-center flex-wrap gap-4 text-xs text-[#6E6E73]">
+                            <span className="flex items-center gap-1"><MapPin size={11} />{c.location}</span>
+                            <span className="flex items-center gap-1"><Briefcase size={11} />{c.contract_type}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {c.tools?.length > 0 && (
+                            <div className="hidden sm:flex items-center gap-1">
+                              {c.tools.slice(0, 4).map(t => (
+                                <span key={t} className="grayscale opacity-50"><ToolIcon toolId={t} size={18} /></span>
+                              ))}
+                              {c.tools.length > 4 && <span className="text-xs text-[#A1A1A6] ml-1">+{c.tools.length - 4}</span>}
+                            </div>
+                          )}
+                          {expanded === c._id ? <CaretUp size={16} className="text-[#A1A1A6]" /> : <CaretDown size={16} className="text-[#A1A1A6]" />}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      {c.tools?.length > 0 && (
-                        <div className="hidden sm:flex items-center gap-1">
-                          {c.tools.slice(0, 4).map(t => (
-                            <span key={t} className="grayscale opacity-50"><ToolIcon toolId={t} size={18} /></span>
-                          ))}
-                          {c.tools.length > 4 && <span className="text-xs text-[#A1A1A6] ml-1">+{c.tools.length - 4}</span>}
+                  </button>
+
+                  {expanded === c._id && (
+                    <div className="px-6 pb-6 border-t border-[#D2D2D7]/60 pt-5 space-y-5 ml-1">
+                      {c.description && <p className="text-sm text-[#3A3A3C] leading-relaxed whitespace-pre-wrap">{c.description}</p>}
+                      {c.requirements?.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-3">What we're looking for</h3>
+                          <ul className="space-y-2">
+                            {c.requirements.map((r, i) => (
+                              <li key={i} className="flex gap-2 text-sm text-[#3A3A3C]">
+                                <span className="mt-0.5 shrink-0" style={{ color }}>—</span>{r}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
-                      {expanded === c._id ? <CaretUp size={16} className="text-[#A1A1A6]" /> : <CaretDown size={16} className="text-[#A1A1A6]" />}
-                    </div>
-                  </div>
-                </button>
-
-                {expanded === c._id && (
-                  <div className="px-6 pb-6 border-t border-[#D2D2D7] pt-5 space-y-5">
-                    {c.description && <p className="text-sm text-[#3A3A3C] leading-relaxed whitespace-pre-wrap">{c.description}</p>}
-                    {c.requirements?.length > 0 && (
-                      <div>
-                        <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-3">What we're looking for</h3>
-                        <ul className="space-y-2">
-                          {c.requirements.map((r, i) => (
-                            <li key={i} className="flex gap-2 text-sm text-[#3A3A3C]">
-                              <span className="text-[#4ECDC4] mt-0.5 shrink-0">—</span>{r}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {c.tools?.length > 0 && (
-                      <div>
-                        <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-3">Tools</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {c.tools.map(t => (
-                            <span key={t} className="rounded-xl flex items-center gap-1.5 px-2.5 py-1.5 bg-[#F5F5F7] border border-[#D2D2D7] text-xs text-[#6E6E73]">
-                              <span className="grayscale opacity-60"><ToolIcon toolId={t} size={14} /></span>
-                              {TOOL_LABELS[t] || t}
-                            </span>
-                          ))}
+                      {c.tools?.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-3">Tools</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {c.tools.map(t => (
+                              <span key={t} className="rounded-xl flex items-center gap-1.5 px-2.5 py-1.5 bg-white/60 border border-[#D2D2D7] text-xs text-[#6E6E73]">
+                                <span className="grayscale opacity-60"><ToolIcon toolId={t} size={14} /></span>
+                                {TOOL_LABELS[t] || t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+                      )}
+                      <div className="pt-2">
+                        <PublicButton onClick={() => setApplying(c)} icon={PaperPlaneTilt} iconPosition="leading">
+                          Apply for this position
+                        </PublicButton>
                       </div>
-                    )}
-                    <div className="pt-2">
-                      <PublicButton onClick={() => setApplying(c)} icon={PaperPlaneTilt} iconPosition="leading">
-                        Apply for this position
-                      </PublicButton>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
         )}
       </main>

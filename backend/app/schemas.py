@@ -251,6 +251,7 @@ class TicketCreateRequest(BaseModel):
     subject: str
     category: Literal["general", "technical", "billing", "account", "recruitment"] = "general"
     message: str
+    career_id: Optional[str] = None
 
 class TicketReplyRequest(BaseModel):
     content: str
