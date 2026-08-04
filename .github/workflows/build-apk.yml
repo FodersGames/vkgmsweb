@@ -64,7 +64,7 @@ jobs:
           npm init -y >/dev/null
           npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
           cp -r ../www ./www
-          npx cap init "${{ inputs.app_name }}" "com.vakargames.studioapp.${{ inputs.build_id }}" --web-dir www
+          npx cap init "${{ inputs.app_name }}" "com.vakargames.studioapp.b${{ inputs.build_id }}" --web-dir www
           npx cap add android
 
       - name: Build debug APK
