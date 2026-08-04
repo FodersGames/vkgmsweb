@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft, Plus, Trash2, Copy, GripVertical, Eye, Save, Globe, Lock,
-  Check, X, ChevronRight, Type,
+  Check, X, ChevronRight, Type, Palette,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -15,6 +15,7 @@ import { Select } from '../ui/Select';
 import { useAuth } from '../context/AuthContext';
 import {
   COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
+  THEME_PRESETS, ICON_IDS, AppIcon,
 } from '../constants/appBuilder';
 import AppRuntime from './AppRuntime';
 
@@ -248,6 +249,90 @@ function PropsEditor({ node, onChange }) {
                 <option value="flex-end">End</option>
               </Select>
             </div>
+            <div>
+              <label className={FIELD_LABEL}>Padding (px)</label>
+              <input type="number" min="0" value={node.props.padding ?? 0} onChange={e => set('padding', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Corner radius</label>
+              <input type="number" min="0" value={node.props.radius ?? 0} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Background</label>
+            <Select value={node.props.background || 'none'} onChange={e => set('background', e.target.value)} size="sm">
+              <option value="none">Transparent</option>
+              <option value="surface">Theme surface</option>
+            </Select>
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
+              <input type="checkbox" checked={!!node.props.border} onChange={e => set('border', e.target.checked)} />Border
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
+              <input type="checkbox" checked={!!node.props.shadow} onChange={e => set('shadow', e.target.checked)} />Shadow
+            </label>
+          </div>
+        </div>
+      );
+    case 'toggle':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Label</label>
+            <input value={node.props.label || ''} onChange={e => set('label', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. notificationsOn" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Stores "true" or "false" — usable with a "Set a variable" action's toggle mode too.</p>
+          </div>
+        </div>
+      );
+    case 'icon':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Icon</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {ICON_IDS.map(id => (
+                <button
+                  key={id} onClick={() => set('icon', id)}
+                  className={`flex items-center justify-center py-2 rounded-lg border transition-colors ${node.props.icon === id ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4]'}`}
+                >
+                  <AppIcon id={id} size={16} color="currentColor" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Size (px)</label>
+              <input type="number" min="8" value={node.props.size ?? 28} onChange={e => set('size', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Color</label>
+              <input type="color" value={node.props.color || '#1D1D1F'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+            </div>
+          </div>
+        </div>
+      );
+    case 'list':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Source variable</label>
+            <input value={node.props.source_variable || ''} onChange={e => set('source_variable', e.target.value)} placeholder="e.g. apiResult" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Expects a JSON array in this variable — e.g. the result of a "Call an API" action.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Item template</label>
+            <input value={node.props.item_template || ''} onChange={e => set('item_template', e.target.value)} placeholder="{{item.name}} — {{item.status}}" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{item}}'} for a simple value, or {'{{item.field}}'} if each entry is an object.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Empty state text</label>
+            <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
         </div>
       );
@@ -502,6 +587,8 @@ export default function AppBuilderEditor({ appId, onBack }) {
     });
   };
 
+  const setTheme = (id) => mutate(a => { a.theme = id; });
+
   const addVariable = () => mutate(a => { a.variables.push({ name: `var${a.variables.length + 1}`, initial_value: '' }); });
   const updateVariable = (idx, field, value) => mutate(a => { a.variables[idx][field] = value; });
   const removeVariable = (idx) => mutate(a => { a.variables.splice(idx, 1); });
@@ -513,7 +600,7 @@ export default function AppBuilderEditor({ appId, onBack }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          name: app.name, description: app.description, accent_color: app.accent_color,
+          name: app.name, description: app.description, accent_color: app.accent_color, theme: app.theme,
           screens: app.screens, variables: app.variables,
         }),
       });
@@ -635,10 +722,34 @@ export default function AppBuilderEditor({ appId, onBack }) {
                 <button
                   key={c.type}
                   onClick={() => addComponent(c.type)}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4] transition-colors"
+                  className="relative flex flex-col items-center gap-1 py-2.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4] transition-colors"
                 >
+                  {c.tier === 'premium' && (
+                    <span title="Coming to Vakar+ subscribers" className="absolute top-1 right-1 text-[#F2994A]"><Lock size={9} /></span>
+                  )}
                   <c.icon size={15} />
                   <span className="text-[10px] font-medium">{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <Palette size={10} />Theme
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {THEME_PRESETS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  title={t.label}
+                  className={`relative h-9 rounded-lg border-2 transition-all ${app.theme === t.id || (!app.theme && t.id === 'mint') ? 'border-[#4ECDC4] scale-105' : 'border-transparent'}`}
+                  style={{ background: `linear-gradient(135deg, ${t.colors.primary}, ${t.colors.background})` }}
+                >
+                  {t.tier === 'premium' && (
+                    <span title="Vakar+ theme" className="absolute -top-1 -right-1 bg-white dark:bg-[#151520] rounded-full p-0.5 text-[#F2994A] shadow"><Lock size={8} /></span>
+                  )}
                 </button>
               ))}
             </div>

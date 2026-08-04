@@ -409,6 +409,7 @@ class StudioAppUpdateRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     accent_color: Optional[str] = None
+    theme: Optional[str] = None
     screens: Optional[List[dict]] = None
     variables: Optional[List[dict]] = None
 

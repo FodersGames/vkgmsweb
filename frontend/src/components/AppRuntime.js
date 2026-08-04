@@ -1,31 +1,48 @@
 import React, { useState, useMemo } from 'react';
+import { resolveTheme, AppIcon } from '../constants/appBuilder';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
-// Interprets a Studio App's {screens, variables} into a live, running
-// mini-app: local variable state, screen navigation, and a small action
-// interpreter (navigate / set_variable / show_message / call_api /
-// open_link). Used both for the editor's live preview and the public
-// /apps/:slug runtime page — this is the one place "what does a published
-// app actually do" is implemented, so both surfaces stay identical.
+// Interprets a Studio App's {screens, variables, theme} into a live,
+// running mini-app: theming, local variable state, screen navigation, and
+// a small action interpreter (navigate / set_variable / show_message /
+// call_api / open_link). Used both for the editor's live preview and the
+// public /apps/:slug runtime page — this is the one place "what does a
+// published app actually do" is implemented, so both surfaces stay
+// identical.
 
 const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };
+const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-const BUTTON_STYLE = {
-  primary: { background: '#1D1D1F', color: '#fff', border: '1px solid #1D1D1F' },
-  secondary: { background: '#4ECDC4', color: '#0a2a27', border: '1px solid #4ECDC4' },
-  outline: { background: 'transparent', color: '#1D1D1F', border: '1px solid #D2D2D7' },
-};
-
-function interpolate(str, vars) {
+function interpolate(str, vars, scope) {
   if (!str) return '';
-  return String(str).replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, name) => {
-    const v = vars[name];
-    return v === undefined || v === null ? '' : String(v);
+  return String(str).replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, path) => {
+    const parts = path.split('.');
+    const root = parts[0];
+    let val;
+    if (scope && Object.prototype.hasOwnProperty.call(scope, root)) {
+      val = scope[root];
+      for (let i = 1; i < parts.length && val != null; i++) val = val[parts[i]];
+    } else {
+      val = vars[root];
+    }
+    if (val === undefined || val === null) return '';
+    return typeof val === 'object' ? JSON.stringify(val) : String(val);
   });
 }
 
-function RenderNode({ node, vars, setVars, runAction }) {
+function buttonStyle(theme, style) {
+  switch (style) {
+    case 'secondary':
+      return { background: `${theme.colors.primary}1a`, color: theme.colors.primary, border: `1px solid ${theme.colors.primary}40` };
+    case 'outline':
+      return { background: 'transparent', color: theme.colors.text, border: `1px solid ${theme.colors.border}` };
+    default:
+      return { background: theme.colors.primary, color: theme.colors.primaryText, border: `1px solid ${theme.colors.primary}`, boxShadow: `0 6px 16px -6px ${theme.colors.primary}80` };
+  }
+}
+
+function RenderNode({ node, vars, setVars, runAction, theme }) {
   if (!node) return null;
   switch (node.type) {
     case 'text':
@@ -33,8 +50,8 @@ function RenderNode({ node, vars, setVars, runAction }) {
         <p style={{
           margin: 0, fontSize: TEXT_SIZE_PX[node.props?.size] || 15,
           fontWeight: node.props?.weight === 'bold' ? 700 : 400,
-          textAlign: node.props?.align || 'left', color: node.props?.color || '#1D1D1F',
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          textAlign: node.props?.align || 'left', color: node.props?.color || theme.colors.text,
+          lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
         }}>
           {interpolate(node.props?.content, vars)}
         </p>
@@ -44,9 +61,9 @@ function RenderNode({ node, vars, setVars, runAction }) {
         <button
           onClick={() => runAction(node.actions?.onClick)}
           style={{
-            ...(BUTTON_STYLE[node.props?.style] || BUTTON_STYLE.primary),
-            padding: '11px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', width: '100%', fontFamily: 'inherit',
+            ...buttonStyle(theme, node.props?.style),
+            padding: '11px 18px', borderRadius: theme.radius * 0.7, fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', width: '100%', fontFamily: FONT_STACK, transition: 'opacity 0.15s',
           }}
         >
           {interpolate(node.props?.label, vars) || 'Button'}
@@ -62,14 +79,15 @@ function RenderNode({ node, vars, setVars, runAction }) {
       ) : (
         <div style={{
           width: '100%', height: node.props?.height || 160, borderRadius: node.props?.radius ?? 12,
-          background: '#F5F5F7', border: '1px dashed #D2D2D7',
+          background: theme.colors.surface, border: `1px dashed ${theme.colors.border}`,
         }} />
       );
     case 'input': {
       const bound = !!node.props?.variable;
       const style = {
-        width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #D2D2D7',
-        fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: bound ? '#fff' : '#FAFAFA',
+        width: '100%', padding: '10px 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
+        fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
+        color: theme.colors.text,
       };
       if (!bound) return <input placeholder={node.props?.placeholder} style={style} disabled title="This input isn't bound to a variable yet" />;
       return (
@@ -81,19 +99,78 @@ function RenderNode({ node, vars, setVars, runAction }) {
         />
       );
     }
-    case 'container':
+    case 'toggle': {
+      const bound = !!node.props?.variable;
+      const on = vars[node.props?.variable] === 'true';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 12 }}>
+          <span style={{ fontSize: 14, color: theme.colors.text }}>{interpolate(node.props?.label, vars) || 'Toggle'}</span>
+          <button
+            disabled={!bound}
+            onClick={() => bound && setVars(v => ({ ...v, [node.props.variable]: v[node.props.variable] === 'true' ? 'false' : 'true' }))}
+            style={{
+              width: 42, height: 24, borderRadius: 12, border: 'none', cursor: bound ? 'pointer' : 'not-allowed',
+              position: 'relative', background: on ? theme.colors.primary : theme.colors.border, transition: 'background 0.2s',
+              padding: 0, flexShrink: 0, opacity: bound ? 1 : 0.5,
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: on ? 20 : 2, width: 20, height: 20, borderRadius: '50%',
+              background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+            }} />
+          </button>
+        </div>
+      );
+    }
+    case 'icon':
+      return <AppIcon id={node.props?.icon || 'star'} size={node.props?.size || 28} color={node.props?.color || theme.colors.text} />;
+    case 'list': {
+      const raw = vars[node.props?.source_variable];
+      let items = [];
+      if (raw) {
+        try {
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (Array.isArray(parsed)) items = parsed;
+        } catch { /* not valid JSON — render as empty */ }
+      }
+      if (items.length === 0) {
+        return <p style={{ margin: 0, fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
+      }
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+          {items.slice(0, 50).map((item, i) => (
+            <div key={i} style={{
+              padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text,
+            }}>
+              {interpolate(node.props?.item_template, vars, { item })}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'container': {
+      const bg = node.props?.background === 'surface' ? theme.colors.surface
+        : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
       return (
         <div style={{
           display: 'flex', flexDirection: node.props?.direction || 'column',
           gap: node.props?.gap ?? 12, alignItems: node.props?.align || 'stretch', width: '100%',
+          background: bg,
+          border: node.props?.border ? `1px solid ${theme.colors.border}` : 'none',
+          borderRadius: node.props?.radius ?? 0,
+          padding: node.props?.padding ?? 0,
+          boxShadow: node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none',
+          boxSizing: 'border-box',
         }}>
           {(node.children || []).map(child => (
-            <RenderNode key={child.id} node={child} vars={vars} setVars={setVars} runAction={runAction} />
+            <RenderNode key={child.id} node={child} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
           ))}
         </div>
       );
+    }
     case 'divider':
-      return <div style={{ height: 1, background: '#D2D2D7', width: '100%' }} />;
+      return <div style={{ height: 1, background: theme.colors.border, width: '100%' }} />;
     case 'spacer':
       return <div style={{ height: node.props?.size ?? 16 }} />;
     default:
@@ -101,7 +178,25 @@ function RenderNode({ node, vars, setVars, runAction }) {
   }
 }
 
+function StatusBar({ theme }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '10px 20px 2px', fontSize: 12, fontWeight: 600, color: theme.colors.text,
+      fontFamily: FONT_STACK, userSelect: 'none', flexShrink: 0,
+    }}>
+      <span>9:41</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ width: 14, height: 8, borderRadius: 2, border: `1.3px solid ${theme.colors.text}`, position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 1.5, right: 4, background: theme.colors.text, borderRadius: 0.5 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AppRuntime({ app, token, className = '' }) {
+  const theme = useMemo(() => resolveTheme(app?.theme), [app?.theme]);
   const screens = useMemo(() => app?.screens || [], [app]);
   const [screenId, setScreenId] = useState(screens[0]?.id);
   const [vars, setVars] = useState(() => Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])));
@@ -167,26 +262,29 @@ export default function AppRuntime({ app, token, className = '' }) {
 
   if (!screen) {
     return (
-      <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#A1A1A6', fontSize: 13 }}>
+      <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: theme.colors.textMuted, fontSize: 13, background: theme.colors.background }}>
         No screens yet.
       </div>
     );
   }
 
   return (
-    <div className={className} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 16, padding: 20, height: '100%', overflowY: 'auto', boxSizing: 'border-box' }}>
+    <div className={className} style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', background: theme.colors.background, fontFamily: FONT_STACK, boxSizing: 'border-box' }}>
+      <StatusBar theme={theme} />
       {message && (
         <div style={{
-          position: 'absolute', top: 10, left: 12, right: 12, zIndex: 10,
-          background: '#1D1D1F', color: '#fff', fontSize: 12, fontWeight: 600,
-          padding: '8px 12px', borderRadius: 10, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+          position: 'absolute', top: 40, left: 12, right: 12, zIndex: 10,
+          background: theme.colors.text, color: theme.colors.background, fontSize: 12, fontWeight: 600,
+          padding: '8px 12px', borderRadius: theme.radius * 0.7, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
         }}>
           {message}
         </div>
       )}
-      {(screen.components || []).map(node => (
-        <RenderNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} />
-      ))}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
+        {(screen.components || []).map(node => (
+          <RenderNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} />
+        ))}
+      </div>
     </div>
   );
 }
