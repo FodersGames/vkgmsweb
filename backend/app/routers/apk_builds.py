@@ -1,3 +1,4 @@
+import logging
 import secrets
 import uuid
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from ..rate_limit import limiter
 from ..schemas import ApkBuildTriggerRequest
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # APK EXPORT (Phase E) — deliberately off the production VPS: the trigger
@@ -109,9 +111,17 @@ async def trigger_apk_build(request: Request, app_id: str, body: ApkBuildTrigger
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status not in (200, 204):
+                    body = await resp.text()
+                    logger.error(
+                        "GitHub workflow_dispatch failed: status=%s repo=%s workflow=%s ref=%s body=%s",
+                        resp.status, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF, body[:500],
+                    )
                     await db.apk_builds.update_one({"_id": result.inserted_id}, {"$set": {"status": "failed", "error": "Could not start the build."}})
                     raise HTTPException(status_code=502, detail="Could not start the build. Please try again later.")
-    except aiohttp.ClientError:
+    except HTTPException:
+        raise
+    except aiohttp.ClientError as e:
+        logger.error("GitHub workflow_dispatch request error: %s", e)
         await db.apk_builds.update_one({"_id": result.inserted_id}, {"$set": {"status": "failed", "error": "Could not reach the build service."}})
         raise HTTPException(status_code=502, detail="Could not reach the build service.")
 
