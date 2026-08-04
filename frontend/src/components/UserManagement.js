@@ -5,7 +5,7 @@ import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
   Search, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
-  FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart,
+  FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow,
 } from 'lucide-react';
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -86,6 +86,10 @@ const STATIC_GROUPS = [
       { id: 'game_dev_panel', label: 'Game Dev Panel (in-game)' },
       { id: 'game_logs_panel', label: 'Game Logs Panel (in-game)' },
     ]
+  },
+  {
+    label: 'Studio', icon: AppWindow, color: '#4ECDC4',
+    permissions: [{ id: 'manage_studio_apps', label: 'App Builder' }]
   },
 ];
 

@@ -79,8 +79,8 @@ export const GamesManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault(); setLoading(true);
     try {
-      if (editing) { await api.put(`/api/website/games/${editing}`, form); toast.success('Game updated'); }
-      else { await api.post(`/api/website/games`, form); toast.success('Game created'); }
+      if (editing) { await api.put(`/api/website/games/${editing}`, form); toast.success('Application updated'); }
+      else { await api.post(`/api/website/games`, form); toast.success('Application created'); }
       resetForm(); fetchGames();
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed'); }
     finally { setLoading(false); }
@@ -90,7 +90,7 @@ export const GamesManagement = () => {
     showConfirm({
       title: 'Delete game',
       description: `"${name}" will be permanently removed from the website.`,
-      onConfirm: async () => { await api.delete(`/api/website/games/${slug}`); toast.success('Game deleted'); fetchGames(); },
+      onConfirm: async () => { await api.delete(`/api/website/games/${slug}`); toast.success('Application deleted'); fetchGames(); },
     });
   };
 
@@ -104,13 +104,13 @@ export const GamesManagement = () => {
               <Gamepad2 size={16} style={{ color: '#4ECDC4' }} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Games Management</h3>
-              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Manage games displayed on the website</p>
+              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Applications Management</h3>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Manage applications displayed on the website</p>
             </div>
           </div>
           {hasPermission('create_games') && (
             <Button icon={showForm ? X : Plus} onClick={() => showForm ? resetForm() : setShowForm(true)} data-testid="create-game-button">
-              {showForm ? 'Cancel' : 'New Game'}
+              {showForm ? 'Cancel' : 'New Application'}
             </Button>
           )}
         </CardHeader>
@@ -217,7 +217,7 @@ export const GamesManagement = () => {
                 </label>
 
                 <Button type="submit" loading={loading} icon={editing ? Save : Plus} data-testid="submit-game-button">
-                  {loading ? 'Saving…' : editing ? 'Save Changes' : 'Create Game'}
+                  {loading ? 'Saving…' : editing ? 'Save Changes' : 'Create Application'}
                 </Button>
               </div>
             </form>
@@ -226,10 +226,10 @@ export const GamesManagement = () => {
 
         <CardBody>
           <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#52525b] uppercase tracking-widest mb-4">
-            Games ({games.length})
+            Applications ({games.length})
           </p>
           {games.length === 0 ? (
-            <EmptyState icon={Gamepad2} title="No games yet" description="Add your first game to display it on the website." />
+            <EmptyState icon={Gamepad2} title="No applications yet" description="Add your first application to display it on the website." />
           ) : (
             <div className="space-y-2" data-testid="games-list">
               {games.map(g => (

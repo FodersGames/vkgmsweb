@@ -7,7 +7,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 import {
-  GameController, Clock, CaretRight,
+  GameController, Clock, CaretRight, ForkKnife,
   Shield, Sword, Flame, Star, PawPrint, Sparkle, Crown, Skull, Bird, Cat, Anchor, Leaf,
 } from '@phosphor-icons/react';
 
@@ -114,7 +114,7 @@ export default function VakarApp() {
   const [guilds, setGuilds] = useState([]);
 
   useEffect(() => {
-    document.title = 'Vakar App — My Games';
+    document.title = 'Vakar App — My Applications';
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     if (!token) return;
@@ -145,16 +145,32 @@ export default function VakarApp() {
           <Reveal className="max-w-screen-xl mx-auto">
             <p className="text-[12px] font-mono mb-3" style={{ color: MINT }}>// vakar app</p>
             <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
-              My games
+              My applications
             </h1>
             <p className="text-[#6E6E73] text-sm mt-2">
               Welcome back, <strong className="text-[#1D1D1F]">{firstName}</strong>.
               {games.length > 0
-                ? ` ${games.length} game${games.length > 1 ? 's' : ''} in your library.`
-                : ' Start playing to build your library.'}
+                ? ` ${games.length} application${games.length > 1 ? 's' : ''} in your library.`
+                : ' Start using an application to build your library.'}
             </p>
           </Reveal>
         </section>
+
+        <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 pt-8">
+          <Link
+            to="/nutrition"
+            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group max-w-md"
+          >
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
+              <ForkKnife size={16} className="text-[#6E6E73]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#1D1D1F]">Food Journal</p>
+              <p className="text-xs text-[#6E6E73]">Track meals, macros and calories</p>
+            </div>
+            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
+          </Link>
+        </div>
 
         <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10">
 
@@ -175,13 +191,13 @@ export default function VakarApp() {
                 <GameController size={28} style={{ color: MINT_DARK }} />
               </div>
               <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-3">
-                No games yet
+                No applications yet
               </h2>
               <p className="text-[#6E6E73] text-sm mb-6 max-w-sm mx-auto">
-                Your games will appear here once you start playing Vakar Games titles.
+                Your applications will appear here once you start using Vakar Games titles.
               </p>
               <PublicButton as={Link} to="/applications" icon={CaretRight}>
-                Discover our games
+                Discover our applications
               </PublicButton>
             </div>
           ) : (

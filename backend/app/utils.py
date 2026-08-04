@@ -50,10 +50,28 @@ _DELIVERY_MIMES: dict = {
     # .svg handled separately by _sanitize_svg
 }
 
-# Raw magic-byte signatures for formats libmagic sometimes misidentifies
+def _has_prefix(*prefixes):
+    return lambda content: any(content[: len(p)] == p for p in prefixes)
+
+def _is_webp(content: bytes) -> bool:
+    return content[:4] == b"RIFF" and len(content) >= 12 and content[8:12] == b"WEBP"
+
+# Raw magic-byte checkers, keyed by extension. Covers every standard image
+# format with well-known, stable signatures so uploads never depend on the
+# `libmagic` system library being installed — only PDF/ZIP/RAR/7z/AI/MP4/MOV
+# (delivery-only formats without a simple fixed signature) still fall back to
+# libmagic when available, or fail closed (503) if it isn't.
 _FORMAT_MAGIC_BYTES: dict = {
-    ".psd":   b"8BPS",
-    ".blend": b"BLENDER",
+    ".psd":   _has_prefix(b"8BPS"),
+    ".blend": _has_prefix(b"BLENDER"),
+    ".jpg":   _has_prefix(b"\xff\xd8\xff"),
+    ".jpeg":  _has_prefix(b"\xff\xd8\xff"),
+    ".png":   _has_prefix(b"\x89PNG\r\n\x1a\n"),
+    ".gif":   _has_prefix(b"GIF87a", b"GIF89a"),
+    ".bmp":   _has_prefix(b"BM"),
+    ".tiff":  _has_prefix(b"II*\x00", b"MM\x00*"),
+    ".tif":   _has_prefix(b"II*\x00", b"MM\x00*"),
+    ".webp":  _is_webp,
 }
 
 
@@ -68,11 +86,11 @@ def _detect_mime(content: bytes) -> str | None:
 
 
 def _check_magic_bytes(content: bytes, ext: str) -> bool:
-    """Check raw magic bytes for formats where libmagic is unreliable."""
-    expected = _FORMAT_MAGIC_BYTES.get(ext)
-    if expected is None:
+    """Check raw magic bytes for formats where libmagic is unreliable or unavailable."""
+    checker = _FORMAT_MAGIC_BYTES.get(ext)
+    if checker is None:
         return True
-    return content[: len(expected)] == expected
+    return checker(content)
 
 
 def _sanitize_svg(content: bytes) -> bytes:

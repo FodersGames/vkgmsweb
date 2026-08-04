@@ -20,6 +20,7 @@ import Contact from './pages/Contact';
 import VakarApp from './pages/VakarApp';
 import Nutrition from './pages/Nutrition';
 import Careers from './pages/Careers';
+import StudioAppView from './pages/StudioAppView';
 import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
@@ -86,6 +87,7 @@ const AppRoutes = () => {
         <Route path="/app" element={<VakarApp />} />
         <Route path="/play" element={<Navigate to="/app" replace />} />
         <Route path="/nutrition" element={<Nutrition />} />
+        <Route path="/apps/:slug" element={<StudioAppView />} />
         <Route path="/choose-pseudo" element={<ChoosePseudo />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />

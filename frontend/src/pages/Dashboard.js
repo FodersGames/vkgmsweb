@@ -8,7 +8,7 @@ import {
   Gamepad2, ChevronDown, Check, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
+  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical, AppWindow,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -30,6 +30,7 @@ import { AccountSettings }     from '../components/AccountSettings';
 import { CouponManagement }    from '../components/CouponManagement';
 import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
+import AppBuilderList         from '../components/AppBuilderList';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
@@ -55,12 +56,13 @@ const NAV_GROUPS = [
         id: 'projects', label: 'Projects', icon: Gamepad2,
         anyPermission: ['view_projects', 'change_status', 'view_variables', 'view_logs', 'manage_chat', 'claim_missions', 'create_missions', 'manage_files', 'manage_play'],
       },
+      { id: 'app-builder', label: 'App Builder', icon: AppWindow, permission: 'manage_studio_apps' },
     ],
   },
   {
     label: 'Website',
     items: [
-      { id: 'website-games',    label: 'Games',    icon: Gamepad2,    permission: 'create_games'   },
+      { id: 'website-games',    label: 'Applications', icon: Gamepad2, permission: 'create_games'   },
       { id: 'website-blog',     label: 'Blog',     icon: PenTool,     permission: 'create_blog'    },
       { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag, permission: 'manage_shop'    },
       { id: 'careers',          label: 'Careers',  icon: Briefcase,   permission: 'manager_careers' },
@@ -800,6 +802,7 @@ const DashboardContent = () => {
             )}
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
+            {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

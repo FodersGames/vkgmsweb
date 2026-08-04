@@ -401,6 +401,23 @@ class MealEntryUpdateRequest(BaseModel):
     logged_at: Optional[str] = None
     notes: Optional[str] = None
 
+class StudioAppCreateRequest(BaseModel):
+    name: str
+    slug: Optional[str] = None
+
+class StudioAppUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    accent_color: Optional[str] = None
+    screens: Optional[List[dict]] = None
+    variables: Optional[List[dict]] = None
+
+class StudioAppStatusRequest(BaseModel):
+    status: Literal["draft", "published"]
+
+class StudioAppVisibilityRequest(BaseModel):
+    visibility: Literal["public", "private"]
+
 class CareerCreateRequest(BaseModel):
     title: str
     department: str

@@ -30,6 +30,7 @@ ALL_PERMISSIONS = [
     "manager_careers",
     "game_dev_panel",
     "game_logs_panel",
+    "manage_studio_apps",
 ]
 
 def is_valid_permission(p: str) -> bool:
