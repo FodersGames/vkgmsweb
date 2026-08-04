@@ -10,7 +10,8 @@ const MaintenancePage = () => (
   <div className="relative min-h-screen flex flex-col bg-[#F5F5F7] overflow-hidden [contain:paint]">
     <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
       <img src={cloudSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-[#F5F5F7]/78" />
+      <div className="absolute inset-0 bg-[#F5F5F7]/60" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#F5F5F7]/50 via-transparent to-[#F5F5F7]/70" />
     </div>
 
     {/* Top bar */}
@@ -22,10 +23,10 @@ const MaintenancePage = () => (
 
     {/* Main content */}
     <div className="flex-1 flex items-center justify-center px-6 py-20">
-      <div className="text-center max-w-lg">
+      <div className="liquid-glass rounded-[32px] text-center max-w-lg px-8 py-12 sm:px-14 sm:py-16">
         {/* Icon */}
-        <div className="rounded-lg w-14 h-14 mx-auto mb-8 liquid-glass flex items-center justify-center">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#4ECDC4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+        <div className="rounded-lg w-14 h-14 mx-auto mb-8 bg-white/70 border border-white/80 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2AA69D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
           </svg>
         </div>
@@ -36,31 +37,31 @@ const MaintenancePage = () => (
           Under<br />maintenance
         </h1>
 
-        <p className="text-[#3A3A3C] mb-2 leading-relaxed font-medium">
+        <p className="text-[#1D1D1F]/80 mb-2 leading-relaxed font-medium">
           We're currently performing improvements to enhance your experience.
         </p>
-        <p className="text-[#3A3A3C] leading-relaxed font-medium">
+        <p className="text-[#1D1D1F]/80 leading-relaxed font-medium">
           We'll be back very soon — thank you for your patience!
         </p>
 
-        <div className="mt-10 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl liquid-glass">
-          <div className="w-2 h-2 rounded-full bg-[#4ECDC4] animate-pulse" />
+        <div className="mt-10 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-white/70 border border-white/80">
+          <div className="w-2 h-2 rounded-full bg-[#2AA69D] animate-pulse" />
           <span className="text-xs font-semibold text-[#1D1D1F] tracking-[0.12em] uppercase">Work in progress</span>
         </div>
 
         <div className="mt-6">
           <a
             href="mailto:support@vakargames.com"
-            className="text-xs font-medium text-[#3A3A3C] hover:text-[#1D1D1F] transition-colors"
+            className="text-xs font-semibold text-[#1D1D1F]/80 hover:text-[#1D1D1F] transition-colors"
           >
             support@vakargames.com
           </a>
         </div>
 
-        <div className="mt-10 pt-8 border-t border-[#D2D2D7]">
+        <div className="mt-10 pt-8 border-t border-[#1D1D1F]/12">
           <Link
             to="/login"
-            className="rounded-full inline-flex items-center gap-2 text-xs font-semibold text-[#1D1D1F] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] bg-white px-4 py-2.5 transition-all"
+            className="rounded-full inline-flex items-center gap-2 text-xs font-semibold text-[#1D1D1F] hover:text-white border border-[#1D1D1F]/15 hover:border-[#1D1D1F] hover:bg-[#1D1D1F] bg-white px-4 py-2.5 transition-all"
           >
             <LogIn size={12} />
             Sign in
@@ -70,8 +71,8 @@ const MaintenancePage = () => (
     </div>
 
     {/* Footer */}
-    <div className="border-t border-[#D2D2D7] px-6 py-4 text-center">
-      <p className="text-xs text-[#6E6E73] font-medium">© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
+    <div className="liquid-glass rounded-none px-6 py-4 text-center">
+      <p className="text-xs text-[#1D1D1F]/70 font-medium">© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
     </div>
   </div>
 );
