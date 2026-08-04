@@ -67,7 +67,7 @@ export const ChoosePseudo = () => {
           <div className="px-7 pt-7 pb-2">
             <h1 className="font-display text-xl font-medium text-[#1D1D1F] mb-1.5">Choose your pseudo</h1>
             <p className="text-sm text-[#6E6E73] leading-relaxed">
-              This is how you'll be known across Vakar Games — in chat, in-game and on your profile.
+              This is how you'll be known across our applications — in chat, in-game and on your profile.
               You can change it again after 7 days.
             </p>
           </div>
@@ -79,6 +79,8 @@ export const ChoosePseudo = () => {
                 <input
                   autoFocus
                   type="text"
+                  name="pseudo"
+                  autoComplete="off"
                   value={value}
                   onChange={e => { setValue(e.target.value.replace(/\s/g, '')); setError(''); }}
                   placeholder="your_pseudo"

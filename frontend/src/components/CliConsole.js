@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, ShieldAlert } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Terminal, ShieldAlert, Maximize2, Minimize2 } from 'lucide-react';
 import api from '../utils/api';
+import { CliCommandPopup } from './CliCommandPopup';
 
 const WELCOME = [
   'Vakar Games — Super Admin CLI',
   "Type 'help' to list available commands.",
+  "Prefix any command with $ (e.g. $player mute) to fill it in graphically.",
   '',
 ];
 
@@ -13,11 +15,20 @@ export const CliConsole = () => {
   const [input, setInput]     = useState('');
   const [busy, setBusy]       = useState(false);
   const [pending, setPending] = useState(null); // command string awaiting y/n confirmation
+  const [fullscreen, setFullscreen] = useState(false);
+
+  const [commands, setCommands] = useState([]);
+  const [dropdownIdx, setDropdownIdx] = useState(0);
+  const [popup, setPopup] = useState(null); // { command, prefill } | null
 
   const historyRef = useRef([]);
   const historyIdxRef = useRef(-1);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    api.get('/api/admin/cli/commands').then(r => setCommands(r.data.commands || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -29,8 +40,36 @@ export const CliConsole = () => {
     if (!busy) inputRef.current?.focus();
   }, [busy]);
 
+  // Escape exits fullscreen, same convention as ConfirmDialog's Escape-to-close.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setFullscreen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [fullscreen]);
+
   const appendLines = (type, texts) => {
     setLines(prev => [...prev, ...texts.map(text => ({ type, text }))]);
+  };
+
+  // Autocomplete — matches the catalog's command path against whatever's
+  // typed so far (stripping a leading $ so `$player mu` still suggests
+  // `player mute`), shown only while there's a partial match and no pending
+  // confirmation prompt in the way.
+  const effectiveInput = input.startsWith('$') ? input.slice(1) : input;
+  const dropdownMatches = useMemo(() => {
+    const q = effectiveInput.trim().toLowerCase();
+    if (!q || pending) return [];
+    return commands
+      .filter(c => c.path.join(' ').toLowerCase().startsWith(q) && c.path.join(' ').toLowerCase() !== q)
+      .slice(0, 8);
+  }, [effectiveInput, commands, pending]);
+
+  useEffect(() => { setDropdownIdx(0); }, [dropdownMatches.length]);
+
+  const applyCompletion = (cmd) => {
+    setInput((input.startsWith('$') ? '$' : '') + cmd.path.join(' ') + ' ');
+    inputRef.current?.focus();
   };
 
   const runCommand = async (command, confirm) => {
@@ -49,11 +88,43 @@ export const CliConsole = () => {
     }
   };
 
+  // Finds the longest catalog path that's a prefix of the given tokens —
+  // same matching a `$player mute alpha` needs to resolve to `player mute`
+  // (2-token path) rather than stopping at just `player`.
+  const matchCommand = (tokens) => {
+    let best = null;
+    for (const c of commands) {
+      const n = c.path.length;
+      if (tokens.length >= n && c.path.every((p, i) => p === tokens[i].toLowerCase())) {
+        if (!best || n > best.path.length) best = c;
+      }
+    }
+    return best;
+  };
+
+  const openPopupFor = (raw) => {
+    const tokens = raw.trim().split(/\s+/);
+    const match = matchCommand(tokens);
+    if (!match) {
+      appendLines('error', [`Unknown command '${raw.trim()}'. Type 'help' for the command list.`]);
+      return;
+    }
+    const prefill = tokens.slice(match.path.length);
+    setPopup({ command: match, prefill });
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     const raw = input;
     const cmd = raw.trim();
     if (!cmd || busy) return;
+
+    if (dropdownMatches.length > 0) {
+      // A visible suggestion takes over Enter instead of submitting — matches
+      // CommandPalette's existing Enter-selects-highlighted convention.
+      applyCompletion(dropdownMatches[dropdownIdx]);
+      return;
+    }
 
     appendLines('input', [`vakargames-cli> ${raw}`]);
     setInput('');
@@ -72,18 +143,29 @@ export const CliConsole = () => {
       return;
     }
 
+    if (cmd.startsWith('$')) {
+      openPopupFor(cmd.slice(1));
+      return;
+    }
+
     await runCommand(cmd, false);
   };
 
   const onKeyDown = (e) => {
-    if (e.key === 'ArrowUp') {
+    if (dropdownMatches.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setDropdownIdx(i => Math.min(i + 1, dropdownMatches.length - 1)); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setDropdownIdx(i => Math.max(i - 1, 0)); return; }
+      if (e.key === 'Tab') { e.preventDefault(); applyCompletion(dropdownMatches[dropdownIdx]); return; }
+      if (e.key === 'Escape') { e.preventDefault(); setInput(''); return; }
+    }
+    if (e.key === 'ArrowUp' && dropdownMatches.length === 0) {
       e.preventDefault();
       const h = historyRef.current;
       if (!h.length) return;
       const next = historyIdxRef.current < 0 ? h.length - 1 : Math.max(0, historyIdxRef.current - 1);
       historyIdxRef.current = next;
       setInput(h[next]);
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === 'ArrowDown' && dropdownMatches.length === 0) {
       e.preventDefault();
       const h = historyRef.current;
       if (historyIdxRef.current < 0) return;
@@ -108,7 +190,8 @@ export const CliConsole = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className={fullscreen ? 'fixed inset-0 z-[100] bg-[#0e0e12] p-6 overflow-y-auto' : 'p-6 max-w-4xl mx-auto space-y-6'}>
+      <div className={fullscreen ? 'max-w-5xl mx-auto space-y-6' : 'space-y-6'}>
 
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -116,18 +199,18 @@ export const CliConsole = () => {
           <Terminal size={20} className="text-[#4ECDC4]" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-[#1D1D1F]">CLI</h1>
-          <p className="text-xs text-[#A1A1A6]">Super admin only — whitelisted commands, every action is confirmed and logged.</p>
+          <h1 className={`text-lg font-bold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>CLI</h1>
+          <p className={`text-xs ${fullscreen ? 'text-[#8a8a92]' : 'text-[#A1A1A6]'}`}>Super admin only — whitelisted commands, every action is confirmed and logged.</p>
         </div>
       </div>
 
       {/* Warning banner */}
       <div className="rounded-lg flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
         <ShieldAlert size={15} className="text-[#F2994A] shrink-0 mt-0.5" />
-        <p className="text-xs text-[#6E6E73] leading-relaxed">
+        <p className={`text-xs leading-relaxed ${fullscreen ? 'text-[#c4c4c8]' : 'text-[#6E6E73]'}`}>
           This console only runs a fixed set of predefined commands — there is no raw database access or code
           execution. Destructive commands (suspend, ban, revoke, loyalty adjust…) always show a preview first
-          and require you to type <span className="font-semibold text-[#1D1D1F]">y</span> to confirm.
+          and require you to type <span className={`font-semibold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>y</span> to confirm.
         </p>
       </div>
 
@@ -146,11 +229,19 @@ export const CliConsole = () => {
           <span className="absolute left-1/2 -translate-x-1/2 text-[12.5px] font-medium text-white/70">
             super-admin — vakargames-cli
           </span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setFullscreen(v => !v); }}
+            className="ml-auto text-white/50 hover:text-white/90 transition-colors"
+            title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
+          >
+            {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
         </div>
 
         <div
           ref={scrollRef}
-          className="h-[440px] overflow-y-auto px-4 py-3 bg-[#1a1a1a] font-mono text-[13px] leading-relaxed"
+          className={`overflow-y-auto px-4 py-3 bg-[#1a1a1a] font-mono text-[13px] leading-relaxed ${fullscreen ? 'h-[calc(100vh-260px)]' : 'h-[440px]'}`}
         >
           {lines.map((l, i) => (
             <div key={i} className={`whitespace-pre-wrap break-words ${colorFor(l.type)}`}>
@@ -161,26 +252,62 @@ export const CliConsole = () => {
             <div className="text-[#F2994A]">Confirm? (y/n)</div>
           )}
 
-          <form onSubmit={submit} className="flex items-center gap-2 mt-0.5">
-            <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
-              {pending ? 'confirm>' : 'vakargames-cli>'}
-            </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              disabled={busy}
-              autoFocus
-              spellCheck={false}
-              autoComplete="off"
-              placeholder={pending ? 'y / n' : "type a command… ('help' for the list)"}
-              className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73]/60 focus:outline-none disabled:opacity-50"
-            />
-          </form>
+          <div className="relative">
+            {dropdownMatches.length > 0 && (
+              <div className="absolute bottom-full left-0 mb-1 w-full max-w-md rounded-lg overflow-hidden border border-white/10 bg-[#242424] shadow-xl z-10">
+                {dropdownMatches.map((c, i) => (
+                  <button
+                    type="button"
+                    key={c.path.join(' ')}
+                    onMouseEnter={() => setDropdownIdx(i)}
+                    onClick={() => applyCompletion(c)}
+                    className={`w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors ${i === dropdownIdx ? 'bg-[#4ECDC4]/15' : ''}`}
+                  >
+                    <span className={`font-mono text-[12px] ${i === dropdownIdx ? 'text-[#4ECDC4]' : 'text-[#D6D3D1]'}`}>{c.path.join(' ')}</span>
+                    <span className="text-[11px] text-[#7a7a7a] truncate">{c.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={submit} className="flex items-center gap-2 mt-0.5">
+              <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
+                {pending ? 'confirm>' : 'vakargames-cli>'}
+              </span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                disabled={busy}
+                autoFocus
+                spellCheck={false}
+                autoComplete="off"
+                placeholder={pending ? 'y / n' : "type a command… ('help' for the list, $command for a form)"}
+                className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73]/60 focus:outline-none disabled:opacity-50"
+              />
+            </form>
+          </div>
         </div>
       </div>
+      </div>
+
+      {popup && (
+        <CliCommandPopup
+          command={popup.command}
+          prefill={popup.prefill}
+          onClose={() => setPopup(null)}
+          onSubmit={(commandString) => {
+            setPopup(null);
+            setInput('');
+            appendLines('input', [`vakargames-cli> ${commandString}`]);
+            historyRef.current.push(commandString);
+            historyIdxRef.current = -1;
+            runCommand(commandString, false);
+          }}
+        />
+      )}
     </div>
   );
 };
