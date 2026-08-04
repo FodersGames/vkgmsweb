@@ -7,11 +7,26 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from ..database import db
 from ..deps import get_current_user
 from ..utils import serialize_doc
-from ..schemas import NutritionGoalsRequest, MealEntryCreateRequest, MealEntryUpdateRequest
+from ..schemas import (
+    NutritionGoalsRequest, NutritionGoalsEstimateRequest, MealEntryCreateRequest,
+    MealEntryUpdateRequest, FavoriteFoodCreateRequest,
+)
 
 router = APIRouter()
 
 DEFAULT_GOALS = {"daily_calories": 2000, "daily_protein_g": 120, "daily_carbs_g": 250, "daily_fat_g": 65}
+
+PROFILE_FIELDS = ("weight_kg", "height_cm", "age", "sex", "activity_level", "goal_type")
+
+ACTIVITY_MULTIPLIERS = {
+    "sedentary": 1.2,
+    "light": 1.375,
+    "moderate": 1.55,
+    "active": 1.725,
+    "very_active": 1.9,
+}
+GOAL_CALORIE_ADJUSTMENT = {"lose": -500, "maintain": 0, "gain": 300}
+MIN_CALORIES = 1200
 
 # ============================================================
 # GOALS
@@ -21,13 +36,16 @@ DEFAULT_GOALS = {"daily_calories": 2000, "daily_protein_g": 120, "daily_carbs_g"
 async def get_goals(user=Depends(get_current_user)):
     doc = await db.nutrition_goals.find_one({"user_id": ObjectId(user["id"])})
     if not doc:
-        return {**DEFAULT_GOALS}
-    return {
+        return {**DEFAULT_GOALS, **{f: None for f in PROFILE_FIELDS}}
+    result = {
         "daily_calories": doc.get("daily_calories", DEFAULT_GOALS["daily_calories"]),
         "daily_protein_g": doc.get("daily_protein_g", DEFAULT_GOALS["daily_protein_g"]),
         "daily_carbs_g": doc.get("daily_carbs_g", DEFAULT_GOALS["daily_carbs_g"]),
         "daily_fat_g": doc.get("daily_fat_g", DEFAULT_GOALS["daily_fat_g"]),
     }
+    for f in PROFILE_FIELDS:
+        result[f] = doc.get(f)
+    return result
 
 @router.put("/nutrition/goals")
 async def set_goals(body: NutritionGoalsRequest, user=Depends(get_current_user)):
@@ -38,6 +56,31 @@ async def set_goals(body: NutritionGoalsRequest, user=Depends(get_current_user))
         upsert=True,
     )
     return {"ok": True}
+
+@router.post("/nutrition/goals/estimate")
+async def estimate_goals(body: NutritionGoalsEstimateRequest, user=Depends(get_current_user)):
+    """Mifflin-St Jeor BMR -> TDEE -> goal calories, with a common protein/fat/carb
+    split (protein by bodyweight, fat as a fixed share of calories, carbs fill the rest).
+    Stateless — the caller still confirms via PUT /nutrition/goals to persist."""
+    if body.sex == "male":
+        bmr = 10 * body.weight_kg + 6.25 * body.height_cm - 5 * body.age + 5
+    else:
+        bmr = 10 * body.weight_kg + 6.25 * body.height_cm - 5 * body.age - 161
+    tdee = bmr * ACTIVITY_MULTIPLIERS[body.activity_level]
+    calories = max(MIN_CALORIES, round(tdee + GOAL_CALORIE_ADJUSTMENT[body.goal_type]))
+
+    protein_per_kg = 2.2 if body.goal_type == "lose" else 1.8
+    protein_g = round(body.weight_kg * protein_per_kg)
+    fat_g = round((calories * 0.25) / 9)
+    remaining_calories = max(0, calories - (protein_g * 4) - (fat_g * 9))
+    carbs_g = round(remaining_calories / 4)
+
+    return {
+        "daily_calories": calories,
+        "daily_protein_g": protein_g,
+        "daily_carbs_g": carbs_g,
+        "daily_fat_g": fat_g,
+    }
 
 # ============================================================
 # MEAL ENTRIES
@@ -153,6 +196,47 @@ async def delete_entry(entry_id: str, user=Depends(get_current_user)):
     result = await db.meal_entries.delete_one({"_id": oid, "user_id": ObjectId(user["id"])})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Entry not found")
+    return {"ok": True}
+
+# ============================================================
+# FAVORITE FOODS
+# ============================================================
+
+@router.get("/nutrition/favorites")
+async def list_favorites(user=Depends(get_current_user)):
+    docs = await db.favorite_foods.find({"user_id": ObjectId(user["id"])}).sort("created_at", -1).to_list(200)
+    favorites = [serialize_doc(d) for d in docs]
+    for f in favorites:
+        f.pop("user_id", None)
+    return {"favorites": favorites}
+
+@router.post("/nutrition/favorites")
+async def create_favorite(body: FavoriteFoodCreateRequest, user=Depends(get_current_user)):
+    uid = ObjectId(user["id"])
+    doc = {
+        "user_id": uid,
+        "name": body.name.strip()[:120],
+        "meal_type": body.meal_type,
+        "quantity_g": body.quantity_g,
+        "photo_url": body.photo_url or "",
+        "calories": max(0, body.calories),
+        "protein_g": max(0, body.protein_g),
+        "carbs_g": max(0, body.carbs_g),
+        "fat_g": max(0, body.fat_g),
+        "created_at": datetime.now(timezone.utc),
+    }
+    result = await db.favorite_foods.insert_one(doc)
+    return {"id": str(result.inserted_id)}
+
+@router.delete("/nutrition/favorites/{favorite_id}")
+async def delete_favorite(favorite_id: str, user=Depends(get_current_user)):
+    try:
+        oid = ObjectId(favorite_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    result = await db.favorite_foods.delete_one({"_id": oid, "user_id": ObjectId(user["id"])})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Favorite not found")
     return {"ok": True}
 
 # ============================================================

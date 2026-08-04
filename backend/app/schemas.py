@@ -350,6 +350,32 @@ class NutritionGoalsRequest(BaseModel):
     daily_protein_g: int = 120
     daily_carbs_g: int = 250
     daily_fat_g: int = 65
+    # Optional profile used to prefill the "estimate for me" calculator next time —
+    # the four fields above remain the actual source of truth for tracking.
+    weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    age: Optional[int] = None
+    sex: Optional[Literal["male", "female"]] = None
+    activity_level: Optional[Literal["sedentary", "light", "moderate", "active", "very_active"]] = None
+    goal_type: Optional[Literal["lose", "maintain", "gain"]] = None
+
+class NutritionGoalsEstimateRequest(BaseModel):
+    weight_kg: float
+    height_cm: float
+    age: int
+    sex: Literal["male", "female"]
+    activity_level: Literal["sedentary", "light", "moderate", "active", "very_active"] = "moderate"
+    goal_type: Literal["lose", "maintain", "gain"] = "maintain"
+
+class FavoriteFoodCreateRequest(BaseModel):
+    name: str
+    meal_type: Optional[Literal["breakfast", "lunch", "dinner", "snack"]] = None
+    quantity_g: Optional[float] = None
+    photo_url: Optional[str] = ""
+    calories: float = 0
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
 
 class MealEntryCreateRequest(BaseModel):
     name: str

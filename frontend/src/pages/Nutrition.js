@@ -7,6 +7,7 @@ import { PublicButton } from '../ui/PublicButton';
 import {
   Coffee, Sun, MoonStars, Cookie, CaretLeft, CaretRight, Plus, Trash, X,
   MagnifyingGlass, Camera, ChartBar, CalendarBlank, Target, ForkKnife, Warning,
+  Calculator, Star, BookmarkSimple,
 } from '@phosphor-icons/react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 
@@ -123,6 +124,42 @@ function AddEntryModal({ mealType, date, token, onClose, onAdded }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [favorites, setFavorites] = useState([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [addingFavId, setAddingFavId] = useState(null);
+
+  useEffect(() => {
+    if (mode !== 'favorites') return;
+    setFavoritesLoading(true);
+    fetch(`${API}/api/nutrition/favorites`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => setFavorites(data.favorites || []))
+      .finally(() => setFavoritesLoading(false));
+  }, [mode, token]);
+
+  const deleteFavorite = async (id) => {
+    setFavorites(fs => fs.filter(f => f.id !== id));
+    await fetch(`${API}/api/nutrition/favorites/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+  };
+
+  const addFromFavorite = async (fav) => {
+    setAddingFavId(fav.id);
+    try {
+      await fetch(`${API}/api/nutrition/entries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: fav.name, meal_type: mealType, quantity_g: fav.quantity_g, photo_url: fav.photo_url || '',
+          calories: fav.calories, protein_g: fav.protein_g, carbs_g: fav.carbs_g, fat_g: fav.fat_g,
+          logged_at: `${date}T12:00:00`,
+        }),
+      });
+      onAdded();
+      onClose();
+    } finally {
+      setAddingFavId(null);
+    }
+  };
 
   useEffect(() => {
     if (mode !== 'search' || query.trim().length < 2) { setResults([]); return; }
@@ -223,7 +260,7 @@ function AddEntryModal({ mealType, date, token, onClose, onAdded }) {
 
         <div className="px-6 pt-4 shrink-0">
           <div className="inline-flex rounded-full bg-[#EDEDEF] p-1 gap-1 w-full">
-            {[{ id: 'search', label: 'Search food' }, { id: 'manual', label: 'Manual entry' }].map(t => (
+            {[{ id: 'favorites', label: 'Favorites' }, { id: 'search', label: 'Search food' }, { id: 'manual', label: 'Manual entry' }].map(t => (
               <button
                 key={t.id} type="button"
                 onClick={() => { setMode(t.id); setSelected(null); setError(''); }}
@@ -236,7 +273,42 @@ function AddEntryModal({ mealType, date, token, onClose, onAdded }) {
         </div>
 
         <div className="px-6 py-5 overflow-y-auto flex-1">
-          {mode === 'search' ? (
+          {mode === 'favorites' ? (
+            favoritesLoading ? (
+              <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-14 rounded-lg bg-[#F5F5F7] animate-pulse" />)}</div>
+            ) : favorites.length === 0 ? (
+              <div className="text-center py-8">
+                <BookmarkSimple size={22} className="mx-auto mb-3 text-[#D2D2D7]" />
+                <p className="text-xs text-[#A1A1A6]">No favorites yet.<br />Star an entry from your day to save it here.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-80 overflow-y-auto -mx-1 px-1">
+                {favorites.map(f => (
+                  <div key={f.id} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-[#F5F5F7] border border-transparent hover:border-[#D2D2D7] transition-all">
+                    <button
+                      type="button" onClick={() => addFromFavorite(f)} disabled={addingFavId === f.id}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left disabled:opacity-50"
+                    >
+                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-[#F5F5F7] border border-[#D2D2D7] flex items-center justify-center">
+                        {f.photo_url ? (
+                          <img src={f.photo_url.startsWith('/') ? `${API}${f.photo_url}` : f.photo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <ForkKnife size={13} className="text-[#A1A1A6]" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[#1D1D1F] truncate">{f.name}</p>
+                        <p className="text-[11px] text-[#A1A1A6] truncate">{f.quantity_g ? `${f.quantity_g}g · ` : ''}{Math.round(f.calories)} kcal</p>
+                      </div>
+                    </button>
+                    <button type="button" onClick={() => deleteFavorite(f.id)} className="text-[#BFBFC4] hover:text-red-500 transition-colors shrink-0">
+                      <Trash size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : mode === 'search' ? (
             selected ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-[#F5F5F7] border border-[#D2D2D7]">
@@ -374,23 +446,74 @@ function AddEntryModal({ mealType, date, token, onClose, onAdded }) {
   );
 }
 
+const ACTIVITY_LEVELS = [
+  { id: 'sedentary', label: 'Sedentary', hint: 'Little to no exercise' },
+  { id: 'light', label: 'Lightly active', hint: '1–3 workouts/week' },
+  { id: 'moderate', label: 'Moderately active', hint: '3–5 workouts/week' },
+  { id: 'active', label: 'Active', hint: '6–7 workouts/week' },
+  { id: 'very_active', label: 'Very active', hint: 'Physical job or 2x/day training' },
+];
+const GOAL_TYPES = [
+  { id: 'lose', label: 'Lose weight' },
+  { id: 'maintain', label: 'Maintain' },
+  { id: 'gain', label: 'Gain weight' },
+];
+
 function GoalsModal({ goals, token, onClose, onSave }) {
   const [form, setForm] = useState(goals);
   const [saving, setSaving] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [profile, setProfile] = useState({
+    weight_kg: goals.weight_kg || '',
+    height_cm: goals.height_cm || '',
+    age: goals.age || '',
+    sex: goals.sex || 'male',
+    activity_level: goals.activity_level || 'moderate',
+    goal_type: goals.goal_type || 'maintain',
+  });
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState('');
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = { ...form, ...profile };
       await fetch(`${API}/api/nutrition/goals`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
-      onSave(form);
+      onSave(payload);
       onClose();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const runEstimate = async () => {
+    if (!profile.weight_kg || !profile.height_cm || !profile.age) {
+      setEstimateError('Please fill in weight, height and age.');
+      return;
+    }
+    setEstimating(true);
+    setEstimateError('');
+    try {
+      const r = await fetch(`${API}/api/nutrition/goals/estimate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          weight_kg: Number(profile.weight_kg), height_cm: Number(profile.height_cm), age: Number(profile.age),
+          sex: profile.sex, activity_level: profile.activity_level, goal_type: profile.goal_type,
+        }),
+      });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      setForm(f => ({ ...f, ...data }));
+    } catch {
+      setEstimateError('Could not calculate. Please try again.');
+    } finally {
+      setEstimating(false);
     }
   };
 
@@ -410,22 +533,104 @@ function GoalsModal({ goals, token, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-      <div className="animate-appear rounded-2xl liquid-glass w-full max-w-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/60">
+      <div className="animate-appear rounded-2xl liquid-glass w-full max-w-sm overflow-hidden max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/60 shrink-0">
           <h3 className="font-display text-lg font-medium text-[#1D1D1F]">Daily goals</h3>
           <button onClick={onClose} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors"><X size={16} /></button>
         </div>
-        <form onSubmit={submit} className="px-6 py-5 space-y-4">
-          {field('daily_calories', 'Calories', 'kcal')}
-          <div className="grid grid-cols-3 gap-3">
-            {field('daily_protein_g', 'Protein', 'g')}
-            {field('daily_carbs_g', 'Carbs', 'g')}
-            {field('daily_fat_g', 'Fat', 'g')}
-          </div>
-          <PublicButton type="submit" disabled={saving} className="w-full">
-            {saving ? 'Saving…' : 'Save goals'}
-          </PublicButton>
-        </form>
+        <div className="px-6 py-5 space-y-4 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => setShowCalculator(s => !s)}
+            className="w-full flex items-center gap-2.5 p-3 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-left hover:bg-[#4ECDC4]/12 transition-colors"
+          >
+            <Calculator size={15} className="text-[#4ECDC4] shrink-0" />
+            <span className="text-xs font-semibold text-[#1D1D1F] flex-1">Calculate for me</span>
+            <span className="text-[10px] text-[#A1A1A6]">{showCalculator ? 'Hide' : 'Show'}</span>
+          </button>
+
+          {showCalculator && (
+            <div className="space-y-3 pb-1">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Weight</label>
+                  <input type="number" min="0" placeholder="kg" value={profile.weight_kg}
+                    onChange={e => setProfile(p => ({ ...p, weight_kg: e.target.value }))}
+                    className="w-full rounded-lg px-2.5 py-2 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Height</label>
+                  <input type="number" min="0" placeholder="cm" value={profile.height_cm}
+                    onChange={e => setProfile(p => ({ ...p, height_cm: e.target.value }))}
+                    className="w-full rounded-lg px-2.5 py-2 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Age</label>
+                  <input type="number" min="0" placeholder="yrs" value={profile.age}
+                    onChange={e => setProfile(p => ({ ...p, age: e.target.value }))}
+                    className="w-full rounded-lg px-2.5 py-2 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]" />
+                </div>
+              </div>
+
+              <div className="flex rounded-lg overflow-hidden border border-[#D2D2D7]">
+                {[{ id: 'male', label: 'Male' }, { id: 'female', label: 'Female' }].map(s => (
+                  <button
+                    key={s.id} type="button" onClick={() => setProfile(p => ({ ...p, sex: s.id }))}
+                    className={`flex-1 py-2 text-xs font-semibold transition-colors ${profile.sex === s.id ? 'bg-[#1D1D1F] text-white' : 'bg-white text-[#6E6E73] hover:text-[#1D1D1F]'}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Activity level</label>
+                <select
+                  value={profile.activity_level}
+                  onChange={e => setProfile(p => ({ ...p, activity_level: e.target.value }))}
+                  className="w-full rounded-lg px-2.5 py-2 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]"
+                >
+                  {ACTIVITY_LEVELS.map(a => <option key={a.id} value={a.id}>{a.label} — {a.hint}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">Goal</label>
+                <div className="flex rounded-lg overflow-hidden border border-[#D2D2D7]">
+                  {GOAL_TYPES.map(g => (
+                    <button
+                      key={g.id} type="button" onClick={() => setProfile(p => ({ ...p, goal_type: g.id }))}
+                      className={`flex-1 py-2 text-xs font-semibold transition-colors ${profile.goal_type === g.id ? 'bg-[#1D1D1F] text-white' : 'bg-white text-[#6E6E73] hover:text-[#1D1D1F]'}`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {estimateError && <ErrorBanner>{estimateError}</ErrorBanner>}
+
+              <button
+                type="button" onClick={runEstimate} disabled={estimating}
+                className="w-full rounded-lg py-2.5 text-xs font-semibold bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white transition-colors disabled:opacity-50"
+              >
+                {estimating ? 'Calculating…' : 'Calculate targets'}
+              </button>
+            </div>
+          )}
+
+          <form onSubmit={submit} className="space-y-4 pt-1">
+            {field('daily_calories', 'Calories', 'kcal')}
+            <div className="grid grid-cols-3 gap-3">
+              {field('daily_protein_g', 'Protein', 'g')}
+              {field('daily_carbs_g', 'Carbs', 'g')}
+              {field('daily_fat_g', 'Fat', 'g')}
+            </div>
+            <PublicButton type="submit" disabled={saving} className="w-full">
+              {saving ? 'Saving…' : 'Save goals'}
+            </PublicButton>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -454,7 +659,7 @@ function HistoryView({ stats, loading, range, onRangeChange, goal }) {
         <div className="h-64 rounded-lg bg-[#F5F5F7] animate-pulse" />
       ) : (
         <div style={{ width: '100%', height: 260 }}>
-          <ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={stats} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#EDEDEF" vertical={false} />
               <XAxis dataKey="date" tickFormatter={d => d.slice(5)} tick={{ fontSize: 10, fill: '#A1A1A6' }} axisLine={false} tickLine={false} />
@@ -473,7 +678,10 @@ function HistoryView({ stats, loading, range, onRangeChange, goal }) {
   );
 }
 
-const DEFAULT_GOALS = { daily_calories: 2000, daily_protein_g: 120, daily_carbs_g: 250, daily_fat_g: 65 };
+const DEFAULT_GOALS = {
+  daily_calories: 2000, daily_protein_g: 120, daily_carbs_g: 250, daily_fat_g: 65,
+  weight_kg: null, height_cm: null, age: null, sex: null, activity_level: null, goal_type: null,
+};
 const DEFAULT_TOTALS = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
 
 export default function Nutrition() {
@@ -545,6 +753,23 @@ export default function Nutrition() {
       await fetch(`${API}/api/nutrition/entries/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     } finally {
       loadDay();
+    }
+  };
+
+  const [favoritedIds, setFavoritedIds] = useState(new Set());
+  const saveAsFavorite = async (entry) => {
+    setFavoritedIds(s => new Set(s).add(entry.id));
+    try {
+      await fetch(`${API}/api/nutrition/favorites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: entry.name, meal_type: entry.meal_type, quantity_g: entry.quantity_g, photo_url: entry.photo_url || '',
+          calories: entry.calories, protein_g: entry.protein_g, carbs_g: entry.carbs_g, fat_g: entry.fat_g,
+        }),
+      });
+    } catch {
+      setFavoritedIds(s => { const n = new Set(s); n.delete(entry.id); return n; });
     }
   };
 
@@ -655,6 +880,14 @@ export default function Nutrition() {
                                 </p>
                               </div>
                               <span className="text-sm font-semibold text-[#1D1D1F] tabular-nums shrink-0">{Math.round(e.calories)}</span>
+                              <button
+                                onClick={() => saveAsFavorite(e)}
+                                disabled={favoritedIds.has(e.id)}
+                                title={favoritedIds.has(e.id) ? 'Saved to favorites' : 'Save to favorites'}
+                                className={`transition-colors shrink-0 ${favoritedIds.has(e.id) ? 'text-amber-400' : 'text-[#BFBFC4] hover:text-amber-400'}`}
+                              >
+                                <Star size={13} weight={favoritedIds.has(e.id) ? 'fill' : 'regular'} />
+                              </button>
                               <button onClick={() => deleteEntry(e.id)} className="text-[#BFBFC4] hover:text-red-500 transition-colors shrink-0">
                                 <Trash size={13} />
                               </button>

@@ -133,6 +133,7 @@ async def startup_event():
         await db.careers.create_index("is_open")
         await db.meal_entries.create_index([("user_id", 1), ("logged_at", -1)])
         await db.nutrition_goals.create_index("user_id", unique=True)
+        await db.favorite_foods.create_index([("user_id", 1), ("created_at", -1)])
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
