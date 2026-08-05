@@ -18,7 +18,6 @@ import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import VakarApp from './pages/VakarApp';
-import Nutrition from './pages/Nutrition';
 import Careers from './pages/Careers';
 import StudioAppView from './pages/StudioAppView';
 import VakarPlus from './pages/VakarPlus';
@@ -88,7 +87,6 @@ const AppRoutes = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/app" element={<VakarApp />} />
         <Route path="/play" element={<Navigate to="/app" replace />} />
-        <Route path="/nutrition" element={<Nutrition />} />
         <Route path="/apps/:slug" element={<StudioAppView />} />
         <Route path="/vakar-plus" element={<VakarPlus />} />
         <Route path="/my-apps" element={<MyApps />} />

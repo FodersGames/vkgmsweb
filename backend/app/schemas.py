@@ -260,10 +260,6 @@ class TicketStatusUpdateRequest(BaseModel):
     status: Optional[Literal["open", "in_progress", "resolved", "closed"]] = None
     priority: Optional[Literal["normal", "high", "urgent"]] = None
 
-class LoyaltyAdjustRequest(BaseModel):
-    adjust_dollars: float
-    reason: str = ""
-
 class AdminVakarPlusRequest(BaseModel):
     grant: bool
 

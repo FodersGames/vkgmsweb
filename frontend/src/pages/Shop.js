@@ -9,134 +9,11 @@ import { SHOP_BADGE_MAP } from '../constants/shopBadges';
 import { TYPE_ORDER, TYPE_META } from '../constants/productTypes';
 import { PublicButton } from '../ui/PublicButton';
 import {
-  ShoppingCart, X, CircleNotch, Star, Shield, Trophy, Diamond,
-  CheckCircle, SignIn,
+  ShoppingCart, X, CircleNotch, Star,
+  SignIn,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-
-// ── Grade system ──────────────────────────────────────────────────────────────
-const TIERS = {
-  bronze:  { label: 'Bronze',  color: '#CD7F32', bg: '#CD7F3215', icon: Shield,  discount: 0,  min: 0,    max: 2500  },
-  silver:  { label: 'Silver',  color: '#94A3B8', bg: '#94A3B815', icon: Star,    discount: 5,  min: 2500,  max: 10000 },
-  gold:    { label: 'Gold',    color: '#F59E0B', bg: '#F59E0B15', icon: Trophy,  discount: 10, min: 10000, max: 25000 },
-  diamond: { label: 'Diamond', color: '#22D3EE', bg: '#22D3EE15', icon: Diamond, discount: 15, min: 25000, max: null  },
-};
-const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
-
-const GradeBadge = ({ tier, size = 'sm' }) => {
-  const cfg = TIERS[tier] || TIERS.bronze;
-  const Icon = cfg.icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1 font-bold ${size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-[10px] px-2 py-0.5'}`}
-      style={{ backgroundColor: cfg.bg, color: cfg.color }}
-    >
-      <Icon size={size === 'lg' ? 14 : 10} />
-      {cfg.label}
-      {cfg.discount > 0 && ` −${cfg.discount}%`}
-    </span>
-  );
-};
-
-const LoyaltyBar = ({ loyalty }) => {
-  const [showInfo, setShowInfo] = useState(false);
-  if (!loyalty) return null;
-  const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
-  const tierIdx = TIER_ORDER.indexOf(tier);
-  const cfg = TIERS[tier] || TIERS.bronze;
-  const Icon = cfg.icon;
-  const progressPct = next_threshold_cents
-    ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
-    : 100;
-
-  return (
-    <div className="rounded-xl liquid-glass p-5">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <Icon size={14} style={{ color: cfg.color }} />
-          <span className="text-sm font-bold tracking-widest uppercase" style={{ color: cfg.color }}>{cfg.label}</span>
-          {cfg.discount > 0 && (
-            <span className="text-xs text-[#6E6E73]">−{cfg.discount}% on purchases</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
-          <button
-            onClick={() => setShowInfo(v => !v)}
-            className="rounded-lg w-4 h-4 border border-[#BFBFC4] text-[#A1A1A6] hover:border-[#6E6E73] hover:text-[#6E6E73] flex items-center justify-center text-[10px] font-bold transition-colors"
-          >?</button>
-        </div>
-      </div>
-
-      {/* Track */}
-      <div className="relative h-px bg-[#D2D2D7] mb-1">
-        <div
-          className="absolute top-0 left-0 h-full transition-all duration-700"
-          style={{ width: `${progressPct}%`, backgroundColor: cfg.color }}
-        />
-        {/* Tier tick marks */}
-        {[{ pct: 10, t: 'bronze' }, { pct: 33, t: 'silver' }, { pct: 66, t: 'gold' }, { pct: 100, t: 'diamond' }].map(({ pct, t }) => (
-          <div
-            key={t}
-            className="absolute -top-1 w-px h-3"
-            style={{ left: `${pct}%`, backgroundColor: TIER_ORDER.indexOf(t) <= tierIdx ? TIERS[t].color : '#D2D2D7' }}
-          />
-        ))}
-      </div>
-
-      {/* Tier labels row */}
-      <div className="flex justify-between mb-4">
-        {TIER_ORDER.map((t, i) => {
-          const tc = TIERS[t];
-          const reached = i <= tierIdx;
-          return (
-            <span
-              key={t}
-              className="text-[9px] font-semibold tracking-[0.15em] uppercase"
-              style={{ color: reached ? tc.color : '#BFBFC4' }}
-            >
-              {tc.label}
-            </span>
-          );
-        })}
-      </div>
-
-      {next_tier && next_threshold_cents ? (
-        <p className="text-[10px] text-[#A1A1A6]">
-          ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
-          <span className="font-semibold" style={{ color: TIERS[next_tier]?.color }}>{TIERS[next_tier]?.label}</span>
-        </p>
-      ) : (
-        <p className="text-[10px] font-semibold" style={{ color: cfg.color }}>Maximum rank achieved.</p>
-      )}
-
-      {showInfo && (
-        <div className="mt-4 pt-4 border-t border-[#D2D2D7] text-xs text-[#6E6E73] space-y-3">
-          <p className="font-semibold text-[#1D1D1F]">Loyalty program</p>
-          <p>Every dollar you spend adds to your loyalty total. The more you spend, the higher your rank and the bigger your discount on future purchases.</p>
-          <div className="grid grid-cols-2 gap-1">
-            {TIER_ORDER.map(t => {
-              const tc = TIERS[t];
-              const TIcon = tc.icon;
-              const reached = TIER_ORDER.indexOf(t) <= tierIdx;
-              return (
-                <div key={t} className="rounded-lg flex items-center gap-1.5 px-2 py-1.5 bg-[#F5F5F7] border" style={{ borderColor: reached ? `${tc.color}55` : '#D2D2D7' }}>
-                  <TIcon size={10} style={{ color: tc.color }} />
-                  <span className="font-semibold text-[10px]" style={{ color: tc.color }}>{tc.label}</span>
-                  <span className="text-[#A1A1A6] text-[10px] ml-auto">${tc.min / 100}+{tc.discount > 0 ? ` ·−${tc.discount}%` : ''}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[#A1A1A6] pt-1 border-t border-[#D2D2D7]">
-            Silver, Gold and Diamond members receive exclusive coupons and bonus offers.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ── Badge system ──────────────────────────────────────────────────────────────
 const BadgePill = ({ badge, discount_pct }) => {
@@ -162,7 +39,6 @@ const Shop = () => {
   // Games/apps that have at least one active shop product — the Shop's
   // "browse by product" level, each tagged with its own product_type.
   const [gamesWithProducts, setGamesWithProducts] = useState([]);
-  const [loyalty, setLoyalty]           = useState(null);
   const [loading, setLoading]           = useState(true);
   const [activeType, setActiveType]     = useState(searchParams.get('type') || '');
   const [activeGame, setActiveGame]     = useState(searchParams.get('game') || 'all');
@@ -200,21 +76,6 @@ const Shop = () => {
     };
     load();
   }, []);
-
-  // Fetch loyalty (auth only)
-  useEffect(() => {
-    if (!token) return;
-    axios.get(`${API_URL}/api/user/loyalty`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => setLoyalty(r.data))
-      .catch(() => {});
-  }, [token]);
-
-  const discount = loyalty ? (TIERS[loyalty.tier]?.discount || 0) : 0;
-
-  const applyDiscount = (priceInCents) => {
-    if (!discount) return priceInCents;
-    return Math.max(50, Math.round(priceInCents * (1 - discount / 100)));
-  };
 
   const openBuy = (product) => {
     if (!user) { navigate('/login'); return; }
@@ -274,10 +135,9 @@ const Shop = () => {
     setSearchParams(params);
   };
 
-  const loyaltyFinalPrice = buying ? applyDiscount(buying.price) : 0;
   const couponExtraDiscount = couponStatus?.valid ? couponStatus.discount_pct : 0;
   const finalPrice = buying
-    ? Math.max(50, Math.round(loyaltyFinalPrice * (1 - couponExtraDiscount / 100)))
+    ? Math.max(50, Math.round(buying.price * (1 - couponExtraDiscount / 100)))
     : 0;
 
   // ── Type tabs — only show types that actually have a product behind them
@@ -328,9 +188,6 @@ const Shop = () => {
 
         <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10 space-y-10">
 
-          {/* Loyalty bar (auth only) */}
-          {user && loyalty && <LoyaltyBar loyalty={loyalty} />}
-
           {/* Auth notice if not logged in */}
           {!user && (
             <div className="rounded-xl liquid-glass p-5 flex items-center gap-4">
@@ -339,7 +196,7 @@ const Shop = () => {
               </div>
               <div>
                 <p className="text-sm font-semibold text-[#1D1D1F]">Sign in to buy</p>
-                <p className="text-xs text-[#6E6E73]">An account is required to make purchases. Earn loyalty points with every order.</p>
+                <p className="text-xs text-[#6E6E73]">An account is required to make purchases.</p>
               </div>
               <PublicButton as={Link} to="/login" size="sm" className="ml-auto shrink-0">
                 Sign In
@@ -437,7 +294,7 @@ const Shop = () => {
                     <Star size={11} className="text-[#F59E0B]" />Featured
                   </p>
                   <div className={`grid gap-4 ${featured.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 sm:grid-cols-2'}`}>
-                    {featured.map(p => <FeaturedCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
+                    {featured.map(p => <FeaturedCard key={p.id} product={p} onBuy={openBuy} user={user} />)}
                   </div>
                 </div>
               )}
@@ -449,7 +306,7 @@ const Shop = () => {
                     <p className="text-[10px] font-semibold text-[#A1A1A6] mb-4">All Offers</p>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {regular.map(p => <ProductCard key={p.id} product={p} discount={discount} applyDiscount={applyDiscount} onBuy={openBuy} user={user} />)}
+                    {regular.map(p => <ProductCard key={p.id} product={p} onBuy={openBuy} user={user} />)}
                   </div>
                 </div>
               )}
@@ -485,22 +342,12 @@ const Shop = () => {
                   {buying.description && <p className="text-xs text-[#6E6E73] truncate">{buying.description}</p>}
                 </div>
                 <div className="shrink-0 text-right">
-                  {(discount > 0 || couponExtraDiscount > 0) && (
+                  {couponExtraDiscount > 0 && (
                     <p className="text-xs text-[#A1A1A6] line-through">${(buying.price / 100).toFixed(2)}</p>
                   )}
                   <p className="text-lg font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
                 </div>
               </div>
-
-              {/* Loyalty discount info */}
-              {discount > 0 && loyalty && (
-                <div className="rounded-lg flex items-center gap-3 p-3 border border-[#4ECDC4]/20 bg-[#4ECDC4]/5">
-                  <GradeBadge tier={loyalty.tier} />
-                  <p className="text-xs text-[#4ECDC4] font-semibold">
-                    {discount}% loyalty discount applied
-                  </p>
-                </div>
-              )}
 
               {/* Promo coupon */}
               <div>
@@ -527,7 +374,7 @@ const Shop = () => {
                   <p className="text-xs text-[#4ECDC4] font-semibold mt-1.5">
                     ✓ {couponStatus.discount_pct}% promo discount applied
                     {couponStatus.scope_name ? ` (${couponStatus.scope_name})` : ''}
-                    {' '}— you save ${((loyaltyFinalPrice - finalPrice) / 100).toFixed(2)} extra
+                    {' '}— you save ${((buying.price - finalPrice) / 100).toFixed(2)}
                   </p>
                 )}
                 {couponStatus?.valid === false && (
@@ -561,7 +408,7 @@ const Shop = () => {
               </PublicButton>
 
               <p className="text-center text-[10px] text-[#6E6E73]">
-                Secure payment · Powered by Stripe · Your grade: {loyalty ? TIERS[loyalty.tier]?.label : 'Bronze'}
+                Secure payment · Powered by Stripe
               </p>
             </div>
           </div>
@@ -574,8 +421,7 @@ const Shop = () => {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
-  const finalPrice = applyDiscount(product.price);
+const FeaturedCard = ({ product, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
@@ -590,10 +436,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         </div>
         {product.description && <p className="text-xs text-[#6E6E73] mb-3 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between">
-          <div>
-            {discount > 0 && <p className="text-xs text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-lg font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
-          </div>
+          <p className="text-lg font-bold text-[#1D1D1F]">${(product.price / 100).toFixed(2)}</p>
           <div className="rounded-lg flex items-center gap-1.5 bg-[#1D1D1F] group-hover:bg-black text-white text-xs font-semibold px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_6px_16px_-8px_rgba(0,0,0,0.45)] transition-colors">
             <ShoppingCart size={11} />Buy
           </div>
@@ -603,8 +446,7 @@ const FeaturedCard = ({ product, discount, applyDiscount, onBuy, user }) => {
   );
 };
 
-const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
-  const finalPrice = applyDiscount(product.price);
+const ProductCard = ({ product, onBuy, user }) => {
   const img = product.image_url?.startsWith('/') ? `${process.env.REACT_APP_BACKEND_URL}${product.image_url}` : product.image_url;
   return (
     <div
@@ -628,10 +470,7 @@ const ProductCard = ({ product, discount, applyDiscount, onBuy, user }) => {
         <h3 className="font-semibold text-xs text-[#1D1D1F] leading-tight mb-1 line-clamp-1">{product.name}</h3>
         {product.description && <p className="text-[11px] text-[#6E6E73] mb-2 line-clamp-2">{product.description}</p>}
         <div className="flex items-center justify-between mt-auto">
-          <div>
-            {discount > 0 && <p className="text-[10px] text-[#A1A1A6] line-through">${(product.price / 100).toFixed(2)}</p>}
-            <p className="text-sm font-bold text-[#1D1D1F]">${(finalPrice / 100).toFixed(2)}</p>
-          </div>
+          <p className="text-sm font-bold text-[#1D1D1F]">${(product.price / 100).toFixed(2)}</p>
           <span className="rounded-md text-[10px] font-semibold text-white bg-[#1D1D1F] group-hover:bg-black px-2 py-1 transition-colors">Get</span>
         </div>
       </div>

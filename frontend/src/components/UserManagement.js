@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
   FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
-  Search, Trophy, Loader2, MessageCircle, Clipboard, ClipboardCheck,
+  Search, Loader2, MessageCircle, Clipboard, ClipboardCheck,
   FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow, Crown,
 } from 'lucide-react';
 import api from '../utils/api';
@@ -158,11 +158,6 @@ export const UserManagement = () => {
   const [profileError, setProfileError] = useState('');
   const [resettingField, setResettingField] = useState('');
 
-  const [loyaltyAmount, setLoyaltyAmount] = useState('');
-  const [loyaltyReason, setLoyaltyReason] = useState('');
-  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
-  const [loyaltyResult, setLoyaltyResult] = useState(null);
-
   const [vakarPlusLoading, setVakarPlusLoading] = useState(false);
 
   const [copied, setCopied] = useState(false);
@@ -258,9 +253,6 @@ export const UserManagement = () => {
     setProfileError('');
     setEditingPerms(false);
     setPermsDraft(u.permissions || []);
-    setLoyaltyResult(null);
-    setLoyaltyAmount('');
-    setLoyaltyReason('');
     setCopied(false);
     setActivity(null);
     setActivityLoading(true);
@@ -342,27 +334,6 @@ export const UserManagement = () => {
         fetchUsers();
       },
     });
-  };
-
-  const handleLoyaltyAdjust = async (e) => {
-    e.preventDefault();
-    if (!activeUser || !loyaltyAmount) return;
-    setLoyaltyLoading(true);
-    setLoyaltyResult(null);
-    try {
-      const r = await api.patch(`/api/admin/users/${activeUser.id}/loyalty`, {
-        adjust_dollars: parseFloat(loyaltyAmount),
-        reason: loyaltyReason,
-      });
-      setLoyaltyResult(r.data);
-      toast.success(`Loyalty adjusted → ${r.data.new_tier}`);
-      setLoyaltyAmount('');
-      setLoyaltyReason('');
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to adjust loyalty');
-    } finally {
-      setLoyaltyLoading(false);
-    }
   };
 
   const handleVakarPlusToggle = async (grant) => {
@@ -603,13 +574,6 @@ export const UserManagement = () => {
                 <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Could not load activity.</p>
               ) : (
                 <div className="space-y-4">
-                  {activity.loyalty && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Trophy size={13} className="text-[#F59E0B]" />
-                      <span className="text-[#1D1D1F] dark:text-[#e4e4e7] font-semibold capitalize">{activity.loyalty.tier}</span>
-                      <span className="text-[#A1A1A6] dark:text-[#71717a]">· ${activity.loyalty.total_spent_dollars?.toFixed(2)} lifetime spend</span>
-                    </div>
-                  )}
                   <div className="flex items-center gap-2 text-sm">
                     <ShoppingCart size={13} className="text-[#6C5CE7]" />
                     <span className="text-[#1D1D1F] dark:text-[#e4e4e7] font-semibold">{activity.game_purchases?.length || 0}</span>
@@ -701,36 +665,6 @@ export const UserManagement = () => {
             </div>
           )}
 
-          {/* Loyalty adjustment */}
-          {!isSuperAdmin && (
-            <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
-              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4 flex items-center gap-1.5">
-                <Trophy size={14} className="text-[#F59E0B]" /> Loyalty adjustment
-              </h3>
-              {loyaltyResult && (
-                <div className="rounded-lg text-xs bg-[#22C55E]/10 text-[#22C55E] px-3 py-2 mb-3 border border-[#22C55E]/20">
-                  {loyaltyResult.previous_tier} → <strong>{loyaltyResult.new_tier}</strong> · Total: ${(loyaltyResult.new_total_cents / 100).toFixed(2)}
-                </div>
-              )}
-              <form onSubmit={handleLoyaltyAdjust} className="flex flex-wrap gap-3 items-end">
-                <div>
-                  <label className="block text-[10px] text-[#A1A1A6] dark:text-[#71717a] mb-1">Amount ($) — use − for removal</label>
-                  <input type="number" step="0.01" required value={loyaltyAmount} onChange={e => setLoyaltyAmount(e.target.value)}
-                    placeholder="+10.00 or -5.00"
-                    className="rounded-lg w-36 px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#F59E0B] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]" />
-                </div>
-                <div className="flex-1 min-w-40">
-                  <label className="block text-[10px] text-[#A1A1A6] dark:text-[#71717a] mb-1">Reason (optional)</label>
-                  <input type="text" value={loyaltyReason} onChange={e => setLoyaltyReason(e.target.value)} placeholder="e.g. compensation"
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#F59E0B] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]" />
-                </div>
-                <Button type="submit" size="sm" loading={loyaltyLoading} disabled={!loyaltyAmount} icon={Trophy}
-                  className="!bg-[#F59E0B] hover:!bg-[#D97706] !text-white">
-                  Apply
-                </Button>
-              </form>
-            </div>
-          )}
         </div>
 
         <ConfirmDialog

@@ -7,7 +7,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 import {
-  GameController, Clock, CaretRight, ForkKnife,
+  GameController, Clock, CaretRight,
   Shield, Sword, Flame, Star, PawPrint, Sparkle, Crown, Skull, Bird, Cat, Anchor, Leaf,
 } from '@phosphor-icons/react';
 
@@ -155,22 +155,6 @@ export default function VakarApp() {
             </p>
           </Reveal>
         </section>
-
-        <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 pt-8">
-          <Link
-            to="/nutrition"
-            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group max-w-md"
-          >
-            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
-              <ForkKnife size={16} className="text-[#6E6E73]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#1D1D1F]">Food Journal</p>
-              <p className="text-xs text-[#6E6E73]">Track meals, macros and calories</p>
-            </div>
-            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
-          </Link>
-        </div>
 
         <div className="max-w-screen-xl mx-auto px-6 md:px-10 lg:px-16 py-10">
 

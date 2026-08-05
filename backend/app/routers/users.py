@@ -13,10 +13,9 @@ from ..deps import (
     PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS, FIRSTNAME_COOLDOWN_DAYS,
 )
 from ..utils import log_action, _create_notification
-from ..loyalty import get_tier
 from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
-    AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest, LoyaltyAdjustRequest,
+    AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest,
     AdminUpdateUserProfileRequest, ResetCooldownRequest, AdminVakarPlusRequest,
 )
 
@@ -251,46 +250,6 @@ async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=D
     await log_action("user_action", f"Admin '{admin['username']}' reset {body.field} cooldown for '{target.get('username', user_id)}'", user=admin["username"])
     return {"success": True}
 
-@router.patch("/admin/users/{user_id}/loyalty")
-async def adjust_user_loyalty(user_id: str, req: LoyaltyAdjustRequest, admin=Depends(require_permission("manage_users"))):
-    try:
-        target = await db.users.find_one({"_id": ObjectId(user_id)})
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-    adjust_cents = round(req.adjust_dollars * 100)
-    if adjust_cents == 0:
-        raise HTTPException(status_code=400, detail="Adjustment cannot be zero")
-    user_email = target.get("email", "")
-    current = await db.user_points.find_one({"email": user_email})
-    current_total = current.get("total_spent_cents", 0) if current else 0
-    previous_tier = get_tier(current_total)
-    new_total = max(0, current_total + adjust_cents)
-    new_tier = get_tier(new_total)
-    await db.user_points.update_one(
-        {"email": user_email},
-        {"$set": {"total_spent_cents": new_total, "tier": new_tier, "updated_at": datetime.now(timezone.utc)}},
-        upsert=True,
-    )
-    reason_str = f" (reason: {req.reason})" if req.reason else ""
-    await log_action("user_action",
-        f"Admin '{admin['username']}' adjusted loyalty for '{target.get('username', user_email)}': "
-        f"${req.adjust_dollars:+.2f}{reason_str} → {new_total}cts ({new_tier})",
-        user=admin["username"])
-    await _create_notification(
-        user_id=user_id,
-        message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by ${abs(req.adjust_dollars):.2f}. Current tier: {new_tier.capitalize()}.",
-        notif_type="loyalty_adjustment",
-    )
-    return {
-        "success": True,
-        "previous_total_cents": current_total,
-        "new_total_cents": new_total,
-        "previous_tier": previous_tier,
-        "new_tier": new_tier,
-    }
-
 @router.patch("/admin/users/{user_id}/vakar-plus")
 async def admin_set_vakar_plus(user_id: str, req: AdminVakarPlusRequest, admin=Depends(require_permission("manage_users"))):
     """Manual comp/revoke of Vakar+, independent of Stripe — for support
@@ -329,7 +288,6 @@ async def export_user_data(user_id: str, admin=Depends(require_permission("manag
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
     email = target.get("email", "")
-    loyalty = await db.user_points.find_one({"email": email})
     purchases = await db.game_purchases.find({"email": email}).to_list(500)
     tickets = await db.support_tickets.find({"user_email": email}).to_list(500)
 
@@ -350,11 +308,6 @@ async def export_user_data(user_id: str, admin=Depends(require_permission("manag
             "created_at": _serialize_date(target.get("created_at")),
             "isSuspended": target.get("isSuspended", False),
         },
-        "loyalty": {
-            "tier": loyalty.get("tier", "bronze"),
-            "total_spent_cents": loyalty.get("total_spent_cents", 0),
-            "total_spent_dollars": round(loyalty.get("total_spent_cents", 0) / 100, 2),
-        } if loyalty else None,
         "game_purchases": [
             {
                 "game_slug": p.get("game_slug"),

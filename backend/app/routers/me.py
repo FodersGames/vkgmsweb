@@ -3,32 +3,9 @@ from fastapi import APIRouter, Depends
 
 from ..database import db
 from ..deps import get_current_user
-from ..loyalty import get_tier, TIER_THRESHOLDS, TIER_DISCOUNTS
 from ..guild_common import _serialize_guild
 
 router = APIRouter()
-
-# ── User loyalty ──────────────────────────────────────────────────────────────
-@router.get("/user/loyalty")
-async def get_user_loyalty(user=Depends(get_current_user)):
-    doc = await db.user_points.find_one({"email": user["email"]})
-    total = doc.get("total_spent_cents", 0) if doc else 0
-    tier = get_tier(total)
-    discount = TIER_DISCOUNTS.get(tier, 0)
-    # next tier threshold
-    next_tier = None
-    next_threshold = None
-    for t_name, t_thresh in TIER_THRESHOLDS:
-        if total < t_thresh:
-            next_tier = t_name
-            next_threshold = t_thresh
-    return {
-        "total_spent_cents": total,
-        "tier": tier,
-        "discount_pct": discount,
-        "next_tier": next_tier,
-        "next_threshold_cents": next_threshold,
-    }
 
 # ── Player game stats ─────────────────────────────────────────────────────────
 @router.get("/user/play-stats")

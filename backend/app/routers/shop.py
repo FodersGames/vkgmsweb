@@ -11,7 +11,7 @@ from ..config import STRIPE_WEBHOOK_SECRET
 from ..database import db
 from ..deps import require_permission, get_current_user
 from ..utils import serialize_doc, log_action, _get_origin, _create_notification
-from ..loyalty import get_tier, TIER_DISCOUNTS, _update_loyalty
+from ..loyalty import _update_loyalty
 from ..rate_limit import limiter
 from ..schemas import (
     ShopProductCreateRequest, ShopProductUpdateRequest, ShopCheckoutRequest, GamePurchaseCheckoutRequest,
@@ -133,7 +133,7 @@ async def get_shop_categories():
             })
     return {"categories": categories}
 
-# ── Unified shop checkout (auth required, applies loyalty discount) ────────────
+# ── Unified shop checkout (auth required) ───────────────────────────────────
 @router.post("/shop/checkout")
 @limiter.limit("10/minute")
 async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, user=Depends(get_current_user)):
@@ -147,11 +147,6 @@ async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, us
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Apply loyalty discount
-    loyalty_doc = await db.user_points.find_one({"email": user["email"]})
-    total_spent = loyalty_doc.get("total_spent_cents", 0) if loyalty_doc else 0
-    tier = get_tier(total_spent)
-    discount_pct = TIER_DISCOUNTS.get(tier, 0)
     base_price = product["price"]
 
     # Apply coupon if provided
@@ -173,7 +168,7 @@ async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, us
                 coupon_discount_pct = coupon["discount_pct"]
                 coupon_code_used = code_upper
 
-    total_discount = min(99, discount_pct + coupon_discount_pct)
+    total_discount = min(99, coupon_discount_pct)
     final_price = max(50, int(base_price * (1 - total_discount / 100))) if total_discount > 0 else base_price
 
     origin = _get_origin(request)
@@ -181,8 +176,6 @@ async def create_unified_checkout(request: Request, req: ShopCheckoutRequest, us
     desc_parts = []
     if product.get("description"):
         desc_parts.append(product["description"])
-    if discount_pct > 0:
-        desc_parts.append(f"{discount_pct}% {tier.capitalize()} loyalty discount applied")
     if coupon_discount_pct > 0:
         desc_parts.append(f"{coupon_discount_pct}% promo code discount applied")
     description = " · ".join(desc_parts) or ""

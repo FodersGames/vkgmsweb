@@ -34,12 +34,24 @@ GAME_FILES_DIR.mkdir(exist_ok=True, parents=True)
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
-# Recurring Stripe Price IDs for the Vakar+ subscription — created in the Stripe
-# Dashboard (Product "Vakar+" with a monthly and a yearly recurring Price), not
-# hardcoded here since the actual amounts are a business decision made in Stripe,
-# not in code. Left blank until configured — endpoints fail closed (503) until then.
-STRIPE_VAKAR_PLUS_PRICE_MONTHLY = os.environ.get('STRIPE_VAKAR_PLUS_PRICE_MONTHLY', '')
-STRIPE_VAKAR_PLUS_PRICE_YEARLY = os.environ.get('STRIPE_VAKAR_PLUS_PRICE_YEARLY', '')
+
+def _price_cents_env(name: str, default: str) -> int:
+    raw = os.environ.get(name, '') or default
+    try:
+        return int(raw)
+    except ValueError:
+        return 0
+
+# Vakar+ subscription pricing — priced inline at checkout (Stripe
+# `price_data` with `recurring` set) rather than referencing a pre-created
+# Stripe Price ID, so subscriptions work with only the base Stripe API keys
+# configured, no separate "create a Product + Price in the Dashboard" step.
+# Owner-confirmed monthly price is $7.99; overridable via env without a code
+# change. Yearly is 0 (not offered) until a price is set — both pricing.py's
+# public endpoint and checkout gracefully treat 0 as "not available yet",
+# same UX as the old Price-ID-missing case.
+VAKAR_PLUS_MONTHLY_PRICE_CENTS = _price_cents_env('VAKAR_PLUS_MONTHLY_PRICE_CENTS', '799')
+VAKAR_PLUS_YEARLY_PRICE_CENTS = _price_cents_env('VAKAR_PLUS_YEARLY_PRICE_CENTS', '0')
 
 # This server's own publicly-reachable base URL (e.g. https://api.vakargames.com
 # or https://www.vakargames.com/api, whatever nginx actually exposes) — distinct
