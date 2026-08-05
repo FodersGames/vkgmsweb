@@ -10,11 +10,22 @@
 // once at import time. Selecting a template clones it (see MyApps.js/
 // AppBuilderList.js) so editing one created app never mutates this constant.
 //
-// Every list-backed template below is genuinely wired, not decorative: the
-// "Add" button really runs a `list_add` action reading the paired input's
-// bound variable, and tapping a row really runs `list_remove` (via the
-// list's `item_action`, using the {{index}} the item_action scope provides
-// — see AppRuntime.js's list case / exportApp.js's renderList).
+// Every element and switch below is genuinely wired, not decorative:
+// - "Add"/"Log" buttons really run a `list_add` action reading the paired
+//   input's bound variable.
+// - Tapping a list row really runs its `item_action` — which can now be a
+//   full multi-step chain (not just one action), e.g. Shopping List/Habit
+//   Tracker/tap-to-complete move an item to a "done" list via list_remove
+//   + list_add together, using the {{index}} the item_action scope
+//   provides (see AppRuntime.js's list case / exportApp.js's renderList).
+// - Toggles that used to just flip a variable with no visible effect
+//   (Shopping List's "hide completed", Fitness's "metric units") now
+//   really control something: a declarative `visible_if` condition on the
+//   affected components, re-evaluated live — no action wiring needed for
+//   this part, visible_if reacts to the variable on every render.
+// - Toggles/ratings that don't have a natural UI effect (Habit reminders,
+//   Event notify, Event rating) at least confirm the change via a
+//   `show_message` onChange action, so nothing feels like a dead switch.
 
 export const APP_TEMPLATES = [
   {
@@ -76,6 +87,7 @@ export const APP_TEMPLATES = [
       { name: 'reminders', initial_value: 'true' },
       { name: 'newHabit', initial_value: '' },
       { name: 'habits', initial_value: '["Drink water","Read 10 pages","Meditate 5 min","Walk 20 min"]' },
+      { name: 'doneHabits', initial_value: '[]' },
     ],
     screens: [{
       id: 'home', name: 'Today',
@@ -85,19 +97,33 @@ export const APP_TEMPLATES = [
         { id: 'subtitle', type: 'text', actions: {}, layout: { x: 24, y: 86, w: 260, h: 22 },
           props: { content: 'Tap a habit once it’s done', size: 'sm', weight: 'normal', align: 'left', color: '' } },
         { id: 'star-icon', type: 'icon', actions: {}, layout: { x: 300, y: 44, w: 36, h: 36 }, props: { icon: 'star', color: '' } },
-        { id: 'reminders-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 132, w: 312, h: 32 },
-          props: { label: 'Daily reminders', variable: 'reminders' } },
-        { id: 'habits-list', type: 'list', actions: {}, layout: { x: 24, y: 184, w: 312, h: 270 },
+        { id: 'reminders-toggle', type: 'toggle',
+          actions: { onChange: [{ type: 'show_message', text: 'Daily reminders updated.' }] },
+          layout: { x: 24, y: 132, w: 312, h: 32 }, props: { label: 'Daily reminders', variable: 'reminders' } },
+        { id: 'habits-list', type: 'list', actions: {}, layout: { x: 24, y: 184, w: 312, h: 170 },
           props: {
-            source_variable: 'habits', item_template: '✓ {{item}}', empty_text: 'Add your first habit below.',
-            item_action: { type: 'list_remove', variable: 'habits', mode: 'at_index', index: '{{index}}' },
+            source_variable: 'habits', item_template: '{{item}}', empty_text: 'Add your first habit below.',
+            item_action: [
+              { type: 'list_remove', variable: 'habits', mode: 'at_index', index: '{{index}}' },
+              { type: 'list_add', variable: 'doneHabits', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+            ],
           } },
-        { id: 'new-habit', type: 'input', actions: {}, layout: { x: 24, y: 470, w: 220, h: 44 },
+        { id: 'done-label', type: 'text', actions: {}, layout: { x: 24, y: 362, w: 260, h: 20 },
+          props: { content: 'Completed today', size: 'sm', weight: 'bold', align: 'left', color: '' } },
+        { id: 'done-habits-list', type: 'list', actions: {}, layout: { x: 24, y: 386, w: 312, h: 90 },
+          props: {
+            source_variable: 'doneHabits', item_template: '✓ {{item}}', empty_text: 'Nothing completed yet — tap a habit above.',
+            item_action: [
+              { type: 'list_remove', variable: 'doneHabits', mode: 'at_index', index: '{{index}}' },
+              { type: 'list_add', variable: 'habits', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+            ],
+          } },
+        { id: 'new-habit', type: 'input', actions: {}, layout: { x: 24, y: 486, w: 220, h: 44 },
           props: { placeholder: 'New habit…', variable: 'newHabit' } },
         { id: 'add-habit', type: 'button', actions: { onClick: [
           { type: 'list_add', variable: 'habits', mode: 'append', value_mode: 'variable', value: 'newHabit' },
           { type: 'set_variable', variable: 'newHabit', value_mode: 'literal', value: '' },
-        ] }, layout: { x: 252, y: 470, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
+        ] }, layout: { x: 252, y: 486, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
       ],
     }],
   },
@@ -111,6 +137,7 @@ export const APP_TEMPLATES = [
       { name: 'hideDone', initial_value: 'false' },
       { name: 'newItem', initial_value: '' },
       { name: 'items', initial_value: '["Milk","Eggs","Bread","Coffee","Apples"]' },
+      { name: 'doneItems', initial_value: '[]' },
     ],
     screens: [{
       id: 'home', name: 'List',
@@ -120,17 +147,37 @@ export const APP_TEMPLATES = [
           props: { content: 'Shopping List', size: 'custom', size_px: 26, weight: 'bold', align: 'left', color: '' } },
         { id: 'hide-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 100, w: 312, h: 30 },
           props: { label: 'Hide completed items', variable: 'hideDone' } },
-        { id: 'items-list', type: 'list', actions: {}, layout: { x: 24, y: 146, w: 312, h: 260 },
+        { id: 'items-list', type: 'list', actions: {}, layout: { x: 24, y: 140, w: 312, h: 170 },
           props: {
             source_variable: 'items', item_template: '{{item}}', empty_text: 'Your list is empty — add something below.',
-            item_action: { type: 'list_remove', variable: 'items', mode: 'at_index', index: '{{index}}' },
+            // Tapping an item really moves it to the Completed section below
+            // (list_remove here + list_add into doneItems) — not just deleted.
+            item_action: [
+              { type: 'list_remove', variable: 'items', mode: 'at_index', index: '{{index}}' },
+              { type: 'list_add', variable: 'doneItems', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+            ],
           } },
-        { id: 'new-item', type: 'input', actions: {}, layout: { x: 24, y: 420, w: 220, h: 44 },
+        // Both hidden together by the "Hide completed items" toggle above —
+        // a real, working effect (declarative visible_if, re-evaluated live
+        // against hideDone), not just a switch that flips and does nothing.
+        { id: 'completed-label', type: 'text', actions: {}, layout: { x: 24, y: 318, w: 260, h: 20 },
+          visible_if: { variable: 'hideDone', op: 'eq', value: 'false' },
+          props: { content: 'Completed', size: 'sm', weight: 'bold', align: 'left', color: '' } },
+        { id: 'done-items-list', type: 'list', actions: {}, layout: { x: 24, y: 342, w: 312, h: 100 },
+          visible_if: { variable: 'hideDone', op: 'eq', value: 'false' },
+          props: {
+            source_variable: 'doneItems', item_template: '✓ {{item}}', empty_text: 'Nothing completed yet.',
+            item_action: [
+              { type: 'list_remove', variable: 'doneItems', mode: 'at_index', index: '{{index}}' },
+              { type: 'list_add', variable: 'items', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+            ],
+          } },
+        { id: 'new-item', type: 'input', actions: {}, layout: { x: 24, y: 456, w: 220, h: 44 },
           props: { placeholder: 'Add an item…', variable: 'newItem' } },
         { id: 'add-item', type: 'button', actions: { onClick: [
           { type: 'list_add', variable: 'items', mode: 'append', value_mode: 'variable', value: 'newItem' },
           { type: 'set_variable', variable: 'newItem', value_mode: 'literal', value: '' },
-        ] }, layout: { x: 252, y: 420, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
+        ] }, layout: { x: 252, y: 456, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
       ],
     }],
   },
@@ -145,6 +192,8 @@ export const APP_TEMPLATES = [
       { name: 'stepsGoalPct', initial_value: '65' },
       { name: 'calories', initial_value: '412' },
       { name: 'metric', initial_value: 'true' },
+      { name: 'distanceKm', initial_value: '5.2' },
+      { name: 'distanceMiles', initial_value: '3.2' },
       { name: 'newWorkout', initial_value: '' },
       { name: 'workouts', initial_value: '["Morning run — 5.2 km","Push day — 45 min","Evening walk — 2.1 km"]' },
     ],
@@ -154,30 +203,42 @@ export const APP_TEMPLATES = [
         { id: 'title', type: 'text', actions: {}, layout: { x: 24, y: 32, w: 260, h: 40 },
           props: { content: 'This Week', size: 'custom', size_px: 28, weight: 'bold', align: 'left', color: '' } },
         { id: 'steps-icon', type: 'icon', actions: {}, layout: { x: 24, y: 86, w: 28, h: 28 }, props: { icon: 'star', color: '' } },
-        { id: 'steps-value', type: 'text', actions: {}, layout: { x: 60, y: 82, w: 130, h: 36 },
-          props: { content: '{{steps}} steps', size: 'lg', weight: 'bold', align: 'left', color: '' } },
-        { id: 'cal-icon', type: 'icon', actions: {}, layout: { x: 200, y: 86, w: 28, h: 28 }, props: { icon: 'heart', color: '' } },
-        { id: 'cal-value', type: 'text', actions: {}, layout: { x: 236, y: 82, w: 100, h: 36 },
+        // Two alternate versions, only one ever visible — the "Use metric
+        // units" toggle below genuinely switches which one shows (declarative
+        // visible_if, live against the `metric` variable), instead of
+        // existing as a switch that has no observable effect.
+        { id: 'steps-value-metric', type: 'text', actions: {}, layout: { x: 60, y: 82, w: 200, h: 36 },
+          visible_if: { variable: 'metric', op: 'eq', value: 'true' },
+          props: { content: '{{steps}} steps · {{distanceKm}} km', size: 'md', weight: 'bold', align: 'left', color: '' } },
+        { id: 'steps-value-imperial', type: 'text', actions: {}, layout: { x: 60, y: 82, w: 200, h: 36 },
+          visible_if: { variable: 'metric', op: 'eq', value: 'false' },
+          props: { content: '{{steps}} steps · {{distanceMiles}} mi', size: 'md', weight: 'bold', align: 'left', color: '' } },
+        { id: 'cal-icon', type: 'icon', actions: {}, layout: { x: 24, y: 128, w: 28, h: 28 }, props: { icon: 'heart', color: '' } },
+        { id: 'cal-value', type: 'text', actions: {}, layout: { x: 60, y: 124, w: 200, h: 36 },
           props: { content: '{{calories}} kcal', size: 'md', weight: 'bold', align: 'left', color: '' } },
-        { id: 'goal-label', type: 'text', actions: {}, layout: { x: 24, y: 132, w: 260, h: 18 },
+        { id: 'goal-label', type: 'text', actions: {}, layout: { x: 24, y: 172, w: 260, h: 18 },
           props: { content: 'Daily step goal', size: 'sm', weight: 'normal', align: 'left', color: '' } },
-        { id: 'goal-progress', type: 'progress', actions: {}, layout: { x: 24, y: 154, w: 312, h: 10 },
+        { id: 'goal-progress', type: 'progress', actions: {}, layout: { x: 24, y: 194, w: 312, h: 10 },
           props: { variable: 'stepsGoalPct', value: 65 } },
-        { id: 'metric-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 182, w: 312, h: 30 },
+        { id: 'metric-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 222, w: 312, h: 30 },
           props: { label: 'Use metric units', variable: 'metric' } },
-        { id: 'log-label', type: 'text', actions: {}, layout: { x: 24, y: 228, w: 260, h: 22 },
+        { id: 'log-label', type: 'text', actions: {}, layout: { x: 24, y: 268, w: 260, h: 22 },
           props: { content: 'Recent workouts', size: 'sm', weight: 'bold', align: 'left', color: '' } },
-        { id: 'workouts-list', type: 'list', actions: {}, layout: { x: 24, y: 256, w: 312, h: 200 },
+        { id: 'workouts-list', type: 'list', actions: {}, layout: { x: 24, y: 296, w: 312, h: 180 },
           props: {
             source_variable: 'workouts', item_template: '{{item}}', empty_text: 'No workouts logged yet.',
             item_action: { type: 'list_remove', variable: 'workouts', mode: 'at_index', index: '{{index}}' },
           } },
-        { id: 'new-workout', type: 'input', actions: {}, layout: { x: 24, y: 470, w: 220, h: 44 },
+        { id: 'new-workout', type: 'input', actions: {}, layout: { x: 24, y: 486, w: 220, h: 44 },
           props: { placeholder: 'e.g. Leg day — 40 min', variable: 'newWorkout' } },
         { id: 'log-button', type: 'button', actions: { onClick: [
           { type: 'list_add', variable: 'workouts', mode: 'prepend', value_mode: 'variable', value: 'newWorkout' },
           { type: 'set_variable', variable: 'newWorkout', value_mode: 'literal', value: '' },
-        ] }, layout: { x: 252, y: 470, w: 84, h: 44 }, props: { label: 'Log', style: 'primary' } },
+          // Logging a workout really nudges the daily-goal progress bar —
+          // set_variable's increment mode, clamped visually by the progress
+          // component's own 0–100 render clamp.
+          { type: 'set_variable', variable: 'stepsGoalPct', value_mode: 'increment', value: '5' },
+        ] }, layout: { x: 252, y: 486, w: 84, h: 44 }, props: { label: 'Log', style: 'primary' } },
       ],
     }],
   },
@@ -201,8 +262,9 @@ export const APP_TEMPLATES = [
           props: { content: 'My Event', size: 'custom', size_px: 24, weight: 'bold', align: 'left', color: '' } },
         { id: 'subtitle', type: 'text', actions: {}, layout: { x: 24, y: 84, w: 312, h: 20 },
           props: { content: 'Saturday, 7:00 PM · Community Hall', size: 'sm', weight: 'normal', align: 'left', color: '' } },
-        { id: 'notify-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 116, w: 312, h: 30 },
-          props: { label: 'Notify me about updates', variable: 'notify' } },
+        { id: 'notify-toggle', type: 'toggle',
+          actions: { onChange: [{ type: 'show_message', text: 'Preference saved.' }] },
+          layout: { x: 24, y: 116, w: 312, h: 30 }, props: { label: 'Notify me about updates', variable: 'notify' } },
         { id: 'agenda-label', type: 'text', actions: {}, layout: { x: 24, y: 160, w: 260, h: 20 },
           props: { content: 'Agenda — tap an item once it’s done', size: 'sm', weight: 'bold', align: 'left', color: '' } },
         { id: 'agenda-list', type: 'list', actions: {}, layout: { x: 24, y: 184, w: 312, h: 190 },
@@ -218,8 +280,9 @@ export const APP_TEMPLATES = [
         ] }, layout: { x: 252, y: 384, w: 84, h: 40 }, props: { label: 'Add', style: 'secondary' } },
         { id: 'rating-label', type: 'text', actions: {}, layout: { x: 24, y: 438, w: 260, h: 20 },
           props: { content: 'Rate the last event', size: 'sm', weight: 'normal', align: 'left', color: '' } },
-        { id: 'rating', type: 'rating', actions: {}, layout: { x: 24, y: 462, w: 160, h: 28 },
-          props: { variable: 'lastRating', max: 5, color: '' } },
+        { id: 'rating', type: 'rating',
+          actions: { onChange: [{ type: 'show_message', text: 'Thanks for your rating!' }] },
+          layout: { x: 24, y: 462, w: 160, h: 28 }, props: { variable: 'lastRating', max: 5, color: '' } },
         { id: 'share', type: 'button', actions: { onClick: [{ type: 'show_message', text: 'Link copied to clipboard!' }] },
           layout: { x: 24, y: 504, w: 312, h: 48 }, props: { label: 'Share Event', style: 'primary' } },
       ],

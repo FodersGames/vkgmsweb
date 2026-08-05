@@ -457,9 +457,6 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
         </div>
       );
     case 'list': {
-      const itemAction = node.props.item_action;
-      const targets = screen ? flattenUpdatableTargets(screen) : [];
-      const allTargets = screen ? flattenAllTargets(screen) : [];
       return (
         <div className="space-y-3">
           <div>
@@ -477,27 +474,13 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
           <div className="pt-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <label className={FIELD_LABEL}>When a row is tapped</label>
-            <Select
-              value={itemAction?.type || ''}
-              onChange={e => {
-                const type = e.target.value;
-                onChange(n => { n.props.item_action = type ? createAction(type) : null; });
-              }}
-              size="sm"
-            >
-              <option value="">No action</option>
-              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}
-            </Select>
-            {itemAction && (
-              <div className="mt-3 space-y-3">
-                <ActionStepFields
-                  action={itemAction} screens={screens || []} targets={targets} allTargets={allTargets}
-                  setField={(field, value) => onChange(n => { n.props.item_action = { ...n.props.item_action, [field]: value }; })}
-                />
-                <p className="text-[10px] text-[#A1A1A6]">Fields above support {'{{item}}'} / {'{{item.field}}'} too.</p>
-              </div>
-            )}
+            <ActionEditor
+              steps={node.props.item_action}
+              onStepsChange={(list) => onChange(n => { n.props.item_action = list; })}
+              screens={screens || []} screen={screen}
+              label="When a row is tapped"
+            />
+            <p className="mt-2 text-[10px] text-[#A1A1A6]">Steps above support {'{{item}}'} / {'{{item.field}}'} and {'{{index}}'} too.</p>
           </div>
         </div>
       );
@@ -843,15 +826,20 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
 // "update text1 with coins") — normalizeActions() reads a pre-list save
 // (a single action object) as a one-step list, so no backend migration is
 // needed for apps saved before this shipped.
-function ActionEditor({ node, screens, screen, onChange, trigger = 'onClick', label = 'When clicked' }) {
-  const steps = normalizeActions(node.actions?.[trigger]);
+// Generic multi-step action-chain editor — used both for a component's
+// trigger (button onClick, toggle/checkbox/rating/slider/date onChange)
+// and for a list's item_action (tap a row). Deliberately takes plain
+// steps/onStepsChange rather than a node+trigger pair so both storage
+// shapes (node.actions[trigger] vs node.props.item_action) can share one
+// implementation — runAction() already normalizes a single action object
+// or a list transparently (normalizeActions), so item_action being a list
+// instead of one action needed no runtime changes, only this editor UI.
+function ActionEditor({ steps: rawSteps, onStepsChange, screens, screen, label = 'When clicked' }) {
+  const steps = normalizeActions(rawSteps);
   const targets = useMemo(() => flattenUpdatableTargets(screen), [screen]);
   const allTargets = useMemo(() => flattenAllTargets(screen), [screen]);
 
-  const setSteps = (list) => onChange(n => {
-    if (!list.length) delete n.actions[trigger];
-    else n.actions[trigger] = list;
-  });
+  const setSteps = (list) => onStepsChange(list.length ? list : null);
   const addStep = () => setSteps([...steps, createAction('set_variable')]);
   const removeStep = (idx) => setSteps(steps.filter((_, i) => i !== idx));
   const moveStep = (idx, dir) => {
@@ -1816,8 +1804,12 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </>
               ) : (
                 <ActionEditor
-                  node={selected} screens={app.screens} screen={activeScreen} onChange={updateSelected}
-                  trigger={COMPONENT_META[selected.type]?.actionTrigger || 'onClick'}
+                  steps={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
+                  onStepsChange={(list) => updateSelected(n => {
+                    const trigger = COMPONENT_META[n.type]?.actionTrigger || 'onClick';
+                    if (!list) delete n.actions[trigger]; else n.actions[trigger] = list;
+                  })}
+                  screens={app.screens} screen={activeScreen}
                   label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
                 />
               )}
