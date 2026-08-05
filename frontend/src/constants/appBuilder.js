@@ -33,7 +33,10 @@ export const DEFAULT_LAYOUT = {
   image: { x: 20, y: 20, w: 200, h: 150 },
   input: { x: 20, y: 20, w: 240, h: 44 },
   container: { x: 20, y: 20, w: 300, h: 150 },
-  divider: { x: 20, y: 20, w: 300, h: 1 },
+  // h:8 is the *click/drag hitbox* — the visual line itself stays a thin
+  // 2px rule vertically centered inside that box (see AppRuntime.js /
+  // exportApp.js's divider case). A 1px-tall box was nearly unselectable.
+  divider: { x: 20, y: 20, w: 300, h: 8 },
   spacer: { x: 20, y: 20, w: 20, h: 20 },
   icon: { x: 20, y: 20, w: 32, h: 32 },
   toggle: { x: 20, y: 20, w: 200, h: 32 },
@@ -57,20 +60,21 @@ export const COMPONENT_TYPES = [
     defaultProps: { content: 'Text', size: 'md', weight: 'normal', align: 'left', color: '' },
   },
   {
-    type: 'button', label: 'Button', icon: MousePointerClick, isContainer: false, supportsAction: true, tier: 'free',
-    defaultProps: { label: 'Button', style: 'primary' },
+    type: 'button', label: 'Button', icon: MousePointerClick, isContainer: false, supportsAction: true,
+    actionTrigger: 'onClick', actionLabel: 'When clicked', tier: 'free',
+    defaultProps: { label: 'Button', style: 'primary', icon: '' },
   },
   {
     type: 'image', label: 'Image', icon: Image, isContainer: false, tier: 'free',
-    defaultProps: { url: '', radius: 12 },
+    defaultProps: { url: '', radius: 12, fit: 'cover', border: false },
   },
   {
     type: 'input', label: 'Input', icon: TextCursorInput, isContainer: false, tier: 'free',
-    defaultProps: { placeholder: 'Type here…', variable: '' },
+    defaultProps: { placeholder: 'Type here…', variable: '', input_type: 'text', max_length: null },
   },
   {
     type: 'container', label: 'Group', icon: LayoutGrid, isContainer: true, tier: 'free',
-    defaultProps: { background: 'none', border: false, radius: 0, shadow: false },
+    defaultProps: { background: 'none', border: false, radius: 0, shadow: false, opacity: 100 },
   },
   {
     type: 'divider', label: 'Divider', icon: Minus, isContainer: false, tier: 'free',
@@ -85,12 +89,17 @@ export const COMPONENT_TYPES = [
     defaultProps: { icon: 'star', color: '' },
   },
   {
-    type: 'toggle', label: 'Toggle', icon: ToggleLeft, isContainer: false, tier: 'premium',
+    type: 'toggle', label: 'Toggle', icon: ToggleLeft, isContainer: false, supportsAction: true,
+    actionTrigger: 'onChange', actionLabel: 'When toggled', tier: 'premium',
     defaultProps: { label: 'Toggle', variable: '' },
   },
   {
     type: 'list', label: 'List', icon: ListIcon, isContainer: false, tier: 'premium',
-    defaultProps: { source_variable: '', item_template: '{{item}}', empty_text: 'No items yet.' },
+    // item_action: an optional single action (same shape as createAction())
+    // run when a rendered row is tapped, with {{item...}} interpolation
+    // available in its fields. No separate premium gate needed — `list`
+    // itself is already a fully premium type.
+    defaultProps: { source_variable: '', item_template: '{{item}}', empty_text: 'No items yet.', item_action: null },
   },
 ];
 
@@ -113,6 +122,7 @@ export const ACTION_TYPES = [
   { type: 'navigate', label: 'Go to screen' },
   { type: 'set_variable', label: 'Set a variable' },
   { type: 'update_text', label: 'Update an element' },
+  { type: 'set_visibility', label: 'Show/hide an element' },
   { type: 'show_message', label: 'Show a message' },
   { type: 'open_link', label: 'Open a link' },
 ];
@@ -122,11 +132,25 @@ export function createAction(type) {
     case 'navigate': return { type, screen_id: '' };
     case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
     case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
+    case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
     case 'show_message': return { type, text: '' };
     case 'open_link': return { type, url: '', new_tab: true };
     default: return null;
   }
 }
+
+// Basic imperative show/hide (free) is a plain action, above. Declarative
+// visibility (a component auto-hides based on a live condition, no button
+// needed) is the Vakar+ perk — VISIBILITY_OPERATORS backs its condition
+// builder, gated server-side alongside custom text sizing (see
+// _check_component_tier in studio_apps.py).
+export const VISIBILITY_OPERATORS = [
+  { id: 'eq', label: 'equals' },
+  { id: 'neq', label: 'does not equal' },
+  { id: 'gt', label: 'is greater than' },
+  { id: 'lt', label: 'is less than' },
+  { id: 'truthy', label: 'is set (not empty/0/false)' },
+];
 
 // A button's onClick used to be a single action object; it's now a list run
 // in order (e.g. "add 1 to coins" then "update text1 with coins"), so both
@@ -162,6 +186,22 @@ export function resolveTextSizePx(props) {
 
 export const BUTTON_STYLES = ['primary', 'secondary', 'outline'];
 export const DIRECTIONS = ['column', 'row'];
+
+// Entrance animation, played once when a component mounts (screen
+// navigation remounts the target screen, so re-visiting a screen replays
+// it). 'fade' is free — a taste of the category; the rest are Vakar+
+// (see PREMIUM_ANIMATIONS, also mirrored server-side in studio_apps.py).
+// Class names match @keyframes/.vk-anim-* added to index.css.
+export const ANIMATION_TYPES = [
+  { id: 'none', label: 'None', tier: 'free' },
+  { id: 'fade', label: 'Fade in', tier: 'free' },
+  { id: 'slide-up', label: 'Slide up', tier: 'premium' },
+  { id: 'slide-down', label: 'Slide down', tier: 'premium' },
+  { id: 'pop', label: 'Pop', tier: 'premium' },
+];
+export const PREMIUM_ANIMATIONS = new Set(
+  ANIMATION_TYPES.filter(a => a.tier === 'premium').map(a => a.id)
+);
 
 // ============================================================
 // Themes — resolved app-wide color/radius defaults. Components with an

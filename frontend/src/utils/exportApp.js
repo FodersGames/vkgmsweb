@@ -26,52 +26,86 @@ function hexToRgba(hex, alpha) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
+// Escapes for a single-quoted HTML attribute holding JSON (JSON.stringify
+// already produces double quotes internally, so a double-quoted attribute
+// would break — this is used only for data-vis/data-action/-onchange/
+// -item-action, which all hold JSON).
+const escJsonAttr = (obj) => JSON.stringify(obj)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+
 function renderComponentHTML(node, index = 0) {
   if (!node) return '';
   const l = getLayout(node, index);
   const pos = `position:absolute;left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px;`;
+  // Visibility (imperative set_visibility override, or declarative
+  // visible_if — see render()'s [data-comp-id] pass) and entrance animation
+  // apply uniformly to any component type, so the wrapper is built once and
+  // reused across every case below (mirrors PositionedNode in AppRuntime.js).
+  const animation = node.props?.animation;
+  const animClass = animation && animation !== 'none' ? `vk-anim-${animation}` : '';
+  const classAttr = animClass ? ` class="${animClass}"` : '';
+  const visAttr = node.visible_if?.variable ? ` data-vis='${escJsonAttr(node.visible_if)}'` : '';
+  const wrapperOpen = `<div${classAttr} data-comp-id="${esc(node.id)}"${visAttr} style="${pos}">`;
 
   switch (node.type) {
     case 'text': {
       const style = `margin:0;width:100%;height:100%;font-size:${resolveTextSizePx(node.props)}px;font-weight:${node.props?.weight === 'bold' ? 700 : 400};text-align:${node.props?.align || 'left'};color:${node.props?.color || 'var(--vk-text)'};line-height:1.45;white-space:pre-wrap;word-break:break-word;overflow:hidden;box-sizing:border-box;`;
-      return `<div style="${pos}"><p class="vk-text" data-id="${esc(node.id)}" data-tpl="${esc(node.props?.content || '')}" style="${style}"></p></div>`;
+      return `${wrapperOpen}<p class="vk-text" data-id="${esc(node.id)}" data-tpl="${esc(node.props?.content || '')}" style="${style}"></p></div>`;
     }
     case 'button': {
       const label = node.props?.label || 'Button';
-      const action = node.actions?.onClick ? ` data-action="${esc(JSON.stringify(node.actions.onClick))}"` : '';
-      return `<div style="${pos}"><button class="vk-btn vk-btn-${node.props?.style || 'primary'}"${action} data-id="${esc(node.id)}" data-tpl="${esc(label)}" style="width:100%;height:100%;">${esc(label)}</button></div>`;
+      const action = node.actions?.onClick ? ` data-action="${escJsonAttr(node.actions.onClick)}"` : '';
+      const iconSvg = node.props?.icon
+        ? renderToStaticMarkup(React.createElement(AppIcon, { id: node.props.icon, size: 16, color: 'currentColor' }))
+        : '';
+      const iconHtml = iconSvg ? `<span class="vk-btn-icon">${iconSvg}</span>` : '';
+      return `${wrapperOpen}<button class="vk-btn vk-btn-${node.props?.style || 'primary'}"${action} style="width:100%;height:100%;">${iconHtml}<span data-id="${esc(node.id)}" data-tpl="${esc(label)}">${esc(label)}</span></button></div>`;
     }
-    case 'image':
+    case 'image': {
+      const fit = node.props?.fit || 'cover';
+      const border = node.props?.border ? '1px solid var(--vk-border)' : 'none';
       return node.props?.url
-        ? `<div style="${pos}"><img class="vk-image" src="${esc(node.props.url)}" alt="" style="width:100%;height:100%;border-radius:${node.props?.radius ?? 12}px;"></div>`
-        : `<div style="${pos}"><div class="vk-image-placeholder" style="width:100%;height:100%;border-radius:${node.props?.radius ?? 12}px;"></div></div>`;
+        ? `${wrapperOpen}<img class="vk-image" src="${esc(node.props.url)}" alt="" style="width:100%;height:100%;object-fit:${fit};border-radius:${node.props?.radius ?? 12}px;border:${border};box-sizing:border-box;"></div>`
+        : `${wrapperOpen}<div class="vk-image-placeholder" style="width:100%;height:100%;border-radius:${node.props?.radius ?? 12}px;"></div></div>`;
+    }
     case 'input': {
       const bound = !!node.props?.variable;
-      return `<div style="${pos}">${bound
-        ? `<input class="vk-input" data-variable="${esc(node.props.variable)}" placeholder="${esc(node.props?.placeholder || '')}" style="width:100%;height:100%;">`
-        : `<input class="vk-input" placeholder="${esc(node.props?.placeholder || '')}" disabled title="Not bound to a variable" style="width:100%;height:100%;">`
-      }</div>`;
+      const multiline = node.props?.input_type === 'multiline';
+      const tag = multiline ? 'textarea' : 'input';
+      const typeAttr = multiline ? '' : ` type="${node.props?.input_type === 'number' ? 'number' : 'text'}"`;
+      const maxLenAttr = node.props?.max_length ? ` maxlength="${Number(node.props.max_length)}"` : '';
+      const inner = bound
+        ? `<${tag} class="vk-input"${typeAttr} data-variable="${esc(node.props.variable)}" placeholder="${esc(node.props?.placeholder || '')}"${maxLenAttr} style="width:100%;height:100%;"></${tag}>`
+        : `<${tag} class="vk-input"${typeAttr} placeholder="${esc(node.props?.placeholder || '')}" disabled title="Not bound to a variable"${maxLenAttr} style="width:100%;height:100%;"></${tag}>`;
+      return `${wrapperOpen}${inner}</div>`;
     }
-    case 'toggle':
-      return `<div style="${pos}"><div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}><span class="vk-toggle-knob"></span></button></div></div>`;
+    case 'toggle': {
+      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      return `${wrapperOpen}<div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}${changeAction}><span class="vk-toggle-knob"></span></button></div></div>`;
+    }
     case 'icon': {
       const svg = renderToStaticMarkup(
         React.createElement(AppIcon, { id: node.props?.icon || 'star', size: '100%', color: node.props?.color || 'currentColor' })
       );
-      return `<div style="${pos}"><div class="vk-icon" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${node.props?.color || 'var(--vk-text)'}">${svg}</div></div>`;
+      return `${wrapperOpen}<div class="vk-icon" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${node.props?.color || 'var(--vk-text)'}">${svg}</div></div>`;
     }
-    case 'list':
-      return `<div style="${pos}"><div class="vk-list" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}" style="width:100%;height:100%;"></div></div>`;
+    case 'list': {
+      const itemActionAttr = node.props?.item_action ? ` data-item-action="${escJsonAttr(node.props.item_action)}"` : '';
+      return `${wrapperOpen}<div class="vk-list" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${itemActionAttr} style="width:100%;height:100%;"></div></div>`;
+    }
     case 'container': {
       const bg = node.props?.background === 'surface' ? 'var(--vk-surface)' : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
-      const style = `position:relative;width:100%;height:100%;background:${bg};border:${node.props?.border ? '1px solid var(--vk-border)' : 'none'};border-radius:${node.props?.radius ?? 0}px;box-shadow:${node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none'};box-sizing:border-box;overflow:hidden;`;
+      const opacity = (node.props?.opacity ?? 100) / 100;
+      const style = `position:relative;width:100%;height:100%;background:${bg};border:${node.props?.border ? '1px solid var(--vk-border)' : 'none'};border-radius:${node.props?.radius ?? 0}px;box-shadow:${node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none'};opacity:${opacity};box-sizing:border-box;overflow:hidden;`;
       const children = (node.children || []).map((child, i) => renderComponentHTML(child, i)).join('\n    ');
-      return `<div style="${pos}"><div class="vk-container" style="${style}">\n    ${children}\n    </div></div>`;
+      return `${wrapperOpen}<div class="vk-container" style="${style}">\n    ${children}\n    </div></div>`;
     }
     case 'divider':
-      return `<div style="${pos}"><div class="vk-divider" style="width:100%;height:100%;"></div></div>`;
+      // The positioned box is a taller hitbox in the editor than the
+      // visual rule — center a thin 2px line inside it, same as AppRuntime.js.
+      return `${wrapperOpen}<div style="width:100%;height:100%;display:flex;align-items:center;"><div class="vk-divider" style="width:100%;height:2px;"></div></div></div>`;
     case 'spacer':
-      return `<div style="${pos}"></div>`;
+      return `${wrapperOpen}</div>`;
     default:
       return '';
   }
@@ -127,13 +161,15 @@ body {
 .canvas-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--vk-bg); }
 .canvas { position: relative; width: ${CANVAS_WIDTH}px; height: ${CANVAS_HEIGHT}px; flex-shrink: 0; background: var(--vk-bg); overflow: hidden; }
 .screen { position: absolute; inset: 0; overflow: hidden; }
-.vk-btn { border-radius: calc(var(--vk-radius) * 0.7); font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+.vk-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: calc(var(--vk-radius) * 0.7); font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+.vk-btn-icon svg { display: block; width: 16px; height: 16px; }
 .vk-btn-primary { background: var(--vk-primary); color: var(--vk-primary-text); box-shadow: 0 6px 16px -6px ${hexToRgba(theme.colors.primary, 0.5)}; }
 .vk-btn-secondary { background: ${hexToRgba(theme.colors.primary, 0.1)}; color: var(--vk-primary); border: 1px solid ${hexToRgba(theme.colors.primary, 0.25)}; }
 .vk-btn-outline { background: transparent; color: var(--vk-text); border: 1px solid var(--vk-border); }
-.vk-input { padding: 0 12px; border-radius: calc(var(--vk-radius) * 0.6); border: 1px solid var(--vk-border); font-size: 14px; background: #fff; color: var(--vk-text); font-family: inherit; }
+.vk-input { padding: 0 12px; border-radius: calc(var(--vk-radius) * 0.6); border: 1px solid var(--vk-border); font-size: 14px; background: #fff; color: var(--vk-text); font-family: inherit; box-sizing: border-box; }
+textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-input:disabled { background: ${hexToRgba(theme.colors.border, 0.2)}; }
-.vk-image, .vk-image-placeholder { object-fit: cover; display: block; }
+.vk-image, .vk-image-placeholder { display: block; }
 .vk-image-placeholder { background: var(--vk-surface); border: 1px dashed var(--vk-border); }
 .vk-divider { background: var(--vk-border); }
 .vk-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--vk-text); }
@@ -147,6 +183,21 @@ body {
 .vk-list-empty { font-size: 13px; color: var(--vk-text-muted); margin: 0; }
 #vk-toast { display: none; position: absolute; top: 12px; left: 12px; right: 12px; background: var(--vk-text); color: var(--vk-bg); font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: calc(var(--vk-radius) * 0.7); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 10; }
 .vk-watermark { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+/* Entrance animations — mirrors frontend/src/index.css's .vk-anim-* classes
+   verbatim as plain CSS text (this static export has no Tailwind/React to
+   share those classes with). */
+@keyframes vkAnimFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vkAnimSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vkAnimSlideDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vkAnimPop { 0% { opacity: 0; transform: scale(0.85); } 70% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+.vk-anim-fade { animation: vkAnimFade 0.4s ease both; }
+.vk-anim-slide-up { animation: vkAnimSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.vk-anim-slide-down { animation: vkAnimSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.vk-anim-pop { animation: vkAnimPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .vk-anim-fade, .vk-anim-slide-up, .vk-anim-slide-down, .vk-anim-pop { animation: none; }
+}
 `;
 }
 
@@ -158,6 +209,7 @@ function generateJS(app) {
   var CANVAS_HEIGHT = ${CANVAS_HEIGHT};
   var vars = ${JSON.stringify(initialVars, null, 2)};
   var overrides = {};
+  var visibilityOverrides = {};
 
   function fitCanvas() {
     var wrap = document.querySelector('.canvas-wrap');
@@ -186,6 +238,22 @@ function generateJS(app) {
     });
   }
 
+  // Mirrors resolveVisible()'s condition evaluation in AppRuntime.js.
+  function evalVisible(cond) {
+    if (!cond || !cond.variable) return true;
+    var current = vars[cond.variable];
+    var currentStr = current == null ? '' : String(current);
+    var condStr = cond.value == null ? '' : String(cond.value);
+    switch (cond.op) {
+      case 'eq': return currentStr === condStr;
+      case 'neq': return currentStr !== condStr;
+      case 'gt': return (Number(current) || 0) > (Number(cond.value) || 0);
+      case 'lt': return (Number(current) || 0) < (Number(cond.value) || 0);
+      case 'truthy': return !!current && current !== '0' && current !== 'false';
+      default: return true;
+    }
+  }
+
   function flash(text) {
     var el = document.getElementById('vk-toast');
     if (!el) return;
@@ -211,6 +279,9 @@ function generateJS(app) {
       } catch (e) { /* not valid JSON */ }
     }
     var tpl = el.getAttribute('data-tpl');
+    var itemActionAttr = el.getAttribute('data-item-action');
+    var itemAction = null;
+    if (itemActionAttr) { try { itemAction = JSON.parse(itemActionAttr); } catch (e) { /* ignore */ } }
     el.innerHTML = '';
     if (items.length === 0) {
       var empty = document.createElement('p');
@@ -223,6 +294,10 @@ function generateJS(app) {
       var row = document.createElement('div');
       row.className = 'vk-list-item';
       row.textContent = interpolate(tpl, { item: item });
+      if (itemAction) {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', function () { runAction(itemAction, { item: item }); });
+      }
       el.appendChild(row);
     });
   }
@@ -232,19 +307,38 @@ function generateJS(app) {
       var id = el.getAttribute('data-id');
       el.textContent = (id && Object.prototype.hasOwnProperty.call(overrides, id)) ? overrides[id] : interpolate(el.getAttribute('data-tpl'), null);
     });
-    document.querySelectorAll('input.vk-input[data-variable]').forEach(function (el) {
+    document.querySelectorAll('.vk-input[data-variable]').forEach(function (el) {
       if (document.activeElement !== el) el.value = vars[el.getAttribute('data-variable')] || '';
     });
     document.querySelectorAll('.vk-toggle[data-variable]').forEach(function (el) {
       el.classList.toggle('on', vars[el.getAttribute('data-variable')] === 'true');
     });
     document.querySelectorAll('.vk-list[data-source]').forEach(renderList);
+    // Imperative set_visibility override wins if one has fired for this
+    // component id; otherwise a declarative visible_if condition (data-vis,
+    // Vakar+-gated server-side) is evaluated; with neither, it's visible —
+    // mirrors resolveVisible() in AppRuntime.js.
+    document.querySelectorAll('[data-comp-id]').forEach(function (el) {
+      var id = el.getAttribute('data-comp-id');
+      var visible = true;
+      if (Object.prototype.hasOwnProperty.call(visibilityOverrides, id)) {
+        visible = visibilityOverrides[id];
+      } else {
+        var visAttr = el.getAttribute('data-vis');
+        if (visAttr) {
+          try { visible = evalVisible(JSON.parse(visAttr)); } catch (e) { visible = true; }
+        }
+      }
+      el.style.display = visible ? '' : 'none';
+    });
   }
 
-  // A button's onClick is an ordered list of steps (e.g. "add 1 to coins"
-  // then "update text1 with coins") — pre-list saves are read as a
-  // one-step list, same normalizeActions() convention as the live editor.
-  function runOne(action) {
+  // A button's onClick (or a toggle's onChange, or a list row's tap) is an
+  // ordered list of steps (e.g. "add 1 to coins" then "update text1 with
+  // coins") — pre-list saves are read as a one-step list, same
+  // normalizeActions() convention as the live editor. scope is only set
+  // for a list's item action, so its fields can interpolate item fields.
+  function runOne(action, scope) {
     if (!action || !action.type) return;
     switch (action.type) {
       case 'navigate':
@@ -255,16 +349,23 @@ function generateJS(app) {
         var current = vars[action.variable];
         if (action.value_mode === 'toggle_bool') vars[action.variable] = current === 'true' ? 'false' : 'true';
         else if (action.value_mode === 'increment') vars[action.variable] = String((Number(current) || 0) + (Number(action.value) || 1));
-        else vars[action.variable] = interpolate(action.value, null);
+        else if (action.value_mode === 'decrement') vars[action.variable] = String((Number(current) || 0) - (Number(action.value) || 1));
+        else vars[action.variable] = interpolate(action.value, scope);
         break;
       }
       case 'update_text': {
         if (!action.target_id) break;
-        overrides[action.target_id] = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, null);
+        overrides[action.target_id] = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, scope);
+        break;
+      }
+      case 'set_visibility': {
+        if (!action.target_id) break;
+        var cur = visibilityOverrides[action.target_id];
+        visibilityOverrides[action.target_id] = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
         break;
       }
       case 'show_message':
-        flash(interpolate(action.text, null) || '…');
+        flash(interpolate(action.text, scope) || '…');
         break;
       case 'open_link':
         if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
@@ -273,9 +374,9 @@ function generateJS(app) {
     }
   }
 
-  function runAction(actionOrList) {
+  function runAction(actionOrList, scope) {
     var list = Array.isArray(actionOrList) ? actionOrList : (actionOrList ? [actionOrList] : []);
-    list.forEach(runOne);
+    list.forEach(function (a) { runOne(a, scope); });
     render();
   }
 
@@ -288,7 +389,12 @@ function generateJS(app) {
     if (toggleEl) {
       var v = toggleEl.getAttribute('data-variable');
       vars[v] = vars[v] === 'true' ? 'false' : 'true';
-      render();
+      var onChangeAttr = toggleEl.getAttribute('data-onchange');
+      if (onChangeAttr) {
+        try { runAction(JSON.parse(onChangeAttr)); } catch (err) { render(); }
+      } else {
+        render();
+      }
     }
   });
 

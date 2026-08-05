@@ -126,6 +126,40 @@
   .theme-transition * { transition: none; }
 }
 
+/* Studio App Builder — entrance animations for published/previewed
+   components (frontend/src/constants/appBuilder.js's ANIMATION_TYPES /
+   PositionedNode in AppRuntime.js). Mirrored verbatim as plain CSS text in
+   exportApp.js's generateCSS for the static HTML export, which has no
+   Tailwind/React to share these classes with. */
+@keyframes vkAnimFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes vkAnimSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vkAnimSlideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vkAnimPop {
+  0%   { opacity: 0; transform: scale(0.85); }
+  70%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.vk-anim-fade       { animation: vkAnimFade 0.4s ease both; }
+.vk-anim-slide-up   { animation: vkAnimSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.vk-anim-slide-down { animation: vkAnimSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.vk-anim-pop        { animation: vkAnimPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vk-anim-fade,
+  .vk-anim-slide-up,
+  .vk-anim-slide-down,
+  .vk-anim-pop { animation: none; }
+}
+
 /* ── Liquid glass (public site) ───────────────────────────────────────────
    Apple's translucent, light-catching material: heavy blur+saturation to
    pull color from whatever sits behind it, a bright inset edge that reads

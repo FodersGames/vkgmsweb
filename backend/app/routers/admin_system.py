@@ -14,7 +14,6 @@ from ..config import VERSION, SETUP_KEY, STRIPE_WEBHOOK_SECRET, _JWT_EPHEMERAL, 
 from ..database import db, client
 from ..deps import require_permission, require_super_admin, hash_key, PSEUDO_REGEX
 from ..utils import log_action, _create_notification
-from ..loyalty import get_tier
 from ..chat_common import get_banned_words, contains_banned_word
 from ..rate_limit import limiter
 from ..schemas import CliExecuteRequest
@@ -63,9 +62,10 @@ async def get_system_stats(user=Depends(require_permission("view_vps"))):
 # Collections indexed at startup (backend/app/main.py) — used only to report a
 # per-collection custom-index count, not to enforce/recreate anything here.
 _INDEXED_COLLECTIONS = [
-    "users", "projects", "items", "logs", "variables", "website_games",
-    "blog_posts", "chat_messages", "website_shop_products", "missions",
-    "notifications", "support_tickets", "game_purchases", "user_points",
+    "users", "projects", "items", "logs", "variables",
+    "blog_posts", "chat_messages", "missions",
+    "notifications", "support_tickets",
+    "studio_apps", "studio_app_purchases",
     "website_shop_global_settings", "play_saves", "play_refresh_tokens",
     "careers", "play_nicknames", "play_bans", "play_first_seen", "guilds",
     "guild_members", "chat_bans", "chat_mutes", "cli_destructive_log",
@@ -239,12 +239,7 @@ _CLI_HELP_TEXT = [
     "  mission list <project_slug> [status]",
     "  mission cancel <project_slug> <mission_id>",
     "",
-    "  Loyalty, shop & support",
-    "  loyalty show <email>",
-    "  loyalty adjust <email> <+amount|-amount> [reason]",
-    "  purchases show <email>",
-    "  coupon create <email> <discount_pct> [valid_days]",
-    "  coupon revoke <code>",
+    "  Support",
     "  ticket show <ticket_number>",
     "  ticket close <ticket_number>",
     "",
@@ -256,22 +251,15 @@ _CLI_HELP_TEXT = [
     "  history all [n]",
     "",
     "",
-    "  Catalogue (games / applications / software)",
-    "  game list [type]",
-    "  game show <slug>",
-    "  game publish <slug>",
-    "  game unpublish <slug>",
-    "  game feature <slug>",
-    "  game price <slug> <cents>",
-    "  game delete <slug>",
-    "",
-    "  Shop",
-    "  shop list [game_slug]",
-    "  shop toggle <product_id>",
-    "  shop badge <product_id> <badge>",
-    "  coupon list [email]",
-    "  coupon campaign create <name> <discount_pct> <bronze|silver|gold|diamond|all> [valid_days]",
-    "  coupon campaign show <campaign_id>",
+    "  Studio apps & Vakar+",
+    "  app list [draft|published]",
+    "  app show <slug>",
+    "  app reviews [pending|approved|rejected]",
+    "  app approve <slug>",
+    "  app reject <slug> <reason>",
+    "  vakarplus show <email>",
+    "  vakarplus grant <email>",
+    "  vakarplus revoke <email>",
     "",
     "  Chat & moderation",
     "  chat ban <project_slug> <query> [reason]",
@@ -465,44 +453,18 @@ _CLI_CATALOG = [
         {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
     ], "confirm": True},
 
-    # Loyalty, shop & catalogue
-    {"path": ["loyalty", "show"], "category": "Shop & loyalty", "description": "Show a user's loyalty tier.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
-    {"path": ["loyalty", "adjust"], "category": "Shop & loyalty", "description": "Adjust a user's loyalty balance.", "args": [
-        {"name": "email", "label": "Email", "type": _T, "required": True},
-        {"name": "amount", "label": "Amount ($, +/-)", "type": _T, "required": True},
-        {"name": "reason", "label": "Reason", "type": _TA, "required": False},
-    ], "confirm": True},
-    {"path": ["purchases", "show"], "category": "Shop & loyalty", "description": "List a user's game purchases.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
-    {"path": ["coupon", "create"], "category": "Shop & loyalty", "description": "Create a single-use coupon for one user.", "args": [
-        {"name": "email", "label": "Email", "type": _T, "required": True},
-        {"name": "discount_pct", "label": "Discount %", "type": _N, "required": True},
-        {"name": "valid_days", "label": "Valid days", "type": _N, "required": False},
-    ], "confirm": True},
-    {"path": ["coupon", "revoke"], "category": "Shop & loyalty", "description": "Revoke an unused coupon.", "args": [{"name": "code", "label": "Coupon code", "type": _T, "required": True}], "confirm": True},
-    {"path": ["coupon", "list"], "category": "Shop & loyalty", "description": "List coupons, optionally by user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": False}], "confirm": False},
-    {"path": ["coupon", "campaign", "create"], "category": "Shop & loyalty", "description": "Send coupons to a whole loyalty tier.", "args": [
-        {"name": "name", "label": "Campaign name", "type": _T, "required": True},
-        {"name": "discount_pct", "label": "Discount %", "type": _N, "required": True},
-        {"name": "tier", "label": "Target tier", **_sel(["bronze", "silver", "gold", "diamond", "all"]), "required": True},
-        {"name": "valid_days", "label": "Valid days", "type": _N, "required": False},
-    ], "confirm": True},
-    {"path": ["coupon", "campaign", "show"], "category": "Shop & loyalty", "description": "Campaign detail.", "args": [{"name": "campaign_id", "label": "Campaign ID", "type": _T, "required": True}], "confirm": False},
-    {"path": ["shop", "list"], "category": "Shop & loyalty", "description": "List shop products.", "args": [{"name": "game_slug", "label": "Game (optional)", "type": _T, "required": False}], "confirm": False},
-    {"path": ["shop", "toggle"], "category": "Shop & loyalty", "description": "Activate/deactivate a shop product.", "args": [{"name": "product_id", "label": "Product ID", "type": _T, "required": True}], "confirm": True},
-    {"path": ["shop", "badge"], "category": "Shop & loyalty", "description": "Set a shop product's badge.", "args": [
-        {"name": "product_id", "label": "Product ID", "type": _T, "required": True},
-        {"name": "badge", "label": "Badge", **_sel(["NEW", "SALE", "LIMITED", "HOT", "POPULAR", "BEST", "BUNDLE", "EXCLUSIVE"]), "required": True},
-    ], "confirm": True},
-    {"path": ["game", "list"], "category": "Catalogue", "description": "List catalogue entries.", "args": [{"name": "type", "label": "Type", **_sel(["game", "application", "software"]), "required": False}], "confirm": False},
-    {"path": ["game", "show"], "category": "Catalogue", "description": "Catalogue entry detail.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
-    {"path": ["game", "publish"], "category": "Catalogue", "description": "Publish a catalogue entry.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["game", "unpublish"], "category": "Catalogue", "description": "Move a catalogue entry to coming soon.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["game", "feature"], "category": "Catalogue", "description": "Feature a catalogue entry on the homepage.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["game", "price"], "category": "Catalogue", "description": "Change a catalogue entry's price.", "args": [
+    # Studio apps & Vakar+
+    {"path": ["app", "list"], "category": "Studio", "description": "List studio apps, optionally by status.", "args": [{"name": "status", "label": "Status", **_sel(["draft", "published"]), "required": False}], "confirm": False},
+    {"path": ["app", "show"], "category": "Studio", "description": "Studio app detail: owner, status, price, earnings.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
+    {"path": ["app", "reviews"], "category": "Studio", "description": "List submitted app versions awaiting review.", "args": [{"name": "status", "label": "Status", **_sel(["pending", "approved", "rejected"]), "required": False}], "confirm": False},
+    {"path": ["app", "approve"], "category": "Studio", "description": "Approve a pending app submission.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
+    {"path": ["app", "reject"], "category": "Studio", "description": "Reject a pending app submission.", "args": [
         {"name": "slug", "label": "Slug", "type": _T, "required": True},
-        {"name": "cents", "label": "Price (cents)", "type": _N, "required": True},
-    ], "confirm": True},
-    {"path": ["game", "delete"], "category": "Catalogue", "description": "Permanently remove a catalogue entry.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
+        {"name": "reason", "label": "Reason", "type": _TA, "required": True},
+    ], "confirm": False},
+    {"path": ["vakarplus", "show"], "category": "Studio", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
+    {"path": ["vakarplus", "grant"], "category": "Studio", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
+    {"path": ["vakarplus", "revoke"], "category": "Studio", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
 
     # Blog & careers
     {"path": ["blog", "list"], "category": "Blog & careers", "description": "List blog posts.", "args": [{"name": "status", "label": "Status", **_sel(["published", "draft"]), "required": False}], "confirm": False},
@@ -943,117 +905,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await log_action("missions", f"[CLI] Mission '{mission.get('title')}' cancelled", project_slug=slug, user=admin["username"])
         return [f"OK — mission '{mission.get('title')}' cancelled."], False, True
 
-    if verb == "loyalty" and len(tokens) >= 3:
-        sub, email = tokens[1].lower(), tokens[2].lower().strip()
-        target = await db.users.find_one({"email": email})
-        if not target:
-            raise _CliError(f"No user with email '{email}'.")
-        points = await db.user_points.find_one({"email": email})
-        total_cents = points.get("total_spent_cents", 0) if points else 0
-
-        if sub == "show":
-            return [
-                f"email: {email}",
-                f"tier:  {get_tier(total_cents)}",
-                f"total: ${total_cents / 100:.2f}",
-            ], False, False
-
-        if sub == "adjust":
-            if len(tokens) < 4:
-                raise _CliError("Usage: loyalty adjust <email> <+amount|-amount> [reason]")
-            try:
-                adjust_dollars = float(tokens[3])
-            except ValueError:
-                raise _CliError(f"'{tokens[3]}' is not a valid amount.")
-            if adjust_dollars == 0:
-                raise _CliError("Adjustment cannot be zero.")
-            reason = " ".join(tokens[4:])
-            if not confirm:
-                sign = "+" if adjust_dollars > 0 else ""
-                return [f"Adjust loyalty for '{email}' by {sign}${adjust_dollars:.2f}"
-                        + (f" (reason: {reason})" if reason else "") + "?",
-                        "Type 'y' to confirm, or anything else to cancel."], True, False
-            adjust_cents = round(adjust_dollars * 100)
-            new_total = max(0, total_cents + adjust_cents)
-            new_tier = get_tier(new_total)
-            await db.user_points.update_one(
-                {"email": email},
-                {"$set": {"total_spent_cents": new_total, "tier": new_tier, "updated_at": datetime.now(timezone.utc)}},
-                upsert=True,
-            )
-            reason_str = f" (reason: {reason})" if reason else ""
-            await log_action("user_action",
-                f"[CLI] Admin '{admin['username']}' adjusted loyalty for '{target.get('username', email)}': "
-                f"${adjust_dollars:+.2f}{reason_str} -> {new_total}cts ({new_tier})",
-                user=admin["username"])
-            await _create_notification(
-                user_id=str(target["_id"]),
-                message=f"{'🏆' if adjust_cents > 0 else '📉'} Your loyalty balance was adjusted by ${abs(adjust_dollars):.2f}. Current tier: {new_tier.capitalize()}.",
-                notif_type="loyalty_adjustment",
-            )
-            return [f"OK — new total ${new_total / 100:.2f} ({new_tier})."], False, True
-
-    if verb == "purchases" and len(tokens) >= 3 and tokens[1].lower() == "show":
-        email = tokens[2].lower().strip()
-        target = await db.users.find_one({"email": email})
-        if not target:
-            raise _CliError(f"No user with email '{email}'.")
-        games = await db.game_purchases.find({"email": email}).sort("purchased_at", -1).to_list(200)
-        lines = [f"Full-game purchases for {email}:"]
-        if games:
-            for g in games:
-                lines.append(f"  - {g.get('game_name', g.get('game_slug'))}  ${g.get('amount_paid_cents', 0)/100:.2f}  {g.get('purchased_at', '')}")
-        else:
-            lines.append("  (none)")
-        return lines, False, False
-
-    if verb == "coupon" and len(tokens) >= 4 and tokens[1].lower() == "create":
-        email = tokens[2].lower().strip()
-        try:
-            discount_pct = int(tokens[3])
-        except ValueError:
-            raise _CliError(f"'{tokens[3]}' is not a valid integer discount percentage.")
-        if not (1 <= discount_pct <= 100):
-            raise _CliError("Discount percent must be between 1 and 100.")
-        valid_days = 30
-        if len(tokens) > 4:
-            try: valid_days = max(1, int(tokens[4]))
-            except ValueError: raise _CliError(f"'{tokens[4]}' is not a valid number of days.")
-        target = await db.users.find_one({"email": email})
-        if not target:
-            raise _CliError(f"No user with email '{email}'.")
-        if not confirm:
-            return [f"Create a {discount_pct}% site-wide coupon for '{email}', valid {valid_days} days?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-        code = "VG-" + "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
-        while await db.coupons.find_one({"code": code}):
-            code = "VG-" + "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
-        now = datetime.now(timezone.utc)
-        await db.coupons.insert_one({
-            "code": code, "campaign_id": ObjectId(), "discount_pct": discount_pct,
-            "valid_until": now + timedelta(days=valid_days), "scope": "all", "scope_id": None, "scope_name": None,
-            "assigned_to_user_id": target["_id"], "assigned_to_email": email,
-            "used": False, "used_at": None, "created_at": now, "created_by": admin["username"],
-        })
-        await log_action("shop", f"[CLI] Coupon '{code}' ({discount_pct}%) created for '{email}'", user=admin["username"])
-        return [f"OK — coupon '{code}' created for '{email}' ({discount_pct}%, valid {valid_days} days)."], False, True
-
-    if verb == "coupon" and len(tokens) >= 3 and tokens[1].lower() == "revoke":
-        code = tokens[2].upper().strip()
-        coupon = await db.coupons.find_one({"code": code})
-        if not coupon:
-            raise _CliError(f"No coupon with code '{code}'.")
-        if coupon.get("used"):
-            raise _CliError(f"Coupon '{code}' has already been used.")
-        if not confirm:
-            return [f"Revoke coupon '{code}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.coupons.update_one(
-            {"code": code},
-            {"$set": {"used": True, "used_at": datetime.now(timezone.utc), "revoked_by": admin["username"]}},
-        )
-        await log_action("shop", f"[CLI] Coupon '{code}' revoked", user=admin["username"])
-        return [f"OK — coupon '{code}' revoked."], False, True
-
     if verb == "ticket" and len(tokens) >= 3 and tokens[1].lower() == "show":
         tn = tokens[2].upper()
         t = await db.support_tickets.find_one({"ticket_number": tn})
@@ -1084,220 +935,128 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await log_action("support", f"[CLI] Ticket '{tn}' closed", user=admin["username"])
         return [f"OK — ticket '{tn}' closed."], False, True
 
-    # ── Catalogue (games / applications / software) ─────────────────────────
-    if verb == "game" and len(tokens) >= 2 and tokens[1].lower() == "list":
-        type_filter = tokens[2].lower() if len(tokens) > 2 else None
-        if type_filter and type_filter not in ("game", "application", "software"):
-            raise _CliError("Type must be one of: game, application, software")
-        q = {"product_type": type_filter} if type_filter else {}
-        docs = await db.website_games.find(q).sort("created_at", -1).to_list(50)
+    # ── Studio apps & Vakar+ ─────────────────────────────────────────────────
+    if verb == "app" and len(tokens) >= 2 and tokens[1].lower() == "list":
+        status_filter = tokens[2].lower() if len(tokens) > 2 else None
+        if status_filter and status_filter not in ("draft", "published"):
+            raise _CliError("Status must be one of: draft, published")
+        q = {"status": status_filter} if status_filter else {}
+        docs = await db.studio_apps.find(q).sort("updated_at", -1).to_list(100)
         if not docs:
-            return ["No catalogue entries found."], False, False
-        lines = [f"{len(docs)} catalogue entr{'y' if len(docs) == 1 else 'ies'}" + (f" (type: {type_filter})" if type_filter else "") + ":"]
-        for g in docs:
-            price = f"${g.get('price_cents', 0)/100:.2f}" if g.get("price_cents") else "free"
-            feat = "  FEATURED" if g.get("featured") else ""
-            lines.append(f"  {g.get('slug','?'):<24} [{g.get('product_type','game')}] {g.get('status','published'):<12} {price}{feat}")
+            return ["No studio apps found."], False, False
+        lines = [f"{len(docs)} studio app(s)" + (f" (status: {status_filter})" if status_filter else "") + ":"]
+        for a in docs:
+            price = f"${a.get('price_cents', 0)/100:.2f}" if a.get("price_cents") else "free"
+            lines.append(f"  {a.get('slug','?'):<24} {a.get('status','draft'):<10} review:{a.get('review_status','none'):<10} {price}  by {a.get('created_by','')}")
         return lines, False, False
 
-    if verb == "game" and len(tokens) >= 3 and tokens[1].lower() == "show":
+    if verb == "app" and len(tokens) >= 3 and tokens[1].lower() == "show":
         slug = tokens[2]
-        g = await db.website_games.find_one({"slug": slug})
-        if not g:
-            raise _CliError(f"No catalogue entry with slug '{slug}'.")
+        a = await db.studio_apps.find_one({"slug": slug})
+        if not a:
+            raise _CliError(f"No studio app with slug '{slug}'.")
         return [
-            f"name:     {g.get('name','')}",
-            f"slug:     {g.get('slug','')}",
-            f"type:     {g.get('product_type','game')}",
-            f"status:   {g.get('status','published')}",
-            f"price:    ${g.get('price_cents', 0)/100:.2f}",
-            f"featured: {g.get('featured', False)}",
+            f"name:            {a.get('name','')}",
+            f"slug:            {a.get('slug','')}",
+            f"owner:           {a.get('created_by','')}",
+            f"status:          {a.get('status','draft')}",
+            f"review_status:   {a.get('review_status','none')}",
+            f"price:           ${a.get('price_cents', 0)/100:.2f}",
+            f"creator earned:  ${a.get('creator_earnings_cents', 0)/100:.2f}",
+            f"total sales:     ${a.get('total_sales_cents', 0)/100:.2f}",
         ], False, False
 
-    if verb == "game" and len(tokens) >= 3 and tokens[1].lower() in ("publish", "unpublish"):
-        slug = tokens[2]
-        g = await db.website_games.find_one({"slug": slug})
-        if not g:
-            raise _CliError(f"No catalogue entry with slug '{slug}'.")
-        new_status = "published" if tokens[1].lower() == "publish" else "coming_soon"
-        if not confirm:
-            return [f"Set '{slug}' status to '{new_status}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_games.update_one({"slug": slug}, {"$set": {"status": new_status}})
-        await log_action("website", f"[CLI] '{slug}' set to '{new_status}'", user=admin["username"])
-        return [f"OK — '{slug}' is now '{new_status}'."], False, True
-
-    if verb == "game" and len(tokens) >= 3 and tokens[1].lower() == "feature":
-        slug = tokens[2]
-        g = await db.website_games.find_one({"slug": slug})
-        if not g:
-            raise _CliError(f"No catalogue entry with slug '{slug}'.")
-        if not confirm:
-            return [f"Feature '{slug}' (unfeatures any other featured entry)?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_games.update_many({}, {"$set": {"featured": False}})
-        await db.website_games.update_one({"slug": slug}, {"$set": {"featured": True}})
-        await log_action("website", f"[CLI] '{slug}' set as featured", user=admin["username"])
-        return [f"OK — '{slug}' is now featured."], False, True
-
-    if verb == "game" and len(tokens) >= 4 and tokens[1].lower() == "price":
-        slug = tokens[2]
-        try:
-            cents = int(tokens[3])
-        except ValueError:
-            raise _CliError(f"'{tokens[3]}' is not a valid integer price in cents.")
-        if cents < 0:
-            raise _CliError("Price cannot be negative.")
-        g = await db.website_games.find_one({"slug": slug})
-        if not g:
-            raise _CliError(f"No catalogue entry with slug '{slug}'.")
-        if not confirm:
-            return [f"Set price of '{slug}' to ${cents/100:.2f}?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_games.update_one({"slug": slug}, {"$set": {"price_cents": cents}})
-        await log_action("website", f"[CLI] '{slug}' price set to {cents}c", user=admin["username"])
-        return [f"OK — '{slug}' price set to ${cents/100:.2f}."], False, True
-
-    if verb == "game" and len(tokens) >= 3 and tokens[1].lower() == "delete":
-        slug = tokens[2]
-        g = await db.website_games.find_one({"slug": slug})
-        if not g:
-            raise _CliError(f"No catalogue entry with slug '{slug}'.")
-        if not confirm:
-            return [f"PERMANENTLY delete catalogue entry '{slug}'? This cannot be undone.", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_games.delete_one({"slug": slug})
-        await log_action("website", f"[CLI] catalogue entry '{slug}' deleted", user=admin["username"])
-        return [f"OK — '{slug}' permanently deleted."], False, True
-
-    # ── Shop ─────────────────────────────────────────────────────────────────
-    if verb == "shop" and len(tokens) >= 2 and tokens[1].lower() == "list":
-        game_slug = tokens[2] if len(tokens) > 2 else None
-        q = {"game_slug": game_slug} if game_slug else {}
-        docs = await db.website_shop_products.find(q).sort("created_at", -1).to_list(50)
+    if verb == "app" and len(tokens) >= 2 and tokens[1].lower() == "reviews":
+        status_filter = tokens[2].lower() if len(tokens) > 2 else "pending"
+        if status_filter not in ("pending", "approved", "rejected"):
+            raise _CliError("Status must be one of: pending, approved, rejected")
+        docs = await db.studio_apps.find({"review_status": status_filter}).sort("submitted_at", -1).to_list(100)
         if not docs:
-            return ["No shop products found."], False, False
-        lines = [f"{len(docs)} product(s)" + (f" for '{game_slug}'" if game_slug else "") + ":"]
-        for p in docs:
-            state = "active" if p.get("active") else "inactive"
-            lines.append(f"  [{str(p['_id'])}] {p.get('name','?'):<24} ${p.get('price',0)/100:.2f}  {state}  ({p.get('game_slug','')})")
+            return [f"No {status_filter} submissions."], False, False
+        lines = [f"{len(docs)} {status_filter} submission(s):"]
+        for a in docs:
+            lines.append(f"  {a.get('slug','?'):<24} {a.get('review_name') or a.get('name','?'):<28} by {a.get('created_by','')}")
         return lines, False, False
 
-    if verb == "shop" and len(tokens) >= 3 and tokens[1].lower() == "toggle":
-        pid = tokens[2]
-        try:
-            oid = ObjectId(pid)
-        except Exception:
-            raise _CliError(f"'{pid}' is not a valid product ID.")
-        p = await db.website_shop_products.find_one({"_id": oid})
-        if not p:
-            raise _CliError(f"No shop product '{pid}'.")
-        new_active = not p.get("active", True)
-        if not confirm:
-            return [f"Set '{p.get('name')}' to {'active' if new_active else 'inactive'}?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_shop_products.update_one({"_id": oid}, {"$set": {"active": new_active}})
-        await log_action("shop", f"[CLI] Product '{p.get('name')}' set {'active' if new_active else 'inactive'}", user=admin["username"])
-        return [f"OK — '{p.get('name')}' is now {'active' if new_active else 'inactive'}."], False, True
-
-    if verb == "shop" and len(tokens) >= 4 and tokens[1].lower() == "badge":
-        pid, badge = tokens[2], tokens[3].upper()
-        try:
-            oid = ObjectId(pid)
-        except Exception:
-            raise _CliError(f"'{pid}' is not a valid product ID.")
-        p = await db.website_shop_products.find_one({"_id": oid})
-        if not p:
-            raise _CliError(f"No shop product '{pid}'.")
-        if not confirm:
-            return [f"Set badge of '{p.get('name')}' to '{badge}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_shop_products.update_one({"_id": oid}, {"$set": {"badge": badge}})
-        await log_action("shop", f"[CLI] Badge of '{p.get('name')}' set to '{badge}'", user=admin["username"])
-        return [f"OK — badge of '{p.get('name')}' set to '{badge}'."], False, True
-
-    # ── Coupons: list + campaigns (create/create existing single-coupon flow already above) ──
-    if verb == "coupon" and len(tokens) >= 2 and tokens[1].lower() == "list":
-        email = tokens[2].lower().strip() if len(tokens) > 2 else None
-        q = {"assigned_to_email": email} if email else {}
-        docs = await db.coupons.find(q).sort("created_at", -1).to_list(50)
-        if not docs:
-            return ["No coupons found."], False, False
-        lines = [f"{len(docs)} coupon(s)" + (f" for '{email}'" if email else "") + ":"]
-        for c in docs:
-            state = "used" if c.get("used") else "active"
-            lines.append(f"  {c.get('code','?'):<14} {c.get('discount_pct',0)}%  {state}  {c.get('assigned_to_email','')}")
-        return lines, False, False
-
-    if verb == "coupon" and len(tokens) >= 3 and tokens[1].lower() == "campaign" and tokens[2].lower() == "create":
-        if len(tokens) < 6:
-            raise _CliError("Usage: coupon campaign create <name> <discount_pct> <bronze|silver|gold|diamond|all> [valid_days=30]")
-        name = tokens[3]
-        try:
-            discount_pct = int(tokens[4])
-        except ValueError:
-            raise _CliError(f"'{tokens[4]}' is not a valid integer discount percentage.")
-        if not (1 <= discount_pct <= 99):
-            raise _CliError("Discount percent must be between 1 and 99.")
-        tier_arg = tokens[5].lower()
-        valid_tiers = ("bronze", "silver", "gold", "diamond")
-        if tier_arg not in valid_tiers and tier_arg != "all":
-            raise _CliError("Target must be one of: bronze, silver, gold, diamond, all")
-        target_tiers = list(valid_tiers) if tier_arg == "all" else [tier_arg]
-        valid_days = 30
-        if len(tokens) > 6:
-            try: valid_days = max(1, int(tokens[6]))
-            except ValueError: raise _CliError(f"'{tokens[6]}' is not a valid number of days.")
-
-        all_points = await db.user_points.find({}).to_list(10000)
-        target_emails = [p["email"] for p in all_points if get_tier(p.get("total_spent_cents", 0)) in target_tiers]
-        target_users = await db.users.find({"email": {"$in": target_emails}}).to_list(10000)
-        if not target_users:
-            raise _CliError(f"No users found in tier(s): {', '.join(target_tiers)}.")
-        if not confirm:
-            return [f"Create a {discount_pct}% campaign '{name}' for {len(target_users)} user(s) in tier(s) {', '.join(target_tiers)}, valid {valid_days} days?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-
-        valid_until = datetime.now(timezone.utc) + timedelta(days=valid_days)
-        campaign_id = ObjectId()
+    if verb == "app" and len(tokens) >= 3 and tokens[1].lower() == "approve":
+        slug = tokens[2]
+        a = await db.studio_apps.find_one({"slug": slug})
+        if not a:
+            raise _CliError(f"No studio app with slug '{slug}'.")
+        if a.get("review_status") != "pending":
+            raise _CliError(f"'{slug}' has no pending submission.")
         now = datetime.now(timezone.utc)
-        codes_sent = 0
-        for u in target_users:
-            code = "VG-" + "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
-            while await db.coupons.find_one({"code": code}):
-                code = "VG-" + "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
-            await db.coupons.insert_one({
-                "code": code, "campaign_id": campaign_id, "discount_pct": discount_pct,
-                "valid_until": valid_until, "scope": "all", "scope_id": None, "scope_name": None,
-                "assigned_to_user_id": u["_id"], "assigned_to_email": u["email"],
-                "used": False, "used_at": None, "created_at": now, "created_by": admin["username"],
-            })
+        await db.studio_apps.update_one({"_id": a["_id"]}, {"$set": {
+            "review_status": "approved", "status": "published", "visibility": "public",
+            "ever_approved": True, "reviewed_at": now, "reviewed_by": admin["username"], "updated_at": now,
+        }})
+        await log_action("studio_apps", f"[CLI] App '{a['name']}' review approved", user=admin["username"])
+        if a.get("user_id"):
             await _create_notification(
-                user_id=str(u["_id"]),
-                message=f"🎁 You received a promo code: {code} — {discount_pct}% off. Valid until {valid_until.strftime('%Y-%m-%d')}.",
-                notif_type="coupon", link="/shop",
+                user_id=str(a["user_id"]),
+                message=f"🎉 Your app \"{a.get('review_name') or a['name']}\" was approved and is now live on Applications!",
+                notif_type="studio_app_approved", link=f"/apps/{a['slug']}",
             )
-            codes_sent += 1
-        await db.coupon_campaigns.insert_one({
-            "_id": campaign_id, "name": name, "target_type": "tier", "target_tiers": target_tiers,
-            "discount_pct": discount_pct, "valid_days": valid_days, "valid_until": valid_until,
-            "scope": "all", "scope_id": None, "scope_name": None,
-            "codes_count": codes_sent, "created_by": admin["username"], "created_at": now,
-        })
-        await log_action("website", f"[CLI] Coupon campaign '{name}' created: {codes_sent} codes sent", user=admin["username"])
-        return [f"OK — campaign '{name}' created, {codes_sent} code(s) sent."], False, True
+        return [f"OK — '{slug}' approved and published."], False, True
 
-    if verb == "coupon" and len(tokens) >= 4 and tokens[1].lower() == "campaign" and tokens[2].lower() == "show":
-        try:
-            oid = ObjectId(tokens[3])
-        except Exception:
-            raise _CliError(f"'{tokens[3]}' is not a valid campaign ID.")
-        c = await db.coupon_campaigns.find_one({"_id": oid})
-        if not c:
-            raise _CliError(f"No campaign '{tokens[3]}'.")
-        used = await db.coupons.count_documents({"campaign_id": oid, "used": True})
+    if verb == "app" and len(tokens) >= 4 and tokens[1].lower() == "reject":
+        slug = tokens[2]
+        reason = " ".join(tokens[3:]).strip()[:500]
+        a = await db.studio_apps.find_one({"slug": slug})
+        if not a:
+            raise _CliError(f"No studio app with slug '{slug}'.")
+        if a.get("review_status") != "pending":
+            raise _CliError(f"'{slug}' has no pending submission.")
+        now = datetime.now(timezone.utc)
+        await db.studio_apps.update_one({"_id": a["_id"]}, {"$set": {
+            "review_status": "rejected", "review_rejection_reason": reason,
+            "reviewed_at": now, "reviewed_by": admin["username"], "updated_at": now,
+        }})
+        await log_action("studio_apps", f"[CLI] App '{a['name']}' review rejected", user=admin["username"])
+        if a.get("user_id"):
+            reason_suffix = f" Reason: {reason}" if reason else ""
+            await _create_notification(
+                user_id=str(a["user_id"]),
+                message=f"Your app \"{a.get('review_name') or a['name']}\" submission wasn't approved.{reason_suffix}",
+                notif_type="studio_app_rejected", link="/my-apps",
+            )
+        return [f"OK — '{slug}' rejected."], False, True
+
+    if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() == "show":
+        email = tokens[2].lower().strip()
+        target = await db.users.find_one({"email": email})
+        if not target:
+            raise _CliError(f"No user with email '{email}'.")
+        status = target.get("vakar_plus_status", "none")
         return [
-            f"name:        {c.get('name','')}",
-            f"discount:    {c.get('discount_pct',0)}%",
-            f"target:      {c.get('target_type','')} {c.get('target_tiers', [])}",
-            f"codes sent:  {c.get('codes_count',0)}",
-            f"codes used:  {used}",
-            f"valid until: {c.get('valid_until','')}",
+            f"email:  {email}",
+            f"active: {status == 'active'}",
+            f"status: {status}",
+            f"plan:   {target.get('vakar_plus_plan') or '—'}",
         ], False, False
+
+    if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() in ("grant", "revoke"):
+        grant = tokens[1].lower() == "grant"
+        email = tokens[2].lower().strip()
+        target = await db.users.find_one({"email": email})
+        if not target:
+            raise _CliError(f"No user with email '{email}'.")
+        if not confirm:
+            return [f"{'Grant' if grant else 'Revoke'} Vakar+ for '{email}'?",
+                    "Type 'y' to confirm, or anything else to cancel."], True, False
+        if grant:
+            update = {"vakar_plus_status": "active", "vakar_plus_plan": "manual", "vakar_plus_current_period_end": None, "vakar_plus_cancel_at_period_end": False}
+            message = "🎉 You've been granted Vakar+ by an admin!"
+            notif_type = "vakar_plus_started"
+        else:
+            update = {"vakar_plus_status": "none", "vakar_plus_plan": None}
+            message = "Your Vakar+ access was revoked by an admin."
+            notif_type = "vakar_plus_ended"
+        await db.users.update_one({"_id": target["_id"]}, {"$set": update})
+        action = "granted" if grant else "revoked"
+        await log_action("user_action", f"[CLI] Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', email)}'", user=admin["username"])
+        await _create_notification(user_id=str(target["_id"]), message=message, notif_type=notif_type)
+        return [f"OK — Vakar+ {action} for '{email}'."], False, True
 
     # ── Chat & moderation ────────────────────────────────────────────────────
     if verb == "chat" and len(tokens) >= 4 and tokens[1].lower() == "ban":

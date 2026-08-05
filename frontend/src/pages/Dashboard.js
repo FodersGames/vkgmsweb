@@ -65,7 +65,7 @@ const NAV_GROUPS = [
     id: 'studio',
     items: [
       { id: 'app-builder', label: 'App Builder', icon: AppWindow,      permission: 'manage_studio_apps' },
-      { id: 'app-reviews', label: 'Reviews',     icon: ClipboardCheck, permission: 'manage_studio_apps' },
+      { id: 'app-reviews', label: 'Reviews',     icon: ClipboardCheck, permission: 'review_studio_apps' },
     ],
   },
   {
@@ -754,7 +754,7 @@ const DashboardContent = () => {
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
             {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList />}
-            {activeTab === 'app-reviews'      && hasPermission('manage_studio_apps') && <AppReviewQueue />}
+            {activeTab === 'app-reviews'      && hasPermission('review_studio_apps') && <AppReviewQueue />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

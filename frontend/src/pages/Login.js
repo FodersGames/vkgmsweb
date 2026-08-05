@@ -178,13 +178,13 @@ export const Login = () => {
       setRegError(result.error);
       return;
     }
-    // Log the new account straight in and send it to the mandatory pseudo pick —
-    // registration alone used to leave the user logged out on a "go sign in"
-    // panel, which is now only a fallback if this auto-login step itself fails.
+    // Log the new account straight in — registration alone used to leave the
+    // user logged out on a "go sign in" panel, which is now only a fallback
+    // if this auto-login step itself fails.
     const loginResult = await login(reg.email, reg.password);
     setRegLoading(false);
     if (loginResult.success) {
-      navigate('/choose-pseudo');
+      navigate('/dashboard');
     } else {
       setTab('login');
       setEmail(reg.email);

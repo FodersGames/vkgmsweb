@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import aiohttp
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Request
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 
 from ..config import (
     UPLOADS_DIR, BACKEND_PUBLIC_URL, GITHUB_PAT, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF,
@@ -13,7 +13,6 @@ from ..config import (
 from ..database import db
 from ..deps import get_current_user
 from ..utils import _FORMAT_MAGIC_BYTES
-from ..rate_limit import limiter
 from ..schemas import ApkBuildTriggerRequest
 from .studio_apps import _default_package_id
 
@@ -30,9 +29,10 @@ logger = logging.getLogger(__name__)
 # APK back to the /internal/apk-builds/{id}/callback endpoint below, which
 # is NOT JWT-gated (GitHub Actions has no user session) — it's gated by a
 # random per-build token instead, generated at trigger time and never
-# reused. NOT Vakar+-gated (unlike premium components/themes/export) — the
-# user didn't ask for that when scoping Vakar+ gating, only rate-limited to
-# bound CI usage.
+# reused. NOT Vakar+-gated (unlike premium components/themes/export), and
+# deliberately not rate-limited either (owner wants an MIT-App-Inventor-like
+# "build as often as you want" experience) — only the per-file size caps
+# below still apply.
 # ============================================================
 
 MAX_BUNDLE_SIZE = 5 * 1024 * 1024   # a static HTML/CSS/JS export is tiny
@@ -51,8 +51,7 @@ async def _get_owned_app_doc(app_id: str, user):
 
 
 @router.post("/my/studio-apps/{app_id}/apk-bundle")
-@limiter.limit("20/hour")
-async def upload_apk_bundle(request: Request, app_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_apk_bundle(app_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Stashes the client-generated export .zip somewhere the (external,
     unauthenticated-to-us) GitHub Actions runner can fetch it by URL."""
     await _get_owned_app_doc(app_id, user)
@@ -69,8 +68,7 @@ async def upload_apk_bundle(request: Request, app_id: str, file: UploadFile = Fi
 
 
 @router.post("/my/studio-apps/{app_id}/build-apk")
-@limiter.limit("5/hour")
-async def trigger_apk_build(request: Request, app_id: str, body: ApkBuildTriggerRequest, user=Depends(get_current_user)):
+async def trigger_apk_build(app_id: str, body: ApkBuildTriggerRequest, user=Depends(get_current_user)):
     if not GITHUB_PAT or not BACKEND_PUBLIC_URL:
         raise HTTPException(status_code=503, detail="APK builds aren't configured yet.")
     doc = await _get_owned_app_doc(app_id, user)

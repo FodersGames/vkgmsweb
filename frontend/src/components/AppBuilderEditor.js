@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
-  Send, Clock, ThumbsDown, DollarSign, Package,
+  Send, Clock, ThumbsDown, DollarSign, Package, Monitor,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { useAuth } from '../context/AuthContext';
@@ -11,13 +12,17 @@ import {
   COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
   normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
-  PREMIUM_PREVIEW_SCREEN, PREMIUM_PREVIEW_VARS,
+  PREMIUM_PREVIEW_SCREEN, PREMIUM_PREVIEW_VARS, ANIMATION_TYPES, VISIBILITY_OPERATORS,
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
-const MIN_SIZE = 16;
+const MIN_SIZE = 24;
+// Below this viewport width the builder's drag/resize canvas isn't usable —
+// shown instead of the editor entirely (both the admin and public entry
+// points render this same component, so gating here covers both).
+const MOBILE_GUARD_MAX_WIDTH = 900;
 // Mirrors backend/app/routers/studio_apps.py's FREE_MAX_SCREENS_PER_APP —
 // client-side only for the "Add screen" upsell gate; the backend is the
 // real enforcement (same cross-stack duplication tradeoff as `tier` tags).
@@ -79,14 +84,18 @@ function ContainerChrome({ node, theme, children }) {
       border: node.props?.border ? `1px solid ${theme.colors.border}` : '1px dashed #C7C7CC',
       borderRadius: node.props?.radius ?? 0,
       boxShadow: node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none',
-      boxSizing: 'border-box', overflow: 'hidden',
+      // Editor-only wrapper (the shipped app's own container rendering is
+      // AppRuntime.js's separate code) — 'visible' so a child's own resize
+      // handles stay grabbable when the child sits flush against an edge,
+      // instead of being clipped off along with anything that overflows.
+      boxSizing: 'border-box', overflow: 'visible',
     }}>
       {children}
     </div>
   );
 }
 
-function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLayout, onDelete }) {
+function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLayout, onDelete, bounds }) {
   const layout = getLayout(node, index);
   const selected = selectedId === node.id;
   const isContainer = node.type === 'container';
@@ -96,9 +105,14 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
     onSelect(node.id);
     const startX = e.clientX, startY = e.clientY;
     const orig = { ...layout };
+    const maxX = Math.max(0, bounds.w - orig.w), maxY = Math.max(0, bounds.h - orig.h);
     const onMove = (ev) => {
       const dx = ev.clientX - startX, dy = ev.clientY - startY;
-      onChangeLayout(node.id, { ...orig, x: Math.max(0, orig.x + dx), y: Math.max(0, orig.y + dy) });
+      onChangeLayout(node.id, {
+        ...orig,
+        x: Math.min(maxX, Math.max(0, orig.x + dx)),
+        y: Math.min(maxY, Math.max(0, orig.y + dy)),
+      });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
@@ -117,10 +131,10 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
     const onMove = (ev) => {
       const dx = ev.clientX - startX, dy = ev.clientY - startY;
       let { x, y, w, h } = orig;
-      if (corner.includes('e')) w = Math.max(MIN_SIZE, orig.w + dx);
-      if (corner.includes('s')) h = Math.max(MIN_SIZE, orig.h + dy);
-      if (corner.includes('w')) { w = Math.max(MIN_SIZE, orig.w - dx); x = orig.x + (orig.w - w); }
-      if (corner.includes('n')) { h = Math.max(MIN_SIZE, orig.h - dy); y = orig.y + (orig.h - h); }
+      if (corner.includes('e')) w = Math.min(bounds.w - orig.x, Math.max(MIN_SIZE, orig.w + dx));
+      if (corner.includes('s')) h = Math.min(bounds.h - orig.y, Math.max(MIN_SIZE, orig.h + dy));
+      if (corner.includes('w')) { w = Math.max(MIN_SIZE, Math.min(orig.x + orig.w, orig.w - dx)); x = orig.x + (orig.w - w); }
+      if (corner.includes('n')) { h = Math.max(MIN_SIZE, Math.min(orig.y + orig.h, orig.h - dy)); y = orig.y + (orig.h - h); }
       onChangeLayout(node.id, { x, y, w, h });
     };
     const onUp = () => {
@@ -143,7 +157,7 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
         {isContainer ? (
           <ContainerChrome node={node} theme={theme}>
             {(node.children || []).map((child, i) => (
-              <EditableBox key={child.id} node={child} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} />
+              <EditableBox key={child.id} node={child} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} bounds={{ w: layout.w, h: layout.h }} />
             ))}
           </ContainerChrome>
         ) : (
@@ -155,9 +169,13 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
           {['nw', 'ne', 'sw', 'se'].map(corner => (
             <div key={corner} onMouseDown={(e) => startResize(e, corner)} style={resizeHandleStyle(corner)} />
           ))}
+          {/* Top-center, not a corner — every corner already hosts a resize
+              handle, and this used to sit on top of the NE one, swallowing
+              its clicks (grabbing that corner deleted the component instead
+              of resizing it). */}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}
-            style={{ position: 'absolute', top: -10, right: -10, width: 18, height: 18, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid white', fontSize: 11, lineHeight: '14px', cursor: 'pointer', zIndex: 6 }}
+            style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', width: 18, height: 18, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid white', fontSize: 11, lineHeight: '14px', cursor: 'pointer', zIndex: 6 }}
           >
             ×
           </button>
@@ -174,7 +192,7 @@ function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onD
       style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, background: theme.colors.background, overflow: 'hidden' }}
     >
       {(screen.components || []).map((node, i) => (
-        <EditableBox key={node.id} node={node} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} />
+        <EditableBox key={node.id} node={node} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} bounds={{ w: CANVAS_WIDTH, h: CANVAS_HEIGHT }} />
       ))}
       {(screen.components || []).length === 0 && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: theme.colors.textMuted, textAlign: 'center', padding: 24 }}>
@@ -193,7 +211,7 @@ function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onD
 const FIELD_LABEL = 'block text-[10px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5';
 const FIELD_INPUT = 'w-full rounded-lg px-3 py-2 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm focus:outline-none focus:border-[#4ECDC4]';
 
-function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlocked }) {
+function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlocked, screens, screen }) {
   const set = (key, value) => onChange(n => { n.props[key] = value; });
   const [imgUploading, setImgUploading] = useState(false);
   const imgInputRef = useRef(null);
@@ -269,6 +287,25 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
               <option value="outline">Outline</option>
             </Select>
           </div>
+          <div>
+            <label className={FIELD_LABEL}>Icon (optional)</label>
+            <div className="grid grid-cols-5 gap-1.5">
+              <button
+                onClick={() => set('icon', '')}
+                className={`py-2 rounded-lg border text-[10px] font-semibold transition-colors ${!node.props.icon ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4]'}`}
+              >
+                None
+              </button>
+              {ICON_IDS.map(id => (
+                <button
+                  key={id} onClick={() => set('icon', id)}
+                  className={`flex items-center justify-center py-2 rounded-lg border transition-colors ${node.props.icon === id ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4]'}`}
+                >
+                  <AppIcon id={id} size={14} color="currentColor" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       );
     case 'image':
@@ -308,6 +345,18 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <label className={FIELD_LABEL}>Corner radius</label>
             <input type="number" min="0" value={node.props.radius ?? 12} onChange={e => set('radius', Number(e.target.value))} className={FIELD_INPUT} />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Fit</label>
+              <Select value={node.props.fit || 'cover'} onChange={e => set('fit', e.target.value)} size="sm">
+                <option value="cover">Cover (crop to fill)</option>
+                <option value="contain">Contain (show whole image)</option>
+              </Select>
+            </div>
+            <label className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer self-end pb-2">
+              <input type="checkbox" checked={!!node.props.border} onChange={e => set('border', e.target.checked)} />Border
+            </label>
+          </div>
         </div>
       );
     case 'input':
@@ -321,6 +370,24 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <label className={FIELD_LABEL}>Bound variable</label>
             <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. userName" className={FIELD_INPUT} />
             <p className="mt-1 text-[10px] text-[#A1A1A6]">What the visitor types is stored in this variable — usable in {'{{variable}}'} text or an "Update an element" action.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Type</label>
+              <Select value={node.props.input_type || 'text'} onChange={e => set('input_type', e.target.value)} size="sm">
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="multiline">Multi-line</option>
+              </Select>
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Max length</label>
+              <input
+                type="number" min="0" value={node.props.max_length ?? ''}
+                onChange={e => set('max_length', e.target.value ? Math.max(1, Number(e.target.value)) : null)}
+                placeholder="No limit" className={FIELD_INPUT}
+              />
+            </div>
           </div>
         </div>
       );
@@ -346,6 +413,10 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <label className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
               <input type="checkbox" checked={!!node.props.shadow} onChange={e => set('shadow', e.target.checked)} />Shadow
             </label>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Opacity ({node.props.opacity ?? 100}%)</label>
+            <input type="range" min="0" max="100" value={node.props.opacity ?? 100} onChange={e => set('opacity', Number(e.target.value))} className="w-full" />
           </div>
         </div>
       );
@@ -385,7 +456,10 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
           </div>
         </div>
       );
-    case 'list':
+    case 'list': {
+      const itemAction = node.props.item_action;
+      const targets = screen ? flattenUpdatableTargets(screen) : [];
+      const allTargets = screen ? flattenAllTargets(screen) : [];
       return (
         <div className="space-y-3">
           <div>
@@ -402,8 +476,32 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <label className={FIELD_LABEL}>Empty state text</label>
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
+          <div className="pt-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
+            <label className={FIELD_LABEL}>When a row is tapped</label>
+            <Select
+              value={itemAction?.type || ''}
+              onChange={e => {
+                const type = e.target.value;
+                onChange(n => { n.props.item_action = type ? createAction(type) : null; });
+              }}
+              size="sm"
+            >
+              <option value="">No action</option>
+              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}
+            </Select>
+            {itemAction && (
+              <div className="mt-3 space-y-3">
+                <ActionStepFields
+                  action={itemAction} screens={screens || []} targets={targets} allTargets={allTargets}
+                  setField={(field, value) => onChange(n => { n.props.item_action = { ...n.props.item_action, [field]: value }; })}
+                />
+                <p className="text-[10px] text-[#A1A1A6]">Fields above support {'{{item}}'} / {'{{item.field}}'} too.</p>
+              </div>
+            )}
+          </div>
         </div>
       );
+    }
     case 'spacer':
       return <p className="text-xs text-[#A1A1A6]">Resize this on the canvas to change how much space it takes up.</p>;
     case 'divider':
@@ -430,7 +528,21 @@ function flattenUpdatableTargets(screen) {
   return out;
 }
 
-function ActionStepFields({ action, screens, targets, setField }) {
+// Every component on the screen (any type), for "show/hide an element" —
+// unlike flattenUpdatableTargets above, not limited to text-bearing types.
+function flattenAllTargets(screen) {
+  const out = [];
+  const walk = (comp) => {
+    const label = COMPONENT_META[comp.type]?.label || comp.type;
+    const preview = comp.props?.content || comp.props?.label || comp.props?.placeholder || '';
+    out.push({ id: comp.id, label: preview ? `${label} — "${String(preview).slice(0, 20)}"` : label });
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (screen?.components || []).forEach(walk);
+  return out;
+}
+
+function ActionStepFields({ action, screens, targets, allTargets = [], setField }) {
   switch (action.type) {
     case 'navigate':
       return (
@@ -455,12 +567,13 @@ function ActionStepFields({ action, screens, targets, setField }) {
               <option value="literal">Set to a value</option>
               <option value="toggle_bool">Toggle true/false</option>
               <option value="increment">Increment by a number</option>
+              <option value="decrement">Decrement by a number</option>
             </Select>
           </div>
           {action.value_mode !== 'toggle_bool' && (
             <div>
-              <label className={FIELD_LABEL}>{action.value_mode === 'increment' ? 'Amount' : 'Value'}</label>
-              <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder={action.value_mode === 'increment' ? '1' : 'Supports {{other_variable}}'} className={FIELD_INPUT} />
+              <label className={FIELD_LABEL}>{(action.value_mode === 'increment' || action.value_mode === 'decrement') ? 'Amount' : 'Value'}</label>
+              <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder={(action.value_mode === 'increment' || action.value_mode === 'decrement') ? '1' : 'Supports {{other_variable}}'} className={FIELD_INPUT} />
             </div>
           )}
         </>
@@ -493,6 +606,26 @@ function ActionStepFields({ action, screens, targets, setField }) {
           </div>
         </>
       );
+    case 'set_visibility':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>Element</label>
+            <Select value={action.target_id || ''} onChange={e => setField('target_id', e.target.value)} size="sm">
+              <option value="">Choose an element…</option>
+              {allTargets.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Action</label>
+            <Select value={action.visible || 'toggle'} onChange={e => setField('visible', e.target.value)} size="sm">
+              <option value="show">Show it</option>
+              <option value="hide">Hide it</option>
+              <option value="toggle">Toggle it</option>
+            </Select>
+          </div>
+        </>
+      );
     case 'show_message':
       return (
         <div>
@@ -522,13 +655,14 @@ function ActionStepFields({ action, screens, targets, setField }) {
 // "update text1 with coins") — normalizeActions() reads a pre-list save
 // (a single action object) as a one-step list, so no backend migration is
 // needed for apps saved before this shipped.
-function ActionEditor({ node, screens, screen, onChange }) {
-  const steps = normalizeActions(node.actions?.onClick);
+function ActionEditor({ node, screens, screen, onChange, trigger = 'onClick', label = 'When clicked' }) {
+  const steps = normalizeActions(node.actions?.[trigger]);
   const targets = useMemo(() => flattenUpdatableTargets(screen), [screen]);
+  const allTargets = useMemo(() => flattenAllTargets(screen), [screen]);
 
   const setSteps = (list) => onChange(n => {
-    if (!list.length) delete n.actions.onClick;
-    else n.actions.onClick = list;
+    if (!list.length) delete n.actions[trigger];
+    else n.actions[trigger] = list;
   });
   const addStep = () => setSteps([...steps, createAction('set_variable')]);
   const removeStep = (idx) => setSteps(steps.filter((_, i) => i !== idx));
@@ -544,7 +678,7 @@ function ActionEditor({ node, screens, screen, onChange }) {
 
   return (
     <div className="space-y-3">
-      <label className={FIELD_LABEL}>When clicked</label>
+      <label className={FIELD_LABEL}>{label}</label>
       {steps.length === 0 && <p className="text-xs text-[#A1A1A6]">No action yet — add a step below.</p>}
       {steps.map((action, idx) => (
         <div key={idx} className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] p-3 space-y-3">
@@ -557,7 +691,7 @@ function ActionEditor({ node, screens, screen, onChange }) {
             <button type="button" onClick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronDown size={12} /></button>
             <button type="button" onClick={() => removeStep(idx)} className="p-1 text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={12} /></button>
           </div>
-          <ActionStepFields action={action} screens={screens} targets={targets} setField={(field, value) => setField(idx, field, value)} />
+          <ActionStepFields action={action} screens={screens} targets={targets} allTargets={allTargets} setField={(field, value) => setField(idx, field, value)} />
         </div>
       ))}
       <button onClick={addStep} className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors">
@@ -567,11 +701,78 @@ function ActionEditor({ node, screens, screen, onChange }) {
   );
 }
 
+// Shared across every component type (not type-specific like PropsEditor) —
+// entrance animation and conditional visibility apply to any component.
+function ComponentExtras({ node, onChange, allowPremium, onPremiumBlocked }) {
+  const setProp = (key, value) => onChange(n => { n.props[key] = value; });
+  const hasCondition = !!node.visible_if?.variable;
+  const setCondition = (patch) => onChange(n => {
+    n.visible_if = { ...(n.visible_if || { variable: '', op: 'eq', value: '' }), ...patch };
+  });
+
+  return (
+    <div className="mt-4 pt-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] space-y-4">
+      <div>
+        <label className={FIELD_LABEL}>Entrance animation</label>
+        <Select
+          value={node.props?.animation || 'none'}
+          onChange={e => {
+            const anim = ANIMATION_TYPES.find(a => a.id === e.target.value);
+            if (anim?.tier === 'premium' && !allowPremium) { onPremiumBlocked?.(`"${anim.label}" requires Vakar+.`); return; }
+            setProp('animation', e.target.value);
+          }}
+          size="sm"
+        >
+          {ANIMATION_TYPES.map(a => (
+            <option key={a.id} value={a.id}>{a.tier === 'premium' && !allowPremium ? `${a.label} (Vakar+)` : a.label}</option>
+          ))}
+        </Select>
+      </div>
+      <div>
+        <label className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer mb-2">
+          <input
+            type="checkbox" checked={hasCondition}
+            onChange={e => {
+              if (e.target.checked) {
+                if (!allowPremium) { onPremiumBlocked?.('Conditional visibility requires Vakar+.'); return; }
+                setCondition({});
+              } else {
+                onChange(n => { delete n.visible_if; });
+              }
+            }}
+          />
+          Only show when a condition is met {!allowPremium && <span className="text-[#A1A1A6]">(Vakar+)</span>}
+        </label>
+        {hasCondition && (
+          <div className="grid grid-cols-3 gap-2">
+            <input value={node.visible_if.variable || ''} onChange={e => setCondition({ variable: e.target.value })} placeholder="variable" className={FIELD_INPUT} />
+            <Select value={node.visible_if.op || 'eq'} onChange={e => setCondition({ op: e.target.value })} size="sm">
+              {VISIBILITY_OPERATORS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </Select>
+            {node.visible_if.op !== 'truthy' && (
+              <input value={node.visible_if.value ?? ''} onChange={e => setCondition({ value: e.target.value })} placeholder="value" className={FIELD_INPUT} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // Main editor
 // ============================================================
 export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/studio-apps', allowPremium = true, quota = null, enableApkBuild = false }) {
   const { token } = useAuth();
+  const [isNarrowViewport, setIsNarrowViewport] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_GUARD_MAX_WIDTH
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_GUARD_MAX_WIDTH}px)`);
+    const onChange = (e) => setIsNarrowViewport(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeScreenId, setActiveScreenId] = useState(null);
@@ -586,6 +787,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [exportingFile, setExportingFile] = useState(false);
   const [apkBuild, setApkBuild] = useState(null);
   const [apkBusy, setApkBusy] = useState(false);
+  const [apkQrOpen, setApkQrOpen] = useState(false);
+  const [apkQrDataUrl, setApkQrDataUrl] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
@@ -925,6 +1128,17 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     return () => clearInterval(t);
   }, [enableApkBuild, apkBuild, loadApkStatus]);
 
+  // Generated lazily (only once the user opens the QR panel) rather than on
+  // every ready build, since most downloads happen via the button, not a scan.
+  useEffect(() => {
+    if (!apkQrOpen || !apkBuild?.apk_url) return undefined;
+    let cancelled = false;
+    QRCode.toDataURL(`${API}${apkBuild.apk_url}`, { width: 220, margin: 1 })
+      .then(url => { if (!cancelled) setApkQrDataUrl(url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [apkQrOpen, apkBuild?.apk_url]);
+
   const startApkBuild = async () => {
     setApkBusy(true);
     setSaveError('');
@@ -954,6 +1168,20 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   };
 
   const apkInProgress = apkBusy || apkBuild?.status === 'queued' || apkBuild?.status === 'building';
+
+  if (isNarrowViewport) {
+    return (
+      <div className="h-full flex items-center justify-center p-6 bg-[#F5F5F7] dark:bg-[#0f0f18]">
+        <div className="max-w-xs text-center rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] p-6">
+          <Monitor size={28} className="mx-auto mb-3 text-[#4ECDC4]" />
+          <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">This needs a bigger screen</p>
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
+            The App Builder's drag-and-drop canvas isn't usable on a phone. Switch to a computer, or turn on "Desktop site" in your phone browser's menu.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !app || !activeScreen) {
     return <div className="p-6"><div className="h-96 rounded-xl bg-[#F5F5F7] dark:bg-[#1c1c2e] animate-pulse" /></div>;
@@ -1084,9 +1312,30 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
       )}
       {enableApkBuild && apkBuild?.status === 'ready' && !apkInProgress && (
-        <div className="flex items-center justify-between gap-3 px-5 py-2 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-400 shrink-0">
-          <span>Your APK is ready.</span>
-          <a href={`${API}${apkBuild.apk_url}`} className="font-semibold underline shrink-0" download>Download APK</a>
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 shrink-0">
+          <div className="flex items-center justify-between gap-3 px-5 py-2 text-[11px] text-emerald-700 dark:text-emerald-400">
+            <span>Your APK is ready.</span>
+            <div className="flex items-center gap-3 shrink-0">
+              <button onClick={() => setApkQrOpen(o => !o)} className="font-semibold underline">
+                {apkQrOpen ? 'Hide QR code' : 'Show QR code'}
+              </button>
+              <a href={`${API}${apkBuild.apk_url}`} className="font-semibold underline" download>Download APK</a>
+            </div>
+          </div>
+          {apkQrOpen && (
+            <div className="flex flex-col items-center gap-2 px-5 pb-4">
+              {apkQrDataUrl ? (
+                <img
+                  src={apkQrDataUrl} width={160} height={160}
+                  alt="QR code linking to the APK download"
+                  className="rounded-lg border border-emerald-100 dark:border-emerald-500/20 bg-white p-1.5"
+                />
+              ) : (
+                <div className="w-40 h-40 rounded-lg bg-white/60 dark:bg-white/10 animate-pulse" />
+              )}
+              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80">Scan with your phone's camera to download the APK.</p>
+            </div>
+          )}
         </div>
       )}
       {enableApkBuild && apkBuild?.status === 'failed' && !apkInProgress && (
@@ -1266,9 +1515,23 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </div>
               )}
               {(!COMPONENT_META[selected.type]?.supportsAction || inspectorTab === 'props') ? (
-                <PropsEditor node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset} onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })} />
+                <>
+                  <PropsEditor
+                    node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset}
+                    onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })}
+                    screens={app.screens} screen={activeScreen}
+                  />
+                  <ComponentExtras
+                    node={selected} onChange={updateSelected} allowPremium={allowPremium}
+                    onPremiumBlocked={(msg) => setPreviewFeature({ kind: 'component', meta: { label: msg || 'This feature' } })}
+                  />
+                </>
               ) : (
-                <ActionEditor node={selected} screens={app.screens} screen={activeScreen} onChange={updateSelected} />
+                <ActionEditor
+                  node={selected} screens={app.screens} screen={activeScreen} onChange={updateSelected}
+                  trigger={COMPONENT_META[selected.type]?.actionTrigger || 'onClick'}
+                  label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
+                />
               )}
             </>
           )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconContext } from '@phosphor-icons/react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -40,23 +40,6 @@ const NotFound = () => (
   </div>
 );
 
-// Forces any logged-in user who hasn't gone through the mandatory pseudo-pick
-// step yet (auto-generated at registration, never a deliberate choice) to
-// /choose-pseudo before touching anything else on the site — catches both a
-// fresh registration and an existing session resuming from a stored token,
-// unlike the ad hoc mustChangePassword gate in Login.js which only fires at
-// the login moment itself.
-const EXEMPT_FROM_PSEUDO_GATE = ['/choose-pseudo', '/login', '/dashboard'];
-
-const PseudoGate = () => {
-  const { user } = useAuth();
-  const location = useLocation();
-  if (user && user.pseudo_set === false && !EXEMPT_FROM_PSEUDO_GATE.some(p => location.pathname.startsWith(p))) {
-    return <Navigate to="/choose-pseudo" replace />;
-  }
-  return null;
-};
-
 const AppRoutes = () => {
   const { maintenance, checked } = useMaintenanceCheck();
 
@@ -68,7 +51,6 @@ const AppRoutes = () => {
 
   return (
     <>
-      <PseudoGate />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/applications" element={<ApplicationsPage />} />

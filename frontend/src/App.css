@@ -8,6 +8,16 @@
   min-height: 100vh;
 }
 
+/* Set by AnnouncementBanner when a public announcement is active, so every
+   page shifts down without each one having to know the banner exists. */
+:root {
+  --vkg-banner-h: 0px;
+}
+body {
+  padding-top: var(--vkg-banner-h);
+  transition: padding-top 0.2s ease;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -15,7 +15,7 @@ ALL_PERMISSIONS = [
     "send_items", "delete_items",
     "change_status",
     "view_variables", "create_variables", "edit_variables", "delete_variables",
-    "view_logs", "view_api_docs",
+    "view_logs",
     "manage_users",
     "view_vps",
     "manage_website",
@@ -31,6 +31,7 @@ ALL_PERMISSIONS = [
     "game_dev_panel",
     "game_logs_panel",
     "manage_studio_apps",
+    "review_studio_apps",
 ]
 
 def is_valid_permission(p: str) -> bool:

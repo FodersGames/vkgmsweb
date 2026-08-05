@@ -34,6 +34,27 @@ export function interpolate(str, vars, scope) {
   });
 }
 
+// Resolves whether a component should render at all: an imperative
+// `set_visibility` action override (free) wins if one has been fired for
+// this component id; otherwise a declarative `visible_if` condition
+// (Vakar+ — see _check_component_tier in studio_apps.py) is evaluated
+// against the current vars; with neither, it's visible.
+function resolveVisible(node, vars, visibilityOverrides) {
+  const override = visibilityOverrides ? visibilityOverrides[node.id] : undefined;
+  if (override !== undefined) return override;
+  const cond = node.visible_if;
+  if (!cond?.variable) return true;
+  const current = vars ? vars[cond.variable] : undefined;
+  switch (cond.op) {
+    case 'eq': return String(current ?? '') === String(cond.value ?? '');
+    case 'neq': return String(current ?? '') !== String(cond.value ?? '');
+    case 'gt': return (Number(current) || 0) > (Number(cond.value) || 0);
+    case 'lt': return (Number(current) || 0) < (Number(cond.value) || 0);
+    case 'truthy': return !!current && current !== '0' && current !== 'false';
+    default: return true;
+  }
+}
+
 function buttonStyle(theme, style) {
   switch (style) {
     case 'secondary':
@@ -51,7 +72,7 @@ function buttonStyle(theme, style) {
 // `setVars`/`runAction` can be omitted for a static, non-interactive
 // preview (the editor canvas does this — clicking a button there should
 // select it, not navigate).
-export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, overrides = {} }) {
+export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, overrides = {}, visibilityOverrides = {} }) {
   if (!node) return null;
   const interactive = typeof setVars === 'function';
   const override = overrides[node.id];
@@ -75,8 +96,10 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
             ...buttonStyle(theme, node.props?.style),
             width: '100%', height: '100%', borderRadius: theme.radius * 0.7, fontSize: 14, fontWeight: 600,
             cursor: interactive ? 'pointer' : 'default', fontFamily: FONT_STACK,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
+          {node.props?.icon && <AppIcon id={node.props.icon} size={16} color="currentColor" />}
           {(override !== undefined ? override : interpolate(node.props?.label, vars)) || 'Button'}
         </button>
       );
@@ -85,7 +108,10 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
         <img
           src={node.props.url.startsWith('/') ? `${API}${node.props.url}` : node.props.url}
           alt=""
-          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: node.props?.radius ?? 12, display: 'block' }}
+          style={{
+            width: '100%', height: '100%', objectFit: node.props?.fit || 'cover', borderRadius: node.props?.radius ?? 12,
+            border: node.props?.border ? `1px solid ${theme.colors.border}` : 'none', boxSizing: 'border-box', display: 'block',
+          }}
         />
       ) : (
         <div style={{
@@ -95,20 +121,26 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       );
     case 'input': {
       const bound = !!node.props?.variable;
+      const multiline = node.props?.input_type === 'multiline';
+      const type = node.props?.input_type === 'number' ? 'number' : 'text';
+      const maxLength = node.props?.max_length || undefined;
       const style = {
-        width: '100%', height: '100%', padding: '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
+        width: '100%', height: '100%', padding: multiline ? '8px 12px' : '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
         fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
-        color: theme.colors.text,
+        color: theme.colors.text, resize: 'none',
       };
-      if (!bound || !interactive) return <input placeholder={node.props?.placeholder} style={style} disabled title={bound ? '' : "This input isn't bound to a variable yet"} />;
-      return (
-        <input
-          placeholder={node.props?.placeholder}
-          value={vars[node.props.variable] ?? ''}
-          onChange={e => setVars(v => ({ ...v, [node.props.variable]: e.target.value }))}
-          style={style}
-        />
-      );
+      if (!bound || !interactive) {
+        return multiline
+          ? <textarea placeholder={node.props?.placeholder} style={style} disabled title="This input isn't bound to a variable yet" maxLength={maxLength} />
+          : <input type={type} placeholder={node.props?.placeholder} style={style} disabled title="This input isn't bound to a variable yet" maxLength={maxLength} />;
+      }
+      const commonProps = {
+        placeholder: node.props?.placeholder,
+        value: vars[node.props.variable] ?? '',
+        onChange: e => setVars(v => ({ ...v, [node.props.variable]: e.target.value })),
+        style, maxLength,
+      };
+      return multiline ? <textarea {...commonProps} /> : <input type={type} {...commonProps} />;
     }
     case 'toggle': {
       const bound = !!node.props?.variable;
@@ -118,7 +150,12 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           <span style={{ fontSize: 14, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(override !== undefined ? override : interpolate(node.props?.label, vars)) || 'Toggle'}</span>
           <button
             disabled={!bound || !interactive}
-            onClick={() => interactive && bound && setVars(v => ({ ...v, [node.props.variable]: v[node.props.variable] === 'true' ? 'false' : 'true' }))}
+            onClick={() => {
+              if (!interactive || !bound) return;
+              const next = vars[node.props.variable] === 'true' ? 'false' : 'true';
+              setVars(v => ({ ...v, [node.props.variable]: next }));
+              runAction && runAction(node.actions?.onChange);
+            }}
             style={{
               width: 42, height: 24, borderRadius: 12, border: 'none', cursor: (bound && interactive) ? 'pointer' : 'default',
               position: 'relative', background: on ? theme.colors.primary : theme.colors.border, transition: 'background 0.2s',
@@ -151,13 +188,19 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       if (items.length === 0) {
         return <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
       }
+      const itemAction = node.props?.item_action;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }}>
           {items.slice(0, 50).map((item, i) => (
-            <div key={i} style={{
-              padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
-            }}>
+            <div
+              key={i}
+              onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item }); }}
+              style={{
+                padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
+                cursor: itemAction && interactive ? 'pointer' : 'default',
+              }}
+            >
               {interpolate(node.props?.item_template, vars, { item })}
             </div>
           ))}
@@ -174,16 +217,23 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           border: node.props?.border ? `1px solid ${theme.colors.border}` : 'none',
           borderRadius: node.props?.radius ?? 0,
           boxShadow: node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none',
+          opacity: (node.props?.opacity ?? 100) / 100,
           boxSizing: 'border-box', overflow: 'hidden',
         }}>
           {(node.children || []).map((child, i) => (
-            <PositionedNode key={child.id} node={child} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
+            <PositionedNode key={child.id} node={child} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
           ))}
         </div>
       );
     }
     case 'divider':
-      return <div style={{ width: '100%', height: '100%', background: theme.colors.border }} />;
+      // The box (layout.h) is a taller click/drag hitbox than the visual
+      // rule itself — see DEFAULT_LAYOUT.divider's comment.
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+          <div style={{ width: '100%', height: 2, background: theme.colors.border }} />
+        </div>
+      );
     case 'spacer':
       return <div style={{ width: '100%', height: '100%' }} />;
     default:
@@ -194,11 +244,14 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
 // Absolute-positions a component within its parent (the screen canvas, or
 // a container) using its own `layout` (falls back to a sane per-type
 // default for older data saved before free positioning existed).
-export function PositionedNode({ node, index = 0, vars, setVars, runAction, theme, overrides }) {
+export function PositionedNode({ node, index = 0, vars, setVars, runAction, theme, overrides, visibilityOverrides }) {
   const l = getLayout(node, index);
+  if (!resolveVisible(node, vars, visibilityOverrides)) return null;
+  const animation = node.props?.animation;
+  const animClass = animation && animation !== 'none' ? `vk-anim-${animation}` : '';
   return (
-    <div style={{ position: 'absolute', left: l.x, top: l.y, width: l.w, height: l.h }}>
-      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
+    <div className={animClass} style={{ position: 'absolute', left: l.x, top: l.y, width: l.w, height: l.h }}>
+      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
     </div>
   );
 }
@@ -209,6 +262,7 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
   const [screenId, setScreenId] = useState(screens[0]?.id);
   const [vars, setVars] = useState(() => Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])));
   const [overrides, setOverrides] = useState({});
+  const [visibilityOverrides, setVisibilityOverrides] = useState({});
   const [message, setMessage] = useState(null);
   const wrapRef = useRef(null);
   const [scale, setScale] = useState(1);
@@ -235,8 +289,10 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
 
   // vars is read fresh each step (not stale-closed) since set_variable/
   // update_text steps commonly chain off one another in the same click
-  // (e.g. "add 1 to coins" then "update text1 with coins").
-  const runOne = (action, currentVars) => {
+  // (e.g. "add 1 to coins" then "update text1 with coins"). `scope` is only
+  // set for a list's item_action, so its fields can interpolate {{item...}}
+  // the same way the list's own item_template already does.
+  const runOne = (action, currentVars, scope) => {
     if (!action?.type) return;
     switch (action.type) {
       case 'navigate':
@@ -248,19 +304,29 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
         let next;
         if (action.value_mode === 'toggle_bool') next = current === 'true' ? 'false' : 'true';
         else if (action.value_mode === 'increment') next = String((Number(current) || 0) + (Number(action.value) || 1));
-        else next = interpolate(action.value, currentVars);
+        else if (action.value_mode === 'decrement') next = String((Number(current) || 0) - (Number(action.value) || 1));
+        else next = interpolate(action.value, currentVars, scope);
         currentVars[action.variable] = next;
         setVars(v => ({ ...v, [action.variable]: next }));
         break;
       }
       case 'update_text': {
         if (!action.target_id) break;
-        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars);
+        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars, scope);
         setOverrides(o => ({ ...o, [action.target_id]: value }));
         break;
       }
+      case 'set_visibility': {
+        if (!action.target_id) break;
+        setVisibilityOverrides(o => {
+          const cur = o[action.target_id];
+          const next = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
+          return { ...o, [action.target_id]: next };
+        });
+        break;
+      }
       case 'show_message':
-        flash(interpolate(action.text, currentVars) || '…');
+        flash(interpolate(action.text, currentVars, scope) || '…');
         break;
       case 'open_link':
         if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
@@ -270,9 +336,9 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     }
   };
 
-  const runAction = (actionOrList) => {
+  const runAction = (actionOrList, scope) => {
     const currentVars = { ...vars };
-    for (const action of normalizeActions(actionOrList)) runOne(action, currentVars);
+    for (const action of normalizeActions(actionOrList)) runOne(action, currentVars, scope);
   };
 
   if (!screen) {
@@ -299,7 +365,7 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
           </div>
         )}
         {(screen.components || []).map((node, i) => (
-          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} />
+          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
         ))}
         {showWatermark && (
           <a

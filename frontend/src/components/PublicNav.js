@@ -4,6 +4,7 @@ import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { SupportWidget } from './SupportWidget';
 import { PublicButton } from '../ui/PublicButton';
+import { AnnouncementBanner } from './AnnouncementBanner';
 
 export const PublicNav = ({ onAbout }) => {
   const [open, setOpen] = useState(false);
@@ -28,9 +29,10 @@ export const PublicNav = ({ onAbout }) => {
 
   return (
     <>
+    <AnnouncementBanner />
     <nav
-      className="fixed top-0 left-0 right-0 z-50 liquid-glass rounded-none transition-[box-shadow] duration-500"
-      style={scrolled ? {} : { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }}
+      className="fixed left-0 right-0 z-50 liquid-glass rounded-none transition-[top,box-shadow] duration-200"
+      style={{ top: 'var(--vkg-banner-h, 0px)', ...(scrolled ? {} : { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }) }}
     >
       <div className="max-w-[1040px] mx-auto px-6 h-[52px] flex items-center justify-between">
         <div className="flex items-center gap-8">

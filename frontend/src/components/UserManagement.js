@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
   Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
-  FileText, Code, Shield, ShoppingBag, ClipboardList, Ban, CheckCircle, Mail,
+  FileText, Code, Shield, ClipboardList, Ban, CheckCircle, Mail,
   Search, Loader2, MessageCircle, Clipboard, ClipboardCheck,
   FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow, Crown,
 } from 'lucide-react';
@@ -36,7 +36,6 @@ const STATIC_GROUPS = [
     label: 'Logs & Docs', icon: FileText, color: '#9B51E0',
     permissions: [
       { id: 'view_logs', label: 'View Logs' },
-      { id: 'view_api_docs', label: 'View API Docs' },
     ]
   },
   {
@@ -55,18 +54,11 @@ const STATIC_GROUPS = [
     label: 'Website', icon: Code, color: '#4ECDC4',
     permissions: [
       { id: 'manage_website', label: 'Website Settings' },
-      { id: 'create_games', label: 'Create Games' },
-      { id: 'edit_games', label: 'Edit Games' },
-      { id: 'delete_games', label: 'Delete Games' },
       { id: 'create_blog', label: 'Create Blog' },
       { id: 'edit_blog', label: 'Edit Blog' },
       { id: 'delete_blog', label: 'Delete Blog' },
       { id: 'manage_chat', label: 'Manage Game Chat' },
     ]
-  },
-  {
-    label: 'Shop', icon: ShoppingBag, color: '#6C5CE7',
-    permissions: [{ id: 'manage_shop', label: 'Manage Shop' }]
   },
   {
     label: 'Support', icon: MessageCircle, color: '#F59E0B',
@@ -89,7 +81,10 @@ const STATIC_GROUPS = [
   },
   {
     label: 'Studio', icon: AppWindow, color: '#4ECDC4',
-    permissions: [{ id: 'manage_studio_apps', label: 'App Builder' }]
+    permissions: [
+      { id: 'manage_studio_apps', label: 'App Builder' },
+      { id: 'review_studio_apps', label: 'Review App Submissions' },
+    ]
   },
 ];
 

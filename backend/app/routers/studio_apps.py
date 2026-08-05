@@ -47,7 +47,7 @@ MAX_COMPONENTS_PER_SCREEN = 120
 
 FREE_MAX_APPS = 2
 FREE_MAX_SCREENS_PER_APP = 15
-PLUS_MAX_APPS = 20
+PLUS_MAX_APPS = 50
 # "Unlimited" for Vakar+ in practice means the same hard technical ceiling
 # every app is built against (MAX_SCREENS) — there's no separate, lower
 # Vakar+ cap to enforce, and _validate_screens() only shows the "upgrade"
@@ -59,6 +59,9 @@ PLUS_MAX_SCREENS_PER_APP = MAX_SCREENS
 # every other cross-stack constant in this codebase. Update both together.
 PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle"}
 FREE_THEME_IDS = {"mint"}
+# Mirrors ANIMATION_TYPES' tier tags in appBuilder.js — 'fade' is free, the
+# rest are a Vakar+ perk on props.animation (any component type).
+PREMIUM_ANIMATIONS = {"slide-up", "slide-down", "pop"}
 
 # App storage quota — every file (icon + any uploaded image component) an
 # app references, combined. Recomputed on demand from what's actually on
@@ -156,6 +159,16 @@ def _check_component_tier(comp):
     # whole type, not one prop value of it).
     if comp.get("type") == "text" and (comp.get("props") or {}).get("size") == "custom":
         raise HTTPException(status_code=402, detail="Custom text sizing requires Vakar+.")
+    # Entrance animation — 'fade' is free, the rest are a per-instance perk
+    # on any component type, same pattern as custom text sizing above.
+    if (comp.get("props") or {}).get("animation") in PREMIUM_ANIMATIONS:
+        raise HTTPException(status_code=402, detail="This animation requires Vakar+.")
+    # Declarative conditional visibility (auto show/hide based on a live
+    # variable) is a Vakar+ perk on any component type — the imperative
+    # "show/hide an element" action (set_visibility) stays free and isn't
+    # checked here, it's a plain action, not a component property.
+    if (comp.get("visible_if") or {}).get("variable"):
+        raise HTTPException(status_code=402, detail="Conditional visibility requires Vakar+.")
     for child in comp.get("children") or []:
         _check_component_tier(child)
 
@@ -296,14 +309,14 @@ async def list_studio_apps(user=Depends(require_permission("manage_studio_apps")
 # Registered ahead of GET /admin/studio-apps/{app_id} on purpose — "reviews"
 # would otherwise be swallowed by that path param and fail ObjectId parsing.
 @router.get("/admin/studio-apps/reviews")
-async def list_studio_app_reviews(status: str = "pending", user=Depends(require_permission("manage_studio_apps"))):
+async def list_studio_app_reviews(status: str = "pending", user=Depends(require_permission("review_studio_apps"))):
     if status not in ("pending", "approved", "rejected"):
         raise HTTPException(status_code=400, detail="Invalid status filter")
     docs = await db.studio_apps.find({"review_status": status}).sort("submitted_at", -1).to_list(200)
     return {"reviews": [_serialize(d, include_owner=True) for d in docs]}
 
 @router.post("/admin/studio-apps/reviews/{app_id}/approve")
-async def approve_studio_app_review(app_id: str, user=Depends(require_permission("manage_studio_apps"))):
+async def approve_studio_app_review(app_id: str, user=Depends(require_permission("review_studio_apps"))):
     try:
         oid = ObjectId(app_id)
     except Exception:
@@ -326,7 +339,7 @@ async def approve_studio_app_review(app_id: str, user=Depends(require_permission
     return {"ok": True}
 
 @router.post("/admin/studio-apps/reviews/{app_id}/reject")
-async def reject_studio_app_review(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("manage_studio_apps"))):
+async def reject_studio_app_review(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("review_studio_apps"))):
     try:
         oid = ObjectId(app_id)
     except Exception:

@@ -67,71 +67,6 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
   </div>
 );
 
-// ── Loyalty system — one accent color throughout, no per-tier rainbow;
-// reads as a membership level, not a game rank-up bar. ─────────────────────
-const TIERS = {
-  bronze:  { label: 'Bronze',  discount: 0,  min: 0     },
-  silver:  { label: 'Silver',  discount: 5,  min: 2500  },
-  gold:    { label: 'Gold',    discount: 10, min: 10000 },
-  diamond: { label: 'Diamond', discount: 15, min: 25000 },
-};
-const TIER_ORDER = ['bronze', 'silver', 'gold', 'diamond'];
-
-const LoyaltyWidget = ({ loyalty }) => {
-  if (!loyalty) return null;
-  const { total_spent_cents, tier, next_tier, next_threshold_cents } = loyalty;
-  const cfg = TIERS[tier] || TIERS.bronze;
-  const tierIdx = TIER_ORDER.indexOf(tier);
-  const progressPct = next_threshold_cents
-    ? Math.min(100, ((total_spent_cents - cfg.min) / (next_threshold_cents - cfg.min)) * 100)
-    : 100;
-
-  return (
-    <div className="rounded-xl liquid-glass p-6">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xs font-mono text-[#6E6E73]">// membership</h2>
-        <span className="text-xs text-[#A1A1A6] tabular-nums">${(total_spent_cents / 100).toFixed(2)} spent</span>
-      </div>
-
-      <p className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-4">{cfg.label}</p>
-
-      {/* Track */}
-      <div className="relative h-1 rounded-full bg-[#EDEDEF] mb-2">
-        <div
-          className="absolute top-0 left-0 h-full rounded-full bg-[#4ECDC4] transition-all duration-700"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
-
-      <div className="flex justify-between mb-5">
-        {TIER_ORDER.map((t, i) => (
-          <span
-            key={t}
-            className={`text-[9px] font-semibold tracking-[0.1em] uppercase ${i <= tierIdx ? 'text-[#1D1D1F]' : 'text-[#BFBFC4]'}`}
-          >
-            {TIERS[t].label}
-          </span>
-        ))}
-      </div>
-
-      {next_threshold_cents && next_tier ? (
-        <p className="text-[10px] text-[#A1A1A6]">
-          ${((next_threshold_cents - total_spent_cents) / 100).toFixed(2)} to reach{' '}
-          <span className="font-semibold text-[#1D1D1F]">{TIERS[next_tier]?.label}</span>
-        </p>
-      ) : (
-        <p className="text-[10px] font-semibold text-[#1D1D1F]">Highest membership level reached.</p>
-      )}
-
-      {cfg.discount > 0 && (
-        <p className="text-[10px] mt-1 text-[#6E6E73]">
-          {cfg.discount}% discount applied on all in-app purchases.
-        </p>
-      )}
-    </div>
-  );
-};
-
 const VakarPlusWidget = ({ status, onManage, managing }) => {
   const isActive = !!status?.is_active;
   return (
@@ -213,10 +148,6 @@ const Profile = () => {
 
   const [activeTab, setActiveTab] = useState('account');
 
-  const DEFAULT_LOYALTY = { total_spent_cents: 0, tier: 'bronze', discount_pct: 0, next_tier: 'silver', next_threshold_cents: 2500 };
-  const [loyalty, setLoyalty] = useState(null);
-  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
-
   const [vakarPlus, setVakarPlus] = useState(null);
   const [managingBilling, setManagingBilling] = useState(false);
 
@@ -246,17 +177,9 @@ const Profile = () => {
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
     fetchNotifications();
     if (token) {
-      setLoyaltyLoading(true);
-      axios.get(`${API_URL}/api/user/loyalty`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => setLoyalty(r.data))
-        .catch(() => setLoyalty(DEFAULT_LOYALTY))
-        .finally(() => setLoyaltyLoading(false));
       axios.get(`${API_URL}/api/vakar-plus/status`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => setVakarPlus(r.data))
         .catch(() => {});
-    } else {
-      setLoyalty(DEFAULT_LOYALTY);
-      setLoyaltyLoading(false);
     }
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -382,7 +305,6 @@ const Profile = () => {
 
   const initials = ((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
   const displayName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;
-  const currentTier = TIERS[loyalty?.tier] || TIERS.bronze;
 
   return (
     <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
@@ -433,11 +355,6 @@ const Profile = () => {
               )}
             </div>
             <p className="text-[#6E6E73] text-sm">{user.email}</p>
-            {loyalty && (
-              <p className="text-xs mt-1.5 font-medium text-[#6E6E73]">
-                {currentTier.label} membership{currentTier.discount > 0 ? ` · ${currentTier.discount}% off in-app purchases` : ''}
-              </p>
-            )}
 
             {/* Actions */}
             <div className="flex items-center gap-2 mt-5">
@@ -597,11 +514,6 @@ const Profile = () => {
                   </>
                 )}
               </Card>
-
-              {loyaltyLoading
-                ? <div className="rounded-xl bg-white border border-[#D2D2D7] p-6 h-[200px] animate-pulse" />
-                : <LoyaltyWidget loyalty={loyalty} />
-              }
 
               <VakarPlusWidget status={vakarPlus} onManage={manageBilling} managing={managingBilling} />
             </>
