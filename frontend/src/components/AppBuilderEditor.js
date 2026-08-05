@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
-  Send, Clock, ThumbsDown, DollarSign, Package, Monitor,
+  Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -645,6 +645,27 @@ function flattenAllTargets(screen) {
   return out;
 }
 
+// Same label convention as flattenAllTargets above (so a row here reads
+// identically to how it'd show up in a set_visibility/update_text target
+// picker), plus indentation depth for the Layers panel — the only way to
+// select a component other than clicking it directly on the canvas, which
+// doesn't scale once a screen has many components or some are hidden
+// behind visible_if/set_visibility.
+function buildLayerRows(screen) {
+  const out = [];
+  const walk = (comp, depth) => {
+    const meta = COMPONENT_META[comp.type];
+    const preview = comp.props?.content || comp.props?.label || comp.props?.placeholder || '';
+    out.push({
+      id: comp.id, depth, icon: meta?.icon,
+      text: preview ? `${meta?.label || comp.type} — "${String(preview).slice(0, 18)}"` : (meta?.label || comp.type),
+    });
+    if (comp.type === 'container') (comp.children || []).forEach(child => walk(child, depth + 1));
+  };
+  (screen?.components || []).forEach(comp => walk(comp, 0));
+  return out;
+}
+
 function ActionStepFields({ action, screens, targets, allTargets = [], setField }) {
   switch (action.type) {
     case 'navigate':
@@ -747,7 +768,8 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           {action.mode === 'at_index' && (
             <div>
               <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input type="number" min="0" value={action.index ?? 0} onChange={e => setField('index', Math.max(0, Number(e.target.value) || 0))} className={FIELD_INPUT} />
+              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0, or {{index}} when used on a list row" className={FIELD_INPUT} />
+              <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
             </div>
           )}
           <div>
@@ -786,7 +808,8 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           {action.mode === 'at_index' && (
             <div>
               <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input type="number" min="0" value={action.index ?? 0} onChange={e => setField('index', Math.max(0, Number(e.target.value) || 0))} className={FIELD_INPUT} />
+              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0, or {{index}} when used on a list row" className={FIELD_INPUT} />
+              <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
             </div>
           )}
         </>
@@ -944,6 +967,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [selectedId, setSelectedId] = useState(null);
   const [inspectorTab, setInspectorTab] = useState('props');
   const [dirty, setDirty] = useState(false);
+  // Undo/redo — a plain stack of whole-app snapshots, capped at 50. mutate()
+  // already structuredClone()s the app on every change, so this just keeps
+  // one extra clone per step rather than needing any diffing/patching.
+  const [history, setHistory] = useState([]);
+  const [future, setFuture] = useState([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -985,7 +1013,27 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   useEffect(() => { load(); }, [load]);
 
   const mutate = (fn) => {
+    setHistory(h => [...h.slice(-49), app]);
+    setFuture([]);
     setApp(a => { const clone = structuredClone(a); fn(clone); return clone; });
+    setDirty(true);
+  };
+
+  const undo = () => {
+    if (history.length === 0) return;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setFuture(f => [app, ...f].slice(0, 50));
+    setApp(prev);
+    setDirty(true);
+  };
+
+  const redo = () => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setFuture(f => f.slice(1));
+    setHistory(h => [...h, app].slice(-50));
+    setApp(next);
     setDirty(true);
   };
 
@@ -1116,6 +1164,57 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     const found = findComponent(screen, id);
     if (found) found.node.layout = layout;
   });
+
+  // Delete/Backspace/arrow-key/undo-redo canvas shortcuts — disabled while
+  // typing in any text field (so deleting a character in, say, a props text
+  // field doesn't delete the selected component) or while a modal is open
+  // (so a stray keypress behind the preview/settings/review dialog can't
+  // reach the canvas).
+  useEffect(() => {
+    const anyModalOpen = previewOpen || settingsOpen || reviewOpen || !!previewFeature;
+    const isTypingTarget = (el) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    const onKeyDown = (e) => {
+      if (anyModalOpen || isTypingTarget(document.activeElement)) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+        return;
+      }
+      if (!selectedId) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteComponent(selectedId);
+      } else if (e.key === 'Escape') {
+        setSelectedId(null);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const screen = app.screens.find(s => s.id === activeScreenId);
+        const found = findComponent(screen, selectedId);
+        if (!found) return;
+        const l = getLayout(found.node);
+        const step = e.shiftKey ? 10 : 1;
+        const next = { ...l };
+        if (e.key === 'ArrowUp') next.y = Math.max(0, next.y - step);
+        if (e.key === 'ArrowDown') next.y += step;
+        if (e.key === 'ArrowLeft') next.x = Math.max(0, next.x - step);
+        if (e.key === 'ArrowRight') next.x += step;
+        updateLayout(selectedId, next);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // Deliberately not listing deleteComponent/updateLayout/undo/redo — like
+    // every other handler in this component they're plain functions
+    // recreated each render, not useCallback-memoized, so listing them only
+    // trades this warning for an "extract to useCallback" one instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, activeScreenId, app, previewOpen, settingsOpen, reviewOpen, previewFeature, history, future]);
 
   const setTheme = (id) => mutate(a => { a.theme = id; });
 
@@ -1448,6 +1547,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             {apkInProgress ? 'Building…' : 'Build APK'}
           </Button>
         )}
+        <Button size="sm" variant="secondary" icon={Undo2} onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)" />
+        <Button size="sm" variant="secondary" icon={Redo2} onClick={redo} disabled={future.length === 0} title="Redo (Ctrl+Shift+Z)" />
         <Button size="sm" icon={justSaved ? Check : Save} onClick={save} loading={saving} disabled={!dirty && !saving}>
           {justSaved ? 'Saved' : dirty ? 'Save' : 'Saved'}
         </Button>
@@ -1548,6 +1649,28 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 <Lock size={10} />Add screen (Vakar+)
               </button>
             )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Layers</p>
+            <div className="space-y-0.5">
+              {buildLayerRows(activeScreen).map(row => (
+                <button
+                  key={row.id}
+                  onClick={() => setSelectedId(row.id)}
+                  style={{ paddingLeft: 8 + row.depth * 14 }}
+                  className={`w-full flex items-center gap-1.5 pr-2 py-1 rounded-md text-left text-[11px] transition-colors ${
+                    selectedId === row.id ? 'bg-[#4ECDC4]/15 text-[#4ECDC4] font-semibold' : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]'
+                  }`}
+                >
+                  {row.icon && <row.icon size={11} className="shrink-0" />}
+                  <span className="truncate">{row.text}</span>
+                </button>
+              ))}
+              {(!activeScreen?.components || activeScreen.components.length === 0) && (
+                <p className="text-[11px] text-[#A1A1A6] px-2 py-1">No components on this screen yet.</p>
+              )}
+            </div>
           </div>
 
           <div>

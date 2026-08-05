@@ -110,15 +110,18 @@ async function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}<div style="width:100%;height:100%;display:flex;align-items:center;"><div class="vk-divider" style="width:100%;height:2px;"></div></div></div>`;
     case 'spacer':
       return `${wrapperOpen}</div>`;
-    case 'checkbox':
-      return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
+    case 'checkbox': {
+      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'}${changeAction} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
+    }
     case 'rating': {
       const max = Math.max(1, Number(node.props?.max) || 5);
       const color = node.props?.color || 'var(--vk-primary)';
+      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
       const stars = Array.from({ length: max }, (_, i) => i + 1)
         .map(n => `<button class="vk-rating-star" data-n="${n}" style="color:var(--vk-border)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6z"/></svg></button>`)
         .join('');
-      return `${wrapperOpen}<div class="vk-rating" data-variable="${esc(node.props?.variable || '')}" data-color="${esc(color)}" style="width:100%;height:100%;">${stars}</div></div>`;
+      return `${wrapperOpen}<div class="vk-rating" data-variable="${esc(node.props?.variable || '')}" data-color="${esc(color)}"${changeAction} style="width:100%;height:100%;">${stars}</div></div>`;
     }
     case 'progress': {
       const bound = !!node.props?.variable;
@@ -135,12 +138,14 @@ async function renderComponentHTML(node, index = 0) {
     case 'slider': {
       const bound = !!node.props?.variable;
       const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
-      return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'} style="width:100%;"></div>`;
+      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'}${changeAction} style="width:100%;"></div>`;
     }
     case 'date': {
       const bound = !!node.props?.variable;
+      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
       return bound
-        ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}" style="width:100%;height:100%;"></div>`
+        ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}"${changeAction} style="width:100%;height:100%;"></div>`
         : `${wrapperOpen}<input type="date" class="vk-input" disabled title="Not bound to a variable" style="width:100%;height:100%;"></div>`;
     }
     case 'video':
@@ -300,6 +305,13 @@ function generateJS(app) {
     });
   }
 
+  // Resolves an action's index field — supports {{index}} (the list
+  // item_action scope includes it) as well as a plain literal number.
+  function resolveIndex(raw, scope) {
+    var n = Number(interpolate(String(raw == null ? '0' : raw), scope));
+    return isFinite(n) ? Math.trunc(n) : 0;
+  }
+
   // Mirrors resolveVisible()'s condition evaluation in AppRuntime.js.
   function evalVisible(cond) {
     if (!cond || !cond.variable) return true;
@@ -352,13 +364,13 @@ function generateJS(app) {
       el.appendChild(empty);
       return;
     }
-    items.slice(0, 50).forEach(function (item) {
+    items.slice(0, 50).forEach(function (item, idx) {
       var row = document.createElement('div');
       row.className = 'vk-list-item';
       row.textContent = interpolate(tpl, { item: item });
       if (itemAction) {
         row.style.cursor = 'pointer';
-        row.addEventListener('click', function () { runAction(itemAction, { item: item }); });
+        row.addEventListener('click', function () { runAction(itemAction, { item: item, index: idx }); });
       }
       el.appendChild(row);
     });
@@ -456,7 +468,7 @@ function generateJS(app) {
         try { var parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch (e) { /* start fresh */ }
         var value = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, scope);
         if (action.mode === 'prepend') arr.unshift(value);
-        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, Number(action.index) || 0)), 0, value);
+        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, resolveIndex(action.index, scope))), 0, value);
         else arr.push(value);
         vars[action.variable] = JSON.stringify(arr);
         break;
@@ -468,7 +480,7 @@ function generateJS(app) {
         try { var parsed2 = raw2 ? JSON.parse(raw2) : []; if (Array.isArray(parsed2)) arr2 = parsed2; } catch (e) { /* nothing to remove */ }
         if (action.mode === 'clear') arr2 = [];
         else if (action.mode === 'first') arr2.shift();
-        else if (action.mode === 'at_index') { var idx = Number(action.index) || 0; if (idx >= 0 && idx < arr2.length) arr2.splice(idx, 1); }
+        else if (action.mode === 'at_index') { var idx = resolveIndex(action.index, scope); if (idx >= 0 && idx < arr2.length) arr2.splice(idx, 1); }
         else arr2.pop();
         vars[action.variable] = JSON.stringify(arr2);
         break;
@@ -498,32 +510,42 @@ function generateJS(app) {
     if (toggleEl) {
       var v = toggleEl.getAttribute('data-variable');
       vars[v] = vars[v] === 'true' ? 'false' : 'true';
-      var onChangeAttr = toggleEl.getAttribute('data-onchange');
-      if (onChangeAttr) {
-        try { runAction(JSON.parse(onChangeAttr)); } catch (err) { render(); }
-      } else {
-        render();
-      }
+      fireOnChange(toggleEl);
     }
     var checkboxEl = e.target.closest('.vk-checkbox-row[data-variable]:not([data-unbound])');
     if (checkboxEl) {
       var cv = checkboxEl.getAttribute('data-variable');
       vars[cv] = vars[cv] === 'true' ? 'false' : 'true';
-      render();
+      fireOnChange(checkboxEl);
     }
     var starEl = e.target.closest('.vk-rating-star');
     if (starEl) {
       var ratingEl = starEl.closest('.vk-rating[data-variable]');
       var rv = ratingEl && ratingEl.getAttribute('data-variable');
-      if (rv) { vars[rv] = starEl.getAttribute('data-n'); render(); }
+      if (rv) { vars[rv] = starEl.getAttribute('data-n'); fireOnChange(ratingEl); }
     }
   });
+
+  // Shared by toggle/checkbox/rating/slider/date — runs the element's
+  // data-onchange action chain if it has one, otherwise just re-renders
+  // (same as every discrete state change already did before onChange existed).
+  function fireOnChange(el) {
+    var attr = el.getAttribute('data-onchange');
+    if (attr) {
+      try { runAction(JSON.parse(attr)); } catch (err) { render(); }
+    } else {
+      render();
+    }
+  }
 
   document.addEventListener('input', function (e) {
     var el = e.target;
     if (el.classList && (el.classList.contains('vk-input') || el.classList.contains('vk-slider'))) {
       var v = el.getAttribute('data-variable');
       if (v) vars[v] = el.value;
+      // Text/multiline inputs don't have an onChange trigger (only bind a
+      // variable) — sliders and dates (class vk-input, type=date) do.
+      if (el.classList.contains('vk-slider') || el.type === 'date') fireOnChange(el);
     }
   });
 

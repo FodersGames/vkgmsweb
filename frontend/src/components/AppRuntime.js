@@ -72,6 +72,13 @@ function QrVisual({ content, theme }) {
   return <img src={dataUrl} alt="QR code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
 }
 
+// Resolves an action's `index` field, which supports {{index}} interpolation
+// (the list item_action scope includes it) as well as a plain literal number.
+function resolveIndex(raw, currentVars, scope) {
+  const n = Number(interpolate(String(raw ?? '0'), currentVars, scope));
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
 function buttonStyle(theme, style) {
   switch (style) {
     case 'secondary':
@@ -211,7 +218,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           {items.slice(0, 50).map((item, i) => (
             <div
               key={i}
-              onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item }); }}
+              onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item, index: i }); }}
               style={{
                 padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
                 border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
@@ -229,7 +236,11 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       const checked = vars[node.props?.variable] === 'true';
       return (
         <div
-          onClick={() => interactive && bound && setVars(v => ({ ...v, [node.props.variable]: checked ? 'false' : 'true' }))}
+          onClick={() => {
+            if (!interactive || !bound) return;
+            setVars(v => ({ ...v, [node.props.variable]: checked ? 'false' : 'true' }));
+            runAction && runAction(node.actions?.onChange);
+          }}
           style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: '100%', cursor: (bound && interactive) ? 'pointer' : 'default', opacity: bound ? 1 : 0.5 }}
         >
           <div style={{
@@ -253,7 +264,10 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           {Array.from({ length: max }, (_, i) => i + 1).map(n => (
             <button
               key={n} disabled={!bound || !interactive}
-              onClick={() => setVars(v => ({ ...v, [node.props.variable]: String(n) }))}
+              onClick={() => {
+                setVars(v => ({ ...v, [node.props.variable]: String(n) }));
+                runAction && runAction(node.actions?.onChange);
+              }}
               style={{ background: 'none', border: 'none', padding: 0, cursor: (bound && interactive) ? 'pointer' : 'default', lineHeight: 0 }}
             >
               <AppIcon id="star" size={22} color={n <= value ? (node.props?.color || theme.colors.primary) : theme.colors.border} />
@@ -281,7 +295,14 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       return (
         <input
           type="range" min={min} max={max} step={step} value={value} disabled={!bound || !interactive}
-          onChange={e => setVars(v => ({ ...v, [node.props.variable]: e.target.value }))}
+          onChange={e => {
+            setVars(v => ({ ...v, [node.props.variable]: e.target.value }));
+            // Fires on every drag tick (native range `input` events are
+            // continuous) — fine for the common case (set another variable,
+            // show/hide something) but worth remembering if it's ever wired
+            // to something expensive.
+            runAction && runAction(node.actions?.onChange);
+          }}
           style={{ width: '100%', accentColor: theme.colors.primary, opacity: bound ? 1 : 0.5 }}
         />
       );
@@ -293,7 +314,16 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
         fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`, color: theme.colors.text,
       };
       if (!bound || !interactive) return <input type="date" style={style} disabled title="This input isn't bound to a variable yet" />;
-      return <input type="date" value={vars[node.props.variable] || ''} onChange={e => setVars(v => ({ ...v, [node.props.variable]: e.target.value }))} style={style} />;
+      return (
+        <input
+          type="date" value={vars[node.props.variable] || ''}
+          onChange={e => {
+            setVars(v => ({ ...v, [node.props.variable]: e.target.value }));
+            runAction && runAction(node.actions?.onChange);
+          }}
+          style={style}
+        />
+      );
     }
     case 'video':
       return node.props?.url ? (
@@ -432,7 +462,7 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
         try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
         const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars, scope);
         if (action.mode === 'prepend') arr.unshift(value);
-        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, Number(action.index) || 0)), 0, value);
+        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, resolveIndex(action.index, currentVars, scope))), 0, value);
         else arr.push(value);
         const next = JSON.stringify(arr);
         currentVars[action.variable] = next;
@@ -446,7 +476,7 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
         try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* nothing to remove */ }
         if (action.mode === 'clear') arr = [];
         else if (action.mode === 'first') arr.shift();
-        else if (action.mode === 'at_index') { const i = Number(action.index) || 0; if (i >= 0 && i < arr.length) arr.splice(i, 1); }
+        else if (action.mode === 'at_index') { const i = resolveIndex(action.index, currentVars, scope); if (i >= 0 && i < arr.length) arr.splice(i, 1); }
         else arr.pop();
         const next = JSON.stringify(arr);
         currentVars[action.variable] = next;

@@ -111,11 +111,13 @@ export const COMPONENT_TYPES = [
     defaultProps: { source_variable: '', item_template: '{{item}}', empty_text: 'No items yet.', item_action: null },
   },
   {
-    type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, tier: 'free',
+    type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, supportsAction: true,
+    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'free',
     defaultProps: { label: 'Checkbox', variable: '' },
   },
   {
-    type: 'rating', label: 'Rating', icon: Star, isContainer: false, tier: 'free',
+    type: 'rating', label: 'Rating', icon: Star, isContainer: false, supportsAction: true,
+    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'free',
     defaultProps: { variable: '', max: 5, color: '' },
   },
   {
@@ -133,11 +135,13 @@ export const COMPONENT_TYPES = [
     defaultProps: { content: 'https://vakargames.com' },
   },
   {
-    type: 'slider', label: 'Slider', icon: SlidersHorizontal, isContainer: false, tier: 'premium',
+    type: 'slider', label: 'Slider', icon: SlidersHorizontal, isContainer: false, supportsAction: true,
+    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'premium',
     defaultProps: { variable: '', min: 0, max: 100, step: 1 },
   },
   {
-    type: 'date', label: 'Date picker', icon: Calendar, isContainer: false, tier: 'premium',
+    type: 'date', label: 'Date picker', icon: Calendar, isContainer: false, supportsAction: true,
+    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'premium',
     defaultProps: { variable: '' },
   },
   {
