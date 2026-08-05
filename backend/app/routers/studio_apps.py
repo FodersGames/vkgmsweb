@@ -187,6 +187,36 @@ async def _unique_slug(base_slug: str, exclude_id=None) -> str:
         slug = f"{base_slug}-{n}"
 
 
+# ============================================================
+# PUBLIC IDS — the actual public URL (/apps/{public_id}) is an opaque
+# generated token, deliberately decoupled from `slug` (which stays a
+# name-derived, human-readable internal identifier only — used for
+# .vakarstudio filenames, the admin/owner UI's small "/slug" label, and the
+# package-name fallback). Renaming an app never changes its public_id, and
+# the public_id never reveals the app's name.
+# ============================================================
+
+def _generate_public_id() -> str:
+    return uuid.uuid4().hex[:12]
+
+async def _unique_public_id() -> str:
+    while True:
+        pid = _generate_public_id()
+        if not await db.studio_apps.find_one({"public_id": pid}, {"_id": 1}):
+            return pid
+
+async def _ensure_public_id(doc):
+    """Self-heals apps created before public_id existed — lazily assigns
+    and persists one the first time the app is read by any endpoint that
+    exposes/links to it. No manual migration needed: this repo has no
+    live-Mongo access to run one from, and the real production DB already
+    has apps with real bookmarked/shared links, so this must be transparent."""
+    if not doc.get("public_id"):
+        doc["public_id"] = await _unique_public_id()
+        await db.studio_apps.update_one({"_id": doc["_id"]}, {"$set": {"public_id": doc["public_id"]}})
+    return doc
+
+
 def _validate_screens(screens, max_screens=MAX_SCREENS):
     if not isinstance(screens, list) or len(screens) == 0:
         raise HTTPException(status_code=400, detail="An app needs at least one screen")
@@ -278,6 +308,11 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         "id": str(doc["_id"]),
         "name": doc["name"],
         "slug": doc["slug"],
+        # The real public identifier — /apps/{public_id} — decoupled from
+        # slug/name on purpose (see the PUBLIC IDS section above). May be
+        # empty only for a doc that hasn't passed through _ensure_public_id
+        # yet; every call site that links to an app calls that first.
+        "public_id": doc.get("public_id") or "",
         "description": doc.get("description", ""),
         "accent_color": doc.get("accent_color", "#4ECDC4"),
         "theme": doc.get("theme", "mint"),
@@ -312,6 +347,16 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         # flipping those flags back themselves.
         "admin_takedown": bool(doc.get("admin_takedown")),
         "admin_takedown_reason": doc.get("admin_takedown_reason") or "",
+        # Delisting is the lighter, independent lever — hides an app from
+        # GET /apps (discovery) without blocking a direct /apps/{public_id}
+        # link, unlike admin_takedown which blocks both.
+        "admin_delisted": bool(doc.get("admin_delisted")),
+        "admin_delisted_reason": doc.get("admin_delisted_reason") or "",
+        # Set when the OWNER pulls their own app down (see withdraw_my_studio_app)
+        # — distinguishes "owner chose to withdraw this" from "just never
+        # published"/"admin suspended it", each shown differently in the UI.
+        "owner_withdrawal_reason": doc.get("owner_withdrawal_reason") or "",
+        "owner_withdrawn_at": doc["owner_withdrawn_at"].isoformat() if doc.get("owner_withdrawn_at") else None,
         # Public — needed to render the paywall/price tag. creator_earnings_cents
         # is deliberately NOT here (it's only attached in owner-scoped self-service
         # responses — see get_my_studio_app/list_my_studio_apps — never in the
@@ -320,6 +365,18 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         # Cheap to compute (just a list length) so richer admin list views
         # don't need a full=True fetch per app just to show a screen count.
         "screens_count": len(doc.get("screens") or []),
+        # Append-only "What's New" trail, one entry per approved submission —
+        # see approve_studio_app_review. Small enough to always include, not
+        # gated behind full=True, since this is literally public-facing data.
+        "version_number": int(doc.get("version_number") or 0),
+        "version_history": [
+            {
+                "version": v.get("version"),
+                "changelog": v.get("changelog", ""),
+                "approved_at": v["approved_at"].isoformat() if v.get("approved_at") else None,
+            }
+            for v in (doc.get("version_history") or [])
+        ],
         "submitted_at": doc["submitted_at"].isoformat() if doc.get("submitted_at") else None,
         "reviewed_at": doc["reviewed_at"].isoformat() if doc.get("reviewed_at") else None,
         "reviewed_by": doc.get("reviewed_by") or "",
@@ -363,7 +420,7 @@ async def list_studio_apps(user=Depends(require_permission("manage_studio_apps")
     # Earnings are attached here too (not just /my/studio-apps) since staff
     # already see owner identity via include_owner — no new privacy leak,
     # just useful context for a management console.
-    return {"apps": [_with_earnings(_serialize(d, include_owner=True), d) for d in docs]}
+    return {"apps": [_with_earnings(_serialize(await _ensure_public_id(d), include_owner=True), d) for d in docs]}
 
 # Registered ahead of GET /admin/studio-apps/{app_id} on purpose — "reviews"
 # would otherwise be swallowed by that path param and fail ObjectId parsing.
@@ -372,7 +429,7 @@ async def list_studio_app_reviews(status: str = "pending", user=Depends(require_
     if status not in ("pending", "approved", "rejected"):
         raise HTTPException(status_code=400, detail="Invalid status filter")
     docs = await db.studio_apps.find({"review_status": status}).sort("submitted_at", -1).to_list(200)
-    return {"reviews": [_serialize(d, include_owner=True) for d in docs]}
+    return {"reviews": [_serialize(await _ensure_public_id(d), include_owner=True) for d in docs]}
 
 @router.post("/admin/studio-apps/reviews/{app_id}/approve")
 async def approve_studio_app_review(app_id: str, user=Depends(require_permission("review_studio_apps"))):
@@ -383,23 +440,32 @@ async def approve_studio_app_review(app_id: str, user=Depends(require_permission
     doc = await db.studio_apps.find_one({"_id": oid})
     if not doc or doc.get("review_status") != "pending":
         raise HTTPException(status_code=404, detail="No pending submission found for this app")
+    await _ensure_public_id(doc)
     now = datetime.now(timezone.utc)
-    await db.studio_apps.update_one({"_id": oid}, {"$set": {
-        "review_status": "approved", "status": "published", "visibility": "public",
-        "ever_approved": True, "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
-        # Freezes exactly the version that was reviewed as the new live
-        # version — any draft edits made after this submission was sent
-        # stay invisible to the public until they're submitted and approved
-        # in their own right.
-        "published_snapshot": doc.get("pending_snapshot") or _make_snapshot(doc),
-        "pending_snapshot": None,
-    }})
+    new_version = int(doc.get("version_number") or 0) + 1
+    await db.studio_apps.update_one({"_id": oid}, {
+        "$set": {
+            "review_status": "approved", "status": "published", "visibility": "public",
+            "ever_approved": True, "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+            # Freezes exactly the version that was reviewed as the new live
+            # version — any draft edits made after this submission was sent
+            # stay invisible to the public until they're submitted and approved
+            # in their own right.
+            "published_snapshot": doc.get("pending_snapshot") or _make_snapshot(doc),
+            "pending_snapshot": None,
+            "version_number": new_version,
+        },
+        # version_history is append-only — a real "What's New" trail per
+        # version, unlike review_changelog which just holds the latest
+        # submission's text. Rejections never append (nothing was published).
+        "$push": {"version_history": {"version": new_version, "changelog": doc.get("review_changelog") or "", "approved_at": now}},
+    })
     await log_action("studio_apps", f"App '{doc['name']}' review approved", user=user["username"])
     if doc.get("user_id"):
         await _create_notification(
             user_id=str(doc["user_id"]),
             message=f"🎉 Your app \"{doc.get('review_name') or doc['name']}\" was approved and is now live on Applications!",
-            notif_type="studio_app_approved", link=f"/apps/{doc['slug']}",
+            notif_type="studio_app_approved", link=f"/apps/{doc['public_id']}",
         )
     return {"ok": True}
 
@@ -438,7 +504,7 @@ async def list_published_studio_apps(user=Depends(require_permission("review_stu
     docs = await db.studio_apps.find({
         "user_id": {"$ne": None}, "status": "published",
     }).sort("reviewed_at", -1).to_list(200)
-    return {"apps": [_serialize(d, include_owner=True) for d in docs]}
+    return {"apps": [_serialize(await _ensure_public_id(d), include_owner=True) for d in docs]}
 
 @router.post("/admin/studio-apps/{app_id}/takedown")
 async def takedown_studio_app(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("review_studio_apps"))):
@@ -488,6 +554,55 @@ async def restore_studio_app(app_id: str, user=Depends(require_permission("revie
         )
     return {"ok": True}
 
+@router.post("/admin/studio-apps/{app_id}/delist")
+async def delist_studio_app(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("review_studio_apps"))):
+    """The lighter lever, distinct from takedown/restore above — removes an
+    app from GET /apps (the community showcase/search) without blocking a
+    direct /apps/{public_id} link, matching Apple's "remove from sale" vs.
+    actually pulling the app. See get_public_studio_app and
+    list_public_studio_apps for the two enforcement points."""
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="App not found")
+    reason = body.reason.strip()[:500]
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "admin_delisted": True, "admin_delisted_reason": reason, "updated_at": datetime.now(timezone.utc),
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' delisted from catalog", user=user["username"])
+    if doc.get("user_id"):
+        reason_suffix = f" Reason: {reason}" if reason else ""
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"Your app \"{doc.get('review_name') or doc['name']}\" was removed from the Applications catalog. Anyone with a direct link can still use it.{reason_suffix}",
+            notif_type="studio_app_delisted", link="/my-apps",
+        )
+    return {"ok": True}
+
+@router.post("/admin/studio-apps/{app_id}/relist")
+async def relist_studio_app(app_id: str, user=Depends(require_permission("review_studio_apps"))):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="App not found")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "admin_delisted": False, "admin_delisted_reason": "", "updated_at": datetime.now(timezone.utc),
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' relisted", user=user["username"])
+    if doc.get("user_id"):
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"Your app \"{doc.get('review_name') or doc['name']}\" is back in the Applications catalog.",
+            notif_type="studio_app_relisted", link="/my-apps",
+        )
+    return {"ok": True}
+
 @router.post("/admin/studio-apps")
 async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_permission("manage_studio_apps"))):
     name = body.name.strip()[:80]
@@ -501,6 +616,7 @@ async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_p
     doc = {
         "name": name,
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "description": "",
         "accent_color": "#4ECDC4",
         "theme": body.theme or "mint",
@@ -526,7 +642,7 @@ async def get_studio_app(app_id: str, user=Depends(require_permission("manage_st
     doc = await db.studio_apps.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="App not found")
-    return _serialize(doc, full=True)
+    return _serialize(await _ensure_public_id(doc), full=True)
 
 @router.put("/admin/studio-apps/{app_id}")
 async def update_studio_app(app_id: str, body: StudioAppUpdateRequest, user=Depends(require_permission("manage_studio_apps"))):
@@ -600,6 +716,7 @@ async def duplicate_studio_app(app_id: str, user=Depends(require_permission("man
         **{k: v for k, v in doc.items() if k not in ("_id", "created_at", "updated_at", "status")},
         "name": f"{doc['name']} (Copy)",
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "status": "draft",
         "created_at": now,
         "updated_at": now,
@@ -685,6 +802,7 @@ async def import_studio_app_file(file: UploadFile = File(...), user=Depends(requ
     doc = {
         "name": name,
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "description": payload.get("description") or "",
         "accent_color": payload.get("accent_color") or "#4ECDC4",
         "theme": payload.get("theme") or "mint",
@@ -728,7 +846,7 @@ async def list_my_studio_apps(user=Depends(get_current_user)):
     docs = await db.studio_apps.find({"user_id": ObjectId(user["id"])}).sort("updated_at", -1).to_list(100)
     max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
     return {
-        "apps": [_with_earnings(_serialize(d), d) for d in docs],
+        "apps": [_with_earnings(_serialize(await _ensure_public_id(d)), d) for d in docs],
         "quota": {"used": len(docs), "max": max_apps, "is_vakar_plus": user.get("is_vakar_plus", False)},
     }
 
@@ -758,6 +876,7 @@ async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, u
     doc = {
         "name": name,
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "description": "",
         "accent_color": "#4ECDC4",
         "theme": theme,
@@ -776,6 +895,7 @@ async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, u
 @router.get("/my/studio-apps/{app_id}")
 async def get_my_studio_app(app_id: str, user=Depends(get_current_user)):
     _oid, doc = await _get_owned_app(app_id, user)
+    await _ensure_public_id(doc)
     return _with_earnings(_serialize(doc, full=True, is_vakar_plus=user.get("is_vakar_plus", False)), doc)
 
 @router.put("/my/studio-apps/{app_id}")
@@ -821,6 +941,43 @@ async def set_my_studio_app_visibility(app_id: str, body: StudioAppVisibilityReq
     if doc.get("admin_takedown"):
         raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
     await db.studio_apps.update_one({"_id": oid}, {"$set": {"visibility": body.visibility, "updated_at": datetime.now(timezone.utc)}})
+    return {"ok": True}
+
+@router.post("/my/studio-apps/{app_id}/withdraw")
+async def withdraw_my_studio_app(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(get_current_user)):
+    """Lets an owner voluntarily pull their own live app down — distinct
+    from admin takedown/delist above. Reuses `visibility` as the actual
+    reachability lever (already fully enforced everywhere, see
+    get_public_studio_app) rather than a third independent flag; the
+    reason/timestamp are just recorded for context. Reversible by the
+    owner themselves via republish_my_studio_app below, unlike an admin
+    suspension — the required reason + the frontend's own double-confirmation
+    step (typing the app's name) is the safety net here, not irreversibility."""
+    oid, doc = await _get_owned_app(app_id, user)
+    if doc.get("admin_takedown"):
+        raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
+    if doc.get("visibility") != "public":
+        raise HTTPException(status_code=400, detail="This app isn't currently public.")
+    reason = body.reason.strip()[:500]
+    if not reason:
+        raise HTTPException(status_code=400, detail="A reason is required.")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "visibility": "private", "owner_withdrawal_reason": reason,
+        "owner_withdrawn_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc),
+    }})
+    return {"ok": True}
+
+@router.post("/my/studio-apps/{app_id}/republish")
+async def republish_my_studio_app(app_id: str, user=Depends(get_current_user)):
+    oid, doc = await _get_owned_app(app_id, user)
+    if doc.get("admin_takedown"):
+        raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
+    if not doc.get("ever_approved"):
+        raise HTTPException(status_code=402, detail="Submit this app for review before making it public.")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "visibility": "public", "owner_withdrawal_reason": "", "owner_withdrawn_at": None,
+        "updated_at": datetime.now(timezone.utc),
+    }})
     return {"ok": True}
 
 @router.post("/my/studio-apps/{app_id}/submit-review")
@@ -943,6 +1100,7 @@ async def import_my_studio_app_file(request: Request, file: UploadFile = File(..
     doc = {
         "name": name,
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "description": payload.get("description") or "",
         "accent_color": payload.get("accent_color") or "#4ECDC4",
         "theme": theme,
@@ -976,6 +1134,7 @@ async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
         **{k: v for k, v in doc.items() if k not in ("_id", "created_at", "updated_at", "status")},
         "name": f"{doc['name']} (Copy)",
         "slug": slug,
+        "public_id": await _unique_public_id(),
         "status": "draft",
         "created_at": now,
         "updated_at": now,
@@ -997,6 +1156,12 @@ async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
         "published_snapshot": None,
         "admin_takedown": False,
         "admin_takedown_reason": "",
+        "admin_delisted": False,
+        "admin_delisted_reason": "",
+        "owner_withdrawal_reason": "",
+        "owner_withdrawn_at": None,
+        "version_number": 0,
+        "version_history": [],
     }
     result = await db.studio_apps.insert_one(new_doc)
     return {"id": str(result.inserted_id), "slug": slug}
@@ -1019,23 +1184,34 @@ async def list_public_studio_apps():
         "status": "published",
         "visibility": "public",
         "admin_takedown": {"$ne": True},
+        # Delisting is deliberately independent of suspension (admin_takedown)
+        # — a delisted app disappears from this showcase/search listing but a
+        # direct /apps/{public_id} link still works, matching Apple's "remove
+        # from sale" vs. actually pulling the app.
+        "admin_delisted": {"$ne": True},
     }).sort("reviewed_at", -1).to_list(200)
     # Shows the last-approved snapshot's listing (name/description/icon/
     # price), not a newer-but-not-yet-approved resubmission's — matches
-    # what a stranger actually sees at /apps/{slug} below.
-    return {"apps": [_serialize(_apply_snapshot(d, d.get("published_snapshot"))) for d in docs]}
+    # what a stranger actually sees at /apps/{public_id} below.
+    return {"apps": [_serialize(_apply_snapshot(await _ensure_public_id(d), d.get("published_snapshot"))) for d in docs]}
 
-@router.get("/apps/{slug}")
-async def get_public_studio_app(slug: str, rev: str = "live", user=Depends(get_optional_user)):
-    doc = await db.studio_apps.find_one({"slug": slug})
+@router.get("/apps/{app_id}")
+async def get_public_studio_app(app_id: str, rev: str = "live", user=Depends(get_optional_user)):
+    # public_id is the real, opaque public identifier; slug is accepted too
+    # as a fallback purely so links shared/bookmarked before this shipped
+    # keep working — every freshly generated link uses public_id only.
+    doc = await db.studio_apps.find_one({"public_id": app_id}) or await db.studio_apps.find_one({"slug": app_id})
     if not doc:
         raise HTTPException(status_code=404, detail="App not found")
+    await _ensure_public_id(doc)
     is_owner = bool(user and doc.get("user_id") and str(doc["user_id"]) == user.get("id"))
     is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
     if not (is_owner or is_staff):
         # Everything below only gates strangers — the owner and staff can
         # always preview an app regardless of publish/review state (e.g. to
-        # review a pending resubmission from the Reviews queue).
+        # review a pending resubmission from the Reviews queue). Note
+        # admin_delisted is NOT checked here — delisting only removes an app
+        # from GET /apps above, a direct link must keep working.
         if doc.get("admin_takedown"):
             raise HTTPException(status_code=404, detail="App not found")
         if doc.get("status") != "published":
@@ -1075,7 +1251,7 @@ async def get_public_studio_app(slug: str, rev: str = "live", user=Depends(get_o
             # data here would defeat the paywall entirely, so only the
             # minimum needed to render a "Buy access" screen is sent.
             return {
-                "id": str(doc["_id"]), "slug": doc["slug"],
+                "id": str(doc["_id"]), "slug": doc["slug"], "public_id": doc["public_id"],
                 "name": view_doc.get("review_name") or view_doc["name"],
                 "description": view_doc.get("review_description") or "",
                 "app_icon_url": view_doc.get("review_logo_url") or view_doc.get("app_icon_url") or "",
@@ -1094,19 +1270,21 @@ async def get_public_studio_app(slug: str, rev: str = "live", user=Depends(get_o
         result["owner_is_vakar_plus"] = True
     return result
 
-@router.post("/apps/{slug}/checkout")
+@router.post("/apps/{app_id}/checkout")
 @limiter.limit("10/minute")
-async def create_studio_app_checkout(request: Request, slug: str, user=Depends(get_current_user)):
+async def create_studio_app_checkout(request: Request, app_id: str, user=Depends(get_current_user)):
     """Buy access to a paid app. Fulfillment (recording the purchase, crediting
     the creator's share, notifying both sides) happens in the Stripe webhook —
     see routers/shop.py's checkout_type == "studio_app_purchase" branch, the
     same split-fulfillment pattern already used for Vakar+ subscriptions."""
-    doc = await db.studio_apps.find_one({
-        "slug": slug, "status": "published", "ever_approved": True, "visibility": "public",
+    common_filter = {
+        "status": "published", "ever_approved": True, "visibility": "public",
         "admin_takedown": {"$ne": True},
-    })
+    }
+    doc = await db.studio_apps.find_one({"public_id": app_id, **common_filter}) or await db.studio_apps.find_one({"slug": app_id, **common_filter})
     if not doc or not doc.get("user_id"):
         raise HTTPException(status_code=404, detail="App not found")
+    await _ensure_public_id(doc)
     # Always sell exactly what's currently live (the approved snapshot), not
     # whatever price/listing the owner might be mid-editing in their draft.
     view_doc = _apply_snapshot(doc, doc.get("published_snapshot"))
@@ -1135,12 +1313,12 @@ async def create_studio_app_checkout(request: Request, slug: str, user=Depends(g
                 "quantity": 1,
             }],
             mode="payment",
-            success_url=f"{origin}/apps/{slug}?purchased=1",
-            cancel_url=f"{origin}/apps/{slug}",
+            success_url=f"{origin}/apps/{doc['public_id']}?purchased=1",
+            cancel_url=f"{origin}/apps/{doc['public_id']}",
             metadata={
                 "checkout_type": "studio_app_purchase",
                 "app_id": str(doc["_id"]),
-                "app_slug": slug,
+                "app_public_id": doc["public_id"],
                 "app_name": app_name,
                 "user_email": user["email"],
                 "creator_user_id": str(doc["user_id"]),

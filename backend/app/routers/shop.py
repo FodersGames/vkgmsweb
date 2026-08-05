@@ -504,7 +504,10 @@ async def stripe_webhook(request: Request):
 
         elif checkout_type == "studio_app_purchase":
             app_id_meta = meta.get("app_id", "")
-            app_slug_meta = meta.get("app_slug", "")
+            # app_public_id is what new checkout sessions carry; app_slug is
+            # kept only as a fallback for any session already in flight when
+            # this shipped (Stripe metadata is frozen at session-creation time).
+            app_public_id_meta = meta.get("app_public_id") or meta.get("app_slug", "")
             app_name = meta.get("app_name", "")
             user_email = meta.get("user_email", "")
             creator_user_id = meta.get("creator_user_id", "")
@@ -517,7 +520,7 @@ async def stripe_webhook(request: Request):
                         {"$setOnInsert": {
                             "email": user_email,
                             "app_id": app_oid,
-                            "app_slug": app_slug_meta,
+                            "app_public_id": app_public_id_meta,
                             "app_name": app_name,
                             "stripe_session_id": session.get("id", ""),
                             "amount_paid_cents": amount_paid,
@@ -526,7 +529,7 @@ async def stripe_webhook(request: Request):
                         }},
                         upsert=True,
                     )
-                    logger.info(f"Studio app purchase recorded: {user_email} → {app_slug_meta}")
+                    logger.info(f"Studio app purchase recorded: {user_email} → {app_public_id_meta}")
                     await db.studio_apps.update_one(
                         {"_id": app_oid},
                         {"$inc": {"creator_earnings_cents": creator_cents, "total_sales_cents": amount_paid}},
@@ -536,7 +539,7 @@ async def stripe_webhook(request: Request):
                         await _create_notification(
                             user_id=str(u["_id"]),
                             message=f"✅ Unlocked: {app_name} — ${amount_paid/100:.2f}.",
-                            notif_type="studio_app_purchase_success", link=f"/apps/{app_slug_meta}",
+                            notif_type="studio_app_purchase_success", link=f"/apps/{app_public_id_meta}",
                         )
                     if creator_user_id:
                         await _create_notification(

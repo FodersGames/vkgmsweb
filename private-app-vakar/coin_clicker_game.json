@@ -1,0 +1,115 @@
+{
+  "format": "vakarstudio",
+  "version": 1,
+  "name": "Coin Clicker",
+  "description": "Tap to earn coins, open chests in the shop, and collect cards by rarity.",
+  "accent_color": "#F2994A",
+  "theme": "amber",
+  "package_id": null,
+  "min_sdk": null,
+  "target_sdk": null,
+  "app_display_name": "",
+  "app_icon_url": "",
+  "variables": [
+    { "name": "coins", "initial_value": "0" },
+    { "name": "lastReward", "initial_value": "" },
+    { "name": "myCards", "initial_value": "[]" },
+    { "name": "bronzeRewards", "initial_value": "[{\"value\":\"🟫 Common — Squire\",\"weight\":60},{\"value\":\"🟫 Common — Archer\",\"weight\":20},{\"value\":\"🟦 Rare — Knight\",\"weight\":15},{\"value\":\"🟪 Epic — Mage\",\"weight\":5}]" },
+    { "name": "goldRewards", "initial_value": "[{\"value\":\"🟦 Rare — Paladin\",\"weight\":40},{\"value\":\"🟪 Epic — Assassin\",\"weight\":35},{\"value\":\"🟪 Epic — Dragon Rider\",\"weight\":15},{\"value\":\"🟨 Legendary — Phoenix\",\"weight\":8},{\"value\":\"🟨 Legendary — Ancient Dragon\",\"weight\":2}]" }
+  ],
+  "screens": [
+    {
+      "id": "home",
+      "name": "Clicker",
+      "components": [
+        { "id": "coin-icon", "type": "icon", "actions": {}, "layout": { "x": 160, "y": 32, "w": 40, "h": 40 },
+          "props": { "icon": "star", "color": "" } },
+        { "id": "title", "type": "text", "actions": {}, "layout": { "x": 20, "y": 78, "w": 320, "h": 36 },
+          "props": { "content": "Coin Clicker", "size": "xl", "weight": "bold", "align": "center", "color": "" } },
+        { "id": "coins-display", "type": "text", "actions": {}, "layout": { "x": 20, "y": 136, "w": 320, "h": 70 },
+          "props": { "content": "{{coins}}", "size": "custom", "size_px": 48, "weight": "bold", "align": "center", "color": "" } },
+        { "id": "coins-label", "type": "text", "actions": {}, "layout": { "x": 20, "y": 206, "w": 320, "h": 20 },
+          "props": { "content": "coins", "size": "sm", "weight": "normal", "align": "center", "color": "" } },
+        { "id": "tap-button", "type": "button",
+          "actions": { "onClick": [ { "type": "set_variable", "variable": "coins", "value_mode": "increment", "value": "1" } ] },
+          "layout": { "x": 40, "y": 258, "w": 280, "h": 100 }, "props": { "label": "TAP TO EARN +1", "style": "primary", "icon": "" } },
+        { "id": "hint", "type": "text", "actions": {}, "layout": { "x": 30, "y": 378, "w": 300, "h": 40 },
+          "props": { "content": "Tap to earn coins, then spend them in the Shop.", "size": "sm", "weight": "normal", "align": "center", "color": "" } },
+        { "id": "shop-button", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "shop" } ] },
+          "layout": { "x": 20, "y": 540, "w": 150, "h": 56 }, "props": { "label": "🛒 Shop", "style": "secondary", "icon": "" } },
+        { "id": "collection-button", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "collection" } ] },
+          "layout": { "x": 190, "y": 540, "w": 150, "h": 56 }, "props": { "label": "🎴 My Cards", "style": "secondary", "icon": "" } }
+      ]
+    },
+    {
+      "id": "shop",
+      "name": "Shop",
+      "components": [
+        { "id": "shop-title", "type": "text", "actions": {}, "layout": { "x": 20, "y": 26, "w": 320, "h": 36 },
+          "props": { "content": "🛒 Shop", "size": "xl", "weight": "bold", "align": "center", "color": "" } },
+        { "id": "shop-coins", "type": "text", "actions": {}, "layout": { "x": 20, "y": 68, "w": 320, "h": 28 },
+          "props": { "content": "🪙 {{coins}} coins", "size": "lg", "weight": "bold", "align": "center", "color": "" } },
+        { "id": "div-1", "type": "divider", "actions": {}, "layout": { "x": 20, "y": 112, "w": 320, "h": 2 }, "props": {} },
+
+        { "id": "bronze-label", "type": "text", "actions": {}, "layout": { "x": 20, "y": 128, "w": 320, "h": 24 },
+          "props": { "content": "Bronze Chest", "size": "md", "weight": "bold", "align": "left", "color": "" } },
+        { "id": "bronze-sub", "type": "text", "actions": {}, "layout": { "x": 20, "y": 152, "w": 320, "h": 20 },
+          "props": { "content": "50 coins — mostly Common & Rare", "size": "sm", "weight": "normal", "align": "left", "color": "" } },
+        { "id": "open-bronze", "type": "button",
+          "visible_if": { "variable": "coins", "op": "gt", "value": "49" },
+          "actions": { "onClick": [
+            { "type": "calculate", "variable": "coins", "op": "subtract", "a": "coins", "b": "50" },
+            { "type": "random_pick", "options_variable": "bronzeRewards", "target_variable": "lastReward", "collection_variable": "myCards" },
+            { "type": "show_message", "text": "You got: {{lastReward}}" }
+          ] },
+          "layout": { "x": 20, "y": 178, "w": 320, "h": 52 }, "props": { "label": "Open Bronze Chest — 50 coins", "style": "primary", "icon": "" } },
+        { "id": "bronze-locked", "type": "text",
+          "visible_if": { "variable": "coins", "op": "lt", "value": "50" },
+          "layout": { "x": 20, "y": 178, "w": 320, "h": 52 },
+          "props": { "content": "Need 50 coins for a Bronze Chest", "size": "sm", "weight": "normal", "align": "center", "color": "" } },
+
+        { "id": "div-2", "type": "divider", "actions": {}, "layout": { "x": 20, "y": 242, "w": 320, "h": 2 }, "props": {} },
+
+        { "id": "gold-label", "type": "text", "actions": {}, "layout": { "x": 20, "y": 258, "w": 320, "h": 24 },
+          "props": { "content": "Gold Chest ✨", "size": "md", "weight": "bold", "align": "left", "color": "" } },
+        { "id": "gold-sub", "type": "text", "actions": {}, "layout": { "x": 20, "y": 282, "w": 320, "h": 20 },
+          "props": { "content": "200 coins — guaranteed Rare or better", "size": "sm", "weight": "normal", "align": "left", "color": "" } },
+        { "id": "open-gold", "type": "button",
+          "visible_if": { "variable": "coins", "op": "gt", "value": "199" },
+          "actions": { "onClick": [
+            { "type": "calculate", "variable": "coins", "op": "subtract", "a": "coins", "b": "200" },
+            { "type": "random_pick", "options_variable": "goldRewards", "target_variable": "lastReward", "collection_variable": "myCards" },
+            { "type": "show_message", "text": "✨ You got: {{lastReward}}" }
+          ] },
+          "layout": { "x": 20, "y": 308, "w": 320, "h": 52 }, "props": { "label": "Open Gold Chest — 200 coins", "style": "primary", "icon": "" } },
+        { "id": "gold-locked", "type": "text",
+          "visible_if": { "variable": "coins", "op": "lt", "value": "200" },
+          "layout": { "x": 20, "y": 308, "w": 320, "h": 52 },
+          "props": { "content": "Need 200 coins for a Gold Chest", "size": "sm", "weight": "normal", "align": "center", "color": "" } },
+
+        { "id": "div-3", "type": "divider", "actions": {}, "layout": { "x": 20, "y": 372, "w": 320, "h": 2 }, "props": {} },
+
+        { "id": "to-collection", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "collection" } ] },
+          "layout": { "x": 20, "y": 392, "w": 320, "h": 50 }, "props": { "label": "🎴 View My Cards", "style": "secondary", "icon": "" } },
+        { "id": "back-home", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "home" } ] },
+          "layout": { "x": 20, "y": 552, "w": 320, "h": 50 }, "props": { "label": "⬅ Back to Clicker", "style": "outline", "icon": "" } }
+      ]
+    },
+    {
+      "id": "collection",
+      "name": "My Cards",
+      "components": [
+        { "id": "collection-title", "type": "text", "actions": {}, "layout": { "x": 20, "y": 26, "w": 320, "h": 36 },
+          "props": { "content": "🎴 My Card Collection", "size": "xl", "weight": "bold", "align": "center", "color": "" } },
+        { "id": "collection-sub", "type": "text", "actions": {}, "layout": { "x": 20, "y": 70, "w": 320, "h": 22 },
+          "props": { "content": "Every card you've pulled from a chest", "size": "sm", "weight": "normal", "align": "center", "color": "" } },
+        { "id": "card-list", "type": "list", "actions": {}, "layout": { "x": 20, "y": 104, "w": 320, "h": 424 },
+          "props": { "source_variable": "myCards", "item_template": "{{item}}", "empty_text": "No cards yet — open a chest in the Shop!", "item_action": null } },
+        { "id": "to-shop", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "shop" } ] },
+          "layout": { "x": 20, "y": 546, "w": 150, "h": 54 }, "props": { "label": "🛒 Shop", "style": "secondary", "icon": "" } },
+        { "id": "to-home", "type": "button", "actions": { "onClick": [ { "type": "navigate", "screen_id": "home" } ] },
+          "layout": { "x": 190, "y": 546, "w": 150, "h": 54 }, "props": { "label": "🪙 Clicker", "style": "secondary", "icon": "" } }
+      ]
+    }
+  ]
+}

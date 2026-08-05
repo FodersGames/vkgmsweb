@@ -3,6 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
+  ShieldAlert, EyeOff, History,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -17,6 +18,8 @@ import {
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
+import { ConfirmDialog } from './ConfirmDialog';
+import { VersionHistoryModal } from './VersionHistoryModal';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 const MIN_SIZE = 24;
@@ -782,6 +785,25 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           <p className="text-[10px] text-[#A1A1A6]">A and B can each be a fixed number or another variable's name — both are read as numbers.</p>
         </>
       );
+    case 'random_pick':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>Reward table (variable)</label>
+            <input value={action.options_variable || ''} onChange={e => setField('options_variable', e.target.value)} placeholder="e.g. chestRewards" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">A variable holding a list like {'[{"value":"Common Sword","weight":70},{"value":"Legendary Sword","weight":2}]'} — higher weight = more likely. "value" can be plain text or an object for rich cards.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Store the result in</label>
+            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. lastReward" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Also add to a collection (optional)</label>
+            <input value={action.collection_variable || ''} onChange={e => setField('collection_variable', e.target.value)} placeholder="e.g. myCards" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">If set, the reward is appended here too — bind a list component to it to show a collection.</p>
+          </div>
+        </>
+      );
     case 'reset_variables':
       return <p className="text-xs text-[#A1A1A6]">No settings — this resets every variable in the app back to its starting value.</p>;
     case 'update_text':
@@ -1116,6 +1138,16 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [reviewLogoUploading, setReviewLogoUploading] = useState(false);
   const [reviewBannerUploading, setReviewBannerUploading] = useState(false);
   const reviewLogoInputRef = useRef(null);
+  // "Remove from Applications" — a real, consequential action (may have
+  // installs/sales), so it gets a reason field AND a type-to-confirm input
+  // instead of the single-click ConfirmDialog used everywhere else.
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [withdrawConfirmName, setWithdrawConfirmName] = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [republishConfirmOpen, setRepublishConfirmOpen] = useState(false);
+  const [republishSubmitting, setRepublishSubmitting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const reviewBannerInputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -1401,6 +1433,32 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     setApp(a => ({ ...a, visibility: next }));
   };
 
+  const withdrawApp = async () => {
+    setWithdrawSubmitting(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/withdraw`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: withdrawReason.trim() }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { setSaveError(data.detail || 'Could not remove this app.'); return; }
+      setApp(a => ({ ...a, visibility: 'private', owner_withdrawal_reason: withdrawReason.trim() }));
+      setWithdrawOpen(false);
+      setWithdrawReason('');
+      setWithdrawConfirmName('');
+    } finally {
+      setWithdrawSubmitting(false);
+    }
+  };
+
+  const republishApp = async () => {
+    const r = await fetch(`${API}${apiBase}/${appId}/republish`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { setSaveError(data.detail || 'Could not republish this app.'); return; }
+    setApp(a => ({ ...a, visibility: 'public', owner_withdrawal_reason: '' }));
+  };
+
   const openReviewModal = () => {
     setReviewForm({
       name: app.review_name || app.name || '',
@@ -1623,13 +1681,30 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
         <div className="flex-1" />
 
+        {enableApkBuild && app.version_history?.length > 0 && (
+          <Button size="sm" variant="secondary" icon={History} onClick={() => setHistoryOpen(true)} title="Version history">
+            v{app.version_number}
+          </Button>
+        )}
         <Button size="sm" variant="secondary" icon={Settings} onClick={() => setSettingsOpen(true)} title="Package name, SDK, icon">
           App Settings
         </Button>
         {enableApkBuild ? (
-          <Button size="sm" variant="accent" icon={Send} onClick={openReviewModal} title="Send this version for admin review — approval is what publishes it">
-            Submit Version
-          </Button>
+          <>
+            <Button size="sm" variant="accent" icon={Send} onClick={openReviewModal} title="Send this version for admin review — approval is what publishes it">
+              Submit Version
+            </Button>
+            {app.visibility === 'public' && app.ever_approved && !app.admin_takedown && (
+              <Button size="sm" variant="danger" icon={ShieldAlert} onClick={() => setWithdrawOpen(true)} title="Pull this app down yourself">
+                Remove from Applications
+              </Button>
+            )}
+            {app.visibility === 'private' && app.owner_withdrawal_reason && !app.admin_takedown && (
+              <Button size="sm" variant="secondary" icon={Eye} onClick={() => setRepublishConfirmOpen(true)}>
+                Republish to Applications
+              </Button>
+            )}
+          </>
         ) : (
           <>
             <Button size="sm" variant="secondary" onClick={toggleVisibility}>
@@ -1670,6 +1745,19 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           {justSaved ? 'Saved' : dirty ? 'Save' : 'Saved'}
         </Button>
       </div>
+
+      {enableApkBuild && app.admin_takedown && (
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-500/10 border-b border-red-100 dark:border-red-500/20 text-xs text-red-600 dark:text-red-400 shrink-0">
+          <ShieldAlert size={13} className="shrink-0" />
+          <span>Suspended by moderation{app.admin_takedown_reason ? `: ${app.admin_takedown_reason}` : ''} — contact support to appeal.</span>
+        </div>
+      )}
+      {enableApkBuild && !app.admin_takedown && app.admin_delisted && (
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-100 dark:border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 shrink-0">
+          <EyeOff size={13} className="shrink-0" />
+          <span>Removed from the Applications catalog by moderation{app.admin_delisted_reason ? `: ${app.admin_delisted_reason}` : ''} — direct links still work.</span>
+        </div>
+      )}
 
       {saveError && (
         <div className="flex items-center justify-between gap-3 px-5 py-2.5 bg-red-50 dark:bg-red-500/10 border-b border-red-100 dark:border-red-500/20 text-xs text-red-600 dark:text-red-400 shrink-0">
@@ -2203,7 +2291,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
               {app.ever_approved && (
                 <div>
-                  <label className={FIELD_LABEL}>What's new in this update</label>
+                  <div className="flex items-center justify-between">
+                    <label className={FIELD_LABEL}>What's new in this update</label>
+                    {app.version_history?.length > 0 && (
+                      <button type="button" onClick={() => setHistoryOpen(true)} className="text-[10px] font-semibold text-[#4ECDC4] hover:underline flex items-center gap-1">
+                        <History size={10} />View past updates
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={3} value={reviewForm.changelog}
                     onChange={e => setReviewForm(f => ({ ...f, changelog: e.target.value }))}
@@ -2228,6 +2323,73 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               >
                 Submit for review
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <VersionHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} history={app.version_history} />
+
+      <ConfirmDialog
+        isOpen={republishConfirmOpen}
+        onClose={() => !republishSubmitting && setRepublishConfirmOpen(false)}
+        onConfirm={async () => {
+          setRepublishSubmitting(true);
+          try { await republishApp(); setRepublishConfirmOpen(false); } finally { setRepublishSubmitting(false); }
+        }}
+        title="Republish this app?"
+        description="It goes back to public immediately, using the same last-approved version — no new review needed."
+        confirmLabel="Republish"
+        variant="accent"
+        loading={republishSubmitting}
+      />
+
+      {/* "Remove from Applications" — a genuinely consequential self-service
+          action (may have installs/sales), so it needs a reason AND a
+          type-to-confirm input, not the single-click ConfirmDialog used for
+          republish above or anywhere else in this editor. */}
+      {withdrawOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => !withdrawSubmitting && setWithdrawOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7] flex items-center gap-2">
+                <ShieldAlert size={17} className="text-red-500" />Remove from Applications
+              </h3>
+              <button onClick={() => setWithdrawOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
+                Your app is pulled from Applications immediately — strangers can no longer reach it. You can republish it yourself at any time, unless it's later suspended by moderation.
+              </p>
+              <div>
+                <label className={FIELD_LABEL}>Why are you removing it?</label>
+                <textarea
+                  autoFocus rows={2} value={withdrawReason} onChange={e => setWithdrawReason(e.target.value)}
+                  placeholder="e.g. Taking it down for a rework" className={`${FIELD_INPUT} resize-none`} maxLength={500}
+                />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Type "{app.name}" to confirm</label>
+                <input
+                  value={withdrawConfirmName} onChange={e => setWithdrawConfirmName(e.target.value)}
+                  placeholder={app.name} className={FIELD_INPUT}
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] flex gap-2">
+              <Button
+                className="flex-1" variant="danger" icon={ShieldAlert} loading={withdrawSubmitting}
+                disabled={!withdrawReason.trim() || withdrawConfirmName.trim() !== app.name.trim()}
+                onClick={withdrawApp}
+              >
+                Remove from Applications
+              </Button>
+              <Button variant="secondary" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
             </div>
           </div>
         </div>

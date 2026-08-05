@@ -986,23 +986,30 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         if a.get("review_status") != "pending":
             raise _CliError(f"'{slug}' has no pending submission.")
         now = datetime.now(timezone.utc)
-        from .studio_apps import _make_snapshot
-        await db.studio_apps.update_one({"_id": a["_id"]}, {"$set": {
-            "review_status": "approved", "status": "published", "visibility": "public",
-            "ever_approved": True, "reviewed_at": now, "reviewed_by": admin["username"], "updated_at": now,
-            # Same freeze as the dashboard's Reviews approve action — the
-            # public app must serve exactly what was submitted, immune to
-            # any draft edits made since (see studio_apps.py's
-            # STUDIO_APP_SNAPSHOT_FIELDS writeup).
-            "published_snapshot": a.get("pending_snapshot") or _make_snapshot(a),
-            "pending_snapshot": None,
-        }})
+        from .studio_apps import _make_snapshot, _ensure_public_id
+        await _ensure_public_id(a)
+        new_version = int(a.get("version_number") or 0) + 1
+        await db.studio_apps.update_one({"_id": a["_id"]}, {
+            "$set": {
+                "review_status": "approved", "status": "published", "visibility": "public",
+                "ever_approved": True, "reviewed_at": now, "reviewed_by": admin["username"], "updated_at": now,
+                # Same freeze as the dashboard's Reviews approve action — the
+                # public app must serve exactly what was submitted, immune to
+                # any draft edits made since (see studio_apps.py's
+                # STUDIO_APP_SNAPSHOT_FIELDS writeup).
+                "published_snapshot": a.get("pending_snapshot") or _make_snapshot(a),
+                "pending_snapshot": None,
+                "version_number": new_version,
+            },
+            # Same version_history parity as the dashboard's approve action.
+            "$push": {"version_history": {"version": new_version, "changelog": a.get("review_changelog") or "", "approved_at": now}},
+        })
         await log_action("studio_apps", f"[CLI] App '{a['name']}' review approved", user=admin["username"])
         if a.get("user_id"):
             await _create_notification(
                 user_id=str(a["user_id"]),
                 message=f"🎉 Your app \"{a.get('review_name') or a['name']}\" was approved and is now live on Applications!",
-                notif_type="studio_app_approved", link=f"/apps/{a['slug']}",
+                notif_type="studio_app_approved", link=f"/apps/{a['public_id']}",
             )
         return [f"OK — '{slug}' approved and published."], False, True
 

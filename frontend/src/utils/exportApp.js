@@ -469,6 +469,37 @@ function generateJS(app) {
         Object.keys(INITIAL_VARS).forEach(function (k) { vars[k] = INITIAL_VARS[k]; });
         break;
       }
+      case 'random_pick': {
+        if (!action.options_variable) break;
+        var rawOptions = vars[action.options_variable];
+        var options = [];
+        try { var parsedOptions = rawOptions ? JSON.parse(rawOptions) : []; if (Array.isArray(parsedOptions)) options = parsedOptions; } catch (e) { /* empty */ }
+        if (options.length === 0) break;
+        var totalWeight = 0;
+        for (var wi = 0; wi < options.length; wi++) totalWeight += (Number(options[wi].weight) || 0);
+        var picked = options[options.length - 1];
+        if (totalWeight > 0) {
+          var roll = Math.random() * totalWeight;
+          for (var pi = 0; pi < options.length; pi++) {
+            roll -= (Number(options[pi].weight) || 0);
+            if (roll <= 0) { picked = options[pi]; break; }
+          }
+        } else {
+          picked = options[Math.floor(Math.random() * options.length)];
+        }
+        var pickedValue = picked ? picked.value : undefined;
+        if (action.target_variable) {
+          vars[action.target_variable] = typeof pickedValue === 'object' ? JSON.stringify(pickedValue) : String(pickedValue == null ? '' : pickedValue);
+        }
+        if (action.collection_variable) {
+          var rawColl = vars[action.collection_variable];
+          var arr = [];
+          try { var parsedColl = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsedColl)) arr = parsedColl; } catch (e) { /* start fresh */ }
+          arr.push(pickedValue);
+          vars[action.collection_variable] = JSON.stringify(arr);
+        }
+        break;
+      }
       case 'copy_to_clipboard':
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(interpolate(action.text, scope)).catch(function () {});

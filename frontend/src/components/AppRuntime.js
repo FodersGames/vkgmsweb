@@ -463,6 +463,40 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
         setVars(initial);
         break;
       }
+      case 'random_pick': {
+        if (!action.options_variable) break;
+        const raw = currentVars[action.options_variable];
+        let options = [];
+        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) options = parsed; } catch { /* empty */ }
+        if (options.length === 0) break;
+        const totalWeight = options.reduce((sum, o) => sum + (Number(o.weight) || 0), 0);
+        let picked = options[options.length - 1];
+        if (totalWeight > 0) {
+          let roll = Math.random() * totalWeight;
+          for (const o of options) {
+            roll -= (Number(o.weight) || 0);
+            if (roll <= 0) { picked = o; break; }
+          }
+        } else {
+          picked = options[Math.floor(Math.random() * options.length)];
+        }
+        const pickedValue = picked?.value;
+        if (action.target_variable) {
+          const pickedStr = typeof pickedValue === 'object' ? JSON.stringify(pickedValue) : String(pickedValue ?? '');
+          currentVars[action.target_variable] = pickedStr;
+          setVars(v => ({ ...v, [action.target_variable]: pickedStr }));
+        }
+        if (action.collection_variable) {
+          const rawColl = currentVars[action.collection_variable];
+          let arr = [];
+          try { const parsed = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
+          arr.push(pickedValue);
+          const nextColl = JSON.stringify(arr);
+          currentVars[action.collection_variable] = nextColl;
+          setVars(v => ({ ...v, [action.collection_variable]: nextColl }));
+        }
+        break;
+      }
       case 'copy_to_clipboard':
         if (navigator.clipboard?.writeText) {
           navigator.clipboard.writeText(interpolate(action.text, currentVars, scope)).catch(() => {});

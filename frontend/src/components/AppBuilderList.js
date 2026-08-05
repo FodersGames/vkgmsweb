@@ -421,7 +421,7 @@ export default function AppBuilderList({ onNavigate }) {
                       <Button size="sm" variant="secondary" className="flex-1" onClick={() => setEditingId(a.id)}>Edit</Button>
                       {a.status === 'published' && (
                         <a
-                          href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer" title="Open"
+                          href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer" title="Open"
                           className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]"
                         >
                           <ExternalLink size={14} />

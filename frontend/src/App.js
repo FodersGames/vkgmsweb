@@ -67,7 +67,7 @@ const AppRoutes = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/play" element={<Navigate to="/my-apps" replace />} />
-        <Route path="/apps/:slug" element={<StudioAppView />} />
+        <Route path="/apps/:appId" element={<StudioAppView />} />
         <Route path="/vakar-plus" element={<VakarPlus />} />
         <Route path="/my-apps" element={<MyApps />} />
         <Route path="/choose-pseudo" element={<ChoosePseudo />} />

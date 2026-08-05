@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, WarningCircle, LockKey, LockSimple, ShoppingCart, CircleNotch } from '@phosphor-icons/react';
+import { ArrowLeft, WarningCircle, LockKey, LockSimple, ShoppingCart, CircleNotch, ClockCounterClockwise } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import AppRuntime from '../components/AppRuntime';
+import { VersionHistoryModal } from '../components/VersionHistoryModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function StudioAppView() {
-  const { slug } = useParams();
+  const { appId } = useParams();
   const { user, token, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -21,12 +22,13 @@ export default function StudioAppView() {
   const [status, setStatus] = useState('loading');
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const load = useCallback(() => {
     const qs = rev ? `?rev=${encodeURIComponent(rev)}` : '';
-    return fetch(`${API_URL}/api/apps/${slug}${qs}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+    return fetch(`${API_URL}/api/apps/${appId}${qs}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); });
-  }, [slug, token, rev]);
+  }, [appId, token, rev]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -68,7 +70,7 @@ export default function StudioAppView() {
     setBuying(true);
     setBuyError('');
     try {
-      const r = await fetch(`${API_URL}/api/apps/${slug}/checkout`, {
+      const r = await fetch(`${API_URL}/api/apps/${appId}/checkout`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       const data = await r.json();
@@ -139,15 +141,27 @@ export default function StudioAppView() {
   // the builder's canvas and its Preview modal.
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F7]">
-      <Link to="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors px-6 py-4">
-        <ArrowLeft size={12} />Vakar Games
-      </Link>
+      <div className="flex items-center justify-between px-6 py-4">
+        <Link to="/" className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
+          <ArrowLeft size={12} />Vakar Games
+        </Link>
+        {app.version_history?.length > 0 && (
+          <button
+            onClick={() => setHistoryOpen(true)}
+            title="Version history"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
+          >
+            <ClockCounterClockwise size={13} />v{app.version_number}
+          </button>
+        )}
+      </div>
       <div className="relative flex-1">
         <AppRuntime app={app} token={token} className="w-full h-full" showWatermark={!app.owner_is_vakar_plus} />
       </div>
       {app.visibility === 'private' && (
         <p className="text-[11px] text-[#A1A1A6] flex items-center justify-center gap-1 py-3 border-t border-[#D2D2D7]"><LockKey size={11} />Internal tool — staff only</p>
       )}
+      <VersionHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} history={app.version_history} />
     </div>
   );
 }

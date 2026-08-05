@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ExternalLink, ShieldAlert, ShieldCheck as ShieldCheckIcon, Check, X, ThumbsDown, Clock, Globe, Lock } from 'lucide-react';
+import { ExternalLink, ShieldAlert, ShieldCheck as ShieldCheckIcon, Check, X, ThumbsDown, Clock, Globe, Lock, EyeOff, Eye } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { useAuth } from '../context/AuthContext';
@@ -20,8 +20,10 @@ export default function PublishedAppsManager() {
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
-  const [suspendingId, setSuspendingId] = useState(null);
-  const [suspendReason, setSuspendReason] = useState('');
+  // { id, type: 'suspend' | 'delist' } — one shared reason-textarea flow for
+  // both actions, since they need identical UX (reason required, one Confirm).
+  const [pendingAction, setPendingAction] = useState(null);
+  const [reasonInput, setReasonInput] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -37,18 +39,21 @@ export default function PublishedAppsManager() {
 
   useEffect(() => { load(); }, [load]);
 
-  const suspend = async (id) => {
+  const confirmAction = async () => {
+    if (!pendingAction) return;
+    const { id, type } = pendingAction;
+    const endpoint = type === 'suspend' ? 'takedown' : 'delist';
     setBusyId(id);
     setError('');
     try {
-      const r = await fetch(`${API}/api/admin/studio-apps/${id}/takedown`, {
+      const r = await fetch(`${API}/api/admin/studio-apps/${id}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ reason: suspendReason.trim() }),
+        body: JSON.stringify({ reason: reasonInput.trim() }),
       });
-      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || 'Could not suspend this app.'); }
-      setSuspendingId(null);
-      setSuspendReason('');
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || `Could not ${type} this app.`); }
+      setPendingAction(null);
+      setReasonInput('');
       await load();
     } catch (e) {
       setError(e.message);
@@ -57,12 +62,13 @@ export default function PublishedAppsManager() {
     }
   };
 
-  const restore = async (id) => {
+  const reverseAction = async (id, type) => {
+    const endpoint = type === 'suspend' ? 'restore' : 'relist';
     setBusyId(id);
     setError('');
     try {
-      const r = await fetch(`${API}/api/admin/studio-apps/${id}/restore`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || 'Could not restore this app.'); }
+      const r = await fetch(`${API}/api/admin/studio-apps/${id}/${endpoint}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || `Could not undo this.`); }
       await load();
     } catch (e) {
       setError(e.message);
@@ -76,7 +82,7 @@ export default function PublishedAppsManager() {
       <div>
         <h2 className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Published Apps</h2>
         <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">
-          Every community app that's currently live — suspend one instantly if it needs to come down; the owner can't bring it back themselves.
+          Every community app that's currently live. <strong>Delist</strong> hides an app from search/discovery while direct links keep working — <strong>Suspend</strong> blocks it entirely. Neither can be undone by the owner themselves.
         </p>
       </div>
 
@@ -109,6 +115,14 @@ export default function PublishedAppsManager() {
                   </p>
                 </div>
               )}
+              {a.admin_delisted && (
+                <div className="px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-100 dark:border-amber-500/20 flex items-center gap-2">
+                  <EyeOff size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-snug">
+                    Delisted — hidden from Applications{a.admin_delisted_reason ? ` — ${a.admin_delisted_reason}` : ''}
+                  </p>
+                </div>
+              )}
               <div className="p-5 flex flex-col gap-3 flex-1">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c]">
@@ -121,7 +135,7 @@ export default function PublishedAppsManager() {
                     <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] truncate">by {a.owner || 'unknown'} · live since {fmtDate(a.reviewed_at)}</p>
                   </div>
                   <a
-                    href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer" title="View the live app"
+                    href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer" title="View the live app"
                     className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] shrink-0"
                   >
                     <ExternalLink size={14} />
@@ -155,24 +169,31 @@ export default function PublishedAppsManager() {
 
                 <div className="flex-1" />
 
-                {suspendingId === a.id ? (
+                {pendingAction?.id === a.id ? (
                   <div className="pt-2 border-t border-[#EDEDEF] dark:border-[#1c1c2e] space-y-2">
                     <textarea
-                      autoFocus rows={2} value={suspendReason} onChange={e => setSuspendReason(e.target.value)}
-                      placeholder="Reason for suspension (shown to the owner)"
+                      autoFocus rows={2} value={reasonInput} onChange={e => setReasonInput(e.target.value)}
+                      placeholder={`Reason for ${pendingAction.type === 'suspend' ? 'suspension' : 'delisting'} (shown to the owner)`}
                       className="w-full rounded-lg px-3 py-2 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-red-400 resize-none"
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" variant="danger" className="flex-1" loading={busyId === a.id} onClick={() => suspend(a.id)}>Confirm suspend</Button>
-                      <Button size="sm" variant="secondary" onClick={() => { setSuspendingId(null); setSuspendReason(''); }}>Cancel</Button>
+                      <Button size="sm" variant="danger" className="flex-1" loading={busyId === a.id} onClick={confirmAction}>
+                        Confirm {pendingAction.type === 'suspend' ? 'suspend' : 'delist'}
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={() => { setPendingAction(null); setReasonInput(''); }}>Cancel</Button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 pt-2 border-t border-[#EDEDEF] dark:border-[#1c1c2e]">
                     {a.admin_takedown ? (
-                      <Button size="sm" icon={Check} className="flex-1 !bg-emerald-500 hover:!bg-emerald-600 !text-white" loading={busyId === a.id} onClick={() => restore(a.id)}>Restore</Button>
+                      <Button size="sm" icon={Check} className="flex-1 !bg-emerald-500 hover:!bg-emerald-600 !text-white" loading={busyId === a.id} onClick={() => reverseAction(a.id, 'suspend')}>Restore</Button>
                     ) : (
-                      <Button size="sm" variant="danger" icon={ShieldAlert} className="flex-1" onClick={() => setSuspendingId(a.id)}>Suspend</Button>
+                      <Button size="sm" variant="danger" icon={ShieldAlert} className="flex-1" onClick={() => setPendingAction({ id: a.id, type: 'suspend' })}>Suspend</Button>
+                    )}
+                    {a.admin_delisted ? (
+                      <Button size="sm" icon={Eye} className="flex-1 !bg-emerald-500 hover:!bg-emerald-600 !text-white" loading={busyId === a.id} onClick={() => reverseAction(a.id, 'delist')}>Relist</Button>
+                    ) : (
+                      <Button size="sm" variant="secondary" icon={EyeOff} className="flex-1" onClick={() => setPendingAction({ id: a.id, type: 'delist' })}>Delist</Button>
                     )}
                   </div>
                 )}

@@ -10,7 +10,7 @@ import { APP_TEMPLATES, APP_TEMPLATE_MAP } from '../constants/appBuilderTemplate
 import { THEME_MAP } from '../constants/appBuilder';
 import {
   AppWindow, Plus, Copy, Trash, Globe, LockSimple, ArrowSquareOut, Crown, X, Check,
-  UploadSimple, DownloadSimple, Sparkle,
+  UploadSimple, DownloadSimple, Sparkle, LinkSimple,
 } from '@phosphor-icons/react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -32,7 +32,14 @@ export default function MyApps() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [exportingId, setExportingId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   const importInputRef = useRef(null);
+
+  const copyLink = (a) => {
+    navigator.clipboard.writeText(`${window.location.origin}/apps/${a.public_id}`);
+    setCopiedId(a.id);
+    setTimeout(() => setCopiedId(id => (id === a.id ? null : id)), 1500);
+  };
 
   useEffect(() => {
     document.title = 'My Apps — Vakar Games';
@@ -340,6 +347,11 @@ export default function MyApps() {
                     )}
                   </div>
                   <p className="text-[11px] text-[#A1A1A6] font-mono truncate">/apps/{a.slug}</p>
+                  {a.status === 'published' && a.visibility === 'public' && (
+                    <button onClick={() => copyLink(a)} className="flex items-center gap-1 text-[11px] text-[#4ECDC4] font-semibold hover:underline mt-0.5">
+                      <LinkSimple size={11} />{copiedId === a.id ? 'Link copied!' : 'Copy public link'}
+                    </button>
+                  )}
                   {a.review_status === 'rejected' && a.review_rejection_reason && (
                     <p className="text-[11px] text-red-500 mt-1 truncate">Reason: {a.review_rejection_reason}</p>
                   )}
@@ -357,7 +369,7 @@ export default function MyApps() {
                       Edit
                     </button>
                     {a.status === 'published' && (
-                      <a href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer" title="Open" className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7]">
+                      <a href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer" title="Open" className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7]">
                         <ArrowSquareOut size={14} />
                       </a>
                     )}

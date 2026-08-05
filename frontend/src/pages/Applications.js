@@ -112,7 +112,7 @@ const ApplicationsPage = () => {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredApps.map(a => (
                 <Reveal key={a.slug} className="rounded-2xl bg-white border border-[#D2D2D7] overflow-hidden flex flex-col group">
-                  <a href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer" className="block h-32 bg-[#F5F5F7] overflow-hidden">
+                  <a href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer" className="block h-32 bg-[#F5F5F7] overflow-hidden">
                     {a.review_banner_url ? (
                       <img src={img(a.review_banner_url)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : a.review_logo_url ? (
@@ -147,7 +147,7 @@ const ApplicationsPage = () => {
                     )}
                     <div className="flex-1" />
                     <a
-                      href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer"
+                      href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1D1D1F] hover:text-[#4ECDC4] transition-colors"
                     >
                       Open <ArrowSquareOut size={12} />

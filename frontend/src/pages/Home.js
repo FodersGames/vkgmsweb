@@ -135,7 +135,7 @@ const Home = () => {
               {apps.slice(0, 3).map(a => (
                 <a
                   key={a.slug}
-                  href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer"
+                  href={`/apps/${a.public_id}`} target="_blank" rel="noopener noreferrer"
                   className="relative bg-white hover:bg-[#FCFCFD] hover:shadow-[0_16px_32px_-16px_rgba(0,0,0,0.18)] hover:-translate-y-px hover:z-10 transition-all duration-300 ease-out px-[30px] py-9"
                 >
                   {a.review_logo_url ? (

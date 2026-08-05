@@ -176,6 +176,7 @@ export const ACTION_TYPES = [
   { type: 'navigate', label: 'Go to screen', category: 'Navigate' },
   { type: 'set_variable', label: 'Set a variable', category: 'Variables & Math' },
   { type: 'calculate', label: 'Calculate', category: 'Variables & Math' },
+  { type: 'random_pick', label: 'Random reward', category: 'Variables & Math' },
   { type: 'reset_variables', label: 'Reset all variables', category: 'Variables & Math' },
   { type: 'update_text', label: 'Update an element', category: 'Elements' },
   { type: 'set_visibility', label: 'Show/hide an element', category: 'Elements' },
@@ -195,6 +196,7 @@ export const ACTION_DESCRIPTIONS = {
   navigate: 'Switches to a different screen.',
   set_variable: 'Sets, toggles, or adjusts a variable by a fixed amount.',
   calculate: 'Combines two numbers and stores the result in a variable.',
+  random_pick: 'Rolls a random reward from a weighted list (e.g. rarity odds) and stores it — perfect for chests, loot boxes, or gacha mechanics.',
   reset_variables: 'Resets every variable back to its starting value — handy for a "Start over" button.',
   update_text: "Replaces an element's visible text.",
   set_visibility: 'Shows, hides, or toggles another element.',
@@ -212,6 +214,11 @@ export function createAction(type) {
     case 'navigate': return { type, screen_id: '' };
     case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
     case 'calculate': return { type, variable: '', op: 'add', a: '', b: '' };
+    // options_variable holds a JSON list like [{"value":"Common Sword","weight":70}, ...] —
+    // "value" can be plain text or a {..} object (e.g. {"name":"Phoenix","rarity":"legendary"})
+    // for rich card data. collection_variable is optional — when set, the
+    // picked reward is also appended there (bind a `list` component to it).
+    case 'random_pick': return { type, options_variable: '', target_variable: '', collection_variable: '' };
     case 'reset_variables': return { type };
     case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
     case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
