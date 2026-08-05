@@ -506,6 +506,109 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
       return <p className="text-xs text-[#A1A1A6]">Resize this on the canvas to change how much space it takes up.</p>;
     case 'divider':
       return <p className="text-xs text-[#A1A1A6]">Resize this on the canvas — width and thickness both follow its box.</p>;
+    case 'checkbox':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Label</label>
+            <input value={node.props.label || ''} onChange={e => set('label', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. agreedToTerms" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Stores "true" or "false".</p>
+          </div>
+        </div>
+      );
+    case 'rating':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. userRating" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Stores the selected number (1–max) as text.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Max stars</label>
+            <input type="number" min="1" max="10" value={node.props.max ?? 5} onChange={e => set('max', Math.max(1, Math.min(10, Number(e.target.value) || 5)))} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Color</label>
+            <input type="color" value={node.props.color || '#4ECDC4'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+          </div>
+        </div>
+      );
+    case 'progress':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Bound variable (optional)</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. uploadPercent" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">A number 0–100. Leave empty to use a fixed value instead.</p>
+          </div>
+          {!node.props.variable && (
+            <div>
+              <label className={FIELD_LABEL}>Value ({node.props.value ?? 50}%)</label>
+              <input type="range" min="0" max="100" value={node.props.value ?? 50} onChange={e => set('value', Number(e.target.value))} className="w-full" />
+            </div>
+          )}
+        </div>
+      );
+    case 'qr':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Content</label>
+            <input value={node.props.content || ''} onChange={e => set('content', e.target.value)} placeholder="https://… or {{variable}}" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Supports {'{{variable}}'} — note the exported/APK version bakes in a one-time snapshot, it won't update live.</p>
+          </div>
+        </div>
+      );
+    case 'slider':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. volume" className={FIELD_INPUT} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Min</label>
+              <input type="number" value={node.props.min ?? 0} onChange={e => set('min', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Max</label>
+              <input type="number" value={node.props.max ?? 100} onChange={e => set('max', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Step</label>
+              <input type="number" value={node.props.step ?? 1} onChange={e => set('step', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+          </div>
+        </div>
+      );
+    case 'date':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Bound variable</label>
+          <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. birthDate" className={FIELD_INPUT} />
+          <p className="mt-1 text-[10px] text-[#A1A1A6]">Stores a date as YYYY-MM-DD text.</p>
+        </div>
+      );
+    case 'video':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Video URL</label>
+          <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://…mp4" className={FIELD_INPUT} />
+        </div>
+      );
+    case 'webview':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>URL to embed</label>
+          <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://…" className={FIELD_INPUT} />
+        </div>
+      );
     default:
       return null;
   }
@@ -624,6 +727,68 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
               <option value="toggle">Toggle it</option>
             </Select>
           </div>
+        </>
+      );
+    case 'list_add':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>List variable</label>
+            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. entries" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Where</label>
+            <Select value={action.mode || 'append'} onChange={e => setField('mode', e.target.value)} size="sm">
+              <option value="append">Add to the end</option>
+              <option value="prepend">Add to the start</option>
+              <option value="at_index">Insert at position</option>
+            </Select>
+          </div>
+          {action.mode === 'at_index' && (
+            <div>
+              <label className={FIELD_LABEL}>Position (0 = first)</label>
+              <input type="number" min="0" value={action.index ?? 0} onChange={e => setField('index', Math.max(0, Number(e.target.value) || 0))} className={FIELD_INPUT} />
+            </div>
+          )}
+          <div>
+            <label className={FIELD_LABEL}>Value from</label>
+            <Select value={action.value_mode || 'literal'} onChange={e => setField('value_mode', e.target.value)} size="sm">
+              <option value="literal">A fixed value</option>
+              <option value="variable">Another variable (e.g. an input)</option>
+            </Select>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
+            <input
+              value={action.value || ''} onChange={e => setField('value', e.target.value)}
+              placeholder={action.value_mode === 'variable' ? 'e.g. entryText' : 'Supports {{other_variable}}'}
+              className={FIELD_INPUT}
+            />
+          </div>
+        </>
+      );
+    case 'list_remove':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>List variable</label>
+            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. entries" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Remove</label>
+            <Select value={action.mode || 'last'} onChange={e => setField('mode', e.target.value)} size="sm">
+              <option value="last">The last item</option>
+              <option value="first">The first item</option>
+              <option value="at_index">The item at a position</option>
+              <option value="clear">Everything (clear the list)</option>
+            </Select>
+          </div>
+          {action.mode === 'at_index' && (
+            <div>
+              <label className={FIELD_LABEL}>Position (0 = first)</label>
+              <input type="number" min="0" value={action.index ?? 0} onChange={e => setField('index', Math.max(0, Number(e.target.value) || 0))} className={FIELD_INPUT} />
+            </div>
+          )}
         </>
       );
     case 'show_message':

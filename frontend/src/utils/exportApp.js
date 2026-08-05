@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
 
 // Generates a real, standalone HTML/CSS/JS project from a Studio App —
@@ -33,7 +34,10 @@ function hexToRgba(hex, alpha) {
 const escJsonAttr = (obj) => JSON.stringify(obj)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
 
-function renderComponentHTML(node, index = 0) {
+// async only because of the 'qr' case (baking a data URI once at export
+// time via the qrcode package — see COMPONENT_TYPES' qr entry for why this
+// is a one-time snapshot, not a live-updating value, in the exported project).
+async function renderComponentHTML(node, index = 0) {
   if (!node) return '';
   const l = getLayout(node, index);
   const pos = `position:absolute;left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px;`;
@@ -97,7 +101,7 @@ function renderComponentHTML(node, index = 0) {
       const bg = node.props?.background === 'surface' ? 'var(--vk-surface)' : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
       const opacity = (node.props?.opacity ?? 100) / 100;
       const style = `position:relative;width:100%;height:100%;background:${bg};border:${node.props?.border ? '1px solid var(--vk-border)' : 'none'};border-radius:${node.props?.radius ?? 0}px;box-shadow:${node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none'};opacity:${opacity};box-sizing:border-box;overflow:hidden;`;
-      const children = (node.children || []).map((child, i) => renderComponentHTML(child, i)).join('\n    ');
+      const children = (await Promise.all((node.children || []).map((child, i) => renderComponentHTML(child, i)))).join('\n    ');
       return `${wrapperOpen}<div class="vk-container" style="${style}">\n    ${children}\n    </div></div>`;
     }
     case 'divider':
@@ -106,15 +110,59 @@ function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}<div style="width:100%;height:100%;display:flex;align-items:center;"><div class="vk-divider" style="width:100%;height:2px;"></div></div></div>`;
     case 'spacer':
       return `${wrapperOpen}</div>`;
+    case 'checkbox':
+      return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
+    case 'rating': {
+      const max = Math.max(1, Number(node.props?.max) || 5);
+      const color = node.props?.color || 'var(--vk-primary)';
+      const stars = Array.from({ length: max }, (_, i) => i + 1)
+        .map(n => `<button class="vk-rating-star" data-n="${n}" style="color:var(--vk-border)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6z"/></svg></button>`)
+        .join('');
+      return `${wrapperOpen}<div class="vk-rating" data-variable="${esc(node.props?.variable || '')}" data-color="${esc(color)}" style="width:100%;height:100%;">${stars}</div></div>`;
+    }
+    case 'progress': {
+      const bound = !!node.props?.variable;
+      const pct = bound ? 0 : Math.max(0, Math.min(100, Number(node.props?.value) || 0));
+      return `${wrapperOpen}<div class="vk-progress" data-variable="${esc(node.props?.variable || '')}" style="width:100%;height:100%;"><div class="vk-progress-fill" style="width:${pct}%"></div></div></div>`;
+    }
+    case 'qr': {
+      // Baked once here (see the comment on the function itself) — not
+      // re-generated if the underlying variable changes at runtime.
+      let dataUrl = '';
+      try { dataUrl = await QRCode.toDataURL(node.props?.content || ' ', { width: 300, margin: 1 }); } catch { /* leave blank */ }
+      return `${wrapperOpen}<img class="vk-qr" src="${esc(dataUrl)}" alt="QR code" style="width:100%;height:100%;object-fit:contain;"></div>`;
+    }
+    case 'slider': {
+      const bound = !!node.props?.variable;
+      const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
+      return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'} style="width:100%;"></div>`;
+    }
+    case 'date': {
+      const bound = !!node.props?.variable;
+      return bound
+        ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}" style="width:100%;height:100%;"></div>`
+        : `${wrapperOpen}<input type="date" class="vk-input" disabled title="Not bound to a variable" style="width:100%;height:100%;"></div>`;
+    }
+    case 'video':
+      return node.props?.url
+        ? `${wrapperOpen}<video class="vk-video" src="${esc(node.props.url)}" controls style="width:100%;height:100%;"></video></div>`
+        : `${wrapperOpen}<div class="vk-image-placeholder" style="width:100%;height:100%;"></div></div>`;
+    case 'webview':
+      return node.props?.url
+        ? `${wrapperOpen}<iframe class="vk-webview" src="${esc(node.props.url)}" title="Embedded content" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" style="width:100%;height:100%;"></iframe></div>`
+        : `${wrapperOpen}<div class="vk-image-placeholder" style="width:100%;height:100%;"></div></div>`;
     default:
       return '';
   }
 }
 
-function generateHTML(app, showWatermark) {
-  const screensHTML = (app.screens || []).map((s, i) => `  <section class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
-${(s.components || []).map((node, i) => renderComponentHTML(node, i)).join('\n')}
-  </section>`).join('\n');
+async function generateHTML(app, showWatermark) {
+  const screensHTML = (await Promise.all((app.screens || []).map(async (s, i) => {
+    const componentsHTML = (await Promise.all((s.components || []).map((node, j) => renderComponentHTML(node, j)))).join('\n');
+    return `  <section class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
+${componentsHTML}
+  </section>`;
+  }))).join('\n');
 
   const watermarkHTML = showWatermark
     ? `    <a class="vk-watermark" href="https://vakargames.com" target="_blank" rel="noopener noreferrer">Made with <span style="color:#EB5757">♥</span> by Vakar</a>\n`
@@ -183,6 +231,20 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-list-empty { font-size: 13px; color: var(--vk-text-muted); margin: 0; }
 #vk-toast { display: none; position: absolute; top: 12px; left: 12px; right: 12px; background: var(--vk-text); color: var(--vk-bg); font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: calc(var(--vk-radius) * 0.7); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 10; }
 .vk-watermark { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.vk-checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--vk-text); cursor: pointer; }
+.vk-checkbox-row[data-unbound] { opacity: 0.5; cursor: default; }
+.vk-checkbox-box { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--vk-border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; color: var(--vk-primary-text); }
+.vk-checkbox-row.checked .vk-checkbox-box { background: var(--vk-primary); border-color: var(--vk-primary); }
+.vk-checkbox-row.checked .vk-checkbox-box::after { content: '✓'; }
+.vk-rating { display: flex; align-items: center; gap: 4px; height: 100%; }
+.vk-rating-star { background: none; border: none; padding: 0; cursor: pointer; line-height: 0; }
+.vk-progress { border-radius: 999px; background: var(--vk-border); overflow: hidden; }
+.vk-progress-fill { height: 100%; background: var(--vk-primary); transition: width 0.2s; }
+.vk-qr { display: block; }
+.vk-slider { accent-color: var(--vk-primary); }
+.vk-slider:disabled { opacity: 0.5; }
+.vk-video { border-radius: 8px; background: #000; object-fit: contain; }
+.vk-webview { border: none; border-radius: 8px; }
 
 /* Entrance animations — mirrors frontend/src/index.css's .vk-anim-* classes
    verbatim as plain CSS text (this static export has no Tailwind/React to
@@ -314,6 +376,29 @@ function generateJS(app) {
       el.classList.toggle('on', vars[el.getAttribute('data-variable')] === 'true');
     });
     document.querySelectorAll('.vk-list[data-source]').forEach(renderList);
+    document.querySelectorAll('.vk-checkbox-row[data-variable]').forEach(function (el) {
+      var v = el.getAttribute('data-variable');
+      if (v) el.classList.toggle('checked', vars[v] === 'true');
+    });
+    document.querySelectorAll('.vk-rating[data-variable]').forEach(function (el) {
+      var value = Number(vars[el.getAttribute('data-variable')]) || 0;
+      var color = el.getAttribute('data-color') || 'var(--vk-primary)';
+      el.querySelectorAll('.vk-rating-star').forEach(function (star, i) {
+        star.style.color = (i + 1 <= value) ? color : 'var(--vk-border)';
+      });
+    });
+    document.querySelectorAll('.vk-progress[data-variable]').forEach(function (el) {
+      var v = el.getAttribute('data-variable');
+      if (!v) return;
+      var pct = Math.max(0, Math.min(100, Number(vars[v]) || 0));
+      var fill = el.querySelector('.vk-progress-fill');
+      if (fill) fill.style.width = pct + '%';
+    });
+    document.querySelectorAll('.vk-slider[data-variable]').forEach(function (el) {
+      if (document.activeElement === el) return;
+      var v = el.getAttribute('data-variable');
+      if (v && vars[v] !== undefined && vars[v] !== '') el.value = vars[v];
+    });
     // Imperative set_visibility override wins if one has fired for this
     // component id; otherwise a declarative visible_if condition (data-vis,
     // Vakar+-gated server-side) is evaluated; with neither, it's visible —
@@ -364,6 +449,30 @@ function generateJS(app) {
         visibilityOverrides[action.target_id] = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
         break;
       }
+      case 'list_add': {
+        if (!action.variable) break;
+        var raw = vars[action.variable];
+        var arr = [];
+        try { var parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch (e) { /* start fresh */ }
+        var value = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, scope);
+        if (action.mode === 'prepend') arr.unshift(value);
+        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, Number(action.index) || 0)), 0, value);
+        else arr.push(value);
+        vars[action.variable] = JSON.stringify(arr);
+        break;
+      }
+      case 'list_remove': {
+        if (!action.variable) break;
+        var raw2 = vars[action.variable];
+        var arr2 = [];
+        try { var parsed2 = raw2 ? JSON.parse(raw2) : []; if (Array.isArray(parsed2)) arr2 = parsed2; } catch (e) { /* nothing to remove */ }
+        if (action.mode === 'clear') arr2 = [];
+        else if (action.mode === 'first') arr2.shift();
+        else if (action.mode === 'at_index') { var idx = Number(action.index) || 0; if (idx >= 0 && idx < arr2.length) arr2.splice(idx, 1); }
+        else arr2.pop();
+        vars[action.variable] = JSON.stringify(arr2);
+        break;
+      }
       case 'show_message':
         flash(interpolate(action.text, scope) || '…');
         break;
@@ -396,11 +505,23 @@ function generateJS(app) {
         render();
       }
     }
+    var checkboxEl = e.target.closest('.vk-checkbox-row[data-variable]:not([data-unbound])');
+    if (checkboxEl) {
+      var cv = checkboxEl.getAttribute('data-variable');
+      vars[cv] = vars[cv] === 'true' ? 'false' : 'true';
+      render();
+    }
+    var starEl = e.target.closest('.vk-rating-star');
+    if (starEl) {
+      var ratingEl = starEl.closest('.vk-rating[data-variable]');
+      var rv = ratingEl && ratingEl.getAttribute('data-variable');
+      if (rv) { vars[rv] = starEl.getAttribute('data-n'); render(); }
+    }
   });
 
   document.addEventListener('input', function (e) {
     var el = e.target;
-    if (el.classList && el.classList.contains('vk-input')) {
+    if (el.classList && (el.classList.contains('vk-input') || el.classList.contains('vk-slider'))) {
       var v = el.getAttribute('data-variable');
       if (v) vars[v] = el.value;
     }
@@ -449,7 +570,7 @@ This is a real, standalone project — edit the markup, CSS and JS directly.
 export async function generateAppZipBlob(app, { showWatermark = false } = {}) {
   const theme = resolveTheme(app.theme);
   const zip = new JSZip();
-  zip.file('index.html', generateHTML(app, showWatermark));
+  zip.file('index.html', await generateHTML(app, showWatermark));
   zip.file('style.css', generateCSS(theme));
   zip.file('script.js', generateJS(app));
   zip.file('README.md', generateReadme(app));

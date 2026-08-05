@@ -8,10 +8,9 @@ import { SiteFooter } from '../components/SiteFooter';
 import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
-// client-side only for the disabled-field hint; the backend is authoritative.
+// Mirrors backend/app/deps.py's FIRSTNAME_COOLDOWN_DAYS — client-side only
+// for the disabled-field hint; the backend is authoritative.
 const FIRSTNAME_COOLDOWN_DAYS = 30;
-const PSEUDO_COOLDOWN_DAYS = 7;
 
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
@@ -158,7 +157,6 @@ const Profile = () => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
   const firstNameDaysLeft = user ? cooldownDaysLeft(user.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS) : 0;
-  const pseudoDaysLeft = user ? cooldownDaysLeft(user.usernameChangedAt, PSEUDO_COOLDOWN_DAYS) : 0;
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -466,13 +464,6 @@ const Profile = () => {
                         placeholder="Doe" icon={User} autoComplete="family-name" required={false}
                       />
                     </div>
-                    <TextField
-                      label="Pseudo" value={profileForm.username}
-                      onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))}
-                      placeholder="jane_doe" autoComplete="username"
-                      disabled={pseudoDaysLeft > 0}
-                      hint={pseudoDaysLeft > 0 ? `You can change this again in ${pseudoDaysLeft} day${pseudoDaysLeft !== 1 ? 's' : ''}.` : '5-14 characters — letters, numbers and underscores only.'}
-                    />
                     <div>
                       <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-wider mb-1">Email</p>
                       <p className="text-sm text-[#6E6E73]">{user.email} <span className="text-[#A1A1A6] text-xs">(cannot be changed)</span></p>
@@ -502,7 +493,6 @@ const Profile = () => {
                       {[
                         { label: 'First Name', value: user.firstName || '—' },
                         { label: 'Last Name',  value: user.lastName  || '—' },
-                        { label: 'Pseudo',     value: '@' + user.username  },
                         { label: 'Email',      value: user.email           },
                       ].map(({ label, value }) => (
                         <div key={label}>

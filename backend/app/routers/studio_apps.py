@@ -57,7 +57,7 @@ PLUS_MAX_SCREENS_PER_APP = MAX_SCREENS
 # Mirrors the `tier` tags in frontend/src/constants/appBuilder.js — kept as
 # a small independent list rather than importing frontend code, same as
 # every other cross-stack constant in this codebase. Update both together.
-PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle"}
+PREMIUM_COMPONENT_TYPES = {"icon", "list", "toggle", "slider", "date", "video", "webview"}
 FREE_THEME_IDS = {"mint"}
 # Mirrors ANIMATION_TYPES' tier tags in appBuilder.js — 'fade' is free, the
 # rest are a Vakar+ perk on props.animation (any component type).

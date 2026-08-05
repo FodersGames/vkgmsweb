@@ -1,6 +1,7 @@
 import {
   Type, MousePointerClick, Image, TextCursorInput, LayoutGrid, Minus, MoveVertical,
-  Sparkles, List as ListIcon, ToggleLeft,
+  Sparkles, List as ListIcon, ToggleLeft, CheckSquare, Star, Activity, QrCode,
+  SlidersHorizontal, Calendar, Video, Globe,
 } from 'lucide-react';
 
 // Single source of truth for the Studio App Builder — used by the admin
@@ -41,6 +42,14 @@ export const DEFAULT_LAYOUT = {
   icon: { x: 20, y: 20, w: 32, h: 32 },
   toggle: { x: 20, y: 20, w: 200, h: 32 },
   list: { x: 20, y: 20, w: 300, h: 200 },
+  checkbox: { x: 20, y: 20, w: 200, h: 28 },
+  rating: { x: 20, y: 20, w: 160, h: 28 },
+  progress: { x: 20, y: 20, w: 280, h: 12 },
+  qr: { x: 20, y: 20, w: 140, h: 140 },
+  slider: { x: 20, y: 20, w: 240, h: 32 },
+  date: { x: 20, y: 20, w: 200, h: 44 },
+  video: { x: 20, y: 20, w: 320, h: 180 },
+  webview: { x: 20, y: 20, w: 320, h: 400 },
 };
 
 // `index` is only used as a fallback for components saved before free
@@ -101,6 +110,44 @@ export const COMPONENT_TYPES = [
     // itself is already a fully premium type.
     defaultProps: { source_variable: '', item_template: '{{item}}', empty_text: 'No items yet.', item_action: null },
   },
+  {
+    type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, tier: 'free',
+    defaultProps: { label: 'Checkbox', variable: '' },
+  },
+  {
+    type: 'rating', label: 'Rating', icon: Star, isContainer: false, tier: 'free',
+    defaultProps: { variable: '', max: 5, color: '' },
+  },
+  {
+    type: 'progress', label: 'Progress bar', icon: Activity, isContainer: false, tier: 'free',
+    defaultProps: { variable: '', value: 50 },
+  },
+  {
+    // Live runtime (editor/preview/public page) renders a real, always
+    // up-to-date QR — the exported static project bakes a one-time
+    // snapshot at export time instead (see exportApp.js's qr case): a
+    // genuinely live QR encoder there would mean vendoring a full
+    // synchronous QR algorithm into the generated script.js, which is
+    // disproportionate for the common case (encoding a fixed URL).
+    type: 'qr', label: 'QR code', icon: QrCode, isContainer: false, tier: 'free',
+    defaultProps: { content: 'https://vakargames.com' },
+  },
+  {
+    type: 'slider', label: 'Slider', icon: SlidersHorizontal, isContainer: false, tier: 'premium',
+    defaultProps: { variable: '', min: 0, max: 100, step: 1 },
+  },
+  {
+    type: 'date', label: 'Date picker', icon: Calendar, isContainer: false, tier: 'premium',
+    defaultProps: { variable: '' },
+  },
+  {
+    type: 'video', label: 'Video', icon: Video, isContainer: false, tier: 'premium',
+    defaultProps: { url: '' },
+  },
+  {
+    type: 'webview', label: 'Web view', icon: Globe, isContainer: false, tier: 'premium',
+    defaultProps: { url: '' },
+  },
 ];
 
 export const COMPONENT_META = Object.fromEntries(COMPONENT_TYPES.map(c => [c.type, c]));
@@ -123,6 +170,8 @@ export const ACTION_TYPES = [
   { type: 'set_variable', label: 'Set a variable' },
   { type: 'update_text', label: 'Update an element' },
   { type: 'set_visibility', label: 'Show/hide an element' },
+  { type: 'list_add', label: 'Add to a list' },
+  { type: 'list_remove', label: 'Remove from a list' },
   { type: 'show_message', label: 'Show a message' },
   { type: 'open_link', label: 'Open a link' },
 ];
@@ -133,6 +182,12 @@ export function createAction(type) {
     case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
     case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
     case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
+    // value_mode 'variable' copies another variable's current value (e.g. an
+    // input bound to `entryText`) — the same convenience update_text already
+    // offers, so "take what's in this input and add it to the list" doesn't
+    // require manually typing {{entryText}}.
+    case 'list_add': return { type, variable: '', mode: 'append', value_mode: 'literal', value: '', index: 0 };
+    case 'list_remove': return { type, variable: '', mode: 'last', index: 0 };
     case 'show_message': return { type, text: '' };
     case 'open_link': return { type, url: '', new_tab: true };
     default: return null;
@@ -240,6 +295,36 @@ export const THEME_PRESETS = [
     id: 'midnight', label: 'Midnight', tier: 'premium',
     colors: { primary: '#4ECDC4', primaryText: '#06201D', background: '#14141C', surface: '#1C1C28', border: '#2A2A3C', text: '#EDEDF2', textMuted: '#9A9AB0' },
     radius: 14,
+  },
+  {
+    id: 'forest', label: 'Forest', tier: 'premium',
+    colors: { primary: '#2F9E44', primaryText: '#FFFFFF', background: '#F3FAF4', surface: '#FFFFFF', border: '#CFE8D5', text: '#163020', textMuted: '#5B7A66' },
+    radius: 14,
+  },
+  {
+    id: 'rose', label: 'Rose', tier: 'premium',
+    colors: { primary: '#E85D8A', primaryText: '#FFFFFF', background: '#FFF3F7', surface: '#FFFFFF', border: '#F6D3E1', text: '#3A1424', textMuted: '#8A5B6E' },
+    radius: 18,
+  },
+  {
+    id: 'amber', label: 'Amber', tier: 'premium',
+    colors: { primary: '#F2A93B', primaryText: '#2B1900', background: '#FFFAF0', surface: '#FFFFFF', border: '#F5E1BF', text: '#2B1900', textMuted: '#8A7350' },
+    radius: 12,
+  },
+  {
+    id: 'slate', label: 'Slate', tier: 'premium',
+    colors: { primary: '#5B7A9A', primaryText: '#FFFFFF', background: '#F4F6F8', surface: '#FFFFFF', border: '#D8E0E7', text: '#1F2933', textMuted: '#64748B' },
+    radius: 10,
+  },
+  {
+    id: 'cyan', label: 'Cyan', tier: 'premium',
+    colors: { primary: '#17B8C4', primaryText: '#06282B', background: '#F0FCFD', surface: '#FFFFFF', border: '#C6EEF1', text: '#0B2E31', textMuted: '#4C8A90' },
+    radius: 16,
+  },
+  {
+    id: 'crimson', label: 'Crimson', tier: 'premium',
+    colors: { primary: '#E0435F', primaryText: '#FFFFFF', background: '#1A0E10', surface: '#241417', border: '#3D2226', text: '#F2E4E6', textMuted: '#B08A8F' },
+    radius: 12,
   },
 ];
 export const THEME_MAP = Object.fromEntries(THEME_PRESETS.map(t => [t.id, t]));

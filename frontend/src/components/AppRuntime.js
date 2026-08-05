@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, normalizeActions, UPDATABLE_PROP } from '../constants/appBuilder';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -53,6 +54,22 @@ function resolveVisible(node, vars, visibilityOverrides) {
     case 'truthy': return !!current && current !== '0' && current !== 'false';
     default: return true;
   }
+}
+
+// Generates its own QR image client-side (same `qrcode` package + pattern
+// as the APK-download QR in AppBuilderEditor.js) — a small sub-component
+// since QRCode.toDataURL is async and hooks can't live inline in a switch.
+function QrVisual({ content, theme }) {
+  const [dataUrl, setDataUrl] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(content || ' ', { width: 300, margin: 1 })
+      .then(url => { if (!cancelled) setDataUrl(url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [content]);
+  if (!dataUrl) return <div style={{ width: '100%', height: '100%', background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />;
+  return <img src={dataUrl} alt="QR code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
 }
 
 function buttonStyle(theme, style) {
@@ -207,6 +224,89 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
         </div>
       );
     }
+    case 'checkbox': {
+      const bound = !!node.props?.variable;
+      const checked = vars[node.props?.variable] === 'true';
+      return (
+        <div
+          onClick={() => interactive && bound && setVars(v => ({ ...v, [node.props.variable]: checked ? 'false' : 'true' }))}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: '100%', cursor: (bound && interactive) ? 'pointer' : 'default', opacity: bound ? 1 : 0.5 }}
+        >
+          <div style={{
+            width: 20, height: 20, borderRadius: 5, flexShrink: 0, border: `1.5px solid ${checked ? theme.colors.primary : theme.colors.border}`,
+            background: checked ? theme.colors.primary : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {checked && <AppIcon id="check" size={13} color={theme.colors.primaryText} strokeWidth={3} />}
+          </div>
+          <span style={{ fontSize: 14, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {interpolate(node.props?.label, vars) || 'Checkbox'}
+          </span>
+        </div>
+      );
+    }
+    case 'rating': {
+      const bound = !!node.props?.variable;
+      const max = Math.max(1, Number(node.props?.max) || 5);
+      const value = Number(vars[node.props?.variable]) || 0;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', height: '100%' }}>
+          {Array.from({ length: max }, (_, i) => i + 1).map(n => (
+            <button
+              key={n} disabled={!bound || !interactive}
+              onClick={() => setVars(v => ({ ...v, [node.props.variable]: String(n) }))}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: (bound && interactive) ? 'pointer' : 'default', lineHeight: 0 }}
+            >
+              <AppIcon id="star" size={22} color={n <= value ? (node.props?.color || theme.colors.primary) : theme.colors.border} />
+            </button>
+          ))}
+        </div>
+      );
+    }
+    case 'progress': {
+      const bound = !!node.props?.variable;
+      const raw = bound ? Number(vars[node.props.variable]) : Number(node.props?.value);
+      const pct = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
+      return (
+        <div style={{ width: '100%', height: '100%', borderRadius: 999, background: theme.colors.border, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', background: theme.colors.primary, transition: 'width 0.2s' }} />
+        </div>
+      );
+    }
+    case 'qr':
+      return <QrVisual content={interpolate(node.props?.content, vars)} theme={theme} />;
+    case 'slider': {
+      const bound = !!node.props?.variable;
+      const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
+      const value = Number(vars[node.props?.variable]) || min;
+      return (
+        <input
+          type="range" min={min} max={max} step={step} value={value} disabled={!bound || !interactive}
+          onChange={e => setVars(v => ({ ...v, [node.props.variable]: e.target.value }))}
+          style={{ width: '100%', accentColor: theme.colors.primary, opacity: bound ? 1 : 0.5 }}
+        />
+      );
+    }
+    case 'date': {
+      const bound = !!node.props?.variable;
+      const style = {
+        width: '100%', height: '100%', padding: '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
+        fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`, color: theme.colors.text,
+      };
+      if (!bound || !interactive) return <input type="date" style={style} disabled title="This input isn't bound to a variable yet" />;
+      return <input type="date" value={vars[node.props.variable] || ''} onChange={e => setVars(v => ({ ...v, [node.props.variable]: e.target.value }))} style={style} />;
+    }
+    case 'video':
+      return node.props?.url ? (
+        <video src={node.props.url} controls style={{ width: '100%', height: '100%', borderRadius: 8, background: '#000', objectFit: 'contain' }} />
+      ) : (
+        <div style={{ width: '100%', height: '100%', borderRadius: 8, background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />
+      );
+    case 'webview':
+      return node.props?.url ? (
+        <iframe src={node.props.url} title="Embedded content" style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }} sandbox="allow-scripts allow-forms allow-same-origin allow-popups" />
+      ) : (
+        <div style={{ width: '100%', height: '100%', borderRadius: 8, background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />
+      );
     case 'container': {
       const bg = node.props?.background === 'surface' ? theme.colors.surface
         : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
@@ -323,6 +423,34 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
           const next = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
           return { ...o, [action.target_id]: next };
         });
+        break;
+      }
+      case 'list_add': {
+        if (!action.variable) break;
+        const raw = currentVars[action.variable];
+        let arr = [];
+        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
+        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars, scope);
+        if (action.mode === 'prepend') arr.unshift(value);
+        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, Number(action.index) || 0)), 0, value);
+        else arr.push(value);
+        const next = JSON.stringify(arr);
+        currentVars[action.variable] = next;
+        setVars(v => ({ ...v, [action.variable]: next }));
+        break;
+      }
+      case 'list_remove': {
+        if (!action.variable) break;
+        const raw = currentVars[action.variable];
+        let arr = [];
+        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* nothing to remove */ }
+        if (action.mode === 'clear') arr = [];
+        else if (action.mode === 'first') arr.shift();
+        else if (action.mode === 'at_index') { const i = Number(action.index) || 0; if (i >= 0 && i < arr.length) arr.splice(i, 1); }
+        else arr.pop();
+        const next = JSON.stringify(arr);
+        currentVars[action.variable] = next;
+        setVars(v => ({ ...v, [action.variable]: next }));
         break;
       }
       case 'show_message':

@@ -5,24 +5,42 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { PublicButton } from '../ui/PublicButton';
 import { Reveal } from '../components/Reveal';
-import { Sparkle, CheckCircle, AppWindow, Code, Rocket, Crown, ArrowRight } from '@phosphor-icons/react';
+import { Sparkle, CheckCircle, Crown, ArrowRight, X } from '@phosphor-icons/react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-const BENEFITS = [
-  {
-    icon: AppWindow, title: 'App Builder — Pro tools', tag: 'Early access',
-    description: 'Advanced components, extra themes, and higher app & screen limits in our no-code App Builder.',
-  },
-  {
-    icon: Code, title: 'Export to code', tag: null,
-    description: 'Download any app you build as a real, ready-to-open VS Code project — HTML, CSS and JS.',
-  },
-  {
-    icon: Rocket, title: 'Growing every release', tag: null,
-    description: 'New Vakar+ perks roll out across our apps as we ship them — subscribe once, keep unlocking more.',
-  },
+// Every row here is a real, currently-enforced limit or gate in the App
+// Builder (studio_apps.py / constants/appBuilder.js) — not aspirational
+// copy. Keep this in sync whenever a quota or a free/premium line changes.
+const COMPARISON_ROWS = [
+  { label: 'Apps you can build', free: '2', plus: '50' },
+  { label: 'Screens per app', free: '15', plus: 'Unlimited' },
+  { label: 'Storage per app', free: '20 MB', plus: '1 GB' },
+  { label: 'Themes', free: '1 (Mint)', plus: 'All 12' },
+  { label: 'Components', free: 'Core set', plus: 'Every component' },
+  { label: 'Custom text sizing', free: false, plus: true },
+  { label: 'Reactive visibility (elements that react to your data)', free: false, plus: true },
+  { label: 'Entrance animations', free: 'Fade', plus: 'Fade, slide, pop' },
+  { label: 'Export to code (VS Code project)', free: false, plus: true },
+  { label: 'Sell your app (you keep 60%)', free: false, plus: true },
+  { label: 'Build an installable Android APK', free: true, plus: true },
 ];
+
+function ComparisonCell({ value, isPlus }) {
+  if (value === true) return <CheckCircle size={17} weight={isPlus ? 'fill' : 'regular'} className={isPlus ? 'text-[#4ECDC4]' : 'text-[#6E6E73]'} />;
+  if (value === false) return <X size={13} className="text-[#D2D2D7]" />;
+  return <span className={`text-xs font-semibold ${isPlus ? 'text-[#1D1D1F]' : 'text-[#6E6E73]'}`}>{value}</span>;
+}
+
+function ComparisonRow({ label, free, plus, last }) {
+  return (
+    <div className={`grid grid-cols-[1fr_72px_72px] items-center gap-2 py-3.5 ${last ? '' : 'border-b border-[#EDEDEF]'}`}>
+      <p className="text-[13px] text-[#1D1D1F] pr-2">{label}</p>
+      <div className="flex justify-center"><ComparisonCell value={free} isPlus={false} /></div>
+      <div className="flex justify-center"><ComparisonCell value={plus} isPlus /></div>
+    </div>
+  );
+}
 
 function formatPrice(plan) {
   if (!plan) return null;
@@ -120,23 +138,25 @@ export default function VakarPlus() {
           </div>
         )}
 
-        <div className="grid sm:grid-cols-3 gap-5 mb-16">
-          {BENEFITS.map(b => (
-            <div key={b.title} className="rounded-xl liquid-glass p-6">
-              <div className="w-10 h-10 rounded-lg bg-[#4ECDC4]/10 flex items-center justify-center mb-4">
-                <b.icon size={18} className="text-[#4ECDC4]" />
-              </div>
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <h3 className="font-display text-base font-medium text-[#1D1D1F]">{b.title}</h3>
-                {b.tag && (
-                  <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#F2994A]/10 text-[#F2994A]">
-                    {b.tag}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-[#6E6E73] leading-relaxed">{b.description}</p>
+        <div className="mb-16">
+          <div className="text-center mb-6">
+            <h2 className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-2">Free vs Vakar+</h2>
+            <p className="text-sm text-[#6E6E73] max-w-md mx-auto">Everything below is a real limit or feature in the App Builder today — not a promise for later.</p>
+          </div>
+          <div className="rounded-2xl liquid-glass overflow-hidden max-w-xl mx-auto">
+            <div className="grid grid-cols-[1fr_72px_72px] items-center gap-2 px-6 py-4 border-b border-[#D2D2D7]">
+              <p className="text-[10px] font-bold text-[#A1A1A6] uppercase tracking-wider">What you get</p>
+              <p className="text-[10px] font-bold text-[#6E6E73] uppercase tracking-wider text-center">Free</p>
+              <p className="text-[10px] font-bold text-[#4ECDC4] uppercase tracking-wider text-center flex items-center justify-center gap-1">
+                <Crown size={10} weight="fill" />Vakar+
+              </p>
             </div>
-          ))}
+            <div className="px-6">
+              {COMPARISON_ROWS.map((row, i) => (
+                <ComparisonRow key={row.label} {...row} last={i === COMPARISON_ROWS.length - 1} />
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="rounded-2xl liquid-glass p-8 sm:p-10 text-center max-w-md mx-auto">
