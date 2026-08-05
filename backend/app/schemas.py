@@ -267,6 +267,17 @@ class LoyaltyAdjustRequest(BaseModel):
 class AdminVakarPlusRequest(BaseModel):
     grant: bool
 
+class StudioAppSubmitReviewRequest(BaseModel):
+    name: str
+    description: str
+    tags: List[str] = []
+    logo_url: str
+    banner_url: str = ""
+    price_cents: int = 0
+
+class StudioAppReviewDecisionRequest(BaseModel):
+    reason: str = ""
+
 class RegisterRequest(BaseModel):
     email: str
     password: str

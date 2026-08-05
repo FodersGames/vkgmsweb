@@ -1,21 +1,28 @@
 import re
+import json
 import uuid
+import asyncio
+import logging
 from pathlib import Path
 from datetime import datetime, timezone
 
+import stripe
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
+from cryptography.fernet import Fernet, InvalidToken
+from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Response
 
 from ..database import db
-from ..config import UPLOADS_DIR
+from ..config import UPLOADS_DIR, VAKARSTUDIO_FILE_KEY
 from ..deps import require_permission, get_current_user, get_optional_user
-from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES
+from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES, _create_notification, _get_origin
 from ..rate_limit import limiter
 from ..schemas import (
     StudioAppCreateRequest, StudioAppUpdateRequest, StudioAppStatusRequest, StudioAppVisibilityRequest,
+    StudioAppSubmitReviewRequest, StudioAppReviewDecisionRequest,
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # STUDIO APP BUILDER — a "studio app" is a small multi-screen mini-app
@@ -61,6 +68,28 @@ FREE_THEME_IDS = {"mint"}
 FREE_MAX_APP_BYTES = 20 * 1024 * 1024
 PLUS_MAX_APP_BYTES = 1024 * 1024 * 1024
 ALLOWED_ASSET_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+# Paid apps — a creator can charge for access to their published app. Setting
+# a price at all requires Vakar+ (checked in submit_my_studio_app_review);
+# the split is fixed platform-wide, not per-app, so it's a constant here
+# rather than a document field. Payout to creators is a manual/admin process
+# for now (creator_earnings_cents accumulates as a ledger on the app doc) —
+# deliberately NOT wired to a Stripe Connect payout flow, which would need
+# its own onboarding/KYC/tax decisions well beyond this feature's ask.
+MIN_APP_PRICE_CENTS = 100
+CREATOR_SHARE_PCT = 60
+
+# .vakarstudio export/import — an app's building blocks (screens, variables,
+# theme, build config) as Fernet-encrypted JSON, importable only by this
+# backend (see config.VAKARSTUDIO_FILE_KEY). Deliberately excludes ownership,
+# review/showcase, and pricing fields — those are per-listing decisions the
+# importer should re-make, not inherit silently from someone else's export.
+VAKARSTUDIO_FORMAT = "vakarstudio"
+VAKARSTUDIO_VERSION = 1
+VAKARSTUDIO_EXPORT_FIELDS = (
+    "name", "description", "accent_color", "theme", "screens", "variables",
+    "package_id", "min_sdk", "target_sdk", "app_display_name", "app_icon_url",
+)
 
 # Android build config (APK export, Phase E). Reverse-DNS package name,
 # letters/digits/underscores per segment, each segment starting with a
@@ -199,6 +228,26 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         "target_sdk": doc.get("target_sdk", 34),
         "app_display_name": doc.get("app_display_name") or "",
         "app_icon_url": doc.get("app_icon_url") or "",
+        # Review/showcase submission — separate from the builder's own
+        # name/icon above, since the public storefront presentation is
+        # independent of the internal project identity. "none" means never
+        # submitted; a self-service app can only be publicly reachable once
+        # this is "approved" (see get_public_studio_app / the visibility guard).
+        "review_status": doc.get("review_status", "none"),
+        "review_name": doc.get("review_name") or "",
+        "review_description": doc.get("review_description") or "",
+        "review_tags": doc.get("review_tags") or [],
+        "review_logo_url": doc.get("review_logo_url") or "",
+        "review_banner_url": doc.get("review_banner_url") or "",
+        "review_rejection_reason": doc.get("review_rejection_reason") or "",
+        # Public — needed to render the paywall/price tag. creator_earnings_cents
+        # is deliberately NOT here (it's only attached in owner-scoped self-service
+        # responses — see get_my_studio_app/list_my_studio_apps — never in the
+        # public showcase, which anyone can fetch).
+        "price_cents": doc.get("price_cents", 0),
+        "submitted_at": doc["submitted_at"].isoformat() if doc.get("submitted_at") else None,
+        "reviewed_at": doc["reviewed_at"].isoformat() if doc.get("reviewed_at") else None,
+        "reviewed_by": doc.get("reviewed_by") or "",
         "created_at": doc["created_at"].isoformat(),
         "updated_at": doc["updated_at"].isoformat(),
     }
@@ -216,6 +265,15 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         result["is_user_app"] = doc.get("user_id") is not None
     return result
 
+def _with_earnings(result, doc):
+    """Attaches the creator's own earnings ledger — only ever called from
+    owner-scoped self-service responses (get/list my-studio-apps), never
+    the public showcase, since revealing another creator's earnings would
+    be a privacy leak."""
+    result["creator_earnings_cents"] = doc.get("creator_earnings_cents", 0)
+    result["total_sales_cents"] = doc.get("total_sales_cents", 0)
+    return result
+
 # ============================================================
 # ADMIN — builder CRUD for staff-owned apps + moderation surface. Since
 # `db.studio_apps` holds both staff and public user apps in one collection,
@@ -228,6 +286,63 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
 async def list_studio_apps(user=Depends(require_permission("manage_studio_apps"))):
     docs = await db.studio_apps.find().sort("updated_at", -1).to_list(500)
     return {"apps": [_serialize(d, include_owner=True) for d in docs]}
+
+# Registered ahead of GET /admin/studio-apps/{app_id} on purpose — "reviews"
+# would otherwise be swallowed by that path param and fail ObjectId parsing.
+@router.get("/admin/studio-apps/reviews")
+async def list_studio_app_reviews(status: str = "pending", user=Depends(require_permission("manage_studio_apps"))):
+    if status not in ("pending", "approved", "rejected"):
+        raise HTTPException(status_code=400, detail="Invalid status filter")
+    docs = await db.studio_apps.find({"review_status": status}).sort("submitted_at", -1).to_list(200)
+    return {"reviews": [_serialize(d, include_owner=True) for d in docs]}
+
+@router.post("/admin/studio-apps/reviews/{app_id}/approve")
+async def approve_studio_app_review(app_id: str, user=Depends(require_permission("manage_studio_apps"))):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc or doc.get("review_status") != "pending":
+        raise HTTPException(status_code=404, detail="No pending submission found for this app")
+    now = datetime.now(timezone.utc)
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "review_status": "approved", "status": "published", "visibility": "public",
+        "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' review approved", user=user["username"])
+    if doc.get("user_id"):
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"🎉 Your app \"{doc.get('review_name') or doc['name']}\" was approved and is now live on Applications!",
+            notif_type="studio_app_approved", link=f"/apps/{doc['slug']}",
+        )
+    return {"ok": True}
+
+@router.post("/admin/studio-apps/reviews/{app_id}/reject")
+async def reject_studio_app_review(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("manage_studio_apps"))):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc or doc.get("review_status") != "pending":
+        raise HTTPException(status_code=404, detail="No pending submission found for this app")
+    reason = body.reason.strip()[:500]
+    now = datetime.now(timezone.utc)
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "review_status": "rejected", "review_rejection_reason": reason,
+        "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' review rejected", user=user["username"])
+    if doc.get("user_id"):
+        reason_suffix = f" Reason: {reason}" if reason else ""
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"Your app \"{doc.get('review_name') or doc['name']}\" submission wasn't approved.{reason_suffix}",
+            notif_type="studio_app_rejected", link="/my-apps",
+        )
+    return {"ok": True}
 
 @router.post("/admin/studio-apps")
 async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_permission("manage_studio_apps"))):
@@ -363,6 +478,30 @@ def _write_asset_file(content: bytes, ext: str) -> str:
         f.write(content)
     return f"/api/uploads/{filename}"
 
+# ============================================================
+# .vakarstudio EXPORT/IMPORT — an app's building blocks as Fernet-encrypted
+# JSON (see VAKARSTUDIO_* constants above and config.VAKARSTUDIO_FILE_KEY).
+# The file is opaque without this backend's key — there is no client-side
+# involvement in the encryption, so it can't be reproduced or read by
+# inspecting the frontend bundle, unlike a "secret embedded in JS" scheme.
+# ============================================================
+
+def _encrypt_vakarstudio_file(doc) -> bytes:
+    payload = {"format": VAKARSTUDIO_FORMAT, "version": VAKARSTUDIO_VERSION}
+    for field in VAKARSTUDIO_EXPORT_FIELDS:
+        payload[field] = doc.get(field)
+    return Fernet(VAKARSTUDIO_FILE_KEY).encrypt(json.dumps(payload).encode())
+
+def _decrypt_vakarstudio_file(content: bytes) -> dict:
+    try:
+        raw = Fernet(VAKARSTUDIO_FILE_KEY).decrypt(content)
+        payload = json.loads(raw)
+    except (InvalidToken, ValueError, json.JSONDecodeError):
+        raise HTTPException(status_code=400, detail="Invalid or corrupted .vakarstudio file")
+    if payload.get("format") != VAKARSTUDIO_FORMAT:
+        raise HTTPException(status_code=400, detail="Not a valid .vakarstudio file")
+    return payload
+
 @router.post("/admin/studio-apps/{app_id}/asset")
 async def upload_studio_app_asset(app_id: str, file: UploadFile = File(...), user=Depends(require_permission("manage_studio_apps"))):
     """Staff/house apps aren't storage-quota'd, same as they aren't
@@ -375,6 +514,52 @@ async def upload_studio_app_asset(app_id: str, file: UploadFile = File(...), use
         raise HTTPException(status_code=404, detail="App not found")
     content, ext = await _read_validated_asset_image(file)
     return {"url": _write_asset_file(content, ext)}
+
+@router.get("/admin/studio-apps/{app_id}/export-file")
+async def export_studio_app_file(app_id: str, user=Depends(require_permission("manage_studio_apps"))):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="App not found")
+    token = _encrypt_vakarstudio_file(doc)
+    return Response(content=token, media_type="application/octet-stream", headers={
+        "Content-Disposition": f'attachment; filename="{doc["slug"]}.vakarstudio"',
+    })
+
+@router.post("/admin/studio-apps/import")
+async def import_studio_app_file(file: UploadFile = File(...), user=Depends(require_permission("manage_studio_apps"))):
+    payload = _decrypt_vakarstudio_file(await file.read())
+    name = (payload.get("name") or "Imported app").strip()[:80]
+    base_slug = slugify(name) or "app"
+    slug = await _unique_slug(base_slug)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "name": name,
+        "slug": slug,
+        "description": payload.get("description") or "",
+        "accent_color": payload.get("accent_color") or "#4ECDC4",
+        "theme": payload.get("theme") or "mint",
+        "visibility": "private",
+        "status": "draft",
+        "screens": payload.get("screens") or [{"id": "home", "name": "Home", "components": []}],
+        "variables": payload.get("variables") or [],
+        "package_id": payload.get("package_id"),
+        "min_sdk": payload.get("min_sdk"),
+        "target_sdk": payload.get("target_sdk"),
+        "app_display_name": payload.get("app_display_name") or "",
+        "app_icon_url": payload.get("app_icon_url") or "",
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["username"],
+        "user_id": None,
+    }
+    _validate_screens(doc["screens"])
+    result = await db.studio_apps.insert_one(doc)
+    await log_action("studio_apps", f"App '{name}' imported from .vakarstudio", user=user["username"])
+    return {"id": str(result.inserted_id), "slug": slug}
 
 # ============================================================
 # SELF-SERVICE — public "My Apps": any logged-in user can build their own,
@@ -397,7 +582,7 @@ async def list_my_studio_apps(user=Depends(get_current_user)):
     docs = await db.studio_apps.find({"user_id": ObjectId(user["id"])}).sort("updated_at", -1).to_list(100)
     max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
     return {
-        "apps": [_serialize(d) for d in docs],
+        "apps": [_with_earnings(_serialize(d), d) for d in docs],
         "quota": {"used": len(docs), "max": max_apps, "is_vakar_plus": user.get("is_vakar_plus", False)},
     }
 
@@ -436,7 +621,7 @@ async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, u
 @router.get("/my/studio-apps/{app_id}")
 async def get_my_studio_app(app_id: str, user=Depends(get_current_user)):
     _oid, doc = await _get_owned_app(app_id, user)
-    return _serialize(doc, full=True, is_vakar_plus=user.get("is_vakar_plus", False))
+    return _with_earnings(_serialize(doc, full=True, is_vakar_plus=user.get("is_vakar_plus", False)), doc)
 
 @router.put("/my/studio-apps/{app_id}")
 async def update_my_studio_app(app_id: str, body: StudioAppUpdateRequest, user=Depends(get_current_user)):
@@ -469,8 +654,57 @@ async def set_my_studio_app_status(app_id: str, body: StudioAppStatusRequest, us
 
 @router.patch("/my/studio-apps/{app_id}/visibility")
 async def set_my_studio_app_visibility(app_id: str, body: StudioAppVisibilityRequest, user=Depends(get_current_user)):
-    oid, _doc = await _get_owned_app(app_id, user)
+    oid, doc = await _get_owned_app(app_id, user)
+    # Public reachability is gated by admin review now — going public without
+    # ever having an approved submission isn't allowed. Once review_status is
+    # "approved" this stays permissive (toggling private/public freely) until
+    # a new "Submit Version" resets it to "pending".
+    if body.visibility == "public" and doc.get("review_status") != "approved":
+        raise HTTPException(status_code=402, detail="Submit this app for review before making it public.")
     await db.studio_apps.update_one({"_id": oid}, {"$set": {"visibility": body.visibility, "updated_at": datetime.now(timezone.utc)}})
+    return {"ok": True}
+
+@router.post("/my/studio-apps/{app_id}/submit-review")
+@limiter.limit("10/hour")
+async def submit_my_studio_app_review(request: Request, app_id: str, body: StudioAppSubmitReviewRequest, user=Depends(get_current_user)):
+    """Sends the current app for admin review — this is the ONLY path to
+    public reachability for a self-service app (see the visibility guard
+    above and the review gate in get_public_studio_app). Submitting again
+    (e.g. after edits to an already-approved app) resets review_status to
+    "pending", which makes the app unreachable to strangers again until the
+    new version is reviewed — a deliberate simplification, not a bug: there
+    is no versioning system to keep the previously-approved copy live during
+    re-review."""
+    oid, doc = await _get_owned_app(app_id, user)
+    if not doc.get("screens"):
+        raise HTTPException(status_code=400, detail="Add at least one screen before submitting for review")
+    name = body.name.strip()[:80]
+    description = body.description.strip()[:600]
+    logo_url = body.logo_url.strip()
+    if not name or not description:
+        raise HTTPException(status_code=400, detail="Name and description are required")
+    if not logo_url:
+        raise HTTPException(status_code=400, detail="A logo is required")
+    tags = [t.strip()[:24] for t in body.tags if t.strip()][:10]
+    price_cents = max(0, int(body.price_cents))
+    if price_cents > 0:
+        if not user.get("is_vakar_plus"):
+            raise HTTPException(status_code=402, detail="Publishing a paid app requires Vakar+.")
+        if price_cents < MIN_APP_PRICE_CENTS:
+            raise HTTPException(status_code=400, detail=f"Minimum price is ${MIN_APP_PRICE_CENTS / 100:.2f}.")
+    now = datetime.now(timezone.utc)
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "review_status": "pending",
+        "review_name": name,
+        "review_description": description,
+        "review_tags": tags,
+        "review_logo_url": logo_url,
+        "review_banner_url": body.banner_url.strip(),
+        "review_rejection_reason": "",
+        "price_cents": price_cents,
+        "submitted_at": now,
+        "updated_at": now,
+    }})
     return {"ok": True}
 
 @router.delete("/my/studio-apps/{app_id}")
@@ -494,6 +728,58 @@ async def upload_my_studio_app_asset(app_id: str, file: UploadFile = File(...), 
         limit_label = "1GB" if is_plus else "20MB"
         raise HTTPException(status_code=402, detail=f"This app has reached its storage limit ({limit_label})." + ("" if is_plus else " Upgrade to Vakar+ for up to 1GB."))
     return {"url": _write_asset_file(content, ext)}
+
+@router.get("/my/studio-apps/{app_id}/export-file")
+async def export_my_studio_app_file(app_id: str, user=Depends(get_current_user)):
+    _oid, doc = await _get_owned_app(app_id, user)
+    token = _encrypt_vakarstudio_file(doc)
+    return Response(content=token, media_type="application/octet-stream", headers={
+        "Content-Disposition": f'attachment; filename="{doc["slug"]}.vakarstudio"',
+    })
+
+@router.post("/my/studio-apps/import")
+@limiter.limit("20/hour")
+async def import_my_studio_app_file(request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
+    max_apps = PLUS_MAX_APPS if user.get("is_vakar_plus") else FREE_MAX_APPS
+    existing_count = await db.studio_apps.count_documents({"user_id": ObjectId(user["id"])})
+    if existing_count >= max_apps:
+        raise HTTPException(status_code=402, detail=f"You've reached your app limit ({max_apps}). Upgrade to Vakar+ for more.")
+    payload = _decrypt_vakarstudio_file(await file.read())
+    is_plus = user.get("is_vakar_plus", False)
+    max_screens = PLUS_MAX_SCREENS_PER_APP if is_plus else FREE_MAX_SCREENS_PER_APP
+    screens = payload.get("screens") or [{"id": "home", "name": "Home", "components": []}]
+    _validate_screens(screens, max_screens=max_screens)
+    theme = payload.get("theme") or "mint"
+    # Importing content built under a Vakar+ plan doesn't bypass tier gating
+    # for a free-tier importer — same premium-component/theme check as any
+    # other save, just run once up front here.
+    _validate_tier(screens, theme, is_plus)
+    name = (payload.get("name") or "Imported app").strip()[:80]
+    base_slug = slugify(name) or "app"
+    slug = await _unique_slug(base_slug)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "name": name,
+        "slug": slug,
+        "description": payload.get("description") or "",
+        "accent_color": payload.get("accent_color") or "#4ECDC4",
+        "theme": theme,
+        "visibility": "private",
+        "status": "draft",
+        "screens": screens,
+        "variables": payload.get("variables") or [],
+        "package_id": payload.get("package_id"),
+        "min_sdk": payload.get("min_sdk"),
+        "target_sdk": payload.get("target_sdk"),
+        "app_display_name": payload.get("app_display_name") or "",
+        "app_icon_url": payload.get("app_icon_url") or "",
+        "created_at": now,
+        "updated_at": now,
+        "created_by": user["username"],
+        "user_id": ObjectId(user["id"]),
+    }
+    result = await db.studio_apps.insert_one(doc)
+    return {"id": str(result.inserted_id), "slug": slug}
 
 @router.post("/my/studio-apps/{app_id}/duplicate")
 async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
@@ -522,17 +808,56 @@ async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
 # apps and moderation review of a user's private app).
 # ============================================================
 
+# The community showcase — "Applications" on the public site. Scoped
+# specifically to self-service apps with an approved submission; staff/house
+# apps aren't included here (they're internal tools, not community content).
+@router.get("/apps")
+async def list_public_studio_apps():
+    docs = await db.studio_apps.find({
+        "user_id": {"$ne": None},
+        "review_status": "approved",
+        "status": "published",
+        "visibility": "public",
+    }).sort("reviewed_at", -1).to_list(200)
+    return {"apps": [_serialize(d) for d in docs]}
+
 @router.get("/apps/{slug}")
 async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
     doc = await db.studio_apps.find_one({"slug": slug, "status": "published"})
     if not doc:
         raise HTTPException(status_code=404, detail="App not found")
+    is_owner = bool(user and doc.get("user_id") and str(doc["user_id"]) == user.get("id"))
+    is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
     if doc.get("visibility") == "private":
-        is_owner = bool(user and doc.get("user_id") and str(doc["user_id"]) == user.get("id"))
-        is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
         if not (is_owner or is_staff):
             raise HTTPException(status_code=404, detail="App not found")
+    elif doc.get("user_id") and doc.get("review_status") != "approved":
+        # Public self-service apps only stay actually reachable to strangers
+        # while their latest submitted version is approved — owner/staff can
+        # still preview it (e.g. to review a pending resubmission).
+        if not (is_owner or is_staff):
+            raise HTTPException(status_code=404, detail="App not found")
+
+    price_cents = doc.get("price_cents", 0)
+    if price_cents > 0 and not (is_owner or is_staff):
+        purchased = user and await db.studio_app_purchases.find_one({"app_id": doc["_id"], "email": user.get("email")}, {"_id": 1})
+        if not purchased:
+            # A paid app that's legitimately public but unpaid-for shows a
+            # paywall, not a 404 — it genuinely exists and is discoverable
+            # (e.g. from the Applications showcase); returning full screens
+            # data here would defeat the paywall entirely, so only the
+            # minimum needed to render a "Buy access" screen is sent.
+            return {
+                "id": str(doc["_id"]), "slug": doc["slug"],
+                "name": doc.get("review_name") or doc["name"],
+                "description": doc.get("review_description") or "",
+                "app_icon_url": doc.get("review_logo_url") or doc.get("app_icon_url") or "",
+                "price_cents": price_cents,
+                "requires_purchase": True,
+            }
+
     result = _serialize(doc, full=True)
+    result["requires_purchase"] = False
     # Staff/"house" apps (no owner) never show the free-tier watermark —
     # only self-service apps built by a non-Vakar+ user do.
     if doc.get("user_id"):
@@ -541,3 +866,58 @@ async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
     else:
         result["owner_is_vakar_plus"] = True
     return result
+
+@router.post("/apps/{slug}/checkout")
+@limiter.limit("10/minute")
+async def create_studio_app_checkout(request: Request, slug: str, user=Depends(get_current_user)):
+    """Buy access to a paid app. Fulfillment (recording the purchase, crediting
+    the creator's share, notifying both sides) happens in the Stripe webhook —
+    see routers/shop.py's checkout_type == "studio_app_purchase" branch, the
+    same split-fulfillment pattern already used for Vakar+ subscriptions."""
+    doc = await db.studio_apps.find_one({"slug": slug, "status": "published", "review_status": "approved", "visibility": "public"})
+    if not doc or not doc.get("user_id"):
+        raise HTTPException(status_code=404, detail="App not found")
+    price_cents = doc.get("price_cents", 0)
+    if price_cents <= 0:
+        raise HTTPException(status_code=400, detail="This app is free")
+    if str(doc["user_id"]) == user["id"]:
+        raise HTTPException(status_code=400, detail="You already own this app")
+    if await db.studio_app_purchases.find_one({"app_id": doc["_id"], "email": user["email"]}, {"_id": 1}):
+        raise HTTPException(status_code=409, detail="You already own this app")
+
+    origin = _get_origin(request)
+    app_name = doc.get("review_name") or doc["name"]
+    images = [doc["review_logo_url"]] if (doc.get("review_logo_url") or "").startswith("http") else []
+
+    def _create():
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            customer_email=user["email"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {"name": app_name, "description": doc.get("review_description") or "", "images": images},
+                    "unit_amount": price_cents,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=f"{origin}/apps/{slug}?purchased=1",
+            cancel_url=f"{origin}/apps/{slug}",
+            metadata={
+                "checkout_type": "studio_app_purchase",
+                "app_id": str(doc["_id"]),
+                "app_slug": slug,
+                "app_name": app_name,
+                "user_email": user["email"],
+                "creator_user_id": str(doc["user_id"]),
+            },
+        )
+
+    try:
+        session = await asyncio.to_thread(_create)
+    except Exception as e:
+        logger.error(f"Studio app checkout error: {e}")
+        raise HTTPException(status_code=500, detail="Payment service unavailable")
+
+    return {"checkout_url": session.url, "session_id": session.id}

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from '@phosphor-icons/react';
+import { ArrowRight, MagicWand, Rocket, Code } from '@phosphor-icons/react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
@@ -16,25 +17,37 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // reused instead of inventing a new treatment per section.
 const FRAME_CLS = 'rounded-[20px] border border-[#D2D2D7] overflow-hidden';
 
+const BENEFITS = [
+  {
+    icon: MagicWand, title: 'Visual builder',
+    description: 'Screens, components and actions — drag, drop, connect. No code required, ever.',
+  },
+  {
+    icon: Rocket, title: 'Submit & get featured',
+    description: 'Send a version for review, and once approved it goes live and appears on Applications.',
+  },
+  {
+    icon: Code, title: 'Export to code',
+    description: 'Vakar+ unlocks a real, ready-to-open VS Code project — HTML, CSS and JS, yours to keep.',
+  },
+];
+
 const Home = () => {
   const aboutRef = useRef(null);
-  const [featuredGame, setFeaturedGame] = useState(null);
-  const [games, setGames] = useState([]);
+  const { user } = useAuth();
+  const [apps, setApps] = useState([]);
 
   useEffect(() => {
-    document.title = 'Vakar Games — Software, Applications & Games';
-    axios.get(`${API_URL}/api/website/games/featured`)
-      .then(r => { if (r.data.game) setFeaturedGame(r.data.game); })
-      .catch(() => {});
-    axios.get(`${API_URL}/api/website/games/public`)
-      .then(r => setGames(r.data.games || []))
+    document.title = 'Vakar Games — Vakar Studio, the no-code app builder';
+    axios.get(`${API_URL}/api/apps`)
+      .then(r => setApps(r.data.apps || []))
       .catch(() => {});
   }, []);
 
   const scrollToAbout = () =>
     aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-  const titlesShipped = games.filter(g => g.status === 'published').length;
+  const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
 
   return (
     <div className="bg-white">
@@ -49,28 +62,30 @@ const Home = () => {
               as="p"
               className="text-[12px] font-mono text-[#6E6E73] mb-5"
             >
-              // vakar-games, est. 2024
+              // vakar studio
             </Reveal>
             <Reveal
               as="h1"
               className="font-display text-[38px] sm:text-[56px] lg:text-[64px] leading-[1.05] tracking-[-0.01em] font-medium text-[#1D1D1F]"
             >
               <span style={{ textWrap: 'balance' }} data-testid="hero-title">
-                Software built to <em className="not-italic text-[#4ECDC4]">endure.</em>
+                Build apps. <em className="not-italic text-[#4ECDC4]">No code needed.</em>
               </span>
             </Reveal>
             <Reveal as="p" className="text-[16px] sm:text-[18px] text-[#6E6E73] max-w-[46ch] mx-auto lg:mx-0 mt-5 leading-relaxed">
-              Three products, one small team. We write and host every core system ourselves, so we're the ones who answer for it when something breaks.
+              Vakar Studio is our one product: a visual app builder. Design screens, wire up actions, and publish — we write and host every core system ourselves, so we're the ones who answer for it when something breaks.
             </Reveal>
-            <Reveal as="div" className="flex items-center justify-center lg:justify-start mt-8">
-              <PublicButton
-                onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
-                variant="secondary"
-                icon={ArrowRight}
-                className="group"
-              >
-                Explore our work
-              </PublicButton>
+            <Reveal as="div" className="flex items-center justify-center lg:justify-start gap-3 mt-8 flex-wrap">
+              <Link to={user ? '/my-apps' : '/login'}>
+                <PublicButton icon={ArrowRight} className="group">
+                  Start building
+                </PublicButton>
+              </Link>
+              <Link to="/applications">
+                <PublicButton variant="outline">
+                  See what people built
+                </PublicButton>
+              </Link>
             </Reveal>
           </div>
 
@@ -80,114 +95,74 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured game — the same asymmetric grid, now with real product content */}
+      {/* Why Vakar Studio */}
       <section className="bg-[#F5F5F7] py-20 sm:py-28 px-6">
         <div className="max-w-[1120px] mx-auto">
-          {featuredGame ? (
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-4 items-center">
-              <Reveal as="div" className="lg:order-2">
-                <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// featured release</p>
-                <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-                  <span style={{ textWrap: 'balance' }}>{featuredGame.name}</span>
-                </h2>
-                {featuredGame.description && (
-                  <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-4 leading-relaxed max-w-[46ch]">
-                    {featuredGame.description}
-                  </p>
-                )}
-                <Link
-                  to="/shop"
-                  className="mt-6 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group"
-                >
-                  View on the shop <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </Reveal>
-              <Reveal
-                className={`lg:order-1 ${FRAME_CLS} flex items-center justify-center lg:-ml-10`}
-                as="div"
-              >
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(180deg, #FAFAFB 0%, #F0F0F2 100%)', aspectRatio: '4 / 3' }}
-                >
-                  {featuredGame.logo_url || featuredGame.screenshots?.[0] ? (
-                    <img
-                      src={
-                        (featuredGame.logo_url || featuredGame.screenshots[0]).startsWith('/')
-                          ? `${API_URL}${featuredGame.logo_url || featuredGame.screenshots[0]}`
-                          : (featuredGame.logo_url || featuredGame.screenshots[0])
-                      }
-                      alt={featuredGame.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[40px] sm:text-[64px] font-display font-medium tracking-[-0.02em] text-[#1D1D1F] opacity-90 uppercase px-6 text-center">
-                      {featuredGame.name}
-                    </span>
-                  )}
+          <Reveal className="text-center max-w-lg mx-auto mb-14">
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// how it works</p>
+            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
+              <span style={{ textWrap: 'balance' }}>From idea to published app.</span>
+            </h2>
+          </Reveal>
+          <div className="grid sm:grid-cols-3 gap-5">
+            {BENEFITS.map((b, i) => (
+              <Reveal key={b.title} className="rounded-xl bg-white border border-[#D2D2D7] p-6" style={{ transitionDelay: `${i * 60}ms` }}>
+                <div className="w-10 h-10 rounded-lg bg-[#4ECDC4]/10 flex items-center justify-center mb-4">
+                  <b.icon size={18} className="text-[#4ECDC4]" />
                 </div>
+                <h3 className="font-display text-base font-medium text-[#1D1D1F] mb-2">{b.title}</h3>
+                <p className="text-sm text-[#6E6E73] leading-relaxed">{b.description}</p>
               </Reveal>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// featured release</p>
-              <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-                New releases, in the works.
-              </h2>
-              <p className="text-[16px] text-[#6E6E73] max-w-[42ch] mx-auto mt-4 leading-relaxed">
-                Follow the company journal for updates on what's next.
-              </p>
-              <div className="mt-6">
-                <Link to="/blog" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group">
-                  Read the journal <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Games grid */}
-      {games.length > 0 && (
-        <section id="games" className="py-20 sm:py-28 px-6 text-center">
+      {/* Community showcase */}
+      {apps.length > 0 && (
+        <section id="applications" className="py-20 sm:py-28 px-6 text-center">
           <div className="max-w-[1040px] mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// games we've shipped</p>
+            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// from our community</p>
             <Reveal as="h2" className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-              {games.length === 1 ? 'One world, one philosophy.' : `${games.length} worlds. One philosophy.`}
+              Built with Vakar Studio.
             </Reveal>
 
             <Reveal
               className="mt-14 grid text-left rounded-[18px] border border-[#D2D2D7] overflow-hidden"
               as="div"
-              style={{ gridTemplateColumns: `repeat(${Math.min(games.length, 3)}, 1fr)`, gap: '1px', background: '#D2D2D7' }}
+              style={{ gridTemplateColumns: `repeat(${Math.min(apps.length, 3)}, 1fr)`, gap: '1px', background: '#D2D2D7' }}
             >
-              {games.slice(0, 3).map(game => (
-                <Link
-                  key={game.slug}
-                  to={`/shop?game=${game.slug}`}
+              {apps.slice(0, 3).map(a => (
+                <a
+                  key={a.slug}
+                  href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer"
                   className="relative bg-white hover:bg-[#FCFCFD] hover:shadow-[0_16px_32px_-16px_rgba(0,0,0,0.18)] hover:-translate-y-px hover:z-10 transition-all duration-300 ease-out px-[30px] py-9"
                 >
-                  {game.logo_url ? (
+                  {a.review_logo_url ? (
                     <img
-                      src={game.logo_url.startsWith('/') ? `${API_URL}${game.logo_url}` : game.logo_url}
-                      alt={game.name}
+                      src={img(a.review_logo_url)}
+                      alt={a.review_name || a.name}
                       className="w-11 h-11 rounded-xl object-cover mb-[18px] border border-[#D2D2D7]"
                     />
                   ) : (
                     <div className="text-[12px] font-mono text-[#4ECDC4] mb-[18px]">
-                      {game.name}
+                      {a.review_name || a.name}
                     </div>
                   )}
-                  <h3 className="font-display text-xl tracking-[-0.01em] font-medium text-[#1D1D1F] mb-2">{game.name}</h3>
-                  <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px]">
-                    {game.description || ' '}
+                  <h3 className="font-display text-xl tracking-[-0.01em] font-medium text-[#1D1D1F] mb-2">{a.review_name || a.name}</h3>
+                  <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px] line-clamp-2">
+                    {a.review_description || ' '}
                   </p>
-                  <span className="text-[11.5px] font-semibold text-[#6E6E73]">
-                    {game.status === 'coming_soon' ? 'In development' : `Live${game.platforms?.length ? ' — ' + game.platforms.map(p => p.name).join(' · ') : ''}`}
-                  </span>
-                </Link>
+                  <span className="text-[11.5px] font-semibold text-[#6E6E73]">Open the app</span>
+                </a>
               ))}
             </Reveal>
+
+            <div className="mt-10">
+              <Link to="/applications" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group">
+                Browse all applications <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
           </div>
         </section>
       )}
@@ -203,9 +178,11 @@ const Home = () => {
             <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
               We keep the roster small on purpose — the people who build a product are still the ones supporting it a year later. Nothing here runs on someone else's template.
             </p>
-            <p className="text-[14px] text-[#A1A1A6] mt-5">
-              {titlesShipped || games.length} product{(titlesShipped || games.length) === 1 ? '' : 's'} shipped since we started, in 2024.
-            </p>
+            {apps.length > 0 && (
+              <p className="text-[14px] text-[#A1A1A6] mt-5">
+                {apps.length} app{apps.length === 1 ? '' : 's'} built with Vakar Studio and featured so far.
+              </p>
+            )}
           </Reveal>
 
           <Reveal as="div" style={{ transitionDelay: '100ms' }}>

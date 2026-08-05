@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
+  Send, Clock, ThumbsDown, DollarSign, Package,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
@@ -20,6 +21,9 @@ const MIN_SIZE = 16;
 // client-side only for the "Add screen" upsell gate; the backend is the
 // real enforcement (same cross-stack duplication tradeoff as `tier` tags).
 const FREE_MAX_SCREENS = 15;
+// Mirrors backend/app/routers/studio_apps.py's CREATOR_SHARE_PCT (60% to the
+// creator) — used only for the "you keep X%" copy in the pricing field.
+const PLATFORM_SHARE_PCT = 40;
 const PACKAGE_ID_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
 const SDK_LEVELS = [
   { v: 22, label: '22 — Android 5.1' }, { v: 23, label: '23 — Android 6.0' }, { v: 24, label: '24 — Android 7.0' },
@@ -578,11 +582,20 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingFile, setExportingFile] = useState(false);
   const [apkBuild, setApkBuild] = useState(null);
   const [apkBusy, setApkBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: '', description: '', tags: [], logo_url: '', banner_url: '', price_cents: 0 });
+  const [reviewTagInput, setReviewTagInput] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewLogoUploading, setReviewLogoUploading] = useState(false);
+  const [reviewBannerUploading, setReviewBannerUploading] = useState(false);
+  const reviewLogoInputRef = useRef(null);
+  const reviewBannerInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -784,11 +797,69 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
   const toggleVisibility = async () => {
     const next = app.visibility === 'public' ? 'private' : 'public';
-    await fetch(`${API}${apiBase}/${appId}/visibility`, {
+    const r = await fetch(`${API}${apiBase}/${appId}/visibility`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ visibility: next }),
     });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      setSaveError(data.detail || 'Could not update visibility.');
+      return;
+    }
     setApp(a => ({ ...a, visibility: next }));
+  };
+
+  const openReviewModal = () => {
+    setReviewForm({
+      name: app.review_name || app.name || '',
+      description: app.review_description || app.description || '',
+      tags: app.review_tags || [],
+      logo_url: app.review_logo_url || app.app_icon_url || '',
+      banner_url: app.review_banner_url || '',
+      price_cents: app.price_cents || 0,
+    });
+    setReviewTagInput('');
+    setReviewOpen(true);
+  };
+
+  const addReviewTag = () => {
+    const t = reviewTagInput.trim();
+    if (!t || reviewForm.tags.includes(t) || reviewForm.tags.length >= 10) { setReviewTagInput(''); return; }
+    setReviewForm(f => ({ ...f, tags: [...f.tags, t] }));
+    setReviewTagInput('');
+  };
+  const removeReviewTag = (t) => setReviewForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }));
+
+  const uploadReviewImage = async (file, field, setBusy) => {
+    setBusy(true);
+    try {
+      const url = await uploadAsset(file);
+      setReviewForm(f => ({ ...f, [field]: url }));
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitReview = async () => {
+    setReviewSubmitting(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/submit-review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(reviewForm),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.detail || 'Could not submit for review.');
+      setReviewOpen(false);
+      await load();
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const handleExport = async () => {
@@ -798,6 +869,28 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       await exportAppAsZip(app, { showWatermark: !allowPremium });
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportFile = async () => {
+    setExportingFile(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/export-file`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error('Could not export this app.');
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${app.slug}.vakarstudio`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setExportingFile(false);
     }
   };
 
@@ -891,6 +984,26 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#4ECDC4]/10 text-[#4ECDC4] flex items-center gap-1">
             {app.visibility === 'public' ? <Globe size={10} /> : <Lock size={10} />}{app.visibility}
           </span>
+          {enableApkBuild && app.review_status && app.review_status !== 'none' && (
+            <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full flex items-center gap-1 ${
+              app.review_status === 'approved' ? 'bg-emerald-500/10 text-emerald-500'
+                : app.review_status === 'rejected' ? 'bg-red-500/10 text-red-500'
+                : 'bg-amber-500/10 text-amber-500'
+            }`}>
+              {app.review_status === 'approved' ? <Check size={10} /> : app.review_status === 'rejected' ? <ThumbsDown size={10} /> : <Clock size={10} />}
+              {app.review_status === 'approved' ? 'Approved' : app.review_status === 'rejected' ? 'Changes requested' : 'Pending review'}
+            </span>
+          )}
+          {enableApkBuild && app.price_cents > 0 && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#F2994A]/10 text-[#F2994A] flex items-center gap-1">
+              <DollarSign size={10} />${(app.price_cents / 100).toFixed(2)}
+            </span>
+          )}
+          {enableApkBuild && !!app.creator_earnings_cents && (
+            <span title="Total earned from sales" className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center gap-1">
+              Earned ${(app.creator_earnings_cents / 100).toFixed(2)}
+            </span>
+          )}
         </div>
 
         <div className="flex-1" />
@@ -898,7 +1011,15 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         <Button size="sm" variant="secondary" icon={Settings} onClick={() => setSettingsOpen(true)} title="Package name, SDK, icon">
           App Settings
         </Button>
-        <Button size="sm" variant="secondary" onClick={toggleVisibility}>
+        {enableApkBuild && (
+          <Button size="sm" variant="secondary" icon={Send} onClick={openReviewModal} title="Send this version for admin review">
+            Submit Version
+          </Button>
+        )}
+        <Button
+          size="sm" variant="secondary" onClick={toggleVisibility}
+          title={enableApkBuild && app.visibility !== 'public' && app.review_status !== 'approved' ? 'Submit this app for review before making it public' : undefined}
+        >
           Make {app.visibility === 'public' ? 'Private' : 'Public'}
         </Button>
         <Button size="sm" variant={app.status === 'published' ? 'secondary' : 'accent'} onClick={toggleStatus}>
@@ -911,6 +1032,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           title={allowPremium ? 'Export as a VS Code project' : 'Requires Vakar+'}
         >
           Export
+        </Button>
+        <Button
+          size="sm" variant="secondary" icon={Package}
+          onClick={handleExportFile} loading={exportingFile}
+          title="Download an encrypted .vakarstudio project file — importable back into Vakar Studio"
+        >
+          .vakarstudio
         </Button>
         {enableApkBuild && (
           <Button
@@ -1253,6 +1381,144 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
             <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
               <Button className="w-full" onClick={() => setSettingsOpen(false)}>Done</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Version modal — self-service only. Sending this sets
+          review_status to "pending"; approval is the only way a self-service
+          app becomes publicly reachable (see get_public_studio_app). */}
+      {reviewOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => !reviewSubmitting && setReviewOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Submit Version</h3>
+              <button onClick={() => setReviewOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4 overflow-y-auto">
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
+                An admin reviews this before it goes live. If approved, your app becomes public and appears on Applications.
+              </p>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => reviewLogoInputRef.current?.click()}
+                  className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center"
+                >
+                  {reviewForm.logo_url ? (
+                    <img src={reviewForm.logo_url.startsWith('/') ? `${API}${reviewForm.logo_url}` : reviewForm.logo_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Smartphone size={20} className="text-[#A1A1A6]" />
+                  )}
+                </button>
+                <div>
+                  <button onClick={() => reviewLogoInputRef.current?.click()} disabled={reviewLogoUploading} className="text-xs font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">
+                    {reviewLogoUploading ? 'Uploading…' : reviewForm.logo_url ? 'Change logo' : 'Upload logo (required)'}
+                  </button>
+                  <p className="text-[10px] text-[#A1A1A6] mt-1">Square image, at least 512×512px.</p>
+                </div>
+                <input ref={reviewLogoInputRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadReviewImage(f, 'logo_url', setReviewLogoUploading); }} />
+              </div>
+
+              <div>
+                <button
+                  onClick={() => reviewBannerInputRef.current?.click()}
+                  className="w-full h-24 rounded-xl overflow-hidden bg-[#F5F5F7] dark:bg-[#0d0d14] border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center"
+                >
+                  {reviewForm.banner_url ? (
+                    <img src={reviewForm.banner_url.startsWith('/') ? `${API}${reviewForm.banner_url}` : reviewForm.banner_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-semibold text-[#4ECDC4]">{reviewBannerUploading ? 'Uploading…' : 'Upload a banner (optional)'}</span>
+                  )}
+                </button>
+                <input ref={reviewBannerInputRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadReviewImage(f, 'banner_url', setReviewBannerUploading); }} />
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>Name</label>
+                <input value={reviewForm.name} onChange={e => setReviewForm(f => ({ ...f, name: e.target.value }))} className={FIELD_INPUT} maxLength={80} />
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>Description</label>
+                <textarea rows={3} value={reviewForm.description} onChange={e => setReviewForm(f => ({ ...f, description: e.target.value }))} className={`${FIELD_INPUT} resize-none`} maxLength={600} />
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>Tags</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    value={reviewTagInput} onChange={e => setReviewTagInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addReviewTag(); } }}
+                    placeholder="e.g. productivity" className={FIELD_INPUT}
+                  />
+                  <Button size="sm" variant="secondary" onClick={addReviewTag}>Add</Button>
+                </div>
+                {reviewForm.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {reviewForm.tags.map(t => (
+                      <span key={t} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#4ECDC4]/10 text-[#4ECDC4]">
+                        {t}
+                        <button onClick={() => removeReviewTag(t)}><X size={9} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={FIELD_LABEL}>Access</label>
+                {!allowPremium ? (
+                  <p className="text-xs text-[#A1A1A6] flex items-center gap-1.5"><Lock size={11} />Free apps only — <a href="/vakar-plus" className="text-[#4ECDC4] font-semibold hover:underline">Vakar+ unlocks paid apps</a>.</p>
+                ) : (
+                  <>
+                    <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 mb-2">
+                      {[{ id: 'free', label: 'Free' }, { id: 'paid', label: 'Paid' }].map(o => (
+                        <button
+                          key={o.id}
+                          onClick={() => setReviewForm(f => ({ ...f, price_cents: o.id === 'free' ? 0 : Math.max(f.price_cents, 100) }))}
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            (o.id === 'paid') === (reviewForm.price_cents > 0) ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa]'
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    {reviewForm.price_cents > 0 && (
+                      <div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1A6]">$</span>
+                          <input
+                            type="number" min="1" step="0.01"
+                            value={(reviewForm.price_cents / 100).toFixed(2)}
+                            onChange={e => setReviewForm(f => ({ ...f, price_cents: Math.max(100, Math.round(Number(e.target.value) * 100) || 0) }))}
+                            className={`${FIELD_INPUT} pl-6`}
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] text-[#A1A1A6]">Minimum $1.00. You keep {100 - PLATFORM_SHARE_PCT}% of every sale (${((reviewForm.price_cents * (100 - PLATFORM_SHARE_PCT) / 100) / 100).toFixed(2)} per copy) — the rest covers payment fees, servers and hosting.</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <Button
+                className="w-full" icon={Send} loading={reviewSubmitting}
+                disabled={!reviewForm.name.trim() || !reviewForm.description.trim() || !reviewForm.logo_url || (reviewForm.price_cents > 0 && reviewForm.price_cents < 100)}
+                onClick={submitReview}
+              >
+                Submit for review
+              </Button>
             </div>
           </div>
         </div>

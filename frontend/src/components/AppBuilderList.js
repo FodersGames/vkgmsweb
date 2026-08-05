@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Copy, ExternalLink, Globe, Lock } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Trash2, Copy, ExternalLink, Globe, Lock, Upload, Download } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -17,6 +17,10 @@ export default function AppBuilderList() {
   const [newName, setNewName] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [exportingId, setExportingId] = useState(null);
+  const importInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +64,47 @@ export default function AppBuilderList() {
     }
   };
 
+  const importApp = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    setImportError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const r = await fetch(`${API}/api/admin/studio-apps/import`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Could not import this file.');
+      setEditingId(data.id);
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const exportApp = async (a) => {
+    setExportingId(a.id);
+    try {
+      const r = await fetch(`${API}/api/admin/studio-apps/${a.id}/export-file`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${a.slug}.vakarstudio`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setImportError('Could not export this app.');
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   if (editingId) {
     return <AppBuilderEditor appId={editingId} onBack={() => setEditingId(null)} />;
   }
@@ -72,8 +117,19 @@ export default function AppBuilderList() {
             <h2 className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">App Builder</h2>
             <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">Build internal tools and player-facing mini-apps visually — no code required</p>
           </div>
-          <Button icon={Plus} onClick={() => setCreating(true)}>New App</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" icon={Upload} loading={importing} onClick={() => importInputRef.current?.click()}>Import</Button>
+            <input ref={importInputRef} type="file" accept=".vakarstudio" className="hidden" onChange={importApp} />
+            <Button icon={Plus} onClick={() => setCreating(true)}>New App</Button>
+          </div>
         </div>
+
+        {importError && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-xs text-red-600 dark:text-red-400">
+            <span>{importError}</span>
+            <button onClick={() => setImportError('')}>×</button>
+          </div>
+        )}
 
         {creating && (
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 flex items-center gap-3 flex-wrap">
@@ -133,6 +189,9 @@ export default function AppBuilderList() {
                   )}
                   <button onClick={() => duplicateApp(a.id)} title="Duplicate" className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
                     <Copy size={14} />
+                  </button>
+                  <button onClick={() => exportApp(a)} disabled={exportingId === a.id} title="Export .vakarstudio" className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] disabled:opacity-40">
+                    <Download size={14} />
                   </button>
                   <button onClick={() => setConfirm(a.id)} title="Delete" className="p-2 text-[#A1A1A6] hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
                     <Trash2 size={14} />

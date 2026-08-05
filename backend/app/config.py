@@ -1,5 +1,7 @@
 import os
 import secrets
+import hashlib
+import base64
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -54,3 +56,13 @@ GITHUB_PAT = os.environ.get('GITHUB_PAT', '')
 GITHUB_REPO = os.environ.get('GITHUB_REPO', 'FodersGames/vkgmsweb')
 GITHUB_WORKFLOW_FILE = os.environ.get('GITHUB_WORKFLOW_FILE', 'build-apk.yml')
 GITHUB_WORKFLOW_REF = os.environ.get('GITHUB_WORKFLOW_REF', 'version_006')
+
+# .vakarstudio export/import (Studio App Builder) — the file is Fernet-encrypted
+# so it's opaque to anyone but this backend; the key is deterministically
+# derived from JWT_SECRET (SHA-256, urlsafe-base64) rather than a brand-new env
+# var, so it stays STABLE across restarts whenever JWT_SECRET is actually set
+# (same requirement production already has for sessions to survive a restart) —
+# a fresh random key every boot would make previously-exported files
+# permanently undecryptable, which JWT ephemerality never risked (a logged-out
+# user just logs back in; a corrupted export file is unrecoverable data loss).
+VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-file-v1:{JWT_SECRET}".encode()).digest())

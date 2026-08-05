@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
@@ -8,6 +8,7 @@ import { PublicButton } from '../ui/PublicButton';
 import AppBuilderEditor from '../components/AppBuilderEditor';
 import {
   AppWindow, Plus, Copy, Trash, Globe, LockSimple, ArrowSquareOut, Crown, X, Check,
+  UploadSimple, DownloadSimple,
 } from '@phosphor-icons/react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -24,6 +25,10 @@ export default function MyApps() {
   const [newName, setNewName] = useState('');
   const [createError, setCreateError] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [exportingId, setExportingId] = useState(null);
+  const importInputRef = useRef(null);
 
   useEffect(() => {
     document.title = 'My Apps — Vakar Games';
@@ -72,6 +77,47 @@ export default function MyApps() {
     load();
   };
 
+  const importApp = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImporting(true);
+    setImportError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const r = await fetch(`${API}/api/my/studio-apps/import`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Could not import this file.');
+      setEditingId(data.id);
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const exportApp = async (a) => {
+    setExportingId(a.id);
+    try {
+      const r = await fetch(`${API}/api/my/studio-apps/${a.id}/export-file`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${a.slug}.vakarstudio`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setImportError('Could not export this app.');
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   if (authLoading || !user) return null;
 
   if (editingId) {
@@ -107,12 +153,22 @@ export default function MyApps() {
                 Screens, components and actions — no code. Publish it publicly or keep it just for you.
               </p>
             </div>
-            {quota && (
-              <div className="rounded-xl liquid-glass px-4 py-3 text-right shrink-0">
-                <p className="font-display text-xl font-medium text-[#1D1D1F] leading-none">{quota.used}<span className="text-[#A1A1A6] text-sm">/{quota.max}</span></p>
-                <p className="text-[10px] text-[#6E6E73] mt-1">apps used</p>
-              </div>
-            )}
+            <div className="flex items-center gap-3 shrink-0">
+              {apps.some(a => a.creator_earnings_cents) && (
+                <div className="rounded-xl liquid-glass px-4 py-3 text-right">
+                  <p className="font-display text-xl font-medium text-emerald-600 leading-none">
+                    ${(apps.reduce((sum, a) => sum + (a.creator_earnings_cents || 0), 0) / 100).toFixed(2)}
+                  </p>
+                  <p className="text-[10px] text-[#6E6E73] mt-1">earned total</p>
+                </div>
+              )}
+              {quota && (
+                <div className="rounded-xl liquid-glass px-4 py-3 text-right">
+                  <p className="font-display text-xl font-medium text-[#1D1D1F] leading-none">{quota.used}<span className="text-[#A1A1A6] text-sm">/{quota.max}</span></p>
+                  <p className="text-[10px] text-[#6E6E73] mt-1">apps used</p>
+                </div>
+              )}
+            </div>
           </div>
         </Reveal>
       </section>
@@ -128,12 +184,25 @@ export default function MyApps() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-widest">Your apps</p>
-          <PublicButton size="sm" icon={Plus} iconPosition="leading" disabled={atLimit} onClick={() => setCreating(true)}>
-            New App
-          </PublicButton>
+          <div className="flex items-center gap-2">
+            <PublicButton size="sm" variant="outline" icon={UploadSimple} iconPosition="leading" disabled={atLimit || importing} onClick={() => importInputRef.current?.click()}>
+              {importing ? 'Importing…' : 'Import .vakarstudio'}
+            </PublicButton>
+            <input ref={importInputRef} type="file" accept=".vakarstudio" className="hidden" onChange={importApp} />
+            <PublicButton size="sm" icon={Plus} iconPosition="leading" disabled={atLimit} onClick={() => setCreating(true)}>
+              New App
+            </PublicButton>
+          </div>
         </div>
+
+        {importError && (
+          <div className="rounded-xl liquid-glass p-4 mb-6 flex items-center justify-between gap-3">
+            <p className="text-xs text-red-500">{importError}</p>
+            <button onClick={() => setImportError('')} className="text-[#6E6E73] hover:text-[#1D1D1F] shrink-0"><X size={13} /></button>
+          </div>
+        )}
 
         {creating && (
           <div className="rounded-xl liquid-glass p-5 mb-6 flex items-center gap-3 flex-wrap">
@@ -173,8 +242,25 @@ export default function MyApps() {
                     <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#4ECDC4]/10 text-[#4ECDC4] flex items-center gap-1">
                       {a.visibility === 'public' ? <Globe size={9} /> : <LockSimple size={9} />}{a.visibility}
                     </span>
+                    {a.price_cents > 0 && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#F2994A]/10 text-[#F2994A]">
+                        ${(a.price_cents / 100).toFixed(2)}
+                      </span>
+                    )}
+                    {a.review_status && a.review_status !== 'none' && (
+                      <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        a.review_status === 'approved' ? 'bg-emerald-500/10 text-emerald-600'
+                          : a.review_status === 'rejected' ? 'bg-red-500/10 text-red-500'
+                          : 'bg-amber-500/10 text-amber-600'
+                      }`}>
+                        {a.review_status === 'approved' ? 'Approved & live' : a.review_status === 'rejected' ? 'Changes requested' : 'Pending review'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-[#A1A1A6] font-mono truncate">/apps/{a.slug}</p>
+                  {a.review_status === 'rejected' && a.review_rejection_reason && (
+                    <p className="text-[11px] text-red-500 mt-1 truncate">Reason: {a.review_rejection_reason}</p>
+                  )}
                 </div>
 
                 {confirmDeleteId === a.id ? (
@@ -195,6 +281,9 @@ export default function MyApps() {
                     )}
                     <button onClick={() => duplicateApp(a.id)} title="Duplicate" disabled={atLimit} className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7] disabled:opacity-30">
                       <Copy size={14} />
+                    </button>
+                    <button onClick={() => exportApp(a)} title="Export .vakarstudio" disabled={exportingId === a.id} className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7] disabled:opacity-30">
+                      <DownloadSimple size={14} />
                     </button>
                     <button onClick={() => setConfirmDeleteId(a.id)} title="Delete" className="p-2 text-[#A1A1A6] hover:text-red-500 rounded-lg hover:bg-red-50">
                       <Trash size={14} />

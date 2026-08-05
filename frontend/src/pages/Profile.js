@@ -669,7 +669,10 @@ const Profile = () => {
                   {notifications.map(n => (
                     <div
                       key={n.id}
-                      onClick={() => !n.read && markRead(n.id)}
+                      onClick={() => {
+                        if (!n.read) markRead(n.id);
+                        if (n.link) navigate(n.link);
+                      }}
                       className={`rounded-lg p-3 border transition-all cursor-pointer ${
                         n.read ? 'border-[#EDEDEF] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
                       }`}

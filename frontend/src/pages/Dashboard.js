@@ -5,10 +5,11 @@ import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
   Users, Activity, FileText, Database, LogOut,
-  Gamepad2, ChevronDown, Check, Settings, PenTool,
+  Gamepad2, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical, AppWindow,
+  ClipboardCheck,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -31,6 +32,7 @@ import { CouponManagement }    from '../components/CouponManagement';
 import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
 import AppBuilderList         from '../components/AppBuilderList';
+import AppReviewQueue         from '../components/AppReviewQueue';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
@@ -39,6 +41,16 @@ import { NotificationBell }   from '../components/NotificationBell';
 // Each top-level item is either a single view, or a workspace that owns its
 // own internal tab bar (see *_SUBTABS below) — collapsing what used to be 8
 // separate "Studio" entries down to one "Projects" workspace, etc.
+//
+// Vakar Studio pivot: the old games business (storefront catalog, shop,
+// coupons) and the legacy per-game server-ops tooling ("Projects" —
+// variables/missions/chat/files/players for db.projects entities) are
+// intentionally NOT listed here anymore — Studio App Builder is the one
+// product now. Nothing was deleted: GamesManagement/ShopWorkspace/
+// ProjectWorkspace and their routes/data all still work, they're just no
+// longer reachable via the sidebar or the ⌘K command palette (which derives
+// its entries from this same array). A direct URL/history entry pointing at
+// one of those tab ids still renders fine — see the switch below.
 
 const NAV_GROUPS = [
   {
@@ -52,21 +64,16 @@ const NAV_GROUPS = [
     label: 'Studio',
     id: 'studio',
     items: [
-      {
-        id: 'projects', label: 'Projects', icon: Gamepad2,
-        anyPermission: ['view_projects', 'change_status', 'view_variables', 'view_logs', 'manage_chat', 'claim_missions', 'create_missions', 'manage_files', 'manage_play'],
-      },
-      { id: 'app-builder', label: 'App Builder', icon: AppWindow, permission: 'manage_studio_apps' },
+      { id: 'app-builder', label: 'App Builder', icon: AppWindow,      permission: 'manage_studio_apps' },
+      { id: 'app-reviews', label: 'Reviews',     icon: ClipboardCheck, permission: 'manage_studio_apps' },
     ],
   },
   {
     label: 'Website',
     items: [
-      { id: 'website-games',    label: 'Applications', icon: Gamepad2, permission: 'create_games'   },
-      { id: 'website-blog',     label: 'Blog',     icon: PenTool,     permission: 'create_blog'    },
-      { id: 'website-shop',     label: 'Shop',     icon: ShoppingBag, permission: 'manage_shop'    },
-      { id: 'careers',          label: 'Careers',  icon: Briefcase,   permission: 'manager_careers' },
-      { id: 'website-settings', label: 'Settings', icon: Settings,    permission: 'manage_website'  },
+      { id: 'website-blog',     label: 'Blog',     icon: PenTool,   permission: 'create_blog'    },
+      { id: 'careers',          label: 'Careers',  icon: Briefcase, permission: 'manager_careers' },
+      { id: 'website-settings', label: 'Settings', icon: Settings,  permission: 'manage_website'  },
     ],
   },
   {
@@ -306,8 +313,7 @@ const WebsiteSettingsWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) 
 // Also hoisted for the same reason as NavItem above.
 
 const SidebarContent = ({
-  onClose, hasPermission, user, projects, selectedProject, selectProject,
-  showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
+  onClose, hasPermission, user, activeTab, onSelectTab,
   displayName, initials, logout, onOpenPalette,
   navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
 }) => (
@@ -348,48 +354,6 @@ const SidebarContent = ({
             <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A1A1A6] dark:text-[#71717a] px-2.5 mb-1.5">
               {group.label}
             </p>
-
-            {/* Project selector — Studio only */}
-            {group.id === 'studio' && projects.length > 0 && (
-              <div className="relative mb-2 mx-3" ref={projectDropRef}>
-                <button
-                  onClick={() => setShowProject(v => !v)}
-                  data-testid="project-selector"
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
-                >
-                  <Gamepad2 size={13} className="text-[#4ECDC4] shrink-0" />
-                  <span className="flex-1 text-[12px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate">
-                    {selectedProject?.name || 'Select project…'}
-                  </span>
-                  <ChevronDown
-                    size={12}
-                    className={`text-[#6E6E73] dark:text-[#a1a1aa] shrink-0 transition-transform ${showProject ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {showProject && (
-                  <div
-                    className="absolute z-50 left-0 right-0 mt-1 rounded-lg bg-white dark:bg-[#1c1c2e] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-lg overflow-hidden"
-                    data-testid="project-dropdown"
-                  >
-                    {projects.map(p => (
-                      <button
-                        key={p.slug}
-                        onClick={() => { selectProject(p); setShowProject(false); }}
-                        data-testid={`project-option-${p.slug}`}
-                        className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] text-left transition-colors ${
-                          selectedProject?.slug === p.slug
-                            ? 'bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white font-medium'
-                            : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
-                        }`}
-                      >
-                        <span className="flex-1 truncate">{p.name}</span>
-                        {selectedProject?.slug === p.slug && <Check size={11} className="text-[#4ECDC4]" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
 
             <div className="px-2">
               {visibleItems.map(item => (
@@ -452,13 +416,12 @@ const restoreSession = () => {
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
   const { isDark, toggleTheme } = useTheme();
-  const { projects, selectedProject, selectProject } = useProject();
+  const { selectedProject } = useProject();
   const isSuperAdmin = !!user?.is_super_admin;
 
   const restored = useRef(restoreSession()).current;
 
   const [activeTab,    setActiveTab]    = useState(restored.activeTab || 'overview');
-  const [showProject,  setShowProject]  = useState(false);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [paletteOpen,  setPaletteOpen]  = useState(false);
 
@@ -499,8 +462,6 @@ const DashboardContent = () => {
   const [shopTab,    setShopTab]    = useState(restored.shopTab || 'shop');
   const [systemTab,  setSystemTab]  = useState(restored.systemTab || 'vps');
   const [websiteSettingsTab, setWebsiteSettingsTab] = useState(restored.websiteSettingsTab || 'global');
-
-  const projectDropRef = useRef(null);
 
   // Back/forward history — a lightweight in-memory stack of section snapshots,
   // since the dashboard is pure React state rather than per-tab URLs.
@@ -547,15 +508,6 @@ const DashboardContent = () => {
     setNavDirection('forward');
     applySnapshot(historyStack.current[historyIndex.current]);
   };
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (projectDropRef.current && !projectDropRef.current.contains(e.target))
-        setShowProject(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   // Global ⌘K / Ctrl+K — jump to any section without touching the sidebar.
   // Alt+←/→ — step back/forward through recently visited sections.
@@ -641,8 +593,7 @@ const DashboardContent = () => {
   }, [hasPermission, isSuperAdmin]);
 
   const sidebarProps = {
-    hasPermission, user, projects, selectedProject, selectProject,
-    showProject, setShowProject, projectDropRef, activeTab, onSelectTab,
+    hasPermission, user, activeTab, onSelectTab,
     displayName, initials, logout, onOpenPalette: () => setPaletteOpen(true),
     navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
   };
@@ -803,6 +754,7 @@ const DashboardContent = () => {
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
             {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList />}
+            {activeTab === 'app-reviews'      && hasPermission('manage_studio_apps') && <AppReviewQueue />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

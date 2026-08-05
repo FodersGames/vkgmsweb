@@ -27,8 +27,9 @@ export const SiteFooter = ({ onAbout }) => {
         <div>
           <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Products</h4>
           <ul className="flex flex-col gap-2.5">
+            <li><Link to="/my-apps" className={linkCls}>Vakar Studio</Link></li>
             <li><Link to="/applications" className={linkCls}>Applications</Link></li>
-            <li><Link to="/shop" className={linkCls}>Shop</Link></li>
+            <li><Link to="/vakar-plus" className={linkCls}>Vakar+</Link></li>
           </ul>
         </div>
 

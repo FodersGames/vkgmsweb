@@ -16,6 +16,7 @@ from ..rate_limit import limiter
 from ..schemas import (
     ShopProductCreateRequest, ShopProductUpdateRequest, ShopCheckoutRequest, GamePurchaseCheckoutRequest,
 )
+from .studio_apps import CREATOR_SHARE_PCT
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -508,6 +509,51 @@ async def stripe_webhook(request: Request):
                 except Exception as e:
                     logger.error(f"Game purchase record error: {e}")
 
+        elif checkout_type == "studio_app_purchase":
+            app_id_meta = meta.get("app_id", "")
+            app_slug_meta = meta.get("app_slug", "")
+            app_name = meta.get("app_name", "")
+            user_email = meta.get("user_email", "")
+            creator_user_id = meta.get("creator_user_id", "")
+            if user_email and app_id_meta:
+                try:
+                    app_oid = ObjectId(app_id_meta)
+                    creator_cents = round(amount_paid * CREATOR_SHARE_PCT / 100)
+                    await db.studio_app_purchases.update_one(
+                        {"email": user_email, "app_id": app_oid},
+                        {"$setOnInsert": {
+                            "email": user_email,
+                            "app_id": app_oid,
+                            "app_slug": app_slug_meta,
+                            "app_name": app_name,
+                            "stripe_session_id": session.get("id", ""),
+                            "amount_paid_cents": amount_paid,
+                            "creator_earnings_cents": creator_cents,
+                            "purchased_at": datetime.now(timezone.utc),
+                        }},
+                        upsert=True,
+                    )
+                    logger.info(f"Studio app purchase recorded: {user_email} → {app_slug_meta}")
+                    await db.studio_apps.update_one(
+                        {"_id": app_oid},
+                        {"$inc": {"creator_earnings_cents": creator_cents, "total_sales_cents": amount_paid}},
+                    )
+                    u = await db.users.find_one({"email": user_email})
+                    if u:
+                        await _create_notification(
+                            user_id=str(u["_id"]),
+                            message=f"✅ Unlocked: {app_name} — ${amount_paid/100:.2f}.",
+                            notif_type="studio_app_purchase_success", link=f"/apps/{app_slug_meta}",
+                        )
+                    if creator_user_id:
+                        await _create_notification(
+                            user_id=creator_user_id,
+                            message=f"💰 Someone bought \"{app_name}\" for ${amount_paid/100:.2f} — you earned ${creator_cents/100:.2f} ({CREATOR_SHARE_PCT}% share).",
+                            notif_type="studio_app_sale", link="/my-apps",
+                        )
+                except Exception as e:
+                    logger.error(f"Studio app purchase record error: {e}")
+
         elif checkout_type == "vakar_plus_subscription":
             user_id = meta.get("user_id", "")
             plan = meta.get("plan", "")
@@ -562,7 +608,12 @@ async def stripe_webhook(request: Request):
         meta = session.get("metadata", {})
         user_email = meta.get("user_email", "")
         checkout_type = meta.get("checkout_type", "")
-        subject = meta.get("game_name") if checkout_type == "game_purchase" else "your purchase"
+        if checkout_type == "game_purchase":
+            subject = meta.get("game_name")
+        elif checkout_type == "studio_app_purchase":
+            subject = meta.get("app_name")
+        else:
+            subject = "your purchase"
         if user_email:
             try:
                 u = await db.users.find_one({"email": user_email})
