@@ -108,7 +108,10 @@ export const COMPONENT_TYPES = [
     // run when a rendered row is tapped, with {{item...}} interpolation
     // available in its fields. No separate premium gate needed — `list`
     // itself is already a fully premium type.
-    defaultProps: { source_variable: '', item_template: '{{item}}', empty_text: 'No items yet.', item_action: null },
+    // item_image_template: optional, resolved the same way as item_template
+    // (interpolate against {item}) — when set, each row also shows a small
+    // image (e.g. {{item.image}}), for things like a card/product picture.
+    defaultProps: { source_variable: '', item_template: '{{item}}', item_image_template: '', empty_text: 'No items yet.', item_action: null },
   },
   {
     type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, supportsAction: true,

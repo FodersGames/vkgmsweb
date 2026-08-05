@@ -1,0 +1,8 @@
+Thank you for your purchase
+
+GUI Pro Kit Fantasy RPG
+
+https://fonts.google.com/specimen/Alata
+
+
+

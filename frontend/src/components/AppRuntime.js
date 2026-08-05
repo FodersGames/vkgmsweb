@@ -226,21 +226,29 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
         return <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
       }
       const itemAction = node.props?.item_action;
+      const imageTemplate = node.props?.item_image_template;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }}>
-          {items.slice(0, 50).map((item, i) => (
-            <div
-              key={i}
-              onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item, index: i }); }}
-              style={{
-                padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
-                cursor: itemAction && interactive ? 'pointer' : 'default',
-              }}
-            >
-              {interpolate(node.props?.item_template, vars, { item })}
-            </div>
-          ))}
+          {items.slice(0, 50).map((item, i) => {
+            const imgSrc = imageTemplate ? interpolate(imageTemplate, vars, { item }) : '';
+            return (
+              <div
+                key={i}
+                onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item, index: i }); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
+                  border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
+                  cursor: itemAction && interactive ? 'pointer' : 'default',
+                }}
+              >
+                {imgSrc && (
+                  <img src={imgSrc} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                )}
+                <span>{interpolate(node.props?.item_template, vars, { item })}</span>
+              </div>
+            );
+          })}
         </div>
       );
     }

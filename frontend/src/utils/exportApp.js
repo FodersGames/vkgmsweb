@@ -95,7 +95,8 @@ async function renderComponentHTML(node, index = 0) {
     }
     case 'list': {
       const itemActionAttr = node.props?.item_action ? ` data-item-action="${escJsonAttr(node.props.item_action)}"` : '';
-      return `${wrapperOpen}<div class="vk-list" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${itemActionAttr} style="width:100%;height:100%;"></div></div>`;
+      const imgTplAttr = node.props?.item_image_template ? ` data-img-tpl="${esc(node.props.item_image_template)}"` : '';
+      return `${wrapperOpen}<div class="vk-list" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${imgTplAttr}${itemActionAttr} style="width:100%;height:100%;"></div></div>`;
     }
     case 'container': {
       const bg = node.props?.background === 'surface' ? 'var(--vk-surface)' : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
@@ -232,7 +233,8 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-toggle.on .vk-toggle-knob { left: 20px; }
 .vk-icon svg { display: block; }
 .vk-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
-.vk-list-item { padding: 10px 12px; border-radius: calc(var(--vk-radius) * 0.7); background: var(--vk-surface); border: 1px solid var(--vk-border); font-size: 13px; color: var(--vk-text); flex-shrink: 0; }
+.vk-list-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: calc(var(--vk-radius) * 0.7); background: var(--vk-surface); border: 1px solid var(--vk-border); font-size: 13px; color: var(--vk-text); flex-shrink: 0; }
+.vk-list-item-img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .vk-list-empty { font-size: 13px; color: var(--vk-text-muted); margin: 0; }
 #vk-toast { display: none; position: absolute; top: 12px; left: 12px; right: 12px; background: var(--vk-text); color: var(--vk-bg); font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: calc(var(--vk-radius) * 0.7); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 10; }
 .vk-watermark { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -365,6 +367,7 @@ function generateJS(app) {
       } catch (e) { /* not valid JSON */ }
     }
     var tpl = el.getAttribute('data-tpl');
+    var imgTpl = el.getAttribute('data-img-tpl');
     var itemActionAttr = el.getAttribute('data-item-action');
     var itemAction = null;
     if (itemActionAttr) { try { itemAction = JSON.parse(itemActionAttr); } catch (e) { /* ignore */ } }
@@ -379,7 +382,19 @@ function generateJS(app) {
     items.slice(0, 50).forEach(function (item, idx) {
       var row = document.createElement('div');
       row.className = 'vk-list-item';
-      row.textContent = interpolate(tpl, { item: item });
+      if (imgTpl) {
+        var imgSrc = interpolate(imgTpl, { item: item });
+        if (imgSrc) {
+          var img = document.createElement('img');
+          img.className = 'vk-list-item-img';
+          img.src = imgSrc;
+          img.alt = '';
+          row.appendChild(img);
+        }
+      }
+      var textSpan = document.createElement('span');
+      textSpan.textContent = interpolate(tpl, { item: item });
+      row.appendChild(textSpan);
       if (itemAction) {
         row.style.cursor = 'pointer';
         row.addEventListener('click', function () { runAction(itemAction, { item: item, index: idx }); });

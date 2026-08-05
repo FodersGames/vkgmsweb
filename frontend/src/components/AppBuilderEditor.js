@@ -519,6 +519,11 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{item}}'} for a simple value, or {'{{item.field}}'} if each entry is an object.</p>
           </div>
           <div>
+            <label className={FIELD_LABEL}>Item image (optional)</label>
+            <input value={node.props.item_image_template || ''} onChange={e => set('item_image_template', e.target.value)} placeholder="{{item.image}}" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">If each entry is an object with an image URL field, show it as a small picture next to the text.</p>
+          </div>
+          <div>
             <label className={FIELD_LABEL}>Empty state text</label>
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
