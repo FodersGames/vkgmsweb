@@ -243,3 +243,58 @@ export function AppIcon({ id, size = 24, color = 'currentColor', strokeWidth = 1
     </svg>
   );
 }
+
+// ============================================================
+// Premium preview demo — one small, pre-built sample screen used to show
+// what a locked theme or a locked component actually looks like in a real
+// app, instead of just a "requires Vakar+" text message. Deliberately a
+// single shared screen (not one per theme/component) — it uses custom text
+// sizing, icons, a toggle and a list together, which happens to cover every
+// premium capability in one composition. Rendered statically (no
+// setVars/runAction) via ComponentVisual/PositionedNode, same as the
+// editor's own design canvas.
+// ============================================================
+export const PREMIUM_PREVIEW_SCREEN = {
+  components: [
+    {
+      id: 'preview-title', type: 'text', actions: {},
+      layout: { x: 24, y: 32, w: 280, h: 44 },
+      props: { content: 'Level Up', size: 'custom', size_px: 30, weight: 'bold', align: 'left', color: '' },
+    },
+    {
+      id: 'preview-subtitle', type: 'text', actions: {},
+      layout: { x: 24, y: 78, w: 280, h: 22 },
+      props: { content: 'Your weekly recap', size: 'sm', weight: 'normal', align: 'left', color: '' },
+    },
+    {
+      id: 'preview-icon-1', type: 'icon', actions: {},
+      layout: { x: 24, y: 118, w: 40, h: 40 }, props: { icon: 'star', color: '' },
+    },
+    {
+      id: 'preview-icon-2', type: 'icon', actions: {},
+      layout: { x: 76, y: 118, w: 40, h: 40 }, props: { icon: 'heart', color: '' },
+    },
+    {
+      id: 'preview-icon-3', type: 'icon', actions: {},
+      layout: { x: 128, y: 118, w: 40, h: 40 }, props: { icon: 'bell', color: '' },
+    },
+    {
+      id: 'preview-toggle', type: 'toggle', actions: {},
+      layout: { x: 24, y: 176, w: 312, h: 32 },
+      props: { label: 'Push notifications', variable: 'previewToggle' },
+    },
+    {
+      id: 'preview-list', type: 'list', actions: {},
+      layout: { x: 24, y: 228, w: 312, h: 192 },
+      props: { source_variable: 'previewItems', item_template: '{{item}}', empty_text: 'No items yet.' },
+    },
+    {
+      id: 'preview-button', type: 'button', actions: {},
+      layout: { x: 24, y: 440, w: 312, h: 48 }, props: { label: 'Continue', style: 'primary' },
+    },
+  ],
+};
+export const PREMIUM_PREVIEW_VARS = {
+  previewToggle: 'true',
+  previewItems: JSON.stringify(['Completed 5 workouts', 'Earned 120 points', 'Invited 2 friends']),
+};

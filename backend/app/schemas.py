@@ -270,6 +270,7 @@ class StudioAppSubmitReviewRequest(BaseModel):
     logo_url: str
     banner_url: str = ""
     price_cents: int = 0
+    changelog: str = ""
 
 class StudioAppReviewDecisionRequest(BaseModel):
     reason: str = ""

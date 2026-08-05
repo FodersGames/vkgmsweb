@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, GameController, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
+import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
@@ -473,20 +473,6 @@ const Profile = () => {
 
         {/* Quick links — always visible, independent of the tabs below */}
         <div className="max-w-lg mx-auto px-6 pt-6 space-y-3">
-          <Link
-            to="/app"
-            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
-          >
-            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
-              <GameController size={16} className="text-[#6E6E73]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#1D1D1F]">Vakar App</p>
-              <p className="text-xs text-[#6E6E73]">Your game library and last sessions</p>
-            </div>
-            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
-          </Link>
-
           <Link
             to="/my-apps"
             className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"

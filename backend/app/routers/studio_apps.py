@@ -240,6 +240,12 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         "review_logo_url": doc.get("review_logo_url") or "",
         "review_banner_url": doc.get("review_banner_url") or "",
         "review_rejection_reason": doc.get("review_rejection_reason") or "",
+        "review_changelog": doc.get("review_changelog") or "",
+        # True once this app has been approved at least once — after that,
+        # every new submission is treated as an update and requires a
+        # changelog (see submit_my_studio_app_review). Never cleared, even
+        # if a later submission is rejected.
+        "ever_approved": bool(doc.get("ever_approved")),
         # Public — needed to render the paywall/price tag. creator_earnings_cents
         # is deliberately NOT here (it's only attached in owner-scoped self-service
         # responses — see get_my_studio_app/list_my_studio_apps — never in the
@@ -308,7 +314,7 @@ async def approve_studio_app_review(app_id: str, user=Depends(require_permission
     now = datetime.now(timezone.utc)
     await db.studio_apps.update_one({"_id": oid}, {"$set": {
         "review_status": "approved", "status": "published", "visibility": "public",
-        "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+        "ever_approved": True, "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
     }})
     await log_action("studio_apps", f"App '{doc['name']}' review approved", user=user["username"])
     if doc.get("user_id"):
@@ -692,6 +698,9 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
             raise HTTPException(status_code=402, detail="Publishing a paid app requires Vakar+.")
         if price_cents < MIN_APP_PRICE_CENTS:
             raise HTTPException(status_code=400, detail=f"Minimum price is ${MIN_APP_PRICE_CENTS / 100:.2f}.")
+    changelog = body.changelog.strip()[:600]
+    if doc.get("ever_approved") and not changelog:
+        raise HTTPException(status_code=400, detail="Describe what changed in this update before submitting it for review.")
     now = datetime.now(timezone.utc)
     await db.studio_apps.update_one({"_id": oid}, {"$set": {
         "review_status": "pending",
@@ -700,6 +709,7 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
         "review_tags": tags,
         "review_logo_url": logo_url,
         "review_banner_url": body.banner_url.strip(),
+        "review_changelog": changelog,
         "review_rejection_reason": "",
         "price_cents": price_cents,
         "submitted_at": now,

@@ -11,8 +11,9 @@ import {
   COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
   normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
+  PREMIUM_PREVIEW_SCREEN, PREMIUM_PREVIEW_VARS,
 } from '../constants/appBuilder';
-import AppRuntime, { ComponentVisual } from './AppRuntime';
+import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
@@ -589,7 +590,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ name: '', description: '', tags: [], logo_url: '', banner_url: '', price_cents: 0 });
+  // { kind: 'theme', theme } | { kind: 'component', meta } | null — shows a
+  // pre-built demo screen instead of just a "requires Vakar+" text message
+  // when a locked theme/component is clicked.
+  const [previewFeature, setPreviewFeature] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ name: '', description: '', tags: [], logo_url: '', banner_url: '', price_cents: 0, changelog: '' });
   const [reviewTagInput, setReviewTagInput] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewLogoUploading, setReviewLogoUploading] = useState(false);
@@ -817,6 +822,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       logo_url: app.review_logo_url || app.app_icon_url || '',
       banner_url: app.review_banner_url || '',
       price_cents: app.price_cents || 0,
+      changelog: '',
     });
     setReviewTagInput('');
     setReviewOpen(true);
@@ -1011,20 +1017,20 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         <Button size="sm" variant="secondary" icon={Settings} onClick={() => setSettingsOpen(true)} title="Package name, SDK, icon">
           App Settings
         </Button>
-        {enableApkBuild && (
-          <Button size="sm" variant="secondary" icon={Send} onClick={openReviewModal} title="Send this version for admin review">
+        {enableApkBuild ? (
+          <Button size="sm" variant="accent" icon={Send} onClick={openReviewModal} title="Send this version for admin review — approval is what publishes it">
             Submit Version
           </Button>
+        ) : (
+          <>
+            <Button size="sm" variant="secondary" onClick={toggleVisibility}>
+              Make {app.visibility === 'public' ? 'Private' : 'Public'}
+            </Button>
+            <Button size="sm" variant={app.status === 'published' ? 'secondary' : 'accent'} onClick={toggleStatus}>
+              {app.status === 'published' ? 'Unpublish' : 'Publish'}
+            </Button>
+          </>
         )}
-        <Button
-          size="sm" variant="secondary" onClick={toggleVisibility}
-          title={enableApkBuild && app.visibility !== 'public' && app.review_status !== 'approved' ? 'Submit this app for review before making it public' : undefined}
-        >
-          Make {app.visibility === 'public' ? 'Private' : 'Public'}
-        </Button>
-        <Button size="sm" variant={app.status === 'published' ? 'secondary' : 'accent'} onClick={toggleStatus}>
-          {app.status === 'published' ? 'Unpublish' : 'Publish'}
-        </Button>
         <Button size="sm" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>Preview</Button>
         <Button
           size="sm" variant="secondary" icon={allowPremium ? Download : Lock}
@@ -1138,7 +1144,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 return (
                   <button
                     key={c.type}
-                    onClick={() => locked ? setSaveError('This component requires Vakar+.') : addComponent(c.type)}
+                    onClick={() => locked ? setPreviewFeature({ kind: 'component', meta: c }) : addComponent(c.type)}
                     className={`relative flex flex-col items-center gap-1 py-2.5 rounded-lg border transition-colors ${
                       locked
                         ? 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] opacity-60'
@@ -1166,7 +1172,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 return (
                   <button
                     key={t.id}
-                    onClick={() => locked ? setSaveError('This theme requires Vakar+.') : setTheme(t.id)}
+                    onClick={() => locked ? setPreviewFeature({ kind: 'theme', theme: t }) : setTheme(t.id)}
                     title={locked ? `${t.label} — requires Vakar+` : t.label}
                     className={`relative h-9 rounded-lg border-2 transition-all ${app.theme === t.id || (!app.theme && t.id === 'mint') ? 'border-[#4ECDC4] scale-105' : 'border-transparent'} ${locked ? 'opacity-50' : ''}`}
                     style={{ background: `linear-gradient(135deg, ${t.colors.primary}, ${t.colors.background})` }}
@@ -1260,7 +1266,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </div>
               )}
               {(!COMPONENT_META[selected.type]?.supportsAction || inspectorTab === 'props') ? (
-                <PropsEditor node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset} onPremiumBlocked={setSaveError} />
+                <PropsEditor node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset} onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })} />
               ) : (
                 <ActionEditor node={selected} screens={app.screens} screen={activeScreen} onChange={updateSelected} />
               )}
@@ -1509,16 +1515,69 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   </>
                 )}
               </div>
+
+              {app.ever_approved && (
+                <div>
+                  <label className={FIELD_LABEL}>What's new in this update</label>
+                  <textarea
+                    rows={3} value={reviewForm.changelog}
+                    onChange={e => setReviewForm(f => ({ ...f, changelog: e.target.value }))}
+                    placeholder="e.g. Fixed the scoring bug, added a dark theme option…"
+                    className={`${FIELD_INPUT} resize-none`} maxLength={600}
+                  />
+                  <p className="mt-1 text-[10px] text-[#A1A1A6]">Your app is already live — submitting this update sends it back for review, and it won't be reachable publicly again until this version is approved.</p>
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
               <Button
                 className="w-full" icon={Send} loading={reviewSubmitting}
-                disabled={!reviewForm.name.trim() || !reviewForm.description.trim() || !reviewForm.logo_url || (reviewForm.price_cents > 0 && reviewForm.price_cents < 100)}
+                disabled={
+                  !reviewForm.name.trim() || !reviewForm.description.trim() || !reviewForm.logo_url
+                  || (reviewForm.price_cents > 0 && reviewForm.price_cents < 100)
+                  || (app.ever_approved && !reviewForm.changelog.trim())
+                }
                 onClick={submitReview}
               >
                 Submit for review
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium preview — shows a pre-built demo screen instead of just a
+          "requires Vakar+" message, so a locked theme/component/custom-size
+          shows what it actually looks like in a real app. */}
+      {previewFeature && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setPreviewFeature(null)}>
+          <div onClick={e => e.stopPropagation()} className="flex flex-col items-center">
+            <div
+              className="rounded-[28px] border border-[#D2D2D7] shadow-2xl overflow-hidden relative"
+              style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+            >
+              {(() => {
+                const theme = resolveTheme(previewFeature.kind === 'theme' ? previewFeature.theme.id : app.theme);
+                return (
+                  <div style={{ position: 'relative', width: '100%', height: '100%', background: theme.colors.background, overflow: 'hidden' }}>
+                    {PREMIUM_PREVIEW_SCREEN.components.map((node, i) => (
+                      <PositionedNode key={node.id} node={node} index={i} vars={PREMIUM_PREVIEW_VARS} theme={theme} />
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="mt-4 text-center max-w-xs">
+              <p className="text-sm font-semibold text-white flex items-center justify-center gap-1.5">
+                <Lock size={13} />
+                {previewFeature.kind === 'theme' ? `${previewFeature.theme.label} theme` : previewFeature.meta.label} — Vakar+
+              </p>
+              <p className="text-xs text-white/70 mt-1">A preview of what this looks like in a real app.</p>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Button size="sm" variant="secondary" onClick={() => setPreviewFeature(null)}>Close</Button>
+                <Button size="sm" onClick={() => { window.location.href = '/vakar-plus'; }}>Upgrade to Vakar+</Button>
+              </div>
             </div>
           </div>
         </div>

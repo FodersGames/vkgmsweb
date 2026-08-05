@@ -19,6 +19,7 @@ export const PublicNav = ({ onAbout }) => {
 
   const links = [
     { to: '/applications', label: 'Applications' },
+    { to: '/my-apps',      label: 'My Apps'      },
     { to: '/blog',         label: 'Blog'         },
     { to: '/vakar-plus',   label: 'Vakar+'       },
   ];

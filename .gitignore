@@ -3,6 +3,9 @@
 *.env
 !.env.example
 
+# Personal local shortcuts (may end up containing a VPS password) — never commit
+connect-vps.bat
+
 # Python
 __pycache__/
 *.py[cod]

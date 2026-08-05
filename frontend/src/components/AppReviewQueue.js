@@ -157,6 +157,13 @@ export default function AppReviewQueue() {
                     </div>
                   )}
 
+                  {a.review_changelog && (
+                    <div className="rounded-lg px-3 py-2 bg-[#4ECDC4]/5 border border-[#4ECDC4]/20">
+                      <p className="text-[10px] font-semibold text-[#4ECDC4] uppercase tracking-wide mb-1">What's new in this update</p>
+                      <p className="text-xs text-[#1D1D1F] dark:text-[#e4e4e7] leading-relaxed">{a.review_changelog}</p>
+                    </div>
+                  )}
+
                   {tab === 'rejected' && a.review_rejection_reason && (
                     <p className="text-xs text-red-500 bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2">Reason: {a.review_rejection_reason}</p>
                   )}
