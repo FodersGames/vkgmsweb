@@ -357,17 +357,19 @@ async def create_studio_app(body: StudioAppCreateRequest, user=Depends(require_p
         raise HTTPException(status_code=400, detail="Name is required")
     base_slug = slugify(body.slug or name) or "app"
     slug = await _unique_slug(base_slug)
+    screens = body.screens or [{"id": "home", "name": "Home", "components": []}]
+    _validate_screens(screens)
     now = datetime.now(timezone.utc)
     doc = {
         "name": name,
         "slug": slug,
         "description": "",
         "accent_color": "#4ECDC4",
-        "theme": "mint",
+        "theme": body.theme or "mint",
         "visibility": "private",
         "status": "draft",
-        "screens": [{"id": "home", "name": "Home", "components": []}],
-        "variables": [],
+        "screens": screens,
+        "variables": body.variables or [],
         "created_at": now,
         "updated_at": now,
         "created_by": user["username"],
@@ -605,17 +607,26 @@ async def create_my_studio_app(request: Request, body: StudioAppCreateRequest, u
         raise HTTPException(status_code=400, detail="Name is required")
     base_slug = slugify(body.slug or name) or "app"
     slug = await _unique_slug(base_slug)
+    is_plus = user.get("is_vakar_plus", False)
+    theme = body.theme or "mint"
+    screens = body.screens or [{"id": "home", "name": "Home", "components": []}]
+    max_screens = PLUS_MAX_SCREENS_PER_APP if is_plus else FREE_MAX_SCREENS_PER_APP
+    _validate_screens(screens, max_screens=max_screens)
+    # Covers a starter template's own theme/components, same tier gate as
+    # any other save — a free-tier request can't use a premium template by
+    # sending its content directly, even bypassing the picker UI.
+    _validate_tier(screens, theme, is_plus)
     now = datetime.now(timezone.utc)
     doc = {
         "name": name,
         "slug": slug,
         "description": "",
         "accent_color": "#4ECDC4",
-        "theme": "mint",
+        "theme": theme,
         "visibility": "private",
         "status": "draft",
-        "screens": [{"id": "home", "name": "Home", "components": []}],
-        "variables": [],
+        "screens": screens,
+        "variables": body.variables or [],
         "created_at": now,
         "updated_at": now,
         "created_by": user["username"],

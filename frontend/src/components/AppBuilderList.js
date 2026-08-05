@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Copy, ExternalLink, Globe, Lock, Upload, Download } from 'lucide-react';
+import { Plus, Trash2, Copy, ExternalLink, Globe, Lock, Upload, Download, Sparkles } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import AppBuilderEditor from './AppBuilderEditor';
+import { APP_TEMPLATES, APP_TEMPLATE_MAP } from '../constants/appBuilderTemplates';
+import { THEME_MAP } from '../constants/appBuilder';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
@@ -15,6 +17,7 @@ export default function AppBuilderList() {
   const [editingId, setEditingId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -37,13 +40,18 @@ export default function AppBuilderList() {
 
   const createApp = async () => {
     if (!newName.trim()) return;
+    const tpl = selectedTemplateId ? APP_TEMPLATE_MAP[selectedTemplateId] : null;
     const r = await fetch(`${API}/api/admin/studio-apps`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: newName.trim() }),
+      body: JSON.stringify({
+        name: newName.trim(),
+        ...(tpl ? { theme: tpl.theme, screens: tpl.screens, variables: tpl.variables } : {}),
+      }),
     });
     const data = await r.json();
     setNewName('');
+    setSelectedTemplateId(null);
     setCreating(false);
     if (data.id) setEditingId(data.id);
   };
@@ -132,15 +140,48 @@ export default function AppBuilderList() {
         )}
 
         {creating && (
-          <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 flex items-center gap-3 flex-wrap">
+          <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 space-y-4">
             <input
               autoFocus value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && createApp()}
               placeholder="App name, e.g. 'Support triage tool'"
-              className="flex-1 min-w-[200px] rounded-lg px-3 py-2 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4]"
+              className="w-full rounded-lg px-3 py-2 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4]"
             />
-            <Button size="sm" onClick={createApp}>Create</Button>
-            <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewName(''); }}>Cancel</Button>
+            <div>
+              <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Start from</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  onClick={() => setSelectedTemplateId(null)}
+                  className={`rounded-lg p-2.5 text-left border-2 transition-all ${!selectedTemplateId ? 'border-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4]'}`}
+                >
+                  <div className="w-full h-10 rounded-md bg-[#F5F5F7] dark:bg-[#0d0d14] border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center mb-1.5">
+                    <Plus size={13} className="text-[#A1A1A6]" />
+                  </div>
+                  <p className="text-[11px] font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Blank</p>
+                </button>
+                {APP_TEMPLATES.map(tpl => {
+                  const theme = THEME_MAP[tpl.theme];
+                  return (
+                    <button
+                      key={tpl.id}
+                      onClick={() => { setSelectedTemplateId(tpl.id); if (!newName.trim()) setNewName(tpl.label); }}
+                      title={tpl.description}
+                      className={`relative rounded-lg p-2.5 text-left border-2 transition-all ${selectedTemplateId === tpl.id ? 'border-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4]'}`}
+                    >
+                      {tpl.tier === 'premium' && (
+                        <span title="Vakar+ template" className="absolute top-1.5 right-1.5 text-[#F2994A]"><Sparkles size={10} /></span>
+                      )}
+                      <div className="w-full h-10 rounded-md mb-1.5" style={{ background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.background})` }} />
+                      <p className="text-[11px] font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{tpl.label}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={createApp}>Create</Button>
+              <Button size="sm" variant="secondary" onClick={() => { setCreating(false); setNewName(''); setSelectedTemplateId(null); }}>Cancel</Button>
+            </div>
           </div>
         )}
 

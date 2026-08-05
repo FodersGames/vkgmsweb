@@ -6,9 +6,11 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 import AppBuilderEditor from '../components/AppBuilderEditor';
+import { APP_TEMPLATES, APP_TEMPLATE_MAP } from '../constants/appBuilderTemplates';
+import { THEME_MAP } from '../constants/appBuilder';
 import {
   AppWindow, Plus, Copy, Trash, Globe, LockSimple, ArrowSquareOut, Crown, X, Check,
-  UploadSimple, DownloadSimple,
+  UploadSimple, DownloadSimple, Sparkle,
 } from '@phosphor-icons/react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -23,7 +25,9 @@ export default function MyApps() {
   const [editingId, setEditingId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
   const [createError, setCreateError] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
@@ -51,19 +55,39 @@ export default function MyApps() {
 
   useEffect(() => { if (!editingId) load(); }, [load, editingId]);
 
+  const pickTemplate = (tpl) => {
+    if (tpl && tpl.tier === 'premium' && !quota?.is_vakar_plus) {
+      setCreateError('This template requires Vakar+.');
+      return;
+    }
+    setCreateError('');
+    setSelectedTemplateId(tpl?.id || null);
+    if (!newName.trim() && tpl) setNewName(tpl.label);
+  };
+
   const createApp = async () => {
     if (!newName.trim()) return;
     setCreateError('');
-    const r = await fetch(`${API}/api/my/studio-apps`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: newName.trim() }),
-    });
-    const data = await r.json();
-    if (!r.ok) { setCreateError(data.detail || 'Could not create app.'); return; }
-    setNewName('');
-    setCreating(false);
-    setEditingId(data.id);
+    setCreateLoading(true);
+    const tpl = selectedTemplateId ? APP_TEMPLATE_MAP[selectedTemplateId] : null;
+    try {
+      const r = await fetch(`${API}/api/my/studio-apps`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: newName.trim(),
+          ...(tpl ? { theme: tpl.theme, screens: tpl.screens, variables: tpl.variables } : {}),
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) { setCreateError(data.detail || 'Could not create app.'); return; }
+      setNewName('');
+      setSelectedTemplateId(null);
+      setCreating(false);
+      setEditingId(data.id);
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
   const duplicateApp = async (id) => {
@@ -205,16 +229,74 @@ export default function MyApps() {
         )}
 
         {creating && (
-          <div className="rounded-xl liquid-glass p-5 mb-6 flex items-center gap-3 flex-wrap">
-            <input
-              autoFocus value={newName} onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createApp()}
-              placeholder="App name, e.g. 'My workout tracker'"
-              className="flex-1 min-w-[200px] rounded-lg px-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-sm text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]"
-            />
-            <PublicButton size="sm" onClick={createApp}>Create</PublicButton>
-            <button onClick={() => { setCreating(false); setNewName(''); setCreateError(''); }} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F]">Cancel</button>
-            {createError && <p className="w-full text-xs text-red-500">{createError}</p>}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1D1D1F]/40" style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+            <div className="animate-appear rounded-2xl liquid-glass w-full max-w-2xl max-h-[85vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-[#D2D2D7]/60 flex items-center justify-between shrink-0">
+                <h3 className="font-display text-base font-medium text-[#1D1D1F]">New app</h3>
+                <button onClick={() => { setCreating(false); setNewName(''); setSelectedTemplateId(null); setCreateError(''); }} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5 overflow-y-auto">
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">App name</label>
+                  <input
+                    autoFocus value={newName} onChange={e => setNewName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && createApp()}
+                    placeholder="e.g. 'My workout tracker'"
+                    className="w-full rounded-lg px-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-sm text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#6E6E73] uppercase tracking-wider mb-2">Start from</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <button
+                      onClick={() => pickTemplate(null)}
+                      className={`rounded-xl p-3.5 text-left border-2 transition-all ${!selectedTemplateId ? 'border-[#4ECDC4]' : 'border-transparent bg-white/60 hover:bg-white'}`}
+                    >
+                      <div className="w-full h-14 rounded-lg bg-[#F5F5F7] border border-dashed border-[#D2D2D7] flex items-center justify-center mb-2">
+                        <Plus size={16} className="text-[#A1A1A6]" />
+                      </div>
+                      <p className="text-xs font-bold text-[#1D1D1F]">Blank</p>
+                      <p className="text-[10px] text-[#6E6E73] mt-0.5">Start from an empty screen</p>
+                    </button>
+                    {APP_TEMPLATES.map(tpl => {
+                      const locked = tpl.tier === 'premium' && !quota?.is_vakar_plus;
+                      const theme = THEME_MAP[tpl.theme];
+                      return (
+                        <button
+                          key={tpl.id}
+                          onClick={() => pickTemplate(tpl)}
+                          className={`relative rounded-xl p-3.5 text-left border-2 transition-all ${selectedTemplateId === tpl.id ? 'border-[#4ECDC4]' : 'border-transparent bg-white/60 hover:bg-white'} ${locked ? 'opacity-70' : ''}`}
+                        >
+                          {tpl.tier === 'premium' && (
+                            <span className="absolute top-2.5 right-2.5 rounded-full bg-white/90 p-1 text-[#F2994A] shadow-sm">
+                              <Sparkle size={10} weight="fill" />
+                            </span>
+                          )}
+                          <div className="w-full h-14 rounded-lg mb-2" style={{ background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.background})` }} />
+                          <p className="text-xs font-bold text-[#1D1D1F] flex items-center gap-1">
+                            {tpl.label}
+                            {locked && <LockSimple size={10} className="text-[#A1A1A6]" />}
+                          </p>
+                          <p className="text-[10px] text-[#6E6E73] mt-0.5 line-clamp-2">{tpl.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {createError && <p className="text-xs text-red-500">{createError}</p>}
+              </div>
+
+              <div className="px-6 py-4 border-t border-[#D2D2D7]/60 shrink-0">
+                <PublicButton className="w-full" onClick={createApp} disabled={!newName.trim() || createLoading}>
+                  {createLoading ? 'Creating…' : 'Create app'}
+                </PublicButton>
+              </div>
+            </div>
           </div>
         )}
 

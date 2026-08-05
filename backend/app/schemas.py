@@ -415,6 +415,14 @@ class MealEntryUpdateRequest(BaseModel):
 class StudioAppCreateRequest(BaseModel):
     name: str
     slug: Optional[str] = None
+    # Optional starter template content (frontend/src/constants/
+    # appBuilderTemplates.js is the source of truth for what these actually
+    # contain) — validated server-side exactly like any other save (screen
+    # count + premium component/theme tier gating), so a free-tier request
+    # can't sneak a premium template through.
+    theme: Optional[str] = None
+    screens: Optional[List[dict]] = None
+    variables: Optional[List[dict]] = None
 
 class StudioAppUpdateRequest(BaseModel):
     name: Optional[str] = None
