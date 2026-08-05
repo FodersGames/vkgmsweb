@@ -9,7 +9,7 @@ import {
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical, AppWindow,
-  ClipboardCheck,
+  ClipboardCheck, ShieldCheck,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -33,6 +33,7 @@ import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
 import AppBuilderList         from '../components/AppBuilderList';
 import AppReviewQueue         from '../components/AppReviewQueue';
+import PublishedAppsManager   from '../components/PublishedAppsManager';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
@@ -64,8 +65,9 @@ const NAV_GROUPS = [
     label: 'Studio',
     id: 'studio',
     items: [
-      { id: 'app-builder', label: 'App Builder', icon: AppWindow,      permission: 'manage_studio_apps' },
-      { id: 'app-reviews', label: 'Reviews',     icon: ClipboardCheck, permission: 'review_studio_apps' },
+      { id: 'app-builder',   label: 'App Builder',     icon: AppWindow,      permission: 'manage_studio_apps' },
+      { id: 'app-reviews',   label: 'Reviews',         icon: ClipboardCheck, permission: 'review_studio_apps' },
+      { id: 'app-published', label: 'Published Apps',  icon: ShieldCheck,    permission: 'review_studio_apps' },
     ],
   },
   {
@@ -753,8 +755,9 @@ const DashboardContent = () => {
             )}
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
-            {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList />}
+            {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList onNavigate={setActiveTab} />}
             {activeTab === 'app-reviews'      && hasPermission('review_studio_apps') && <AppReviewQueue />}
+            {activeTab === 'app-published'    && hasPermission('review_studio_apps') && <PublishedAppsManager />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

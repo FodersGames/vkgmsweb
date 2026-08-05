@@ -368,6 +368,22 @@ export const DEFAULT_THEME_ID = 'mint';
 export const resolveTheme = (id) => THEME_MAP[id] || THEME_MAP[DEFAULT_THEME_ID];
 
 // ============================================================
+// Submission tags — a fixed taxonomy the submitter picks from (not free
+// text) so the showcase/storefront filter chips (Applications.js) stay
+// consistent instead of accumulating near-duplicate variants ("game" vs
+// "Games" vs "gaming"). Mirrored server-side in studio_apps.py's
+// ALLOWED_APP_TAGS — keep both lists in sync by hand, same precedent as
+// every other cross-stack constant in this codebase.
+// ============================================================
+export const APP_TAGS = [
+  'Productivity', 'Games', 'Social', 'Education', 'Finance',
+  'Health & Fitness', 'Entertainment', 'Business', 'Utilities', 'Lifestyle',
+  'Photo & Video', 'Travel', 'Food & Drink', 'Sports', 'Kids & Family', 'Other',
+];
+export const MIN_APP_TAGS = 1;
+export const MAX_APP_TAGS = 3;
+
+// ============================================================
 // Icon set — a small, original, dependency-free line-icon registry so the
 // runtime (public pages + editor preview) never needs an icon library.
 // viewBox 0 0 24 24, stroke-based, currentColor.

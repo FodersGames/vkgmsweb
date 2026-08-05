@@ -138,7 +138,7 @@ export default function AppReviewQueue() {
                       <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] truncate">by {a.owner || 'unknown'} · submitted {fmtDate(a.submitted_at)}</p>
                     </div>
                     <a
-                      href={`/apps/${a.slug}`} target="_blank" rel="noopener noreferrer" title="Preview the app"
+                      href={`/apps/${a.slug}?rev=pending`} target="_blank" rel="noopener noreferrer" title="Preview exactly what was submitted"
                       className="p-2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white rounded-lg hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] shrink-0"
                     >
                       <ExternalLink size={14} />

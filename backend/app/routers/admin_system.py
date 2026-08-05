@@ -986,9 +986,16 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         if a.get("review_status") != "pending":
             raise _CliError(f"'{slug}' has no pending submission.")
         now = datetime.now(timezone.utc)
+        from .studio_apps import _make_snapshot
         await db.studio_apps.update_one({"_id": a["_id"]}, {"$set": {
             "review_status": "approved", "status": "published", "visibility": "public",
             "ever_approved": True, "reviewed_at": now, "reviewed_by": admin["username"], "updated_at": now,
+            # Same freeze as the dashboard's Reviews approve action — the
+            # public app must serve exactly what was submitted, immune to
+            # any draft edits made since (see studio_apps.py's
+            # STUDIO_APP_SNAPSHOT_FIELDS writeup).
+            "published_snapshot": a.get("pending_snapshot") or _make_snapshot(a),
+            "pending_snapshot": None,
         }})
         await log_action("studio_apps", f"[CLI] App '{a['name']}' review approved", user=admin["username"])
         if a.get("user_id"):

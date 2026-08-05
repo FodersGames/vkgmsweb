@@ -82,6 +82,17 @@ ALLOWED_ASSET_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 MIN_APP_PRICE_CENTS = 100
 CREATOR_SHARE_PCT = 60
 
+# Submission tags — a fixed taxonomy the submitter picks from, not free
+# text (mirrors APP_TAGS/MIN_APP_TAGS/MAX_APP_TAGS in
+# frontend/src/constants/appBuilder.js — keep both in sync by hand).
+ALLOWED_APP_TAGS = {
+    "Productivity", "Games", "Social", "Education", "Finance",
+    "Health & Fitness", "Entertainment", "Business", "Utilities", "Lifestyle",
+    "Photo & Video", "Travel", "Food & Drink", "Sports", "Kids & Family", "Other",
+}
+MIN_APP_TAGS = 1
+MAX_APP_TAGS = 3
+
 # .vakarstudio export/import — an app's building blocks (screens, variables,
 # theme, build config) as Fernet-encrypted JSON, importable only by this
 # backend (see config.VAKARSTUDIO_FILE_KEY). Deliberately excludes ownership,
@@ -93,6 +104,42 @@ VAKARSTUDIO_EXPORT_FIELDS = (
     "name", "description", "accent_color", "theme", "screens", "variables",
     "package_id", "min_sdk", "target_sdk", "app_display_name", "app_icon_url",
 )
+
+# ============================================================
+# VERSION SNAPSHOTS — like a real app store, editing a self-service app's
+# project after submitting it for review must never change what's already
+# under review or already live. `screens`/`variables`/`theme`/etc. at the
+# top level of the doc remain the live-editing DRAFT (what the builder
+# reads/writes, unchanged). Two frozen copies of that content live
+# alongside it:
+#   - pending_snapshot — taken the instant "Submit Version" is clicked;
+#     this is what an admin actually reviews, immune to further edits.
+#   - published_snapshot — taken the instant an admin approves a
+#     submission (copied straight from that submission's pending_snapshot);
+#     this is what strangers actually see at /apps/{slug}.
+# Both are None for every app that existed before this shipped — no DB
+# migration needed, see _apply_snapshot's no-op fallback below.
+# ============================================================
+STUDIO_APP_SNAPSHOT_FIELDS = (
+    "name", "description", "accent_color", "theme", "screens", "variables",
+    "package_id", "min_sdk", "target_sdk", "app_display_name", "app_icon_url",
+    "price_cents", "review_name", "review_description", "review_tags",
+    "review_logo_url", "review_banner_url",
+)
+
+def _make_snapshot(doc):
+    return {f: doc.get(f) for f in STUDIO_APP_SNAPSHOT_FIELDS}
+
+def _apply_snapshot(doc, snapshot):
+    """Overlays a frozen snapshot's content/listing fields onto doc for
+    rendering. Workflow fields (review_status, submitted_at, ever_approved,
+    admin_takedown, _id, slug, ...) always stay live — they describe review
+    process state, not app content, and aren't part of what got submitted."""
+    if not snapshot:
+        return doc
+    merged = dict(doc)
+    merged.update({k: v for k, v in snapshot.items() if k in STUDIO_APP_SNAPSHOT_FIELDS})
+    return merged
 
 # Android build config (APK export, Phase E). Reverse-DNS package name,
 # letters/digits/underscores per segment, each segment starting with a
@@ -259,11 +306,20 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         # changelog (see submit_my_studio_app_review). Never cleared, even
         # if a later submission is rejected.
         "ever_approved": bool(doc.get("ever_approved")),
+        # Admin moderation kill-switch — see the Published Apps tab and
+        # takedown_studio_app/restore_studio_app. Independent of
+        # status/visibility so an owner can never route around it by
+        # flipping those flags back themselves.
+        "admin_takedown": bool(doc.get("admin_takedown")),
+        "admin_takedown_reason": doc.get("admin_takedown_reason") or "",
         # Public — needed to render the paywall/price tag. creator_earnings_cents
         # is deliberately NOT here (it's only attached in owner-scoped self-service
         # responses — see get_my_studio_app/list_my_studio_apps — never in the
         # public showcase, which anyone can fetch).
         "price_cents": doc.get("price_cents", 0),
+        # Cheap to compute (just a list length) so richer admin list views
+        # don't need a full=True fetch per app just to show a screen count.
+        "screens_count": len(doc.get("screens") or []),
         "submitted_at": doc["submitted_at"].isoformat() if doc.get("submitted_at") else None,
         "reviewed_at": doc["reviewed_at"].isoformat() if doc.get("reviewed_at") else None,
         "reviewed_by": doc.get("reviewed_by") or "",
@@ -304,7 +360,10 @@ def _with_earnings(result, doc):
 @router.get("/admin/studio-apps")
 async def list_studio_apps(user=Depends(require_permission("manage_studio_apps"))):
     docs = await db.studio_apps.find().sort("updated_at", -1).to_list(500)
-    return {"apps": [_serialize(d, include_owner=True) for d in docs]}
+    # Earnings are attached here too (not just /my/studio-apps) since staff
+    # already see owner identity via include_owner — no new privacy leak,
+    # just useful context for a management console.
+    return {"apps": [_with_earnings(_serialize(d, include_owner=True), d) for d in docs]}
 
 # Registered ahead of GET /admin/studio-apps/{app_id} on purpose — "reviews"
 # would otherwise be swallowed by that path param and fail ObjectId parsing.
@@ -328,6 +387,12 @@ async def approve_studio_app_review(app_id: str, user=Depends(require_permission
     await db.studio_apps.update_one({"_id": oid}, {"$set": {
         "review_status": "approved", "status": "published", "visibility": "public",
         "ever_approved": True, "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+        # Freezes exactly the version that was reviewed as the new live
+        # version — any draft edits made after this submission was sent
+        # stay invisible to the public until they're submitted and approved
+        # in their own right.
+        "published_snapshot": doc.get("pending_snapshot") or _make_snapshot(doc),
+        "pending_snapshot": None,
     }})
     await log_action("studio_apps", f"App '{doc['name']}' review approved", user=user["username"])
     if doc.get("user_id"):
@@ -360,6 +425,66 @@ async def reject_studio_app_review(app_id: str, body: StudioAppReviewDecisionReq
             user_id=str(doc["user_id"]),
             message=f"Your app \"{doc.get('review_name') or doc['name']}\" submission wasn't approved.{reason_suffix}",
             notif_type="studio_app_rejected", link="/my-apps",
+        )
+    return {"ok": True}
+
+# Registered ahead of GET /admin/studio-apps/{app_id} for the same reason
+# /reviews is above — "published" would otherwise be swallowed as an
+# ObjectId path param and fail to parse. Scoped to self-service apps only —
+# staff/house apps are already fully managed in the App Builder tab above
+# and were never part of the review/abuse-control workflow.
+@router.get("/admin/studio-apps/published")
+async def list_published_studio_apps(user=Depends(require_permission("review_studio_apps"))):
+    docs = await db.studio_apps.find({
+        "user_id": {"$ne": None}, "status": "published",
+    }).sort("reviewed_at", -1).to_list(200)
+    return {"apps": [_serialize(d, include_owner=True) for d in docs]}
+
+@router.post("/admin/studio-apps/{app_id}/takedown")
+async def takedown_studio_app(app_id: str, body: StudioAppReviewDecisionRequest, user=Depends(require_permission("review_studio_apps"))):
+    """Suspends an already-published app — an owner-proof kill switch for
+    abuse (see get_public_studio_app, which checks this before anything
+    else and can't be routed around by the owner flipping status/visibility
+    back themselves)."""
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="App not found")
+    reason = body.reason.strip()[:500]
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "admin_takedown": True, "admin_takedown_reason": reason, "updated_at": datetime.now(timezone.utc),
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' suspended by moderation", user=user["username"])
+    if doc.get("user_id"):
+        reason_suffix = f" Reason: {reason}" if reason else ""
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"Your app \"{doc.get('review_name') or doc['name']}\" was suspended and is no longer publicly reachable.{reason_suffix}",
+            notif_type="studio_app_takedown", link="/my-apps",
+        )
+    return {"ok": True}
+
+@router.post("/admin/studio-apps/{app_id}/restore")
+async def restore_studio_app(app_id: str, user=Depends(require_permission("review_studio_apps"))):
+    try:
+        oid = ObjectId(app_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ID")
+    doc = await db.studio_apps.find_one({"_id": oid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="App not found")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "admin_takedown": False, "admin_takedown_reason": "", "updated_at": datetime.now(timezone.utc),
+    }})
+    await log_action("studio_apps", f"App '{doc['name']}' restored", user=user["username"])
+    if doc.get("user_id"):
+        await _create_notification(
+            user_id=str(doc["user_id"]),
+            message=f"Your app \"{doc.get('review_name') or doc['name']}\" was restored and is publicly reachable again.",
+            notif_type="studio_app_restored", link="/my-apps",
         )
     return {"ok": True}
 
@@ -686,11 +811,15 @@ async def set_my_studio_app_status(app_id: str, body: StudioAppStatusRequest, us
 async def set_my_studio_app_visibility(app_id: str, body: StudioAppVisibilityRequest, user=Depends(get_current_user)):
     oid, doc = await _get_owned_app(app_id, user)
     # Public reachability is gated by admin review now — going public without
-    # ever having an approved submission isn't allowed. Once review_status is
-    # "approved" this stays permissive (toggling private/public freely) until
-    # a new "Submit Version" resets it to "pending".
-    if body.visibility == "public" and doc.get("review_status") != "approved":
+    # ever having an approved submission isn't allowed. Once the app has
+    # been approved at least once, this stays permissive (toggling
+    # private/public freely) even while a newer resubmission is pending —
+    # the live (already-approved) version keeps serving from
+    # published_snapshot regardless, see get_public_studio_app.
+    if body.visibility == "public" and not doc.get("ever_approved"):
         raise HTTPException(status_code=402, detail="Submit this app for review before making it public.")
+    if doc.get("admin_takedown"):
+        raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
     await db.studio_apps.update_one({"_id": oid}, {"$set": {"visibility": body.visibility, "updated_at": datetime.now(timezone.utc)}})
     return {"ok": True}
 
@@ -699,13 +828,16 @@ async def set_my_studio_app_visibility(app_id: str, body: StudioAppVisibilityReq
 async def submit_my_studio_app_review(request: Request, app_id: str, body: StudioAppSubmitReviewRequest, user=Depends(get_current_user)):
     """Sends the current app for admin review — this is the ONLY path to
     public reachability for a self-service app (see the visibility guard
-    above and the review gate in get_public_studio_app). Submitting again
-    (e.g. after edits to an already-approved app) resets review_status to
-    "pending", which makes the app unreachable to strangers again until the
-    new version is reviewed — a deliberate simplification, not a bug: there
-    is no versioning system to keep the previously-approved copy live during
-    re-review."""
+    above and the review gate in get_public_studio_app). The draft is
+    frozen into pending_snapshot right here, at submission time, so any
+    further edits to the project afterward can never leak into what the
+    admin reviews. Submitting again after an app is already live does NOT
+    take the live version down — it keeps serving from published_snapshot
+    until this new submission is itself approved (see
+    approve_studio_app_review)."""
     oid, doc = await _get_owned_app(app_id, user)
+    if doc.get("admin_takedown"):
+        raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
     if not doc.get("screens"):
         raise HTTPException(status_code=400, detail="Add at least one screen before submitting for review")
     name = body.name.strip()[:80]
@@ -715,7 +847,12 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
         raise HTTPException(status_code=400, detail="Name and description are required")
     if not logo_url:
         raise HTTPException(status_code=400, detail="A logo is required")
-    tags = [t.strip()[:24] for t in body.tags if t.strip()][:10]
+    tags = list(dict.fromkeys(t.strip() for t in body.tags if t.strip()))
+    if not (MIN_APP_TAGS <= len(tags) <= MAX_APP_TAGS):
+        raise HTTPException(status_code=400, detail=f"Choose between {MIN_APP_TAGS} and {MAX_APP_TAGS} tags.")
+    invalid_tags = [t for t in tags if t not in ALLOWED_APP_TAGS]
+    if invalid_tags:
+        raise HTTPException(status_code=400, detail=f"Unknown tag(s): {', '.join(invalid_tags)}")
     price_cents = max(0, int(body.price_cents))
     if price_cents > 0:
         if not user.get("is_vakar_plus"):
@@ -726,16 +863,27 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
     if doc.get("ever_approved") and not changelog:
         raise HTTPException(status_code=400, detail="Describe what changed in this update before submitting it for review.")
     now = datetime.now(timezone.utc)
+    banner_url = body.banner_url.strip()
+    # Freeze exactly what's being submitted: the draft's current project
+    # content (doc, untouched by this request) plus this request's own
+    # listing fields (name/description/tags/logo/banner/price) — not doc's
+    # OLD listing fields from a previous submission.
+    pending_snapshot = _make_snapshot(doc)
+    pending_snapshot.update({
+        "review_name": name, "review_description": description, "review_tags": tags,
+        "review_logo_url": logo_url, "review_banner_url": banner_url, "price_cents": price_cents,
+    })
     await db.studio_apps.update_one({"_id": oid}, {"$set": {
         "review_status": "pending",
         "review_name": name,
         "review_description": description,
         "review_tags": tags,
         "review_logo_url": logo_url,
-        "review_banner_url": body.banner_url.strip(),
+        "review_banner_url": banner_url,
         "review_changelog": changelog,
         "review_rejection_reason": "",
         "price_cents": price_cents,
+        "pending_snapshot": pending_snapshot,
         "submitted_at": now,
         "updated_at": now,
     }})
@@ -831,6 +979,24 @@ async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
         "status": "draft",
         "created_at": now,
         "updated_at": now,
+        # A duplicate is a brand-new, never-submitted app — none of the
+        # original's review/moderation state should carry over, otherwise
+        # duplicating an already-approved app would let its copy skip
+        # review entirely (ever_approved gates visibility, see
+        # set_my_studio_app_visibility) or inherit a suspension that was
+        # never actually placed on this specific copy.
+        "visibility": "private",
+        "review_status": "none",
+        "ever_approved": False,
+        "submitted_at": None,
+        "reviewed_at": None,
+        "reviewed_by": "",
+        "review_rejection_reason": "",
+        "review_changelog": "",
+        "pending_snapshot": None,
+        "published_snapshot": None,
+        "admin_takedown": False,
+        "admin_takedown_reason": "",
     }
     result = await db.studio_apps.insert_one(new_doc)
     return {"id": str(result.inserted_id), "slug": slug}
@@ -849,30 +1015,57 @@ async def duplicate_my_studio_app(app_id: str, user=Depends(get_current_user)):
 async def list_public_studio_apps():
     docs = await db.studio_apps.find({
         "user_id": {"$ne": None},
-        "review_status": "approved",
+        "ever_approved": True,
         "status": "published",
         "visibility": "public",
+        "admin_takedown": {"$ne": True},
     }).sort("reviewed_at", -1).to_list(200)
-    return {"apps": [_serialize(d) for d in docs]}
+    # Shows the last-approved snapshot's listing (name/description/icon/
+    # price), not a newer-but-not-yet-approved resubmission's — matches
+    # what a stranger actually sees at /apps/{slug} below.
+    return {"apps": [_serialize(_apply_snapshot(d, d.get("published_snapshot"))) for d in docs]}
 
 @router.get("/apps/{slug}")
-async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
-    doc = await db.studio_apps.find_one({"slug": slug, "status": "published"})
+async def get_public_studio_app(slug: str, rev: str = "live", user=Depends(get_optional_user)):
+    doc = await db.studio_apps.find_one({"slug": slug})
     if not doc:
         raise HTTPException(status_code=404, detail="App not found")
     is_owner = bool(user and doc.get("user_id") and str(doc["user_id"]) == user.get("id"))
     is_staff = bool(user and user.get("role") in ("admin", "super_admin"))
-    if doc.get("visibility") == "private":
-        if not (is_owner or is_staff):
+    if not (is_owner or is_staff):
+        # Everything below only gates strangers — the owner and staff can
+        # always preview an app regardless of publish/review state (e.g. to
+        # review a pending resubmission from the Reviews queue).
+        if doc.get("admin_takedown"):
             raise HTTPException(status_code=404, detail="App not found")
-    elif doc.get("user_id") and doc.get("review_status") != "approved":
-        # Public self-service apps only stay actually reachable to strangers
-        # while their latest submitted version is approved — owner/staff can
-        # still preview it (e.g. to review a pending resubmission).
-        if not (is_owner or is_staff):
+        if doc.get("status") != "published":
             raise HTTPException(status_code=404, detail="App not found")
+        if doc.get("visibility") == "private":
+            raise HTTPException(status_code=404, detail="App not found")
+        if doc.get("user_id") and not doc.get("ever_approved"):
+            # A self-service app only becomes reachable once it's been
+            # approved for the first time. After that, submitting an update
+            # for review does NOT take the live app down — strangers keep
+            # seeing the last-approved snapshot below until the new
+            # submission is itself approved (see approve_studio_app_review).
+            raise HTTPException(status_code=404, detail="App not found")
+        view_doc = _apply_snapshot(doc, doc.get("published_snapshot"))
+    else:
+        # Owner/staff can inspect any of three versions of their own app:
+        #   ?rev=pending    — exactly what was frozen at the last "Submit
+        #                     Version" click, used by the admin Reviews
+        #                     queue's Preview link so further edits can
+        #                     never leak into what's actually being judged.
+        #   ?rev=published  — exactly what's currently live to the public.
+        #   (default)       — the live draft, as currently being edited.
+        if rev == "pending" and doc.get("pending_snapshot"):
+            view_doc = _apply_snapshot(doc, doc["pending_snapshot"])
+        elif rev == "published" and doc.get("published_snapshot"):
+            view_doc = _apply_snapshot(doc, doc["published_snapshot"])
+        else:
+            view_doc = doc
 
-    price_cents = doc.get("price_cents", 0)
+    price_cents = view_doc.get("price_cents", 0)
     if price_cents > 0 and not (is_owner or is_staff):
         purchased = user and await db.studio_app_purchases.find_one({"app_id": doc["_id"], "email": user.get("email")}, {"_id": 1})
         if not purchased:
@@ -883,14 +1076,14 @@ async def get_public_studio_app(slug: str, user=Depends(get_optional_user)):
             # minimum needed to render a "Buy access" screen is sent.
             return {
                 "id": str(doc["_id"]), "slug": doc["slug"],
-                "name": doc.get("review_name") or doc["name"],
-                "description": doc.get("review_description") or "",
-                "app_icon_url": doc.get("review_logo_url") or doc.get("app_icon_url") or "",
+                "name": view_doc.get("review_name") or view_doc["name"],
+                "description": view_doc.get("review_description") or "",
+                "app_icon_url": view_doc.get("review_logo_url") or view_doc.get("app_icon_url") or "",
                 "price_cents": price_cents,
                 "requires_purchase": True,
             }
 
-    result = _serialize(doc, full=True)
+    result = _serialize(view_doc, full=True)
     result["requires_purchase"] = False
     # Staff/"house" apps (no owner) never show the free-tier watermark —
     # only self-service apps built by a non-Vakar+ user do.
@@ -908,10 +1101,16 @@ async def create_studio_app_checkout(request: Request, slug: str, user=Depends(g
     the creator's share, notifying both sides) happens in the Stripe webhook —
     see routers/shop.py's checkout_type == "studio_app_purchase" branch, the
     same split-fulfillment pattern already used for Vakar+ subscriptions."""
-    doc = await db.studio_apps.find_one({"slug": slug, "status": "published", "review_status": "approved", "visibility": "public"})
+    doc = await db.studio_apps.find_one({
+        "slug": slug, "status": "published", "ever_approved": True, "visibility": "public",
+        "admin_takedown": {"$ne": True},
+    })
     if not doc or not doc.get("user_id"):
         raise HTTPException(status_code=404, detail="App not found")
-    price_cents = doc.get("price_cents", 0)
+    # Always sell exactly what's currently live (the approved snapshot), not
+    # whatever price/listing the owner might be mid-editing in their draft.
+    view_doc = _apply_snapshot(doc, doc.get("published_snapshot"))
+    price_cents = view_doc.get("price_cents", 0)
     if price_cents <= 0:
         raise HTTPException(status_code=400, detail="This app is free")
     if str(doc["user_id"]) == user["id"]:
@@ -920,8 +1119,8 @@ async def create_studio_app_checkout(request: Request, slug: str, user=Depends(g
         raise HTTPException(status_code=409, detail="You already own this app")
 
     origin = _get_origin(request)
-    app_name = doc.get("review_name") or doc["name"]
-    images = [doc["review_logo_url"]] if (doc.get("review_logo_url") or "").startswith("http") else []
+    app_name = view_doc.get("review_name") or view_doc["name"]
+    images = [view_doc["review_logo_url"]] if (view_doc.get("review_logo_url") or "").startswith("http") else []
 
     def _create():
         return stripe.checkout.Session.create(
@@ -930,7 +1129,7 @@ async def create_studio_app_checkout(request: Request, slug: str, user=Depends(g
             line_items=[{
                 "price_data": {
                     "currency": "usd",
-                    "product_data": {"name": app_name, "description": doc.get("review_description") or "", "images": images},
+                    "product_data": {"name": app_name, "description": view_doc.get("review_description") or "", "images": images},
                     "unit_amount": price_cents,
                 },
                 "quantity": 1,

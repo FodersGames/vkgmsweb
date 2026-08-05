@@ -12,15 +12,21 @@ export default function StudioAppView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const justPurchased = searchParams.get('purchased') === '1';
+  // ?rev=pending / ?rev=published — owner/staff only (see
+  // get_public_studio_app); used by the admin Reviews queue's "Preview"
+  // link so it always shows exactly the version frozen at submission time,
+  // never whatever the owner may have since edited in their live draft.
+  const rev = searchParams.get('rev');
   const [app, setApp] = useState(null);
   const [status, setStatus] = useState('loading');
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
 
   const load = useCallback(() => {
-    return fetch(`${API_URL}/api/apps/${slug}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+    const qs = rev ? `?rev=${encodeURIComponent(rev)}` : '';
+    return fetch(`${API_URL}/api/apps/${slug}${qs}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); });
-  }, [slug, token]);
+  }, [slug, token, rev]);
 
   useEffect(() => {
     if (authLoading) return;

@@ -13,6 +13,7 @@ import {
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
   normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
   PREMIUM_PREVIEW_SCENES, ANIMATION_TYPES, VISIBILITY_OPERATORS,
+  APP_TAGS, MIN_APP_TAGS, MAX_APP_TAGS,
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
@@ -1111,7 +1112,6 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   // when a locked theme/component is clicked.
   const [previewFeature, setPreviewFeature] = useState(null);
   const [reviewForm, setReviewForm] = useState({ name: '', description: '', tags: [], logo_url: '', banner_url: '', price_cents: 0, changelog: '' });
-  const [reviewTagInput, setReviewTagInput] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewLogoUploading, setReviewLogoUploading] = useState(false);
   const [reviewBannerUploading, setReviewBannerUploading] = useState(false);
@@ -1411,17 +1411,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       price_cents: app.price_cents || 0,
       changelog: '',
     });
-    setReviewTagInput('');
     setReviewOpen(true);
   };
 
-  const addReviewTag = () => {
-    const t = reviewTagInput.trim();
-    if (!t || reviewForm.tags.includes(t) || reviewForm.tags.length >= 10) { setReviewTagInput(''); return; }
-    setReviewForm(f => ({ ...f, tags: [...f.tags, t] }));
-    setReviewTagInput('');
-  };
-  const removeReviewTag = (t) => setReviewForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }));
+  const toggleReviewTag = (t) => setReviewForm(f => {
+    const active = f.tags.includes(t);
+    if (!active && f.tags.length >= MAX_APP_TAGS) return f;
+    return { ...f, tags: active ? f.tags.filter(x => x !== t) : [...f.tags, t] };
+  });
 
   const uploadReviewImage = async (file, field, setBusy) => {
     setBusy(true);
@@ -2144,24 +2141,27 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
               <div>
                 <label className={FIELD_LABEL}>Tags</label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    value={reviewTagInput} onChange={e => setReviewTagInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addReviewTag(); } }}
-                    placeholder="e.g. productivity" className={FIELD_INPUT}
-                  />
-                  <Button size="sm" variant="secondary" onClick={addReviewTag}>Add</Button>
-                </div>
-                {reviewForm.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {reviewForm.tags.map(t => (
-                      <span key={t} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#4ECDC4]/10 text-[#4ECDC4]">
+                <div className="flex flex-wrap gap-1.5">
+                  {APP_TAGS.map(t => {
+                    const active = reviewForm.tags.includes(t);
+                    const disabled = !active && reviewForm.tags.length >= MAX_APP_TAGS;
+                    return (
+                      <button
+                        key={t} type="button" disabled={disabled} onClick={() => toggleReviewTag(t)}
+                        className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                          active
+                            ? 'bg-[#4ECDC4] border-[#4ECDC4] text-white'
+                            : disabled
+                              ? 'border-[#EDEDEF] dark:border-[#2a2a3c] text-[#D2D2D7] dark:text-[#3f3f4c] cursor-not-allowed'
+                              : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4]'
+                        }`}
+                      >
                         {t}
-                        <button onClick={() => removeReviewTag(t)}><X size={9} /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-[10px] text-[#A1A1A6]">Choose {MIN_APP_TAGS}–{MAX_APP_TAGS} — {reviewForm.tags.length}/{MAX_APP_TAGS} selected.</p>
               </div>
 
               <div>
@@ -2210,7 +2210,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                     placeholder="e.g. Fixed the scoring bug, added a dark theme option…"
                     className={`${FIELD_INPUT} resize-none`} maxLength={600}
                   />
-                  <p className="mt-1 text-[10px] text-[#A1A1A6]">Your app is already live — submitting this update sends it back for review, and it won't be reachable publicly again until this version is approved.</p>
+                  <p className="mt-1 text-[10px] text-[#A1A1A6]">Your app stays live and unchanged for everyone while this update is reviewed — it only replaces the live version once approved.</p>
                 </div>
               )}
             </div>
@@ -2220,6 +2220,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 className="w-full" icon={Send} loading={reviewSubmitting}
                 disabled={
                   !reviewForm.name.trim() || !reviewForm.description.trim() || !reviewForm.logo_url
+                  || reviewForm.tags.length < MIN_APP_TAGS
                   || (reviewForm.price_cents > 0 && reviewForm.price_cents < 100)
                   || (app.ever_approved && !reviewForm.changelog.trim())
                 }
