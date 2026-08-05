@@ -275,6 +275,7 @@ function generateJS(app) {
   var CANVAS_WIDTH = ${CANVAS_WIDTH};
   var CANVAS_HEIGHT = ${CANVAS_HEIGHT};
   var vars = ${JSON.stringify(initialVars, null, 2)};
+  var INITIAL_VARS = ${JSON.stringify(initialVars, null, 2)};
   var overrides = {};
   var visibilityOverrides = {};
 
@@ -310,6 +311,17 @@ function generateJS(app) {
   function resolveIndex(raw, scope) {
     var n = Number(interpolate(String(raw == null ? '0' : raw), scope));
     return isFinite(n) ? Math.trunc(n) : 0;
+  }
+
+  // Mirrors resolveNumberOrVariable() in AppRuntime.js — 'calculate''s A/B
+  // fields accept a bare variable name or a literal number, no {{}} needed.
+  function resolveNumberOrVariable(raw, scope) {
+    if (raw === undefined || raw === null || raw === '') return 0;
+    var str = String(raw);
+    var scopeVal = scope && Object.prototype.hasOwnProperty.call(scope, str) ? scope[str] : undefined;
+    var varVal = scopeVal !== undefined ? scopeVal : vars[str];
+    if (varVal !== undefined) return Number(varVal) || 0;
+    return Number(interpolate(str, scope)) || 0;
   }
 
   // Mirrors resolveVisible()'s condition evaluation in AppRuntime.js.
@@ -435,11 +447,38 @@ function generateJS(app) {
   // coins") — pre-list saves are read as a one-step list, same
   // normalizeActions() convention as the live editor. scope is only set
   // for a list's item action, so its fields can interpolate item fields.
-  function runOne(action, scope) {
+  async function runOne(action, scope) {
     if (!action || !action.type) return;
     switch (action.type) {
       case 'navigate':
         if (action.screen_id) showScreen(action.screen_id);
+        break;
+      case 'calculate': {
+        if (!action.variable) break;
+        var a = resolveNumberOrVariable(action.a, scope);
+        var b = resolveNumberOrVariable(action.b, scope);
+        var result;
+        if (action.op === 'subtract') result = a - b;
+        else if (action.op === 'multiply') result = a * b;
+        else if (action.op === 'divide') result = b !== 0 ? a / b : 0;
+        else result = a + b;
+        vars[action.variable] = String(result);
+        break;
+      }
+      case 'reset_variables': {
+        Object.keys(INITIAL_VARS).forEach(function (k) { vars[k] = INITIAL_VARS[k]; });
+        break;
+      }
+      case 'copy_to_clipboard':
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(interpolate(action.text, scope)).catch(function () {});
+        }
+        break;
+      case 'vibrate':
+        if (navigator.vibrate) navigator.vibrate(Number(action.duration_ms) || 200);
+        break;
+      case 'wait':
+        await new Promise(function (resolve) { setTimeout(resolve, Math.max(0, Number(action.duration_ms) || 0)); });
         break;
       case 'set_variable': {
         if (!action.variable) break;
@@ -495,10 +534,9 @@ function generateJS(app) {
     }
   }
 
-  function runAction(actionOrList, scope) {
+  async function runAction(actionOrList, scope) {
     var list = Array.isArray(actionOrList) ? actionOrList : (actionOrList ? [actionOrList] : []);
-    list.forEach(function (a) { runOne(a, scope); });
-    render();
+    for (var i = 0; i < list.length; i++) { await runOne(list[i], scope); render(); }
   }
 
   document.addEventListener('click', function (e) {

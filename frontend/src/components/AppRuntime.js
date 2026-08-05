@@ -79,6 +79,19 @@ function resolveIndex(raw, currentVars, scope) {
   return Number.isFinite(n) ? Math.trunc(n) : 0;
 }
 
+// `calculate`'s A/B fields deliberately don't require {{}} syntax — type a
+// bare variable name (e.g. "price") or a literal number, whichever's there
+// wins, no punctuation to remember. {{}} interpolation still works too
+// (falls through below) for consistency with every other field.
+function resolveNumberOrVariable(raw, currentVars, scope) {
+  if (raw === undefined || raw === null || raw === '') return 0;
+  const str = String(raw);
+  const scopeVal = scope && Object.prototype.hasOwnProperty.call(scope, str) ? scope[str] : undefined;
+  const varVal = scopeVal !== undefined ? scopeVal : currentVars[str];
+  if (varVal !== undefined) return Number(varVal) || 0;
+  return Number(interpolate(str, currentVars, scope)) || 0;
+}
+
 function buttonStyle(theme, style) {
   switch (style) {
     case 'secondary':
@@ -421,12 +434,45 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
   // update_text steps commonly chain off one another in the same click
   // (e.g. "add 1 to coins" then "update text1 with coins"). `scope` is only
   // set for a list's item_action, so its fields can interpolate {{item...}}
-  // the same way the list's own item_template already does.
-  const runOne = (action, currentVars, scope) => {
+  // the same way the list's own item_template already does. async only
+  // because of 'wait' — every existing caller already fire-and-forgets the
+  // result, so this is a backward-compatible engine change.
+  const runOne = async (action, currentVars, scope) => {
     if (!action?.type) return;
     switch (action.type) {
       case 'navigate':
         if (action.screen_id && screens.some(s => s.id === action.screen_id)) setScreenId(action.screen_id);
+        break;
+      case 'calculate': {
+        if (!action.variable) break;
+        const a = resolveNumberOrVariable(action.a, currentVars, scope);
+        const b = resolveNumberOrVariable(action.b, currentVars, scope);
+        let result;
+        if (action.op === 'subtract') result = a - b;
+        else if (action.op === 'multiply') result = a * b;
+        else if (action.op === 'divide') result = b !== 0 ? a / b : 0;
+        else result = a + b;
+        const next = String(result);
+        currentVars[action.variable] = next;
+        setVars(v => ({ ...v, [action.variable]: next }));
+        break;
+      }
+      case 'reset_variables': {
+        const initial = Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? '']));
+        Object.assign(currentVars, initial);
+        setVars(initial);
+        break;
+      }
+      case 'copy_to_clipboard':
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(interpolate(action.text, currentVars, scope)).catch(() => {});
+        }
+        break;
+      case 'vibrate':
+        if (navigator.vibrate) navigator.vibrate(Number(action.duration_ms) || 200);
+        break;
+      case 'wait':
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, Number(action.duration_ms) || 0)));
         break;
       case 'set_variable': {
         if (!action.variable) break;
@@ -494,9 +540,9 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     }
   };
 
-  const runAction = (actionOrList, scope) => {
+  const runAction = async (actionOrList, scope) => {
     const currentVars = { ...vars };
-    for (const action of normalizeActions(actionOrList)) runOne(action, currentVars, scope);
+    for (const action of normalizeActions(actionOrList)) await runOne(action, currentVars, scope);
   };
 
   if (!screen) {

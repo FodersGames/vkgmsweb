@@ -169,21 +169,50 @@ export function createComponent(type, layoutOverride) {
   };
 }
 
+// `category` groups the type picker into an <optgroup> (ActionEditor,
+// AppBuilderEditor.js) instead of one long flat list — thirteen raw
+// technical names read as overwhelming, six labeled sections don't.
 export const ACTION_TYPES = [
-  { type: 'navigate', label: 'Go to screen' },
-  { type: 'set_variable', label: 'Set a variable' },
-  { type: 'update_text', label: 'Update an element' },
-  { type: 'set_visibility', label: 'Show/hide an element' },
-  { type: 'list_add', label: 'Add to a list' },
-  { type: 'list_remove', label: 'Remove from a list' },
-  { type: 'show_message', label: 'Show a message' },
-  { type: 'open_link', label: 'Open a link' },
+  { type: 'navigate', label: 'Go to screen', category: 'Navigate' },
+  { type: 'set_variable', label: 'Set a variable', category: 'Variables & Math' },
+  { type: 'calculate', label: 'Calculate', category: 'Variables & Math' },
+  { type: 'reset_variables', label: 'Reset all variables', category: 'Variables & Math' },
+  { type: 'update_text', label: 'Update an element', category: 'Elements' },
+  { type: 'set_visibility', label: 'Show/hide an element', category: 'Elements' },
+  { type: 'list_add', label: 'Add to a list', category: 'Lists' },
+  { type: 'list_remove', label: 'Remove from a list', category: 'Lists' },
+  { type: 'show_message', label: 'Show a message', category: 'Feedback & Device' },
+  { type: 'copy_to_clipboard', label: 'Copy to clipboard', category: 'Feedback & Device' },
+  { type: 'vibrate', label: 'Vibrate', category: 'Feedback & Device' },
+  { type: 'wait', label: 'Wait', category: 'Feedback & Device' },
+  { type: 'open_link', label: 'Open a link', category: 'Links' },
 ];
+
+// One plain-language line shown under the type picker once a step's type
+// is chosen — the "very advanced but very simple to use" balance: more
+// power in the dropdown, but nobody has to guess what a label means.
+export const ACTION_DESCRIPTIONS = {
+  navigate: 'Switches to a different screen.',
+  set_variable: 'Sets, toggles, or adjusts a variable by a fixed amount.',
+  calculate: 'Combines two numbers and stores the result in a variable.',
+  reset_variables: 'Resets every variable back to its starting value — handy for a "Start over" button.',
+  update_text: "Replaces an element's visible text.",
+  set_visibility: 'Shows, hides, or toggles another element.',
+  list_add: 'Adds a value to a list, at the start, end, or a specific position.',
+  list_remove: 'Removes an item from a list.',
+  show_message: 'Flashes a short message on screen.',
+  copy_to_clipboard: 'Copies text so the visitor can paste it elsewhere.',
+  vibrate: 'Triggers a short haptic buzz (phones only — no effect in a browser).',
+  wait: 'Pauses before the next step runs — useful for pacing a sequence.',
+  open_link: 'Opens a URL, in this app or a new tab.',
+};
 
 export function createAction(type) {
   switch (type) {
     case 'navigate': return { type, screen_id: '' };
     case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
+    case 'calculate': return { type, variable: '', op: 'add', a: '', b: '' };
+    case 'reset_variables': return { type };
     case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
     case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
     // value_mode 'variable' copies another variable's current value (e.g. an
@@ -193,6 +222,9 @@ export function createAction(type) {
     case 'list_add': return { type, variable: '', mode: 'append', value_mode: 'literal', value: '', index: 0 };
     case 'list_remove': return { type, variable: '', mode: 'last', index: 0 };
     case 'show_message': return { type, text: '' };
+    case 'copy_to_clipboard': return { type, text: '' };
+    case 'vibrate': return { type, duration_ms: 200 };
+    case 'wait': return { type, duration_ms: 500 };
     case 'open_link': return { type, url: '', new_tab: true };
     default: return null;
   }
@@ -374,56 +406,109 @@ export function AppIcon({ id, size = 24, color = 'currentColor', strokeWidth = 1
 }
 
 // ============================================================
-// Premium preview demo — one small, pre-built sample screen used to show
-// what a locked theme or a locked component actually looks like in a real
-// app, instead of just a "requires Vakar+" text message. Deliberately a
-// single shared screen (not one per theme/component) — it uses custom text
-// sizing, icons, a toggle and a list together, which happens to cover every
-// premium capability in one composition. Rendered statically (no
-// setVars/runAction) via ComponentVisual/PositionedNode, same as the
-// editor's own design canvas.
+// Premium preview demos — small scripted scenes shown in a popup when a
+// locked (Vakar+) theme or component is clicked, so instead of a bare
+// "requires Vakar+" message the owner sees roughly what it looks like in a
+// real, moving app. One scene per premium component type (so clicking
+// `slider` looks nothing like clicking `list`) plus one shared `theme`
+// scene reused across every premium theme (themes already differ from
+// each other by color — the gap was staticness, not lack of variety).
+// `theme` is also the fallback for premium *features* that aren't tied to
+// a specific component type (custom text size, conditional visibility) —
+// `AppBuilderEditor.js`'s onPremiumBlocked calls for those don't pass a
+// `type`, only a `label`.
+//
+// Each scene: {components, vars, timeline?}. `timeline` (optional) is a
+// plain ordered list of {atMs, vars} snapshots — PreviewPlayer
+// (AppBuilderEditor.js) replays it on a loop by feeding `vars` into the
+// same ComponentVisual/PositionedNode renderer everything else uses (a
+// scripted mock, not a real interactive app — nothing is clickable).
+// Components with no timeline entry just replay their own entrance
+// `props.animation` every loop instead (PreviewPlayer remounts them).
 // ============================================================
-export const PREMIUM_PREVIEW_SCREEN = {
-  components: [
-    {
-      id: 'preview-title', type: 'text', actions: {},
-      layout: { x: 24, y: 32, w: 280, h: 44 },
-      props: { content: 'Level Up', size: 'custom', size_px: 30, weight: 'bold', align: 'left', color: '' },
-    },
-    {
-      id: 'preview-subtitle', type: 'text', actions: {},
-      layout: { x: 24, y: 78, w: 280, h: 22 },
-      props: { content: 'Your weekly recap', size: 'sm', weight: 'normal', align: 'left', color: '' },
-    },
-    {
-      id: 'preview-icon-1', type: 'icon', actions: {},
-      layout: { x: 24, y: 118, w: 40, h: 40 }, props: { icon: 'star', color: '' },
-    },
-    {
-      id: 'preview-icon-2', type: 'icon', actions: {},
-      layout: { x: 76, y: 118, w: 40, h: 40 }, props: { icon: 'heart', color: '' },
-    },
-    {
-      id: 'preview-icon-3', type: 'icon', actions: {},
-      layout: { x: 128, y: 118, w: 40, h: 40 }, props: { icon: 'bell', color: '' },
-    },
-    {
-      id: 'preview-toggle', type: 'toggle', actions: {},
-      layout: { x: 24, y: 176, w: 312, h: 32 },
-      props: { label: 'Push notifications', variable: 'previewToggle' },
-    },
-    {
-      id: 'preview-list', type: 'list', actions: {},
-      layout: { x: 24, y: 228, w: 312, h: 192 },
-      props: { source_variable: 'previewItems', item_template: '{{item}}', empty_text: 'No items yet.' },
-    },
-    {
-      id: 'preview-button', type: 'button', actions: {},
-      layout: { x: 24, y: 440, w: 312, h: 48 }, props: { label: 'Continue', style: 'primary' },
-    },
-  ],
-};
-export const PREMIUM_PREVIEW_VARS = {
-  previewToggle: 'true',
-  previewItems: JSON.stringify(['Completed 5 workouts', 'Earned 120 points', 'Invited 2 friends']),
+function previewNode(id, type, layout, props, animation) {
+  return { id, type, actions: {}, layout, props: animation ? { ...props, animation } : props };
+}
+
+export const PREMIUM_PREVIEW_SCENES = {
+  theme: {
+    vars: { toggleVar: 'true', itemsVar: JSON.stringify(['Completed 5 workouts', 'Earned 120 points', 'Invited 2 friends']) },
+    timeline: [
+      { atMs: 0, vars: { toggleVar: 'true' } },
+      { atMs: 1400, vars: { toggleVar: 'false' } },
+      { atMs: 2800, vars: { toggleVar: 'true' } },
+    ],
+    components: [
+      previewNode('t-title', 'text', { x: 24, y: 32, w: 280, h: 44 }, { content: 'Level Up', size: 'custom', size_px: 30, weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('t-subtitle', 'text', { x: 24, y: 78, w: 280, h: 22 }, { content: 'Your weekly recap', size: 'sm', weight: 'normal', align: 'left', color: '' }, 'fade'),
+      previewNode('t-toggle', 'toggle', { x: 24, y: 118, w: 312, h: 32 }, { label: 'Push notifications', variable: 'toggleVar' }, 'slide-up'),
+      previewNode('t-list', 'list', { x: 24, y: 166, w: 312, h: 192 }, { source_variable: 'itemsVar', item_template: '{{item}}', empty_text: 'No items yet.' }, 'slide-up'),
+      previewNode('t-button', 'button', { x: 24, y: 378, w: 312, h: 48 }, { label: 'Continue', style: 'primary' }, 'pop'),
+    ],
+  },
+  icon: {
+    vars: {},
+    components: [
+      previewNode('i-caption', 'text', { x: 24, y: 40, w: 280, h: 22 }, { content: 'A full icon library', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('i-1', 'icon', { x: 24, y: 90, w: 48, h: 48 }, { icon: 'star', color: '' }, 'pop'),
+      previewNode('i-2', 'icon', { x: 90, y: 90, w: 48, h: 48 }, { icon: 'heart', color: '' }, 'pop'),
+      previewNode('i-3', 'icon', { x: 156, y: 90, w: 48, h: 48 }, { icon: 'bell', color: '' }, 'pop'),
+      previewNode('i-4', 'icon', { x: 222, y: 90, w: 48, h: 48 }, { icon: 'chat', color: '' }, 'pop'),
+    ],
+  },
+  toggle: {
+    vars: { demoToggle: 'true' },
+    timeline: [
+      { atMs: 0, vars: { demoToggle: 'true' } },
+      { atMs: 1200, vars: { demoToggle: 'false' } },
+      { atMs: 2400, vars: { demoToggle: 'true' } },
+    ],
+    components: [
+      previewNode('tg-caption', 'text', { x: 24, y: 60, w: 280, h: 22 }, { content: 'Live preference switches', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('tg-toggle', 'toggle', { x: 24, y: 100, w: 312, h: 32 }, { label: 'Notifications', variable: 'demoToggle' }, 'slide-up'),
+    ],
+  },
+  list: {
+    vars: { demoItems: JSON.stringify(['Design review', 'Ship v2', 'Write tests']) },
+    components: [
+      previewNode('l-caption', 'text', { x: 24, y: 32, w: 280, h: 22 }, { content: 'Dynamic, scrollable lists', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('l-list', 'list', { x: 24, y: 72, w: 312, h: 180 }, { source_variable: 'demoItems', item_template: '{{item}}', empty_text: 'No items yet.' }, 'slide-up'),
+    ],
+  },
+  slider: {
+    vars: { demoSlider: '0' },
+    timeline: [
+      { atMs: 0, vars: { demoSlider: '0' } },
+      { atMs: 500, vars: { demoSlider: '35' } },
+      { atMs: 1000, vars: { demoSlider: '70' } },
+      { atMs: 1500, vars: { demoSlider: '100' } },
+      { atMs: 2000, vars: { demoSlider: '55' } },
+      { atMs: 2500, vars: { demoSlider: '0' } },
+    ],
+    components: [
+      previewNode('sl-caption', 'text', { x: 24, y: 70, w: 280, h: 22 }, { content: 'Precise numeric input', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('sl-slider', 'slider', { x: 24, y: 110, w: 260, h: 32 }, { variable: 'demoSlider', min: 0, max: 100, step: 1 }, 'slide-up'),
+    ],
+  },
+  date: {
+    vars: { demoDate: '' },
+    components: [
+      previewNode('d-caption', 'text', { x: 24, y: 60, w: 280, h: 22 }, { content: 'Native date picking', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('d-date', 'date', { x: 24, y: 100, w: 200, h: 44 }, { variable: 'demoDate' }, 'pop'),
+    ],
+  },
+  video: {
+    vars: {},
+    components: [
+      previewNode('v-caption', 'text', { x: 24, y: 60, w: 280, h: 22 }, { content: 'Embed any video', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('v-video', 'video', { x: 24, y: 100, w: 260, h: 146 }, { url: '' }, 'pop'),
+    ],
+  },
+  webview: {
+    vars: {},
+    components: [
+      previewNode('w-caption', 'text', { x: 24, y: 60, w: 280, h: 22 }, { content: 'Embed any website', size: 'sm', weight: 'bold', align: 'left', color: '' }, 'fade'),
+      previewNode('w-webview', 'webview', { x: 24, y: 100, w: 260, h: 160 }, { url: '' }, 'pop'),
+    ],
+  },
 };

@@ -9,10 +9,10 @@ import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { useAuth } from '../context/AuthContext';
 import {
-  COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, genId, createComponent, createAction,
+  COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, ACTION_DESCRIPTIONS, genId, createComponent, createAction,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
   normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
-  PREMIUM_PREVIEW_SCREEN, PREMIUM_PREVIEW_VARS, ANIMATION_TYPES, VISIBILITY_OPERATORS,
+  PREMIUM_PREVIEW_SCENES, ANIMATION_TYPES, VISIBILITY_OPERATORS,
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
@@ -38,6 +38,51 @@ const SDK_LEVELS = [
   { v: 31, label: '31 — Android 12' }, { v: 32, label: '32 — Android 12L' }, { v: 33, label: '33 — Android 13' },
   { v: 34, label: '34 — Android 14' }, { v: 35, label: '35 — Android 15' },
 ];
+
+// Plays a PREMIUM_PREVIEW_SCENES entry on a loop inside the locked-feature
+// popup — a tiny scripted mock (not a real interactive app, nothing here
+// is clickable) that feeds a scene's `vars` into the exact same
+// ComponentVisual/PositionedNode renderer used everywhere else, so a
+// locked component/theme looks like it's actually being used instead of a
+// frozen screenshot. Components with a `timeline` (toggle/slider) get
+// their bound variable driven through scripted steps; every component also
+// gets its entrance `props.animation` replayed each loop via a changing
+// `key` (remounting restarts a CSS animation).
+function PreviewPlayer({ scene, theme }) {
+  const [vars, setVars] = useState(scene.vars || {});
+  const [replayKey, setReplayKey] = useState(0);
+
+  useEffect(() => {
+    setVars(scene.vars || {});
+    setReplayKey(k => k + 1);
+    const timeline = scene.timeline;
+    if (!timeline || !timeline.length) {
+      const t = setInterval(() => setReplayKey(k => k + 1), 3000);
+      return () => clearInterval(t);
+    }
+    const loopMs = Math.max(...timeline.map(s => s.atMs)) + 1200;
+    let timeouts = [];
+    const schedule = () => {
+      timeouts = timeline.map(step => setTimeout(() => setVars(v => ({ ...v, ...step.vars })), step.atMs));
+    };
+    schedule();
+    const loop = setInterval(() => {
+      timeouts.forEach(clearTimeout);
+      setVars(scene.vars || {});
+      setReplayKey(k => k + 1);
+      schedule();
+    }, loopMs);
+    return () => { timeouts.forEach(clearTimeout); clearInterval(loop); };
+  }, [scene]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: theme.colors.background, overflow: 'hidden' }}>
+      {scene.components.map((node, i) => (
+        <PositionedNode key={`${node.id}-${replayKey}`} node={node} index={i} vars={vars} theme={theme} />
+      ))}
+    </div>
+  );
+}
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return '—';
@@ -542,8 +587,8 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
         <div className="space-y-3">
           <div>
             <label className={FIELD_LABEL}>Content</label>
-            <input value={node.props.content || ''} onChange={e => set('content', e.target.value)} placeholder="https://… or {{variable}}" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">Supports {'{{variable}}'} — note the exported/APK version bakes in a one-time snapshot, it won't update live.</p>
+            <input value={node.props.content || ''} onChange={e => set('content', e.target.value)} placeholder="https://…" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{profileUrl}}'} — note the exported/APK version bakes in a one-time snapshot, it won't update live.</p>
           </div>
         </div>
       );
@@ -649,6 +694,27 @@ function buildLayerRows(screen) {
   return out;
 }
 
+// Some toggles/checkboxes/sliders don't need an onChange action at all —
+// their real effect is a declarative `visible_if` on OTHER components
+// reacting to the same bound variable (e.g. a "Hide completed" toggle).
+// That's invisible from the toggle's own Inspector otherwise, which reads
+// as "this does nothing" even though it clearly does something in the
+// running app — this surfaces the connection instead of hiding it.
+function findVisibilityDependents(screen, variable) {
+  if (!variable) return [];
+  const out = [];
+  const walk = (comp) => {
+    if (comp.visible_if?.variable === variable) {
+      const meta = COMPONENT_META[comp.type];
+      const preview = comp.props?.content || comp.props?.label || comp.props?.placeholder || '';
+      out.push(preview ? `${meta?.label || comp.type} — "${String(preview).slice(0, 18)}"` : (meta?.label || comp.type));
+    }
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (screen?.components || []).forEach(walk);
+  return out;
+}
+
 function ActionStepFields({ action, screens, targets, allTargets = [], setField }) {
   switch (action.type) {
     case 'navigate':
@@ -680,11 +746,43 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           {action.value_mode !== 'toggle_bool' && (
             <div>
               <label className={FIELD_LABEL}>{(action.value_mode === 'increment' || action.value_mode === 'decrement') ? 'Amount' : 'Value'}</label>
-              <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder={(action.value_mode === 'increment' || action.value_mode === 'decrement') ? '1' : 'Supports {{other_variable}}'} className={FIELD_INPUT} />
+              <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder={(action.value_mode === 'increment' || action.value_mode === 'decrement') ? '1' : 'e.g. 10'} className={FIELD_INPUT} />
+              {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include another variable's value, e.g. {'{{coins}}'}.</p>}
             </div>
           )}
         </>
       );
+    case 'calculate':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>Store result in</label>
+            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. total" className={FIELD_INPUT} />
+          </div>
+          <div className="grid grid-cols-3 gap-2 items-end">
+            <div>
+              <label className={FIELD_LABEL}>A</label>
+              <input value={action.a || ''} onChange={e => setField('a', e.target.value)} placeholder="e.g. price" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Operation</label>
+              <Select value={action.op || 'add'} onChange={e => setField('op', e.target.value)} size="sm">
+                <option value="add">+ Add</option>
+                <option value="subtract">− Subtract</option>
+                <option value="multiply">× Multiply</option>
+                <option value="divide">÷ Divide</option>
+              </Select>
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>B</label>
+              <input value={action.b || ''} onChange={e => setField('b', e.target.value)} placeholder="e.g. quantity" className={FIELD_INPUT} />
+            </div>
+          </div>
+          <p className="text-[10px] text-[#A1A1A6]">A and B can each be a fixed number or another variable's name — both are read as numbers.</p>
+        </>
+      );
+    case 'reset_variables':
+      return <p className="text-xs text-[#A1A1A6]">No settings — this resets every variable in the app back to its starting value.</p>;
     case 'update_text':
       return (
         <>
@@ -707,9 +805,10 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
             <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
             <input
               value={action.value || ''} onChange={e => setField('value', e.target.value)}
-              placeholder={action.value_mode === 'variable' ? 'e.g. coins' : 'Supports {{other_variable}}'}
+              placeholder={action.value_mode === 'variable' ? 'e.g. coins' : 'e.g. Well done!'}
               className={FIELD_INPUT}
             />
+            {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include another variable's value, e.g. {'{{coins}}'}.</p>}
           </div>
         </>
       );
@@ -751,7 +850,7 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           {action.mode === 'at_index' && (
             <div>
               <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0, or {{index}} when used on a list row" className={FIELD_INPUT} />
+              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0" className={FIELD_INPUT} />
               <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
             </div>
           )}
@@ -766,9 +865,10 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
             <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
             <input
               value={action.value || ''} onChange={e => setField('value', e.target.value)}
-              placeholder={action.value_mode === 'variable' ? 'e.g. entryText' : 'Supports {{other_variable}}'}
+              placeholder={action.value_mode === 'variable' ? 'e.g. entryText' : 'e.g. New item'}
               className={FIELD_INPUT}
             />
+            {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{entryText}}'}.</p>}
           </div>
         </>
       );
@@ -791,7 +891,7 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
           {action.mode === 'at_index' && (
             <div>
               <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0, or {{index}} when used on a list row" className={FIELD_INPUT} />
+              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0" className={FIELD_INPUT} />
               <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
             </div>
           )}
@@ -801,7 +901,31 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
       return (
         <div>
           <label className={FIELD_LABEL}>Message</label>
-          <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="Supports {{variable}}" className={FIELD_INPUT} />
+          <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="e.g. Saved!" className={FIELD_INPUT} />
+          <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{score}}'}.</p>
+        </div>
+      );
+    case 'copy_to_clipboard':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Text to copy</label>
+          <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="e.g. Check out my app!" className={FIELD_INPUT} />
+          <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{referralCode}}'}.</p>
+        </div>
+      );
+    case 'vibrate':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Duration ({action.duration_ms ?? 200}ms)</label>
+          <input type="range" min="50" max="1000" step="50" value={action.duration_ms ?? 200} onChange={e => setField('duration_ms', Number(e.target.value))} className="w-full" />
+          <p className="mt-1 text-[10px] text-[#A1A1A6]">Only felt on a real phone — no effect when previewing in a browser.</p>
+        </div>
+      );
+    case 'wait':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Pause for ({((action.duration_ms ?? 500) / 1000).toFixed(1)}s)</label>
+          <input type="range" min="100" max="5000" step="100" value={action.duration_ms ?? 500} onChange={e => setField('duration_ms', Number(e.target.value))} className="w-full" />
         </div>
       );
     case 'open_link':
@@ -861,12 +985,20 @@ function ActionEditor({ steps: rawSteps, onStepsChange, screens, screen, label =
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] w-3.5 shrink-0">{idx + 1}</span>
             <Select value={action.type} onChange={e => setStepType(idx, e.target.value)} size="sm" wrapperClassName="flex-1">
-              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.label}</option>)}
+              {/* ui/Select.js is a hand-rolled listbox that only reads direct
+                  <option> children — no native <optgroup> support (same
+                  reason it can't do disabled options either) — so grouping
+                  is done as a plain "Category · Label" prefix instead,
+                  relying on ACTION_TYPES already being ordered by category. */}
+              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.category} · {a.label}</option>)}
             </Select>
             <button type="button" onClick={() => moveStep(idx, -1)} disabled={idx === 0} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronUp size={12} /></button>
             <button type="button" onClick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronDown size={12} /></button>
             <button type="button" onClick={() => removeStep(idx)} className="p-1 text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={12} /></button>
           </div>
+          {ACTION_DESCRIPTIONS[action.type] && (
+            <p className="text-[10px] text-[#A1A1A6] -mt-1">{ACTION_DESCRIPTIONS[action.type]}</p>
+          )}
           <ActionStepFields action={action} screens={screens} targets={targets} allTargets={allTargets} setField={(field, value) => setField(idx, field, value)} />
         </div>
       ))}
@@ -1803,15 +1935,25 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   />
                 </>
               ) : (
-                <ActionEditor
-                  steps={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
-                  onStepsChange={(list) => updateSelected(n => {
-                    const trigger = COMPONENT_META[n.type]?.actionTrigger || 'onClick';
-                    if (!list) delete n.actions[trigger]; else n.actions[trigger] = list;
-                  })}
-                  screens={app.screens} screen={activeScreen}
-                  label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
-                />
+                <>
+                  {(() => {
+                    const dependents = findVisibilityDependents(activeScreen, selected.props?.variable);
+                    return dependents.length > 0 ? (
+                      <div className="mb-3 p-2.5 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7]">
+                        This value already controls whether these are shown: <strong>{dependents.join(', ')}</strong> — see each one's Visibility setting. No action needed here for that part.
+                      </div>
+                    ) : null;
+                  })()}
+                  <ActionEditor
+                    steps={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
+                    onStepsChange={(list) => updateSelected(n => {
+                      const trigger = COMPONENT_META[n.type]?.actionTrigger || 'onClick';
+                      if (!list) delete n.actions[trigger]; else n.actions[trigger] = list;
+                    })}
+                    screens={app.screens} screen={activeScreen}
+                    label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
+                  />
+                </>
               )}
             </>
           )}
@@ -2102,13 +2244,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             >
               {(() => {
                 const theme = resolveTheme(previewFeature.kind === 'theme' ? previewFeature.theme.id : app.theme);
-                return (
-                  <div style={{ position: 'relative', width: '100%', height: '100%', background: theme.colors.background, overflow: 'hidden' }}>
-                    {PREMIUM_PREVIEW_SCREEN.components.map((node, i) => (
-                      <PositionedNode key={node.id} node={node} index={i} vars={PREMIUM_PREVIEW_VARS} theme={theme} />
-                    ))}
-                  </div>
-                );
+                const scene = PREMIUM_PREVIEW_SCENES[previewFeature.kind === 'component' ? previewFeature.meta?.type : null]
+                  || PREMIUM_PREVIEW_SCENES.theme;
+                return <PreviewPlayer scene={scene} theme={theme} />;
               })()}
             </div>
             <div className="mt-4 text-center max-w-xs">
