@@ -90,6 +90,13 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   }, [projectId, apiBase]);
 
   // ── Inject Blockly once the container exists ─────────────────────────────
+  // Depends on `loading`, not `[]`: while loading is true this component
+  // renders a spinner instead of the real layout, so `blocklyDivRef` isn't
+  // attached to anything yet. An effect with `[]` deps only ever runs once,
+  // right after that first (spinner) render — it would see a null ref and
+  // permanently skip injection, since it never gets a second chance to run
+  // once the real div exists. Re-running when `loading` flips to false is
+  // what lets it actually find the div.
   useEffect(() => {
     if (!blocklyDivRef.current || workspaceRef.current) return;
     const ws = Blockly.inject(blocklyDivRef.current, {
@@ -109,7 +116,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
       ws.dispose();
       workspaceRef.current = null;
     };
-  }, []);
+  }, [loading]);
 
   // ── Load the selected sprite's script into the (single) Blockly workspace ─
   useEffect(() => {
