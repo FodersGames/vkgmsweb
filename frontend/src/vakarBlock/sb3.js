@@ -524,6 +524,35 @@ reg('sound_changevolumeby', (sb, ws, blocksDict, ctx) => {
 });
 reg('sound_volume', (sb, ws) => ws.newBlock('vk_volume'));
 
+// When a block has no IMPORT_HANDLERS entry, everything nested under it
+// (a C-block's SUBSTACK body, an if/else's branches, a reporter used as one
+// of its arguments…) is dropped too — `buildBlockChain`/`buildReporterBlock`
+// only ever look at the *wrapper* they failed to translate, never at what
+// was inside it. Without this, an unsupported loop like Scratch's "repeat
+// until" would silently vanish along with its entire body, and the import
+// log would report exactly one skipped opcode when dozens of blocks were
+// actually lost — misleading the user about how much of their project
+// survived. Walks every nested input (recursing into both value/reporter
+// slots and statement/substack slots — Scratch's own JSON doesn't
+// distinguish them structurally, both are just `[type, blockId]` pairs) and
+// records every opcode along the way that has no handler of its own. Does
+// NOT rebuild any blocks — this is purely for accounting so the warning
+// list reflects everything skipped, not just top-level casualties.
+function collectDescendantWarnings(blocksDict, id, ctx, seen = new Set()) {
+  if (!id || seen.has(id)) return;
+  seen.add(id);
+  const sb = blocksDict[id];
+  if (!sb) return;
+  if (!IMPORT_HANDLERS[sb.opcode] && !LITERAL_OPCODES.has(sb.opcode) && !MENU_OPCODES.has(sb.opcode)) {
+    ctx.warnings.add(sb.opcode);
+  }
+  for (const entry of Object.values(sb.inputs || {})) {
+    const ref = entry && entry[1];
+    if (typeof ref === 'string') collectDescendantWarnings(blocksDict, ref, ctx, seen);
+  }
+  if (sb.next) collectDescendantWarnings(blocksDict, sb.next, ctx, seen);
+}
+
 // Builds one connected chain of statement blocks starting at `startId`,
 // following `.next`. Reporter/value blocks are built separately, on demand,
 // via resolveValue → buildReporterBlock (they're never top-level chain
@@ -538,7 +567,7 @@ function buildBlockChain(ws, blocksDict, startId, ctx) {
     const handler = IMPORT_HANDLERS[sb.opcode];
     let block = null;
     if (!handler) {
-      ctx.warnings.add(sb.opcode);
+      collectDescendantWarnings(blocksDict, id, ctx);
     } else {
       try {
         block = handler(sb, ws, blocksDict, ctx);
@@ -562,7 +591,7 @@ function buildReporterBlock(ws, blocksDict, blockId, ctx) {
   const sb = blocksDict[blockId];
   if (!sb) return null;
   const handler = IMPORT_HANDLERS[sb.opcode];
-  if (!handler) { ctx.warnings.add(sb.opcode); return null; }
+  if (!handler) { collectDescendantWarnings(blocksDict, blockId, ctx); return null; }
   try {
     return handler(sb, ws, blocksDict, ctx);
   } catch (err) {
