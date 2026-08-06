@@ -333,6 +333,120 @@ test('sb3 export: a native "repeat while" block (no direct Scratch opcode) round
   rt.destroy();
 });
 
+// Shapes taken directly from the real game/1.0.0.sb3 file (see round 9's
+// memory notes) — every vakargames_* argument is a VALUE input, never a
+// `fields` entry, even though it's almost always a plain literal.
+function vakargamesProject() {
+  return {
+    targets: [
+      { isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {}, costumes: [], sounds: [], currentCostume: 0 },
+      {
+        isStage: false, name: 'items', variables: { v1: ['sauvegarde', 0] }, lists: {},
+        x: 0, y: 0, direction: 90, size: 100, visible: true, currentCostume: 0, costumes: [], sounds: [],
+        blocks: {
+          hat1: { opcode: 'event_whenflagclicked', next: 'cfg1', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0 },
+          cfg1: { opcode: 'vakargames_configureFiles', next: 'ver1', parent: 'hat1', inputs: { SLUG: [1, [10, 'survivor']], KEY: [1, [10, 'secret-key']] }, fields: {} },
+          ver1: { opcode: 'vakargames_useVersion', next: 'load1', parent: 'cfg1', inputs: { V: [1, [10, '1.0']] }, fields: {} },
+          load1: { opcode: 'vakargames_loadCostumeById', next: 'rm1', parent: 'ver1', inputs: { LABEL: [1, [10, 'nail']], ID: [1, [10, 'file123']], SPRITE: [1, [10, 'items']] }, fields: {} },
+          rm1: { opcode: 'vakargames_removeAllCostumes', next: 'txt1', parent: 'load1', inputs: { SPRITE: [1, [10, 'items']] }, fields: {} },
+          txt1: {
+            opcode: 'vakargames_afficherTexte', next: 'vis1', parent: 'rm1',
+            inputs: {
+              ID: [1, [10, 'shop_label']], TEXTE: [1, [10, 'No Offers.']], X: [1, [4, '0']], Y: [1, [4, '0']],
+              POLICE: [1, [10, 'Arial']], TAILLE: [1, [4, '20']], COULEUR: [1, [10, '#FFFFFF']],
+              GRAS: [1, 'gras1'], ITALIQUE: [1, 'ita1'], VISIBLE: [1, 'vis1menu'],
+            },
+            fields: {},
+          },
+          gras1: { opcode: 'vakargames_menu_ouiNon', next: null, parent: 'txt1', inputs: {}, fields: { ouiNon: ['non', null] }, shadow: true },
+          ita1: { opcode: 'vakargames_menu_ouiNon', next: null, parent: 'txt1', inputs: {}, fields: { ouiNon: ['non', null] }, shadow: true },
+          vis1menu: { opcode: 'vakargames_menu_ouiNon', next: null, parent: 'txt1', inputs: {}, fields: { ouiNon: ['oui', null] }, shadow: true },
+          vis1: { opcode: 'vakargames_changerVisibiliteTexte', next: 'playcfg1', parent: 'txt1', inputs: { ID: [1, [10, 'shop_label']], VISIBLE: [1, 'vis2menu'] }, fields: {} },
+          vis2menu: { opcode: 'vakargames_menu_ouiNon', next: null, parent: 'vis1', inputs: {}, fields: { ouiNon: ['non', null] }, shadow: true },
+          playcfg1: { opcode: 'vakargames_playConfigurer', next: 'login1', parent: 'vis1', inputs: { SLUG: [1, [10, 'survivor']] }, fields: {} },
+          login1: { opcode: 'vakargames_playAfficherConnexion', next: 'connected1', parent: 'playcfg1', inputs: {}, fields: {} },
+          connected1: { opcode: 'vakargames_playEstConnecte', next: null, parent: 'login1', inputs: {}, fields: {} },
+          save1: {
+            opcode: 'vakargames_playSauvegarder', next: 'load2', parent: null, topLevel: true, x: 100, y: 100,
+            inputs: { CATEGORIE: [1, [10, 'stats']], DONNEES: [1, [10, '{"coins":5}']] }, fields: {},
+          },
+          load2: { opcode: 'data_setvariableto', next: 'discon1', parent: 'save1', inputs: { VALUE: [3, 'charger1'] }, fields: { VARIABLE: ['sauvegarde', 'v1'] } },
+          charger1: { opcode: 'vakargames_playCharger', next: null, parent: 'load2', inputs: { CATEGORIE: [1, [10, 'stats']] }, fields: {} },
+          discon1: { opcode: 'vakargames_playDeconnecter', next: 'loading1', parent: 'load2', inputs: {}, fields: {} },
+          loading1: { opcode: 'vakargames_playOuvrirChargement', next: 'closeloading1', parent: 'discon1', inputs: { MAX: [1, [4, '15']] }, fields: {} },
+          closeloading1: { opcode: 'vakargames_playFermerChargement', next: null, parent: 'loading1', inputs: {}, fields: {} },
+        },
+      },
+    ],
+  };
+}
+
+test('sb3 import: all vakargames_* opcodes translate to real Vakar Block blocks with correct argument values', () => {
+  const { sprites, warnings } = buildProjectFromSb3(vakargamesProject());
+  expect(warnings).toEqual([]);
+
+  const ws = new Blockly.Workspace();
+  Blockly.serialization.workspaces.load(sprites[0].workspace, ws);
+  const byType = (type) => ws.getAllBlocks(false).find((b) => b.type === type);
+
+  expect(byType('vk_vg_configure_files').getFieldValue('SLUG')).toBe('survivor');
+  expect(byType('vk_vg_configure_files').getFieldValue('KEY')).toBe('secret-key');
+  expect(byType('vk_vg_use_version').getFieldValue('V')).toBe('1.0');
+  expect(byType('vk_vg_load_costume_by_id').getFieldValue('ID')).toBe('file123');
+  expect(byType('vk_vg_load_costume_by_id').getFieldValue('SPRITE')).toBe('items');
+  expect(byType('vk_vg_remove_all_costumes').getFieldValue('SPRITE')).toBe('items');
+  expect(byType('vk_vg_show_text').getFieldValue('ID')).toBe('shop_label');
+  expect(byType('vk_vg_show_text').getFieldValue('GRAS')).toBe('non');
+  expect(byType('vk_vg_show_text').getFieldValue('VISIBLE')).toBe('oui'); // extracted from the vakargames_menu_ouiNon shadow
+  expect(byType('vk_vg_set_text_visible').getFieldValue('VISIBLE')).toBe('non');
+  expect(byType('vk_vg_play_configure').getFieldValue('SLUG')).toBe('survivor');
+  expect(byType('vk_vg_play_show_login')).toBeTruthy();
+  expect(byType('vk_vg_play_is_connected')).toBeTruthy();
+  expect(byType('vk_vg_play_save').getFieldValue('CATEGORIE')).toBe('stats');
+  expect(byType('vk_vg_play_disconnect')).toBeTruthy();
+  expect(byType('vk_vg_play_open_loading')).toBeTruthy();
+  expect(byType('vk_vg_play_close_loading')).toBeTruthy();
+
+  // The REPORTER→COMMAND special case: "mettre sauvegarde à (charger stats)"
+  // becomes "charger stats dans la variable sauvegarde" directly, not a
+  // variables_set wrapping a reporter.
+  const loadBlock = byType('vk_vg_play_load');
+  expect(loadBlock).toBeTruthy();
+  expect(loadBlock.getFieldValue('CATEGORIE')).toBe('stats');
+  expect(loadBlock.getFieldValue('VAR')).toBe('sauvegarde');
+  expect(byType('variables_set')).toBeUndefined(); // confirms it did NOT fall through to the generic path
+
+  ws.dispose();
+});
+
+test('sb3 export: vakargames_* blocks round-trip through import again with the same values (incl. the play_load reporter-shape reversal)', () => {
+  const { sprites } = buildProjectFromSb3(vakargamesProject());
+  const warnings = new Set();
+  const exported = exportSpriteWorkspace(sprites[0].workspace, warnings);
+  expect(Array.from(warnings)).toEqual([]);
+
+  const opcodes = Object.values(exported.blocks).map((b) => b.opcode);
+  expect(opcodes).toEqual(expect.arrayContaining([
+    'vakargames_configureFiles', 'vakargames_useVersion', 'vakargames_loadCostumeById',
+    'vakargames_removeAllCostumes', 'vakargames_afficherTexte', 'vakargames_changerVisibiliteTexte',
+    'vakargames_playConfigurer', 'vakargames_playAfficherConnexion', 'vakargames_playEstConnecte',
+    'vakargames_playSauvegarder', 'vakargames_playCharger', 'vakargames_playDeconnecter',
+    'vakargames_playOuvrirChargement', 'vakargames_playFermerChargement', 'data_setvariableto',
+  ]));
+
+  const reimported = buildProjectFromSb3({
+    targets: [{ isStage: false, name: 'items2', variables: { v1: ['sauvegarde', 0] }, lists: {}, blocks: exported.blocks, costumes: [], sounds: [], currentCostume: 0 }],
+  });
+  expect(reimported.warnings).toEqual([]);
+  const ws = new Blockly.Workspace();
+  Blockly.serialization.workspaces.load(reimported.sprites[0].workspace, ws);
+  const byType = (type) => ws.getAllBlocks(false).find((b) => b.type === type);
+  expect(byType('vk_vg_configure_files').getFieldValue('SLUG')).toBe('survivor');
+  expect(byType('vk_vg_play_load').getFieldValue('CATEGORIE')).toBe('stats');
+  expect(byType('vk_vg_play_load').getFieldValue('VAR')).toBe('sauvegarde');
+  ws.dispose();
+});
+
 function jsonExtensionProject() {
   return {
     targets: [

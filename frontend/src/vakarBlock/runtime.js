@@ -33,6 +33,16 @@ const genId = () => Math.random().toString(36).slice(2, 10);
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 const resolveUrl = (url) => (url && url.startsWith('/') ? `${API}${url}` : url);
 
+// The real, live VakarGames.com backend that the studio's own
+// `turbowarp-extension/vakargames.js` TurboWarp extension talks to — the
+// VakarGames-branded blocks below (Fichiers / Texte / Play) are a faithful
+// re-implementation of that extension's *public* behavior against Vakar
+// Block's own data model, not a copy of its code (that original targets
+// scratch-vm's asset/storage internals, which Vakar Block doesn't have).
+// Every network call below hits this real, in-production API — unlike
+// everything else in Vakar Block, which is fully sandboxed/local.
+const VG_API_URL = 'https://vakargames.com';
+
 export class VakarSprite {
   constructor(data) {
     this.id = data.id;
@@ -211,7 +221,7 @@ export class VakarSprite {
 }
 
 export class VakarBlockRuntime {
-  constructor({ sprites, onRender, onError, onPenClear, onStamp }) {
+  constructor({ sprites, onRender, onError, onPenClear, onStamp, onShowLoginPopup, onCloseLoginPopup, onLoadingScreen }) {
     this.sprites = sprites; // Map<id, VakarSprite> — includes clones once created
     this.onRender = onRender || (() => {});
     this.onError = onError || (() => {});
@@ -227,6 +237,26 @@ export class VakarBlockRuntime {
     this.mouseDown = false;
     this._keysDown = new Set();
     this._activeAudio = new Set();
+
+    // ---------- VakarGames extension state (see the big comment block
+    // above VG_API_URL) ----------
+    this.texts = new Map(); // id -> {text,x,y,font,size,color,bold,italic,visible}
+    this._vgFilesSlug = '';
+    this._vgFilesKey = '';
+    this._vgFilesVersion = 'default';
+    this._vgFileIndex = {};
+    this._vgPlaySlug = '';
+    this._vgPlayAccessToken = null;
+    this._vgPlayPlayer = null;
+    this._vgPlaySaveCache = {};
+    // UI hooks — the login popup and loading screen are rendered by
+    // VakarBlockEditor.js (React-managed, consistent with how this whole
+    // editor renders everything else) rather than raw `document.body`
+    // DOM manipulation like the original TurboWarp extension does; the
+    // runtime only ever asks for them via these callbacks.
+    this.onShowLoginPopup = onShowLoginPopup || ((onDone) => onDone(false));
+    this.onCloseLoginPopup = onCloseLoginPopup || (() => {});
+    this.onLoadingScreen = onLoadingScreen || (() => {});
 
     // Initial stacking order = sprite-list order, matching Scratch's own
     // default (the sprite corral's order is also the initial layer order).
@@ -529,6 +559,252 @@ export class VakarBlockRuntime {
   list(sprite, name) {
     if (!Array.isArray(sprite.vars[name])) sprite.vars[name] = [];
     return sprite.vars[name];
+  }
+
+  // ══════════════════════════════════════════
+  //  VakarGames extension — Fichiers / Texte / Play
+  //  (see the VG_API_URL comment above for what this is and isn't a copy of)
+  // ══════════════════════════════════════════
+
+  // Bridges a plain Promise into the generator/yield concurrency model, the
+  // same way `wait`/`glideTo` bridge real time — lets any async call (a
+  // fetch to vakargames.com) cooperate with the rest of a script instead of
+  // blocking the whole scheduler. `yield*` on the caller side lets the
+  // resolved value flow back out as this generator's own `return` value.
+  *awaitPromise(promise) {
+    const state = { done: false };
+    promise.then(
+      (v) => { state.done = true; state.value = v; },
+      (e) => { state.done = true; state.error = e; }
+    );
+    while (!state.done) yield;
+    if (state.error) throw state.error;
+    return state.value;
+  }
+
+  findSpriteByName(name) {
+    return Array.from(this.sprites.values()).find((s) => s.name === name) || null;
+  }
+
+  // ---------- Fichiers (game asset files hosted on vakargames.com) ----------
+  vgConfigureFiles(slug, key) {
+    this._vgFilesSlug = String(slug || '').trim();
+    this._vgFilesKey = String(key || '').trim();
+    this._vgFileIndex = {};
+  }
+
+  vgUseVersion(v) {
+    const tag = String(v || '').trim() || 'default';
+    if (tag !== this._vgFilesVersion) {
+      this._vgFilesVersion = tag;
+      this._vgFileIndex = {};
+    }
+  }
+
+  async _vgFetchFileList() {
+    const url = `${VG_API_URL}/api/game/${encodeURIComponent(this._vgFilesSlug)}/files?version=${encodeURIComponent(this._vgFilesVersion)}`;
+    const res = await fetch(url, { headers: { 'X-Files-Api-Key': this._vgFilesKey } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const files = data.files || [];
+    this._vgFileIndex = {};
+    for (const f of files) this._vgFileIndex[f.id] = f;
+    return files;
+  }
+
+  // Fetches one file by id and adds/replaces it as a costume on the target
+  // sprite — a simplified, Vakar-Block-shaped equivalent of the original
+  // extension's `_addCostumeToTarget` (which writes into scratch-vm's own
+  // asset storage; Vakar Block has no such system, so this just creates a
+  // costume the normal way, `{id, name, image_url}` pointing at a blob URL).
+  // No IndexedDB caching (the original extension's performance optimization
+  // for repeated loads across sessions) — a documented simplification, not
+  // an oversight.
+  *vgLoadCostumeById(sprite, fileId, spriteName) {
+    const target = this.findSpriteByName(spriteName) || sprite;
+    const load = async () => {
+      let f = this._vgFileIndex[String(fileId)];
+      if (!f) { await this._vgFetchFileList(); f = this._vgFileIndex[String(fileId)]; }
+      if (!f) throw new Error(`Fichier "${fileId}" introuvable (version "${this._vgFilesVersion}")`);
+      const url = `${VG_API_URL}/api/game/${encodeURIComponent(this._vgFilesSlug)}/files/${encodeURIComponent(f.id)}/download`;
+      const res = await fetch(url, { headers: { 'X-Files-Api-Key': this._vgFilesKey } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const existing = target.costumes.find((c) => c.name === f.name);
+      if (existing) existing.image_url = objectUrl;
+      else target.costumes.push({ id: genId(), name: f.name, image_url: objectUrl });
+      if (!target.currentCostumeId) target.currentCostumeId = target.costumes[0]?.id || null;
+    };
+    yield* this.awaitPromise(load());
+  }
+
+  vgRemoveAllCostumes(sprite, spriteName) {
+    const target = this.findSpriteByName(spriteName) || sprite;
+    target.costumes.length = 0;
+    target.currentCostumeId = null;
+  }
+
+  // ---------- Texte (HTML text overlay on the stage) ----------
+  // Rendered by VakarBlockEditor.js alongside sprites (same coordinate
+  // system, `onRender`-driven) rather than the original extension's raw
+  // `document.body` overlay — Vakar Block's stage is already a bounded
+  // React element, so positioning text relative to it directly is simpler
+  // and keeps this consistent with how sprites/pen already render.
+  vgShowText(id, props) {
+    const key = String(id).trim();
+    if (!key) return;
+    this.texts.set(key, { ...(this.texts.get(key) || {}), ...props });
+  }
+
+  vgSetTextVisible(id, visible) {
+    const t = this.texts.get(String(id).trim());
+    if (t) t.visible = visible;
+  }
+
+  // ---------- VakarGames Play (real player accounts on vakargames.com) ----------
+  _vgPlayStorageKey() {
+    return 'vg_play_refresh_' + this._vgPlaySlug;
+  }
+
+  async _vgPlayRestoreSession() {
+    let stored;
+    try { stored = localStorage.getItem(this._vgPlayStorageKey()); } catch (e) { return; }
+    if (!stored) return;
+    try {
+      const r = await fetch(`${VG_API_URL}/api/play/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: stored, project_slug: this._vgPlaySlug }),
+      });
+      if (!r.ok) { try { localStorage.removeItem(this._vgPlayStorageKey()); } catch (e) {} return; }
+      const d = await r.json();
+      this._vgPlayAccessToken = d.access_token;
+      this._vgPlayPlayer = d.player;
+    } catch (e) { /* stay signed out, no network — same as the original extension */ }
+  }
+
+  *vgPlayConfigure(slug) {
+    this._vgPlaySlug = String(slug || '').trim();
+    yield* this.awaitPromise(this._vgPlayRestoreSession());
+  }
+
+  // Suspends the calling script (via awaitPromise) until the editor reports
+  // the login/register popup was resolved — `vgPlayResolveLogin()` (called
+  // by VakarBlockEditor.js after a successful `vgPlayAttemptLogin`/
+  // `vgPlayAttemptRegister`) is what actually resumes it. A no-op if
+  // already signed in, matching the original extension.
+  *vgPlayShowLogin() {
+    if (this._vgPlayPlayer) return;
+    yield* this.awaitPromise(new Promise((resolve) => {
+      this._vgLoginResolve = resolve;
+      this.onShowLoginPopup();
+    }));
+  }
+
+  _vgApplyPlaySession(d) {
+    try { localStorage.setItem(this._vgPlayStorageKey(), d.refresh_token); } catch (e) {}
+    this._vgPlayAccessToken = d.access_token;
+    this._vgPlayPlayer = d.player;
+  }
+
+  // Called by VakarBlockEditor.js's login popup form — real network calls,
+  // fully independent of any DOM so they're unit-testable on their own.
+  async vgPlayAttemptLogin(login, password) {
+    try {
+      const r = await fetch(`${VG_API_URL}/api/play/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password, project_slug: this._vgPlaySlug }),
+      });
+      let d = {}; try { d = await r.json(); } catch (e) {}
+      if (!r.ok) return { ok: false, error: typeof d.detail === 'string' ? d.detail : 'Erreur de connexion' };
+      this._vgApplyPlaySession(d);
+      return { ok: true };
+    } catch (e) { return { ok: false, error: 'Erreur réseau — ' + e.message }; }
+  }
+
+  async vgPlayAttemptRegister(username, email, password) {
+    try {
+      const r = await fetch(`${VG_API_URL}/api/play/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, project_slug: this._vgPlaySlug }),
+      });
+      let d = {}; try { d = await r.json(); } catch (e) {}
+      if (!r.ok) return { ok: false, error: typeof d.detail === 'string' ? d.detail : "Erreur d'inscription" };
+      this._vgApplyPlaySession(d);
+      return { ok: true };
+    } catch (e) { return { ok: false, error: 'Erreur réseau — ' + e.message }; }
+  }
+
+  // Resumes whichever script is currently suspended in `vgPlayShowLogin`.
+  vgPlayResolveLogin() {
+    if (this._vgLoginResolve) {
+      const resolve = this._vgLoginResolve;
+      this._vgLoginResolve = null;
+      resolve();
+    }
+  }
+
+  vgPlayIsConnected() {
+    return !!this._vgPlayPlayer;
+  }
+
+  vgPlayDisconnect() {
+    this._vgPlayAccessToken = null;
+    this._vgPlayPlayer = null;
+    this._vgPlaySaveCache = {};
+    try { localStorage.removeItem(this._vgPlayStorageKey()); } catch (e) {}
+  }
+
+  *vgPlaySave(category, data) {
+    if (!this._vgPlayAccessToken) return false;
+    const cat = String(category);
+    const payload = String(data);
+    if (this._vgPlaySaveCache[cat] === payload) return true; // unchanged — matches the original's no-op guard
+    const save = async () => {
+      const r = await fetch(`${VG_API_URL}/api/play/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this._vgPlayAccessToken}` },
+        body: JSON.stringify({ category: cat, data: payload, project_slug: this._vgPlaySlug }),
+      });
+      if (r.ok) { this._vgPlaySaveCache[cat] = payload; return true; }
+      return false;
+    };
+    return yield* this.awaitPromise(save());
+  }
+
+  // Shaped as a COMMAND that writes straight into a variable, not a
+  // REPORTER like the original extension's `playCharger` — Vakar Block
+  // compiles each script to one flat JS function ahead of time (see
+  // runtime.js's compileSprite), so a reporter expression has no way to
+  // `yield` mid-expression while its own fetch resolves. See sb3.js's
+  // import handler for `vakargames_playCharger` for how a Scratch project
+  // using the real reporter shape gets translated onto this instead.
+  *vgPlayLoad(sprite, category, varName) {
+    let result = '{}';
+    if (this._vgPlayAccessToken) {
+      const load = async () => {
+        const r = await fetch(
+          `${VG_API_URL}/api/play/load?category=${encodeURIComponent(category)}&project_slug=${encodeURIComponent(this._vgPlaySlug)}&_ts=${Date.now()}`,
+          { headers: { Authorization: `Bearer ${this._vgPlayAccessToken}` }, cache: 'no-store' }
+        );
+        if (!r.ok) return '{}';
+        const d = await r.json();
+        return d.data || '{}';
+      };
+      result = yield* this.awaitPromise(load());
+    }
+    sprite.vars[varName] = result;
+  }
+
+  vgPlayOpenLoading(max) {
+    this.onLoadingScreen({ visible: true, max: Math.max(1, parseInt(max, 10) || 1) });
+  }
+
+  vgPlayCloseLoading() {
+    this.onLoadingScreen({ visible: false });
   }
 
   _stopThreads() {

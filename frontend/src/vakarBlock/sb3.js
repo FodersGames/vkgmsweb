@@ -84,6 +84,10 @@ const MENU_OPCODES = new Set([
   'looks_costume', 'looks_backdrops', 'sound_sounds_menu',
   'sensing_touchingobjectmenu', 'sensing_distancetomenu', 'sensing_keyoptions',
   'control_create_clone_of_menu', 'event_broadcast_menu',
+  // The VakarGames extension's own menu shadows (see its `menus:` in
+  // getInfo()) — same generic "extract the first field's value as a plain
+  // literal" handling already works for these, no special-casing needed.
+  'vakargames_menu_ouiNon', 'vakargames_menu_categoriesSave',
 ]);
 const LITERAL_OPCODES = new Set([
   'math_number', 'math_integer', 'math_whole_number', 'math_positive_number', 'math_angle', 'text', 'colour_picker',
@@ -570,8 +574,26 @@ reg('data_variable', (sb, ws, blocksDict, ctx) => {
   return b;
 });
 reg('data_setvariableto', (sb, ws, blocksDict, ctx) => {
+  const [varName, id] = sb.fields.VARIABLE || [null, null];
+  // Special case: Scratch's `vakargames_playCharger` is a REPORTER, but its
+  // Vakar Block equivalent (`vk_vg_play_load`) is a COMMAND that writes
+  // straight into a variable instead (see runtime.js's comment on
+  // vgPlayLoad — an async reporter has no way to `yield` mid-expression in
+  // this codebase's compiled-flat-function model). The real, idiomatic (and
+  // really only sane) usage of that reporter is "mettre [variable] à
+  // (charger [catégorie])", so that exact shape is detected and translated
+  // here directly, rather than through the generic per-opcode reporter path
+  // — `vakargames_playCharger` deliberately has no IMPORT_HANDLERS entry of
+  // its own, so any other usage falls through to a normal "skipped" warning.
+  const valueBlockId = getInputBlockId(sb, 'VALUE');
+  const valueBlock = valueBlockId && blocksDict[valueBlockId];
+  if (valueBlock && valueBlock.opcode === 'vakargames_playCharger') {
+    const b = ws.newBlock('vk_vg_play_load');
+    b.setFieldValue(resolveValue(ws, blocksDict, valueBlock, 'CATEGORIE', ctx).literal || 'stats', 'CATEGORIE');
+    b.setFieldValue(String(varName || 'variable'), 'VAR');
+    return b;
+  }
   const b = ws.newBlock('variables_set');
-  const [, id] = sb.fields.VARIABLE || [null, null];
   if (ctx.varIdToName[id]) b.getField('VAR').setValue(id);
   connectValue(ws, b, 'VALUE', resolveValue(ws, blocksDict, sb, 'VALUE', ctx), { asText: true });
   return b;
@@ -723,6 +745,82 @@ reg('skyhigh173JSON_json_length', (sb, ws, blocksDict, ctx) => {
   connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
   return b;
 });
+
+// ---------- VakarGames (the studio's own TurboWarp extension — see
+// runtime.js's VG_API_URL comment). Every argument on these blocks is a
+// Scratch STRING-type ARGUMENT, which the real project.json stores as a
+// VALUE input (not a `fields` entry, even though it's usually a plain
+// literal) — confirmed against the real game/1.0.0.sb3 file, where every
+// vakargames_* call uses `inputs`, never `fields`. Read them all through
+// `resolveValue(...).literal`, never `sb.fields.X`. ----------
+function vgLit(ws, blocksDict, sb, name, ctx, fallback = '') {
+  return resolveValue(ws, blocksDict, sb, name, ctx).literal || fallback;
+}
+reg('vakargames_configureFiles', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_configure_files');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'SLUG', ctx, 'mon-jeu'), 'SLUG');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'KEY', ctx), 'KEY');
+  return b;
+});
+reg('vakargames_useVersion', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_use_version');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'V', ctx, 'default'), 'V');
+  return b;
+});
+reg('vakargames_loadCostumeById', (sb, ws, blocksDict, ctx) => {
+  // LABEL is read and discarded on purpose — it's cosmetic-only in the
+  // original extension too (destructured but never actually used; only ID
+  // drives the real lookup).
+  const b = ws.newBlock('vk_vg_load_costume_by_id');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'ID', ctx), 'ID');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'SPRITE', ctx, 'Sprite1'), 'SPRITE');
+  return b;
+});
+reg('vakargames_removeAllCostumes', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_remove_all_costumes');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'SPRITE', ctx, 'Sprite1'), 'SPRITE');
+  return b;
+});
+reg('vakargames_afficherTexte', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_show_text');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'ID', ctx, 'mon_texte'), 'ID');
+  connectValue(ws, b, 'TEXTE', resolveValue(ws, blocksDict, sb, 'TEXTE', ctx), { asText: true });
+  connectValue(ws, b, 'X', resolveValue(ws, blocksDict, sb, 'X', ctx));
+  connectValue(ws, b, 'Y', resolveValue(ws, blocksDict, sb, 'Y', ctx));
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'POLICE', ctx, 'Arial'), 'POLICE');
+  connectValue(ws, b, 'TAILLE', resolveValue(ws, blocksDict, sb, 'TAILLE', ctx));
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'COULEUR', ctx, '#FFFFFF'), 'COULEUR');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'GRAS', ctx, 'non') === 'oui' ? 'oui' : 'non', 'GRAS');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'ITALIQUE', ctx, 'non') === 'oui' ? 'oui' : 'non', 'ITALIQUE');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'VISIBLE', ctx, 'oui') === 'non' ? 'non' : 'oui', 'VISIBLE');
+  return b;
+});
+reg('vakargames_changerVisibiliteTexte', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_set_text_visible');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'ID', ctx, 'mon_texte'), 'ID');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'VISIBLE', ctx, 'oui') === 'non' ? 'non' : 'oui', 'VISIBLE');
+  return b;
+});
+reg('vakargames_playConfigurer', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_play_configure');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'SLUG', ctx, 'mon-jeu'), 'SLUG');
+  return b;
+});
+reg('vakargames_playAfficherConnexion', (sb, ws) => ws.newBlock('vk_vg_play_show_login'));
+reg('vakargames_playEstConnecte', (sb, ws) => ws.newBlock('vk_vg_play_is_connected'));
+reg('vakargames_playDeconnecter', (sb, ws) => ws.newBlock('vk_vg_play_disconnect'));
+reg('vakargames_playSauvegarder', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_play_save');
+  b.setFieldValue(vgLit(ws, blocksDict, sb, 'CATEGORIE', ctx, 'stats'), 'CATEGORIE');
+  connectValue(ws, b, 'DONNEES', resolveValue(ws, blocksDict, sb, 'DONNEES', ctx), { asText: true });
+  return b;
+});
+reg('vakargames_playOuvrirChargement', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_vg_play_open_loading');
+  connectValue(ws, b, 'MAX', resolveValue(ws, blocksDict, sb, 'MAX', ctx));
+  return b;
+});
+reg('vakargames_playFermerChargement', (sb, ws) => ws.newBlock('vk_vg_play_close_loading'));
 
 // When a block has no IMPORT_HANDLERS entry, everything nested under it
 // (a C-block's SUBSTACK body, an if/else's branches, a reporter used as one
@@ -1144,6 +1242,71 @@ regExport('vk_json_array_push', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh17
 regExport('vk_json_keys', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_get_all', fields: { Stype: scratchField('keys') }, inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
 regExport('vk_json_values', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_get_all', fields: { Stype: scratchField('values') }, inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
 regExport('vk_json_length', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_length', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
+
+// ---------- VakarGames ----------
+// These fields are plain Vakar Block `field_input`/`field_dropdown`
+// values, not connected reporters — exported as Scratch's inline-literal
+// input shape (`[1, [primitiveType, value]]`) directly, matching how the
+// real extension's own string arguments are commonly stored (see the
+// import-side comment above), rather than via `exportValue` (which is for
+// actual connected Blockly value inputs).
+function inlineTextInput(value) { return [1, [10, String(value ?? '')]]; }
+regExport('vk_vg_configure_files', (b) => ({
+  opcode: 'vakargames_configureFiles',
+  inputs: { SLUG: inlineTextInput(b.getFieldValue('SLUG')), KEY: inlineTextInput(b.getFieldValue('KEY')) },
+}));
+regExport('vk_vg_use_version', (b) => ({ opcode: 'vakargames_useVersion', inputs: { V: inlineTextInput(b.getFieldValue('V')) } }));
+regExport('vk_vg_load_costume_by_id', (b) => ({
+  opcode: 'vakargames_loadCostumeById',
+  inputs: {
+    LABEL: inlineTextInput(b.getFieldValue('ID')), // no separate label field on this side — reuse ID, matching what a human would expect to see
+    ID: inlineTextInput(b.getFieldValue('ID')),
+    SPRITE: inlineTextInput(b.getFieldValue('SPRITE')),
+  },
+}));
+regExport('vk_vg_remove_all_costumes', (b) => ({ opcode: 'vakargames_removeAllCostumes', inputs: { SPRITE: inlineTextInput(b.getFieldValue('SPRITE')) } }));
+regExport('vk_vg_show_text', (b, id, blocksOut, ctx) => ({
+  opcode: 'vakargames_afficherTexte',
+  inputs: {
+    ID: inlineTextInput(b.getFieldValue('ID')),
+    TEXTE: exportValue(b, id, 'TEXTE', blocksOut, ctx),
+    X: exportValue(b, id, 'X', blocksOut, ctx),
+    Y: exportValue(b, id, 'Y', blocksOut, ctx),
+    POLICE: inlineTextInput(b.getFieldValue('POLICE')),
+    TAILLE: exportValue(b, id, 'TAILLE', blocksOut, ctx),
+    COULEUR: inlineTextInput(b.getFieldValue('COULEUR')),
+    GRAS: inlineTextInput(b.getFieldValue('GRAS')),
+    ITALIQUE: inlineTextInput(b.getFieldValue('ITALIQUE')),
+    VISIBLE: inlineTextInput(b.getFieldValue('VISIBLE')),
+  },
+}));
+regExport('vk_vg_set_text_visible', (b) => ({
+  opcode: 'vakargames_changerVisibiliteTexte',
+  inputs: { ID: inlineTextInput(b.getFieldValue('ID')), VISIBLE: inlineTextInput(b.getFieldValue('VISIBLE')) },
+}));
+regExport('vk_vg_play_configure', (b) => ({ opcode: 'vakargames_playConfigurer', inputs: { SLUG: inlineTextInput(b.getFieldValue('SLUG')) } }));
+regExport('vk_vg_play_show_login', () => ({ opcode: 'vakargames_playAfficherConnexion' }));
+regExport('vk_vg_play_is_connected', () => ({ opcode: 'vakargames_playEstConnecte' }));
+regExport('vk_vg_play_disconnect', () => ({ opcode: 'vakargames_playDeconnecter' }));
+regExport('vk_vg_play_save', (b, id, blocksOut, ctx) => ({
+  opcode: 'vakargames_playSauvegarder',
+  inputs: { CATEGORIE: inlineTextInput(b.getFieldValue('CATEGORIE')), DONNEES: exportValue(b, id, 'DONNEES', blocksOut, ctx) },
+}));
+// Exports back to the REPORTER shape (`data_setvariableto` wrapping
+// `vakargames_playCharger`) — the reverse of the `data_setvariableto`
+// import special case above. `id` (already generated by the caller for
+// this block) is reused as the exported `data_setvariableto` block's own
+// id — the opcode swap is the whole point of this handler.
+regExport('vk_vg_play_load', (b, id, blocksOut) => {
+  const chargerId = genScratchId();
+  blocksOut[chargerId] = {
+    opcode: 'vakargames_playCharger', next: null, parent: id,
+    inputs: { CATEGORIE: inlineTextInput(b.getFieldValue('CATEGORIE')) }, fields: {}, shadow: false, topLevel: false,
+  };
+  return { opcode: 'data_setvariableto', fields: { VARIABLE: [b.getFieldValue('VAR'), null] }, inputs: { VALUE: [2, chargerId] } };
+});
+regExport('vk_vg_play_open_loading', (b, id, blocksOut, ctx) => ({ opcode: 'vakargames_playOuvrirChargement', inputs: { MAX: exportValue(b, id, 'MAX', blocksOut, ctx) } }));
+regExport('vk_vg_play_close_loading', () => ({ opcode: 'vakargames_playFermerChargement' }));
 
 // Exports one sprite's stored Blockly workspace JSON into Scratch-shaped
 // `{blocks, variables}` for its target entry. `topXOffset` just fans

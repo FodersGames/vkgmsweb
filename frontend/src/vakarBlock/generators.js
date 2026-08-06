@@ -317,4 +317,53 @@ forBlock['vk_json_length'] = function (block, generator) {
   return [`(function(){try{var v=JSON.parse(${json});if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return String(v).length;}catch(e){return 0;}})()`, Order.FUNCTION_CALL];
 };
 
+// ---------- VakarGames ----------
+forBlock['vk_vg_configure_files'] = function (block) {
+  return `runtime.vgConfigureFiles(${JSON.stringify(block.getFieldValue('SLUG'))}, ${JSON.stringify(block.getFieldValue('KEY'))});\n`;
+};
+forBlock['vk_vg_use_version'] = function (block) {
+  return `runtime.vgUseVersion(${JSON.stringify(block.getFieldValue('V'))});\n`;
+};
+forBlock['vk_vg_load_costume_by_id'] = function (block) {
+  return `yield* runtime.vgLoadCostumeById(sprite, ${JSON.stringify(block.getFieldValue('ID'))}, ${JSON.stringify(block.getFieldValue('SPRITE'))});\n`;
+};
+forBlock['vk_vg_remove_all_costumes'] = function (block) {
+  return `runtime.vgRemoveAllCostumes(sprite, ${JSON.stringify(block.getFieldValue('SPRITE'))});\n`;
+};
+forBlock['vk_vg_show_text'] = function (block, generator) {
+  const texte = generator.valueToCode(block, 'TEXTE', Order.NONE) || "''";
+  const x = generator.valueToCode(block, 'X', Order.NONE) || '0';
+  const y = generator.valueToCode(block, 'Y', Order.NONE) || '0';
+  const taille = generator.valueToCode(block, 'TAILLE', Order.NONE) || '24';
+  const id = JSON.stringify(block.getFieldValue('ID'));
+  const police = JSON.stringify(block.getFieldValue('POLICE'));
+  const couleur = JSON.stringify(block.getFieldValue('COULEUR'));
+  const gras = JSON.stringify(block.getFieldValue('GRAS') === 'oui');
+  const italique = JSON.stringify(block.getFieldValue('ITALIQUE') === 'oui');
+  const visible = JSON.stringify(block.getFieldValue('VISIBLE') !== 'non');
+  return `runtime.vgShowText(${id}, { text: ${texte}, x: ${x}, y: ${y}, size: ${taille}, font: ${police}, color: ${couleur}, bold: ${gras}, italic: ${italique}, visible: ${visible} });\n`;
+};
+forBlock['vk_vg_set_text_visible'] = function (block) {
+  const visible = JSON.stringify(block.getFieldValue('VISIBLE') !== 'non');
+  return `runtime.vgSetTextVisible(${JSON.stringify(block.getFieldValue('ID'))}, ${visible});\n`;
+};
+forBlock['vk_vg_play_configure'] = function (block) {
+  return `yield* runtime.vgPlayConfigure(${JSON.stringify(block.getFieldValue('SLUG'))});\n`;
+};
+forBlock['vk_vg_play_show_login'] = () => 'yield* runtime.vgPlayShowLogin();\n';
+forBlock['vk_vg_play_is_connected'] = () => ['runtime.vgPlayIsConnected()', Order.FUNCTION_CALL];
+forBlock['vk_vg_play_disconnect'] = () => 'runtime.vgPlayDisconnect();\n';
+forBlock['vk_vg_play_save'] = function (block, generator) {
+  const donnees = generator.valueToCode(block, 'DONNEES', Order.NONE) || "'{}'";
+  return `yield* runtime.vgPlaySave(${JSON.stringify(block.getFieldValue('CATEGORIE'))}, ${donnees});\n`;
+};
+forBlock['vk_vg_play_load'] = function (block) {
+  return `yield* runtime.vgPlayLoad(sprite, ${JSON.stringify(block.getFieldValue('CATEGORIE'))}, ${JSON.stringify(block.getFieldValue('VAR'))});\n`;
+};
+forBlock['vk_vg_play_open_loading'] = function (block, generator) {
+  const max = generator.valueToCode(block, 'MAX', Order.NONE) || '10';
+  return `runtime.vgPlayOpenLoading(${max});\n`;
+};
+forBlock['vk_vg_play_close_loading'] = () => 'runtime.vgPlayCloseLoading();\n';
+
 export { javascriptGenerator, Order };

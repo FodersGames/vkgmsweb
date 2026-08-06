@@ -36,6 +36,7 @@ export const COLORS = {
   sound: '#D65CD6',
   procedures: '#FF6680',
   json: '#8395A7',
+  vakargames: '#4ECDC4',
 };
 
 // French message overrides for the stock blocks we reuse, so the whole
@@ -723,6 +724,161 @@ const jsonBlocks = [
     output: 'Number',
     colour: COLORS.json,
   },
+
+  // ---------- VAKARGAMES ----------
+  // A faithful re-implementation (against Vakar Block's own data model, not
+  // a copy of the code) of turbowarp-extension/vakargames.js's public
+  // blocks — the studio's own TurboWarp extension for VakarGames-hosted
+  // games. "Play" blocks hit the real, live vakargames.com backend (real
+  // player accounts, real save data) — see runtime.js's VG_API_URL comment.
+  {
+    type: 'vk_vg_configure_files',
+    message0: 'configurer ressources projet %1 clé %2',
+    args0: [
+      { type: 'field_input', name: 'SLUG', text: 'mon-jeu' },
+      { type: 'field_input', name: 'KEY', text: '' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_use_version',
+    message0: 'utiliser la version %1',
+    args0: [{ type: 'field_input', name: 'V', text: 'default' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_load_costume_by_id',
+    message0: 'charger costume ID %1 dans sprite %2',
+    args0: [
+      { type: 'field_input', name: 'ID', text: '' },
+      { type: 'field_input', name: 'SPRITE', text: 'Sprite1' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_remove_all_costumes',
+    message0: 'supprimer tous les costumes du sprite %1',
+    args0: [{ type: 'field_input', name: 'SPRITE', text: 'Sprite1' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_show_text',
+    message0: 'afficher texte id %1 %2',
+    args0: [
+      { type: 'field_input', name: 'ID', text: 'mon_texte' },
+      { type: 'input_value', name: 'TEXTE' },
+    ],
+    message1: 'position x %1 y %2',
+    args1: [
+      { type: 'input_value', name: 'X', check: 'Number' },
+      { type: 'input_value', name: 'Y', check: 'Number' },
+    ],
+    message2: 'police %1 taille %2 couleur %3',
+    args2: [
+      { type: 'field_input', name: 'POLICE', text: 'Arial' },
+      { type: 'input_value', name: 'TAILLE', check: 'Number' },
+      // A plain text field, not `field_colour` — the original extension's
+      // own COULEUR argument is a plain Scratch STRING (e.g. "#FFFFFF"),
+      // not its colour-picker argument type either, so this matches it
+      // more faithfully, not less.
+      { type: 'field_input', name: 'COULEUR', text: '#FFFFFF' },
+    ],
+    message3: 'gras %1 italique %2 visible %3',
+    args3: [
+      { type: 'field_dropdown', name: 'GRAS', options: [['non', 'non'], ['oui', 'oui']] },
+      { type: 'field_dropdown', name: 'ITALIQUE', options: [['non', 'non'], ['oui', 'oui']] },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['oui', 'oui'], ['non', 'non']] },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_set_text_visible',
+    message0: 'texte id %1 visible %2',
+    args0: [
+      { type: 'field_input', name: 'ID', text: 'mon_texte' },
+      { type: 'field_dropdown', name: 'VISIBLE', options: [['oui', 'oui'], ['non', 'non']] },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_configure',
+    message0: 'configurer VakarGames Play projet %1',
+    args0: [{ type: 'field_input', name: 'SLUG', text: 'mon-jeu' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_show_login',
+    message0: 'afficher popup connexion VakarGames Play',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+    tooltip: 'Ne fait rien si le joueur est déjà connecté.',
+  },
+  {
+    type: 'vk_vg_play_is_connected',
+    message0: 'joueur connecté ?',
+    output: 'Boolean',
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_disconnect',
+    message0: 'déconnecter le joueur',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_save',
+    message0: 'sauvegarder %1 données %2',
+    args0: [
+      { type: 'field_input', name: 'CATEGORIE', text: 'stats' },
+      { type: 'input_value', name: 'DONNEES' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_load',
+    message0: 'charger %1 dans la variable %2',
+    args0: [
+      { type: 'field_input', name: 'CATEGORIE', text: 'stats' },
+      { type: 'field_input', name: 'VAR', text: 'sauvegarde' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+    tooltip: "Contrairement aux autres blocs VakarGames Play, celui-ci écrit directement dans une variable plutôt que de renvoyer une valeur — le chargement est asynchrone (appel réseau), donc ce bloc ne peut pas être branché directement dans une expression.",
+  },
+  {
+    type: 'vk_vg_play_open_loading',
+    message0: 'ouvrir barre de chargement max %1',
+    args0: [{ type: 'input_value', name: 'MAX', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
+  {
+    type: 'vk_vg_play_close_loading',
+    message0: 'fermer barre de chargement',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.vakargames,
+  },
 ];
 
 Blockly.defineBlocksWithJsonArray(jsonBlocks);
@@ -926,6 +1082,30 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_json_keys', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } } } },
         { kind: 'block', type: 'vk_json_values', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } } } },
         { kind: 'block', type: 'vk_json_length', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '[]' } } } } },
+      ],
+    },
+    {
+      kind: 'category', name: 'VakarGames', colour: COLORS.vakargames,
+      contents: [
+        { kind: 'block', type: 'vk_vg_configure_files' },
+        { kind: 'block', type: 'vk_vg_use_version' },
+        { kind: 'block', type: 'vk_vg_load_costume_by_id' },
+        { kind: 'block', type: 'vk_vg_remove_all_costumes' },
+        { kind: 'block', type: 'vk_vg_show_text', inputs: {
+          TEXTE: { shadow: { type: 'text', fields: { TEXT: 'Bonjour' } } },
+          X: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
+          Y: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
+          TAILLE: { shadow: { type: 'math_number', fields: { NUM: 24 } } },
+        } },
+        { kind: 'block', type: 'vk_vg_set_text_visible' },
+        { kind: 'block', type: 'vk_vg_play_configure' },
+        { kind: 'block', type: 'vk_vg_play_show_login' },
+        { kind: 'block', type: 'vk_vg_play_is_connected' },
+        { kind: 'block', type: 'vk_vg_play_disconnect' },
+        { kind: 'block', type: 'vk_vg_play_save', inputs: { DONNEES: { shadow: { type: 'text', fields: { TEXT: '{}' } } } } },
+        { kind: 'block', type: 'vk_vg_play_load' },
+        { kind: 'block', type: 'vk_vg_play_open_loading', inputs: { MAX: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
+        { kind: 'block', type: 'vk_vg_play_close_loading' },
       ],
     },
   ],

@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import {
   ArrowLeft, Flag, Square, Plus, Trash2, Upload,
   Loader2, Check, AlertTriangle, Pencil, MonitorPlay, Volume2,
-  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Download,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Download, Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TOOLBOX, COLORS, UNITY_BLOCKLY_THEME } from '../vakarBlock/blocks';
@@ -96,6 +96,14 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   // now only committed (parsed + clamped) on blur/Enter.
   const [widthDraft, setWidthDraft] = useState(null);
   const [heightDraft, setHeightDraft] = useState(null);
+  // VakarGames Play UI — the login/register popup and the loading screen
+  // are transient overlays a running project can trigger (see runtime.js's
+  // vgPlayShowLogin/vgPlayOpenLoading); rendered here, React-managed,
+  // rather than the original TurboWarp extension's raw document.body DOM
+  // manipulation, to stay consistent with how the rest of this editor
+  // renders everything else.
+  const [vgLoginPopup, setVgLoginPopup] = useState(null); // null = closed, else {}
+  const [vgLoadingScreen, setVgLoadingScreen] = useState(null); // null = hidden, else {visible,max}
 
   const blocklyDivRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -223,6 +231,9 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           onError: (e) => setErrorMsg(e?.message || String(e)),
           onPenClear: clearPenCanvas,
           onStamp: stampOnCanvas,
+          onShowLoginPopup: () => setVgLoginPopup({}),
+          onCloseLoginPopup: () => setVgLoginPopup(null),
+          onLoadingScreen: (state) => setVgLoadingScreen(state?.visible ? state : null),
         });
       } finally {
         if (!cancelled) setLoading(false);
@@ -923,6 +934,31 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                   </div>
                 );
               })}
+              {/* VakarGames "afficher texte" overlay — same stage coordinate
+                  system as sprites above (see runtime.js's vgShowText). */}
+              {runtime && Array.from(runtime.texts.values()).map((t, i) => {
+                if (t.visible === false) return null;
+                const leftPct = ((stage.width / 2 + (t.x || 0)) / stage.width) * 100;
+                const topPct = ((stage.height / 2 - (t.y || 0)) / stage.height) * 100;
+                const scaledSize = (t.size || 24) * (stage.width / 480);
+                return (
+                  <div
+                    key={i}
+                    className="absolute pointer-events-none whitespace-pre"
+                    style={{
+                      left: `${leftPct}%`, top: `${topPct}%`,
+                      transform: 'translate(-50%, -50%)',
+                      fontFamily: t.font || 'Arial',
+                      fontSize: scaledSize,
+                      color: t.color || '#FFFFFF',
+                      fontWeight: t.bold ? 'bold' : 'normal',
+                      fontStyle: t.italic ? 'italic' : 'normal',
+                    }}
+                  >
+                    {t.text}
+                  </div>
+                );
+              })}
             </div>
 
             {!presentMode && (
@@ -1105,6 +1141,99 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
             </div>
           )}
         </div>
+      </div>
+
+      {vgLoadingScreen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center" style={{ background: 'rgba(10,15,25,0.88)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ width: 'min(620px, 82vw)' }}>
+            <div className="w-full rounded overflow-hidden" style={{ height: 8, background: 'rgba(255,255,255,0.12)' }}>
+              <div style={{ height: '100%', width: '0%', background: U.accent, borderRadius: 4, transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {vgLoginPopup && (
+        <VGLoginPopup
+          runtime={runtimeRef.current}
+          onDone={() => setVgLoginPopup(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// VakarGames Play login/register popup — a React-managed equivalent of the
+// original TurboWarp extension's raw document.body overlay (see
+// runtime.js's vgPlayShowLogin/vgPlayAttemptLogin/vgPlayAttemptRegister —
+// this component only renders the form and calls those; the actual network
+// calls and session storage live in the runtime, independent of any DOM).
+// French-only (unlike the original's 6-language selector) — matching this
+// whole editor's French-only convention.
+function VGLoginPopup({ runtime, onDone }) {
+  const [tab, setTab] = useState('login');
+  const [loginField, setLoginField] = useState('');
+  const [loginPwd, setLoginPwd] = useState('');
+  const [regUser, setRegUser] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPwd, setRegPwd] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const finish = () => {
+    runtime?.vgPlayResolveLogin();
+    onDone();
+  };
+
+  const submitLogin = async () => {
+    setError(''); setBusy(true);
+    const res = await runtime.vgPlayAttemptLogin(loginField.trim(), loginPwd);
+    setBusy(false);
+    if (res.ok) finish(); else setError(res.error);
+  };
+  const submitRegister = async () => {
+    setError(''); setBusy(true);
+    const res = await runtime.vgPlayAttemptRegister(regUser.trim(), regEmail.trim(), regPwd);
+    setBusy(false);
+    if (res.ok) finish(); else setError(res.error);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
+      <div className="rounded-2xl p-8 w-[340px] max-w-[90vw]" style={{ background: '#fff' }}>
+        <div className="text-center mb-5">
+          <div className="w-11 h-11 rounded-xl mx-auto mb-2.5 flex items-center justify-center" style={{ background: COLORS.vakargames }}>
+            <Users size={20} color="#fff" />
+          </div>
+          <p className="text-lg font-bold" style={{ color: '#1a1a1a' }}>VakarGames Play</p>
+        </div>
+        <div className="flex gap-1 rounded-lg p-1 mb-5" style={{ background: '#f3f4f6' }}>
+          {[['login', 'Connexion'], ['register', 'Créer un compte']].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => { setTab(key); setError(''); }}
+              className="flex-1 py-1.5 rounded-md text-xs font-semibold transition-all"
+              style={tab === key ? { background: '#fff', color: COLORS.vakargames, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' } : { background: 'transparent', color: '#666' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {tab === 'login' ? (
+          <div className="space-y-2.5">
+            <input value={loginField} onChange={(e) => setLoginField(e.target.value)} placeholder="Pseudo ou email" className="w-full rounded-lg px-3 py-2.5 text-sm border outline-none" style={{ borderColor: '#e5e7eb', color: '#1a1a1a' }} />
+            <input value={loginPwd} onChange={(e) => setLoginPwd(e.target.value)} type="password" placeholder="Mot de passe" className="w-full rounded-lg px-3 py-2.5 text-sm border outline-none" style={{ borderColor: '#e5e7eb', color: '#1a1a1a' }} />
+            <button onClick={submitLogin} disabled={busy} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-70" style={{ background: COLORS.vakargames }}>Se connecter</button>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            <input value={regUser} onChange={(e) => setRegUser(e.target.value)} placeholder="Pseudo (3-20 car., lettres/chiffres/_)" className="w-full rounded-lg px-3 py-2.5 text-sm border outline-none" style={{ borderColor: '#e5e7eb', color: '#1a1a1a' }} />
+            <input value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="Email" className="w-full rounded-lg px-3 py-2.5 text-sm border outline-none" style={{ borderColor: '#e5e7eb', color: '#1a1a1a' }} />
+            <input value={regPwd} onChange={(e) => setRegPwd(e.target.value)} type="password" placeholder="Mot de passe (min 6 car.)" className="w-full rounded-lg px-3 py-2.5 text-sm border outline-none" style={{ borderColor: '#e5e7eb', color: '#1a1a1a' }} />
+            <button onClick={submitRegister} disabled={busy} className="w-full rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-70" style={{ background: COLORS.vakargames }}>Créer le compte</button>
+          </div>
+        )}
+        {error && <p className="text-xs text-center mt-2.5" style={{ color: '#e53e3e' }}>{error}</p>}
       </div>
     </div>
   );
