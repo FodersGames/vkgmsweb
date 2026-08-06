@@ -191,4 +191,21 @@ forBlock['math_change'] = function (block, generator) {
   return `sprite.vars[${name}] = (sprite.vars[${name}] ?? 0) + (${value});\n`;
 };
 
+// ---------- Son ----------
+forBlock['vk_play_sound'] = function (block) {
+  return `runtime.playSound(sprite, ${JSON.stringify(block.getFieldValue('NAME'))});\n`;
+};
+forBlock['vk_play_sound_until_done'] = function (block) {
+  return `yield* runtime.playSoundUntilDone(sprite, ${JSON.stringify(block.getFieldValue('NAME'))});\n`;
+};
+forBlock['vk_stop_all_sounds'] = () => 'runtime.stopAllSounds();\n';
+forBlock['vk_set_volume'] = function (block, generator) {
+  const v = generator.valueToCode(block, 'VOLUME', Order.NONE) || '100';
+  return `sprite.setVolume(${v});\n`;
+};
+forBlock['vk_change_volume'] = function (block, generator) {
+  const v = generator.valueToCode(block, 'VOLUME', Order.NONE) || '0';
+  return `sprite.changeVolume(${v});\n`;
+};
+
 export { javascriptGenerator, Order };

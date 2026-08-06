@@ -33,6 +33,7 @@ export const COLORS = {
   sensing: '#5CB1D6',
   lists: '#CF63CF',
   pen: '#0FBD8C',
+  sound: '#D65CD6',
 };
 
 // French message overrides for the stock blocks we reuse, so the whole
@@ -476,6 +477,48 @@ const jsonBlocks = [
     colour: COLORS.pen,
     tooltip: 'Dessine une copie du costume actuel sur la scène.',
   },
+
+  // ---------- SON ----------
+  {
+    type: 'vk_play_sound',
+    message0: 'jouer le son %1',
+    args0: [{ type: 'field_input', name: 'NAME', text: 'son1' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.sound,
+    tooltip: 'Le nom du son est visible dans le panneau des sons du sprite.',
+  },
+  {
+    type: 'vk_play_sound_until_done',
+    message0: 'jouer le son %1 jusqu’à la fin',
+    args0: [{ type: 'field_input', name: 'NAME', text: 'son1' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.sound,
+  },
+  {
+    type: 'vk_stop_all_sounds',
+    message0: 'arrêter tous les sons',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.sound,
+  },
+  {
+    type: 'vk_set_volume',
+    message0: 'mettre le volume à %1 %%',
+    args0: [{ type: 'input_value', name: 'VOLUME', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.sound,
+  },
+  {
+    type: 'vk_change_volume',
+    message0: 'changer le volume de %1 %%',
+    args0: [{ type: 'input_value', name: 'VOLUME', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.sound,
+  },
 ];
 
 Blockly.defineBlocksWithJsonArray(jsonBlocks);
@@ -622,6 +665,16 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_pen_clear' },
         { kind: 'block', type: 'vk_pen_set_color' },
         { kind: 'block', type: 'vk_pen_stamp' },
+      ],
+    },
+    {
+      kind: 'category', name: 'Son', colour: COLORS.sound,
+      contents: [
+        { kind: 'block', type: 'vk_play_sound' },
+        { kind: 'block', type: 'vk_play_sound_until_done' },
+        { kind: 'block', type: 'vk_stop_all_sounds' },
+        { kind: 'block', type: 'vk_set_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: 100 } } } } },
+        { kind: 'block', type: 'vk_change_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: -10 } } } } },
       ],
     },
   ],

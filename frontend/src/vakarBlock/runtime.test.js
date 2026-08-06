@@ -218,3 +218,27 @@ test('listes: runtime.list() lazily creates a per-sprite array that generated li
 
   rt.destroy();
 });
+
+test('son: playSound tracks active audio, stopAllSounds clears it, playSoundUntilDone waits for "ended"', () => {
+  const sprite = new VakarSprite({ id: 's1', name: 'Chat', sounds: [{ id: 'snd1', name: 'miaou', audio_url: '/api/uploads/fake.mp3' }] });
+  const rt = new VakarBlockRuntime({ sprites: new Map([[sprite.id, sprite]]), onRender: () => {}, onError: () => {} });
+
+  const audio = rt.playSound(sprite, 'miaou');
+  expect(audio).not.toBeNull();
+  expect(rt._activeAudio.has(audio)).toBe(true);
+  expect(rt.playSound(sprite, 'inconnu')).toBeNull(); // unknown sound name is a safe no-op
+
+  rt.stopAllSounds();
+  expect(rt._activeAudio.size).toBe(0);
+
+  const gen = rt.playSoundUntilDone(sprite, 'miaou');
+  let result = gen.next();
+  expect(result.done).toBe(false);
+  expect(rt._activeAudio.size).toBe(1);
+  const [activeAudio] = rt._activeAudio;
+  activeAudio.dispatchEvent(new Event('ended'));
+  result = gen.next();
+  expect(result.done).toBe(true);
+
+  rt.destroy();
+});

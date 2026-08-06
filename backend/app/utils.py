@@ -34,6 +34,13 @@ _IMAGE_MIMES: dict = {
     # .svg handled separately by _sanitize_svg
 }
 
+# Allowed real MIME types per extension for sound uploads (Vakar Block)
+_AUDIO_MIMES: dict = {
+    ".mp3": {"audio/mpeg", "audio/mp3"},
+    ".wav": {"audio/wav", "audio/x-wav", "audio/vnd.wave"},
+    ".ogg": {"audio/ogg", "application/ogg"},
+}
+
 # Allowed real MIME types per extension for /api/upload-delivery
 _DELIVERY_MIMES: dict = {
     **_IMAGE_MIMES,
@@ -56,6 +63,15 @@ def _has_prefix(*prefixes):
 def _is_webp(content: bytes) -> bool:
     return content[:4] == b"RIFF" and len(content) >= 12 and content[8:12] == b"WEBP"
 
+def _is_wav(content: bytes) -> bool:
+    return content[:4] == b"RIFF" and len(content) >= 12 and content[8:12] == b"WAVE"
+
+def _is_mp3(content: bytes) -> bool:
+    if content[:3] == b"ID3":
+        return True
+    # Raw MPEG frame sync: 0xFF followed by the top 3 bits of the next byte set
+    return len(content) >= 2 and content[0] == 0xFF and (content[1] & 0xE0) == 0xE0
+
 # Raw magic-byte checkers, keyed by extension. Covers every standard image
 # format with well-known, stable signatures so uploads never depend on the
 # `libmagic` system library being installed — only PDF/ZIP/RAR/7z/AI/MP4/MOV
@@ -75,6 +91,9 @@ _FORMAT_MAGIC_BYTES: dict = {
     # APKs are ZIP archives — same signature family as regular ZIPs.
     ".apk":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
     ".zip":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
+    ".mp3":   _is_mp3,
+    ".wav":   _is_wav,
+    ".ogg":   _has_prefix(b"OggS"),
 }
 
 

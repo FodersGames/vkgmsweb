@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as Blockly from 'blockly/core';
 import {
   ArrowLeft, Flag, Square, Plus, Trash2, Upload,
-  Loader2, Check, AlertTriangle, Pencil, MonitorPlay,
+  Loader2, Check, AlertTriangle, Pencil, MonitorPlay, Volume2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -67,6 +67,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const workspaceRef = useRef(null);
   const runtimeRef = useRef(null);
   const costumeInputRef = useRef(null);
+  const soundInputRef = useRef(null);
   const backdropInputRef = useRef(null);
   const resizingRef = useRef(false);
   const penCanvasRef = useRef(null);
@@ -228,7 +229,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     const newSprite = {
       id, name: `Sprite${project.sprites.length + 1}`,
       x: 0, y: 0, direction: 90, size: 100, visible: true,
-      costumes: [], current_costume_id: null, workspace: null,
+      costumes: [], current_costume_id: null, sounds: [], workspace: null,
     };
     if (workspaceRef.current && selectedSpriteId) {
       const json = Blockly.serialization.workspaces.save(workspaceRef.current);
@@ -296,6 +297,44 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
       }),
     }));
     setDirty(true);
+  };
+
+  const uploadSound = async (file) => {
+    if (!selectedSpriteId || !file) return;
+    setErrorMsg('');
+    const formData = new FormData();
+    formData.append('file', file);
+    const r = await fetch(`${apiBase}/${projectId}/asset`, { method: 'POST', headers: authHeaders, body: formData });
+    const data = await r.json();
+    if (!r.ok) { setErrorMsg(data.detail || "Impossible d'importer ce son."); return; }
+    const soundId = genId();
+    const name = file.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'son';
+    setProject((p) => ({
+      ...p,
+      sprites: p.sprites.map((s) => s.id === selectedSpriteId ? {
+        ...s,
+        sounds: [...(s.sounds || []), { id: soundId, name, audio_url: data.url }],
+      } : s),
+    }));
+    const v = runtime?.sprites.get(selectedSpriteId);
+    if (v) v.sounds = [...(v.sounds || []), { id: soundId, name, audio_url: data.url }];
+    setDirty(true);
+  };
+
+  const deleteSound = (soundId) => {
+    if (!selectedSpriteId) return;
+    setProject((p) => ({
+      ...p,
+      sprites: p.sprites.map((s) => s.id === selectedSpriteId ? { ...s, sounds: (s.sounds || []).filter((snd) => snd.id !== soundId) } : s),
+    }));
+    const v = runtime?.sprites.get(selectedSpriteId);
+    if (v) v.sounds = (v.sounds || []).filter((snd) => snd.id !== soundId);
+    setDirty(true);
+  };
+
+  const playSoundPreview = (soundUrl) => {
+    const audio = new Audio(resolveUrl(soundUrl));
+    audio.play().catch(() => {});
   };
 
   const uploadBackdrop = async (file) => {
@@ -707,6 +746,30 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                 ))}
                 {selectedSprite.costumes.length === 0 && (
                   <p className="col-span-3 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun costume — importe une image.</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between mb-2 mt-4">
+                <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Sons</p>
+                <button onClick={() => soundInputRef.current?.click()} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
+                  <Plus size={13} />
+                </button>
+                <input ref={soundInputRef} type="file" accept="audio/*,.mp3,.wav,.ogg" className="hidden" onChange={(e) => { uploadSound(e.target.files?.[0]); e.target.value = ''; }} />
+              </div>
+              <div className="space-y-1.5">
+                {(selectedSprite.sounds || []).map((snd) => (
+                  <div key={snd.id} className="flex items-center gap-2 rounded-lg bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] px-2 py-1.5">
+                    <button onClick={() => playSoundPreview(snd.audio_url)} className="p-1 rounded text-[#4ECDC4] hover:bg-[#4ECDC4]/10 shrink-0" title="Écouter">
+                      <Volume2 size={13} />
+                    </button>
+                    <span className="text-xs text-[#1D1D1F] dark:text-[#e4e4e7] truncate flex-1">{snd.name}</span>
+                    <button onClick={() => deleteSound(snd.id)} className="p-1 rounded text-[#A1A1A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+                {(selectedSprite.sounds || []).length === 0 && (
+                  <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun son — importe un fichier mp3, wav ou ogg.</p>
                 )}
               </div>
             </div>

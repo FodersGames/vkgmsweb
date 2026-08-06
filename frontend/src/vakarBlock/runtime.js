@@ -26,6 +26,9 @@ const SENSING_HITBOX_UNITS = 40;
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
+const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
+const resolveUrl = (url) => (url && url.startsWith('/') ? `${API}${url}` : url);
+
 export class VakarSprite {
   constructor(data) {
     this.id = data.id;
@@ -43,6 +46,8 @@ export class VakarSprite {
     this.penDown = false;
     this.penColor = '#4C97FF';
     this.isClone = false;
+    this.sounds = data.sounds || [];
+    this.volume = data.volume ?? 100;
   }
 
   get currentCostume() {
@@ -137,6 +142,14 @@ export class VakarSprite {
     this.penColor = c;
   }
 
+  setVolume(v) {
+    this.volume = Math.max(0, Math.min(100, v));
+  }
+
+  changeVolume(delta) {
+    this.setVolume(this.volume + delta);
+  }
+
   hitboxHalfSize() {
     return (SENSING_HITBOX_UNITS * (this.size ?? 100)) / 100 / 2;
   }
@@ -158,6 +171,7 @@ export class VakarBlockRuntime {
     this.mouseY = 0;
     this.mouseDown = false;
     this._keysDown = new Set();
+    this._activeAudio = new Set();
 
     this._keyDownHandler = (e) => {
       const key = KEY_MAP[e.code];
@@ -190,6 +204,34 @@ export class VakarBlockRuntime {
 
   setMouseDown(v) {
     this.mouseDown = v;
+  }
+
+  // ---------- Son (sound) ----------
+  playSound(sprite, name) {
+    const sound = sprite.sounds.find((s) => s.name === name);
+    if (!sound) return null;
+    const audio = new Audio(resolveUrl(sound.audio_url));
+    audio.volume = Math.max(0, Math.min(1, (sprite.volume ?? 100) / 100));
+    this._activeAudio.add(audio);
+    const cleanup = () => this._activeAudio.delete(audio);
+    audio.addEventListener('ended', cleanup);
+    audio.addEventListener('error', cleanup);
+    audio.play()?.catch(() => {}); // e.g. blocked by the browser's autoplay policy — not fatal
+    return audio;
+  }
+
+  *playSoundUntilDone(sprite, name) {
+    const audio = this.playSound(sprite, name);
+    if (!audio) return;
+    while (this._activeAudio.has(audio)) yield;
+  }
+
+  stopAllSounds() {
+    for (const audio of this._activeAudio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    this._activeAudio.clear();
   }
 
   // Recompiles one sprite's workspace (call whenever its blocks change or
@@ -228,6 +270,7 @@ export class VakarBlockRuntime {
 
   greenFlag() {
     this._stopThreads();
+    this.stopAllSounds();
     this._stopped = false;
     this.running = true;
     // Drop any clones left over from a previous run — a fresh green flag
@@ -369,6 +412,7 @@ export class VakarBlockRuntime {
   stop() {
     this._stopped = true;
     this._stopThreads();
+    this.stopAllSounds();
     this.running = false;
     this.onRender();
   }
@@ -430,6 +474,7 @@ export class VakarBlockRuntime {
 
   destroy() {
     this._stopThreads();
+    this.stopAllSounds();
     window.removeEventListener('keydown', this._keyDownHandler);
     window.removeEventListener('keyup', this._keyUpHandler);
   }

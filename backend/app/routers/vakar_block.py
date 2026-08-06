@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from ..database import db
 from ..config import UPLOADS_DIR
 from ..deps import require_permission, get_current_user
-from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES
+from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES, _AUDIO_MIMES
 from ..schemas import VakarBlockCreateRequest, VakarBlockUpdateRequest
 
 router = APIRouter()
@@ -31,7 +31,8 @@ router = APIRouter()
 
 FREE_MAX_BLOCK_PROJECTS = 2
 PLUS_MAX_BLOCK_PROJECTS = 20
-ALLOWED_ASSET_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_SOUND_EXTS = {".mp3", ".wav", ".ogg"}
 
 DEFAULT_STAGE = {"width": 480, "height": 360, "backdrops": [], "current_backdrop_id": None}
 
@@ -44,7 +45,7 @@ def _default_sprite() -> dict:
     return {
         "id": _new_sprite_id(), "name": "Sprite1",
         "x": 0, "y": 0, "direction": 90, "size": 100, "visible": True,
-        "costumes": [], "current_costume_id": None, "workspace": None,
+        "costumes": [], "current_costume_id": None, "sounds": [], "workspace": None,
     }
 
 
@@ -95,14 +96,20 @@ def _new_doc(name: str, slug: str, public_id: str, user_id, username: str) -> di
     }
 
 
-async def _read_validated_asset_image(file: UploadFile):
+async def _read_validated_asset(file: UploadFile):
+    """Costume/backdrop images or sprite sounds — same upload endpoint,
+    dispatched by extension to the right MIME validation table."""
     ext = Path(file.filename).suffix.lower()
-    if ext not in ALLOWED_ASSET_EXTS:
-        raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp).")
+    if ext in ALLOWED_IMAGE_EXTS:
+        mime_table = _IMAGE_MIMES
+    elif ext in ALLOWED_SOUND_EXTS:
+        mime_table = _AUDIO_MIMES
+    else:
+        raise HTTPException(status_code=400, detail="Fichiers autorisés : images (jpg, png, gif, webp) ou sons (mp3, wav, ogg).")
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large. Maximum 5 MB per file.")
-    content = _validate_file(content, ext, _IMAGE_MIMES)
+    content = _validate_file(content, ext, mime_table)
     return content, ext
 
 
@@ -184,7 +191,7 @@ async def upload_vakar_block_admin_asset(project_id: str, file: UploadFile = Fil
         raise HTTPException(status_code=400, detail="Invalid ID")
     if not await db.vakar_block_projects.find_one({"_id": oid}, {"_id": 1}):
         raise HTTPException(status_code=404, detail="Project not found")
-    content, ext = await _read_validated_asset_image(file)
+    content, ext = await _read_validated_asset(file)
     return {"url": _write_asset_file(content, ext)}
 
 
@@ -258,5 +265,5 @@ async def upload_my_vakar_block_asset(project_id: str, file: UploadFile = File(.
     addition there too; kept out of Vakar Block's round-1 scope, same as
     the rest of the review/paywall machinery)."""
     await _get_owned_project(project_id, user)
-    content, ext = await _read_validated_asset_image(file)
+    content, ext = await _read_validated_asset(file)
     return {"url": _write_asset_file(content, ext)}
