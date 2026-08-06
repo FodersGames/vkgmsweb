@@ -717,4 +717,25 @@ export const TOOLBOX = {
   ],
 };
 
+// Dark, Unity-editor-style Blockly theme — the surrounding editor chrome is
+// a fixed dark theme (not tied to the site's own light/dark toggle, see
+// VakarBlockEditor.js), so the block canvas itself needs to match or it'd
+// be a bright white rectangle in an otherwise dark UI.
+export const UNITY_BLOCKLY_THEME = Blockly.Theme.defineTheme('vakarUnity', {
+  base: Blockly.Themes.Zelos,
+  componentStyles: {
+    workspaceBackgroundColour: '#1e1e1e',
+    toolboxBackgroundColour: '#252526',
+    toolboxForegroundColour: '#d4d4d4',
+    flyoutBackgroundColour: '#2d2d30',
+    flyoutForegroundColour: '#d4d4d4',
+    flyoutOpacity: 1,
+    scrollbarColour: '#3f3f46',
+    scrollbarOpacity: 0.6,
+    insertionMarkerColour: '#4FC1FF',
+    insertionMarkerOpacity: 0.3,
+    cursorColour: '#4FC1FF',
+  },
+});
+
 export { Order };

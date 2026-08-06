@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Blocks, Building2, Users, Search, Upload, AlertTriangle, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, Trash2, Blocks, Building2, Users, Search, Upload, AlertTriangle, X, Info, CheckCircle2, XCircle, Terminal } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -31,9 +32,16 @@ export default function VakarBlockList() {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [importing, setImporting] = useState(false);
-  const [importWarnings, setImportWarnings] = useState(null); // null = no import done yet; [] = clean import
-  const [pendingOpenId, setPendingOpenId] = useState(null); // project imported with warnings, waiting for the user to review before opening
+  const [importLogs, setImportLogs] = useState(null); // null = no import run yet; [] once one starts
+  const [pendingOpenId, setPendingOpenId] = useState(null); // project imported, waiting for the user to review the log before opening
   const importInputRef = useRef(null);
+  const logsEndRef = useRef(null);
+
+  useEffect(() => {
+    if (importLogs) logsEndRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [importLogs]);
+
+  const pushLog = (level, message) => setImportLogs((prev) => [...(prev || []), { level, message, t: Date.now() }]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,38 +95,56 @@ export default function VakarBlockList() {
   const importSb3File = async (file) => {
     if (!file) return;
     setImporting(true);
-    setImportWarnings(null);
+    setImportLogs([]);
+    setPendingOpenId(null);
+    let errorCount = 0;
+    let projectId = null;
     try {
+      pushLog('info', `Lecture de « ${file.name} » (${(file.size / 1024).toFixed(0)} Ko)…`);
       const buffer = await file.arrayBuffer();
       const { zip, projectJson } = await parseSb3(buffer);
+      pushLog('success', `Archive .sb3 décompressée — ${(projectJson.targets || []).length} cible(s) (scène + sprites) trouvée(s).`);
+
+      pushLog('info', 'Traduction des blocs Scratch en blocs Vakar Block…');
       const { stage, sprites, warnings } = buildProjectFromSb3(projectJson);
+      pushLog(warnings.length ? 'warn' : 'success', `Traduction terminée — ${sprites.length} sprite(s), ${warnings.length} bloc(s)/champ(s) non pris en charge.`);
+      for (const w of warnings) pushLog('warn', `  ↳ non pris en charge : ${w}`);
 
       const name = file.name.replace(/\.sb3$/i, '').slice(0, 80) || 'Projet importé';
+      pushLog('info', `Création du projet « ${name} »…`);
       const createRes = await fetch(`${API}/api/admin/vakar-block-projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name }),
       });
       const created = await createRes.json();
-      if (!created.id) throw new Error('Impossible de créer le projet.');
-      const projectId = created.id;
+      if (!created.id) throw new Error(created.detail || 'Impossible de créer le projet.');
+      projectId = created.id;
+      pushLog('success', `Projet créé (id ${projectId}).`);
 
-      const uploadSpec = async (spec) => {
+      const uploadSpec = async (spec, kind) => {
         const zipEntry = zip.file(spec.zipName);
-        if (!zipEntry) { warnings.push(`fichier manquant dans le .sb3 : ${spec.zipName}`); return null; }
-        const blob = await zipEntry.async('blob');
+        if (!zipEntry) {
+          errorCount += 1;
+          pushLog('error', `  ✗ ${kind} « ${spec.name} » : fichier « ${spec.zipName} » manquant dans l'archive.`);
+          return null;
+        }
         try {
+          const blob = await zipEntry.async('blob');
           const url = await uploadAssetBlob(projectId, blob, spec.zipName);
+          pushLog('success', `  ✓ ${kind} « ${spec.name} » importé.`);
           return { id: Math.random().toString(36).slice(2, 10), name: spec.name, url };
         } catch (err) {
-          warnings.push(err.message);
+          errorCount += 1;
+          pushLog('error', `  ✗ ${kind} « ${spec.name} » : ${err.message}`);
           return null;
         }
       };
 
+      pushLog('info', `Import des décors (${(stage._backdropSpecs || []).length})…`);
       const backdrops = [];
       for (const spec of stage._backdropSpecs || []) {
-        const up = await uploadSpec(spec);
+        const up = await uploadSpec(spec, 'Décor');
         if (up) backdrops.push({ id: up.id, name: up.name, image_url: up.url });
       }
       stage.backdrops = backdrops;
@@ -128,14 +154,15 @@ export default function VakarBlockList() {
 
       const finalSprites = [];
       for (const sprite of sprites) {
+        pushLog('info', `Sprite « ${sprite.name} » : ${(sprite._costumeSpecs || []).length} costume(s), ${(sprite._soundSpecs || []).length} son(s)…`);
         const costumes = [];
         for (const spec of sprite._costumeSpecs || []) {
-          const up = await uploadSpec(spec);
+          const up = await uploadSpec(spec, 'Costume');
           if (up) costumes.push({ id: up.id, name: up.name, image_url: up.url });
         }
         const sounds = [];
         for (const spec of sprite._soundSpecs || []) {
-          const up = await uploadSpec(spec);
+          const up = await uploadSpec(spec, 'Son');
           if (up) sounds.push({ id: up.id, name: up.name, audio_url: up.url });
         }
         finalSprites.push({
@@ -147,23 +174,29 @@ export default function VakarBlockList() {
         });
       }
       if (finalSprites.length === 0) {
+        pushLog('warn', "Aucun sprite dans l'archive — un sprite vide a été ajouté.");
         finalSprites.push({ id: Math.random().toString(36).slice(2, 10), name: 'Sprite1', x: 0, y: 0, direction: 90, size: 100, visible: true, costumes: [], current_costume_id: null, sounds: [], workspace: null });
       }
 
-      await fetch(`${API}/api/admin/vakar-block-projects/${projectId}`, {
+      pushLog('info', 'Enregistrement du projet…');
+      const saveRes = await fetch(`${API}/api/admin/vakar-block-projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ stage, sprites: finalSprites }),
       });
-
-      if (warnings.length > 0) {
-        setImportWarnings(warnings);
-        setPendingOpenId(projectId);
-      } else {
-        setEditingId(projectId);
+      if (!saveRes.ok) {
+        const data = await saveRes.json().catch(() => ({}));
+        throw new Error(data.detail || "Échec de l'enregistrement du projet.");
       }
+
+      const totalWarn = warnings.length + errorCount;
+      pushLog(totalWarn ? 'warn' : 'success', totalWarn
+        ? `Import terminé avec ${totalWarn} problème(s) — vérifie le journal ci-dessus avant d'ouvrir le projet.`
+        : 'Import terminé sans problème.');
+      setPendingOpenId(projectId);
     } catch (err) {
-      setImportWarnings([`Import échoué : ${err.message}`]);
+      pushLog('error', `Import interrompu : ${err.message}`);
+      if (projectId) pushLog('info', 'Le projet partiellement importé reste disponible dans la liste ci-dessous.');
     } finally {
       setImporting(false);
     }
@@ -184,7 +217,15 @@ export default function VakarBlockList() {
   const visible = projects.filter((p) => !q || p.name?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q) || p.owner?.toLowerCase().includes(q));
 
   if (editingId) {
-    return <VakarBlockEditor projectId={editingId} onBack={() => setEditingId(null)} />;
+    // Rendered via a portal straight to <body>, outside the Dashboard's own
+    // sidebar/topbar layout tree entirely — "just the editor, fullscreen"
+    // means bypassing that chrome, not just filling the content pane inside it.
+    return createPortal(
+      <div className="fixed inset-0 z-[9999]">
+        <VakarBlockEditor projectId={editingId} onBack={() => setEditingId(null)} />
+      </div>,
+      document.body
+    );
   }
 
   return (
@@ -202,23 +243,40 @@ export default function VakarBlockList() {
           </div>
         </div>
 
-        {importWarnings && (
-          <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-4 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                <AlertTriangle size={13} />
-                {importWarnings.length === 0 ? 'Import terminé sans problème.' : `Import terminé — ${importWarnings.length} élément(s) non pris en charge`}
+        {importLogs && (
+          <div className="rounded-xl bg-[#0d0d14] border border-[#2a2a3c] overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#2a2a3c] bg-[#151520]">
+              <p className="text-xs font-semibold text-[#e4e4e7] flex items-center gap-1.5">
+                <Terminal size={13} className="text-[#4ECDC4]" />
+                Journal d'import{importing ? '…' : ''}
               </p>
-              <button onClick={() => setImportWarnings(null)} className="text-amber-700 dark:text-amber-400 hover:opacity-70"><X size={13} /></button>
+              <div className="flex items-center gap-3">
+                {pendingOpenId && !importing && (
+                  <Button size="sm" onClick={() => { setEditingId(pendingOpenId); setPendingOpenId(null); }}>Ouvrir le projet</Button>
+                )}
+                {!importing && (
+                  <button onClick={() => setImportLogs(null)} className="text-[#71717a] hover:text-white"><X size={13} /></button>
+                )}
+              </div>
             </div>
-            {importWarnings.length > 0 && (
-              <ul className="text-[11px] text-amber-700 dark:text-amber-400 list-disc list-inside space-y-0.5 max-h-32 overflow-y-auto">
-                {importWarnings.map((w, i) => <li key={i}>{w}</li>)}
-              </ul>
-            )}
-            {pendingOpenId && (
-              <Button size="sm" onClick={() => { setEditingId(pendingOpenId); setPendingOpenId(null); }}>Ouvrir le projet</Button>
-            )}
+            <div className="p-3 max-h-64 overflow-y-auto font-mono text-[11px] space-y-1">
+              {importLogs.map((log, i) => {
+                const style = {
+                  info: { icon: Info, cls: 'text-[#a1a1aa]' },
+                  success: { icon: CheckCircle2, cls: 'text-emerald-400' },
+                  warn: { icon: AlertTriangle, cls: 'text-amber-400' },
+                  error: { icon: XCircle, cls: 'text-red-400' },
+                }[log.level];
+                const Icon = style.icon;
+                return (
+                  <div key={i} className={`flex items-start gap-1.5 ${style.cls}`}>
+                    <Icon size={11} className="shrink-0 mt-0.5" />
+                    <span className="whitespace-pre-wrap break-all">{log.message}</span>
+                  </div>
+                );
+              })}
+              <div ref={logsEndRef} />
+            </div>
           </div>
         )}
 

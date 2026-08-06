@@ -6,9 +6,8 @@ import {
   Loader2, Check, AlertTriangle, Pencil, MonitorPlay, Volume2,
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Download,
 } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { useAuth } from '../context/AuthContext';
-import { TOOLBOX, COLORS } from '../vakarBlock/blocks';
+import { TOOLBOX, COLORS, UNITY_BLOCKLY_THEME } from '../vakarBlock/blocks';
 import '../vakarBlock/generators';
 import { VakarBlockRuntime, VakarSprite } from '../vakarBlock/runtime';
 import { exportSpriteWorkspace, md5 } from '../vakarBlock/sb3';
@@ -17,6 +16,24 @@ const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL |
 
 const resolveUrl = (url) => (url && url.startsWith('/') ? `${API}${url}` : url);
 const genId = () => Math.random().toString(36).slice(2, 10);
+
+// A fixed dark, Unity-editor-style theme for this one screen — deliberately
+// NOT tied to the site's own light/dark toggle (`dark:` classes elsewhere
+// in this codebase); the editor is a fullscreen standalone surface (see
+// VakarBlockList.js's portal render) with its own consistent identity.
+const U = {
+  bg: '#1e1e1e',
+  panel: '#252526',
+  panelAlt: '#2d2d30',
+  border: '#3f3f46',
+  hover: '#37373d',
+  text: '#d4d4d4',
+  textMuted: '#9a9a9a',
+  textDim: '#6a6a6a',
+  accent: '#4FC1FF',
+};
+const inputCls = 'rounded px-2 py-1.5 text-xs bg-[#1e1e1e] border border-[#3f3f46] text-[#d4d4d4] outline-none focus:border-[#4FC1FF]';
+const toolBtnCls = 'p-2 rounded text-[#9a9a9a] hover:text-[#d4d4d4] hover:bg-[#37373d] transition-colors';
 
 // Moves the item with `id` one slot earlier/later in `list` (by id, not
 // index, since callers always have the id at hand) — used for reordering
@@ -232,9 +249,10 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     const ws = Blockly.inject(blocklyDivRef.current, {
       toolbox: TOOLBOX,
       renderer: 'zelos',
+      theme: UNITY_BLOCKLY_THEME,
       trashcan: true,
       zoom: { controls: true, wheel: true, startScale: 0.85 },
-      grid: { spacing: 24, length: 2, colour: '#e2e2ea', snap: true },
+      grid: { spacing: 24, length: 2, colour: '#333336', snap: true },
       move: { scrollbars: true, drag: true, wheel: false },
     });
     workspaceRef.current = ws;
@@ -267,7 +285,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
   if (loading || !project) {
     return (
-      <div className="flex items-center justify-center h-[70vh] text-[#A1A1A6]">
+      <div className="flex items-center justify-center h-full text-[#6a6a6a]" style={{ background: U.bg }}>
         <Loader2 size={22} className="animate-spin" />
       </div>
     );
@@ -713,10 +731,10 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#F5F5F7] dark:bg-[#0e0e15]">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] shrink-0 flex-wrap">
-        <button onClick={handleBack} className="p-2 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
+    <div className="h-full flex flex-col" style={{ background: U.bg }}>
+      {/* Top bar — Unity's own toolbar: flat, dark, thin bottom border */}
+      <div className="flex items-center gap-3 px-3 py-2 border-b shrink-0 flex-wrap" style={{ background: U.panelAlt, borderColor: U.border }}>
+        <button onClick={handleBack} className={toolBtnCls}>
           <ArrowLeft size={16} />
         </button>
 
@@ -727,55 +745,68 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
             onChange={(e) => setProject((p) => ({ ...p, name: e.target.value }))}
             onBlur={() => { setEditingName(false); setDirty(true); }}
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            className="text-sm font-semibold rounded-lg px-2 py-1 bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#4ECDC4] text-[#1D1D1F] dark:text-[#e4e4e7] outline-none"
+            className={`text-sm font-semibold ${inputCls}`}
           />
         ) : (
-          <button onClick={() => setEditingName(true)} className="flex items-center gap-1.5 text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] hover:opacity-70">
+          <button onClick={() => setEditingName(true)} className="flex items-center gap-1.5 text-sm font-semibold hover:opacity-80" style={{ color: U.text }}>
             {project.name}
-            <Pencil size={11} className="text-[#A1A1A6]" />
+            <Pencil size={11} style={{ color: U.textDim }} />
           </button>
         )}
 
-        <div className="flex items-center gap-2 ml-1">
+        <div className="flex items-center gap-1.5 ml-1 px-1.5 border-x" style={{ borderColor: U.border }}>
           <button
             onClick={pressGreenFlag}
-            title="Lancer le programme"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
+            title="Lancer le programme (Espace)"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95"
             style={{ background: '#4CAF50' }}
           >
-            <Flag size={16} fill="white" />
+            <Flag size={14} fill="white" />
           </button>
           <button
             onClick={pressStop}
-            title="Tout arrêter"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white shadow-sm transition-transform hover:scale-105 active:scale-95"
-            style={{ background: '#EF5350' }}
+            title="Tout arrêter (Échap)"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95"
+            style={{ background: '#E64B3C' }}
           >
-            <Square size={14} fill="white" />
+            <Square size={12} fill="white" />
           </button>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
           {errorMsg && (
-            <span className="flex items-center gap-1.5 text-[11px] text-red-500 max-w-[280px] truncate" title={errorMsg}>
+            <span className="flex items-center gap-1.5 text-[11px] text-red-400 max-w-[280px] truncate" title={errorMsg}>
               <AlertTriangle size={12} className="shrink-0" />{errorMsg}
             </span>
           )}
-          {!presentMode && <span className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">{dirty ? 'Modifications non enregistrées' : 'À jour'}</span>}
+          {!presentMode && <span className="text-[11px]" style={{ color: U.textDim }}>{dirty ? 'Modifications non enregistrées' : 'À jour'}</span>}
           {!presentMode && (
-            <Button size="sm" variant="secondary" icon={Download} loading={exportingSb3} onClick={exportProjectAsSb3} title="Exporter en .sb3 (ouvrable dans Scratch/TurboWarp)">
+            <button
+              onClick={exportProjectAsSb3}
+              disabled={exportingSb3}
+              title="Exporter en .sb3 (ouvrable dans Scratch/TurboWarp)"
+              className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold border transition-colors disabled:opacity-50"
+              style={{ borderColor: U.border, color: U.text, background: U.panel }}
+            >
+              {exportingSb3 ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
               {exportingSb3 ? 'Export…' : '.sb3'}
-            </Button>
+            </button>
           )}
           {!presentMode && (
-            <Button size="sm" icon={dirty ? Upload : Check} loading={saving} onClick={saveProject}>
+            <button
+              onClick={saveProject}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold text-[#0e0e15] transition-colors disabled:opacity-50"
+              style={{ background: U.accent }}
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : dirty ? <Upload size={13} /> : <Check size={13} />}
               {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </Button>
+            </button>
           )}
           <button
             onClick={() => { if (workspaceRef.current) Blockly.svgResize(workspaceRef.current); setPresentMode((v) => !v); }}
             title={presentMode ? 'Quitter la présentation' : 'Mode présentation — juste la scène'}
-            className="p-2 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]"
+            className={toolBtnCls}
           >
             {presentMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
@@ -799,21 +830,24 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           <div
             onMouseDown={startPanelResize}
             title="Glisser pour redimensionner"
-            className="w-1.5 shrink-0 cursor-col-resize bg-[#D2D2D7] dark:bg-[#2a2a3c] hover:bg-[#4ECDC4] active:bg-[#4ECDC4] transition-colors"
+            className="w-1 shrink-0 cursor-col-resize transition-colors"
+            style={{ background: U.border }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = U.accent; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = U.border; }}
           />
         )}
 
-        <div style={presentMode ? undefined : { width: rightPanelWidth }} className={`${presentMode ? 'flex-1 items-center justify-center' : 'shrink-0'} flex flex-col bg-white dark:bg-[#151520] overflow-y-auto`}>
+        <div style={presentMode ? undefined : { width: rightPanelWidth, background: U.panel }} className={`${presentMode ? 'flex-1 items-center justify-center' : 'shrink-0'} flex flex-col overflow-y-auto`}>
           {/* Stage */}
-          <div className={presentMode ? 'p-6 w-full max-w-3xl' : 'p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]'}>
+          <div className={presentMode ? 'p-6 w-full max-w-3xl' : 'p-3 border-b'} style={presentMode ? undefined : { borderColor: U.border }}>
             <div
               ref={stageBoxRef}
-              className="relative rounded-xl overflow-hidden border-2 mx-auto"
+              className="relative overflow-hidden border mx-auto"
               style={{
                 width: '100%', maxWidth: presentMode ? 960 : rightPanelWidth - 40,
                 aspectRatio: `${stage.width} / ${stage.height}`,
-                borderColor: COLORS.events,
-                background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : 'linear-gradient(135deg, #eafcfb, #e4f3ff)',
+                borderColor: U.border,
+                background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : '#0e0e10',
               }}
               onMouseMove={handleStageMouseMove}
               onMouseDown={() => runtime?.setMouseDown(true)}
@@ -861,23 +895,23 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
             {!presentMode && (
               <div className="flex items-center gap-2 mt-2.5">
-                <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Largeur</label>
+                <label className="text-[10px] font-semibold" style={{ color: U.textMuted }}>Largeur</label>
                 <input
                   type="number"
                   value={widthDraft !== null ? widthDraft : stage.width}
                   onChange={(e) => setWidthDraft(e.target.value)}
                   onBlur={(e) => { commitStageSize('width', e.target.value, stage.width); setWidthDraft(null); }}
                   onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                  className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className={`w-16 ${inputCls}`}
                 />
-                <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Hauteur</label>
+                <label className="text-[10px] font-semibold" style={{ color: U.textMuted }}>Hauteur</label>
                 <input
                   type="number"
                   value={heightDraft !== null ? heightDraft : stage.height}
                   onChange={(e) => setHeightDraft(e.target.value)}
                   onBlur={(e) => { commitStageSize('height', e.target.value, stage.height); setHeightDraft(null); }}
                   onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                  className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className={`w-16 ${inputCls}`}
                 />
               </div>
             )}
@@ -885,12 +919,13 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
           {/* Corral: Scène (backdrops) tile + sprite tiles, Scratch's own layout */}
           {!presentMode && (
-          <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Scène et sprites</p>
+          <div className="p-3 border-b" style={{ borderColor: U.border }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: U.textMuted }}>Scène et sprites</p>
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setStageSelected(true)}
-                className={`relative rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${stageSelected ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+                className="relative rounded p-1.5 flex flex-col items-center gap-1 border transition-all"
+                style={stageSelected ? { borderColor: U.accent, background: `${U.accent}1a` } : { borderColor: 'transparent', background: U.panelAlt }}
               >
                 {currentBackdrop ? (
                   <img src={resolveUrl(currentBackdrop.image_url)} alt="" className="w-9 h-9 rounded object-cover" />
@@ -899,22 +934,26 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                     <MonitorPlay size={18} />
                   </div>
                 )}
-                <span className="text-[10px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Scène</span>
+                <span className="text-[10px] font-medium truncate max-w-full" style={{ color: U.text }}>Scène</span>
               </button>
               {project.sprites.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => selectSprite(s.id)}
-                  className={`relative rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${!stageSelected && selectedSpriteId === s.id ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+                  className="relative rounded p-1.5 flex flex-col items-center gap-1 border transition-all"
+                  style={!stageSelected && selectedSpriteId === s.id ? { borderColor: U.accent, background: `${U.accent}1a` } : { borderColor: 'transparent', background: U.panelAlt }}
                 >
                   <SpriteThumb sprite={s} size={36} />
-                  <span className="text-[10px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate max-w-full">{s.name}</span>
+                  <span className="text-[10px] font-medium truncate max-w-full" style={{ color: U.text }}>{s.name}</span>
                 </button>
               ))}
               <button
                 onClick={addSprite}
                 title="Ajouter un sprite"
-                className="rounded-lg p-1.5 flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] hover:border-[#4ECDC4] hover:text-[#4ECDC4] min-h-[62px]"
+                className="rounded p-1.5 flex flex-col items-center justify-center gap-1 border border-dashed min-h-[62px] transition-colors"
+                style={{ borderColor: U.border, color: U.textDim }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = U.accent; e.currentTarget.style.color = U.accent; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = U.border; e.currentTarget.style.color = U.textDim; }}
               >
                 <Plus size={16} />
               </button>
@@ -926,8 +965,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           {!presentMode && stageSelected && (
             <div className="p-3 flex-1">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Décors</p>
-                <button onClick={() => backdropInputRef.current?.click()} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: U.textMuted }}>Décors</p>
+                <button onClick={() => backdropInputRef.current?.click()} className="p-1 rounded" style={{ color: U.accent }}>
                   <Plus size={13} />
                 </button>
                 <input ref={backdropInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { uploadBackdrop(e.target.files?.[0]); e.target.value = ''; }} />
@@ -937,25 +976,26 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                   <div key={b.id} className="relative group">
                     <button
                       onClick={() => selectBackdrop(b.id)}
-                      className={`w-full rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${stage.current_backdrop_id === b.id ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+                      className="w-full rounded p-1.5 flex flex-col items-center gap-1 border transition-all"
+                      style={stage.current_backdrop_id === b.id ? { borderColor: U.accent, background: `${U.accent}1a` } : { borderColor: 'transparent', background: U.panelAlt }}
                     >
                       <img src={resolveUrl(b.image_url)} alt={b.name} className="w-9 h-9 rounded object-cover" />
-                      <span className="text-[9px] text-[#6E6E73] dark:text-[#a1a1aa] truncate max-w-full">{b.name}</span>
+                      <span className="text-[9px] truncate max-w-full" style={{ color: U.textMuted }}>{b.name}</span>
                     </button>
                     <button onClick={() => deleteBackdrop(b.id)} className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 rounded-full bg-red-500 text-white items-center justify-center text-[9px]">×</button>
-                    <button onClick={() => moveBackdrop(b.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
-                    <button onClick={() => moveBackdrop(b.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
+                    <button onClick={() => moveBackdrop(b.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-black/80 text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
+                    <button onClick={() => moveBackdrop(b.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-black/80 text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
                   </div>
                 ))}
                 {(stage.backdrops || []).length === 0 && (
-                  <p className="col-span-3 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun décor — importe une image pour habiller la scène.</p>
+                  <p className="col-span-3 text-[10px]" style={{ color: U.textDim }}>Aucun décor — importe une image pour habiller la scène.</p>
                 )}
               </div>
               {stage.current_backdrop_id && (
                 <input
                   value={(stage.backdrops || []).find((b) => b.id === stage.current_backdrop_id)?.name || ''}
                   onChange={(e) => renameBackdrop(stage.current_backdrop_id, e.target.value)}
-                  className="mt-3 w-full rounded-lg px-2 py-1.5 text-xs font-semibold bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className={`mt-3 w-full font-semibold ${inputCls}`}
                 />
               )}
             </div>
@@ -968,66 +1008,66 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                 <input
                   value={selectedSprite.name}
                   onChange={(e) => renameSprite(selectedSprite.id, e.target.value)}
-                  className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-xs font-semibold bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className={`flex-1 min-w-0 font-semibold ${inputCls}`}
                 />
                 {project.sprites.length > 1 && (
-                  <button onClick={() => deleteSprite(selectedSprite.id)} className="p-1.5 rounded-lg text-[#A1A1A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0">
+                  <button onClick={() => deleteSprite(selectedSprite.id)} className="p-1.5 rounded text-[#9a9a9a] hover:text-red-400 hover:bg-red-500/10 shrink-0">
                     <Trash2 size={13} />
                   </button>
                 )}
               </div>
 
               {liveSprite && (
-                <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] font-mono mb-3">
+                <p className="text-[10px] font-mono mb-3" style={{ color: U.textDim }}>
                   x: {Math.round(liveSprite.x)} · y: {Math.round(liveSprite.y)} · {Math.round(liveSprite.direction)}°
                 </p>
               )}
 
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Costumes</p>
-                <button onClick={() => costumeInputRef.current?.click()} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: U.textMuted }}>Costumes</p>
+                <button onClick={() => costumeInputRef.current?.click()} className="p-1 rounded" style={{ color: U.accent }}>
                   <Plus size={13} />
                 </button>
                 <input ref={costumeInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { uploadCostume(e.target.files?.[0]); e.target.value = ''; }} />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {selectedSprite.costumes.map((c) => (
-                  <div key={c.id} className="relative group rounded-lg bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] p-1.5 flex flex-col items-center gap-1">
+                  <div key={c.id} className="relative group rounded border p-1.5 flex flex-col items-center gap-1" style={{ background: U.panelAlt, borderColor: U.border }}>
                     <img src={resolveUrl(c.image_url)} alt={c.name} className="w-9 h-9 object-contain" />
-                    <span className="text-[9px] text-[#6E6E73] dark:text-[#a1a1aa] truncate max-w-full">{c.name}</span>
+                    <span className="text-[9px] truncate max-w-full" style={{ color: U.textMuted }}>{c.name}</span>
                     <button onClick={() => deleteCostume(c.id)} className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 rounded-full bg-red-500 text-white items-center justify-center text-[9px]">×</button>
-                    <button onClick={() => moveCostume(c.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
-                    <button onClick={() => moveCostume(c.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
+                    <button onClick={() => moveCostume(c.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-black/80 text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
+                    <button onClick={() => moveCostume(c.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-black/80 text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
                   </div>
                 ))}
                 {selectedSprite.costumes.length === 0 && (
-                  <p className="col-span-3 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun costume — importe une image.</p>
+                  <p className="col-span-3 text-[10px]" style={{ color: U.textDim }}>Aucun costume — importe une image.</p>
                 )}
               </div>
 
               <div className="flex items-center justify-between mb-2 mt-4">
-                <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Sons</p>
-                <button onClick={() => soundInputRef.current?.click()} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: U.textMuted }}>Sons</p>
+                <button onClick={() => soundInputRef.current?.click()} className="p-1 rounded" style={{ color: U.accent }}>
                   <Plus size={13} />
                 </button>
                 <input ref={soundInputRef} type="file" accept="audio/*,.mp3,.wav,.ogg" className="hidden" onChange={(e) => { uploadSound(e.target.files?.[0]); e.target.value = ''; }} />
               </div>
               <div className="space-y-1.5">
                 {(selectedSprite.sounds || []).map((snd) => (
-                  <div key={snd.id} className="flex items-center gap-2 rounded-lg bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] px-2 py-1.5">
-                    <button onClick={() => playSoundPreview(snd.audio_url)} className="p-1 rounded text-[#4ECDC4] hover:bg-[#4ECDC4]/10 shrink-0" title="Écouter">
+                  <div key={snd.id} className="flex items-center gap-2 rounded border px-2 py-1.5" style={{ background: U.panelAlt, borderColor: U.border }}>
+                    <button onClick={() => playSoundPreview(snd.audio_url)} className="p-1 rounded shrink-0" style={{ color: U.accent }} title="Écouter">
                       <Volume2 size={13} />
                     </button>
-                    <span className="text-xs text-[#1D1D1F] dark:text-[#e4e4e7] truncate flex-1">{snd.name}</span>
-                    <button onClick={() => moveSound(snd.id, -1)} className="p-1 rounded text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white shrink-0"><ChevronUp size={12} /></button>
-                    <button onClick={() => moveSound(snd.id, 1)} className="p-1 rounded text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white shrink-0"><ChevronDown size={12} /></button>
-                    <button onClick={() => deleteSound(snd.id)} className="p-1 rounded text-[#A1A1A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0">
+                    <span className="text-xs truncate flex-1" style={{ color: U.text }}>{snd.name}</span>
+                    <button onClick={() => moveSound(snd.id, -1)} className="p-1 rounded shrink-0 hover:text-white" style={{ color: U.textDim }}><ChevronUp size={12} /></button>
+                    <button onClick={() => moveSound(snd.id, 1)} className="p-1 rounded shrink-0 hover:text-white" style={{ color: U.textDim }}><ChevronDown size={12} /></button>
+                    <button onClick={() => deleteSound(snd.id)} className="p-1 rounded shrink-0 hover:text-red-400" style={{ color: U.textDim }}>
                       <Trash2 size={12} />
                     </button>
                   </div>
                 ))}
                 {(selectedSprite.sounds || []).length === 0 && (
-                  <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun son — importe un fichier mp3, wav ou ogg.</p>
+                  <p className="text-[10px]" style={{ color: U.textDim }}>Aucun son — importe un fichier mp3, wav ou ogg.</p>
                 )}
               </div>
             </div>
