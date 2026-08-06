@@ -101,6 +101,9 @@ export async function parseSb3(arrayBuffer) {
   return { zip, projectJson };
 }
 
+// STATEMENT-type inputs (SUBSTACK, custom_block, …) are always a real block
+// referenced by id — never an inline primitive (only VALUE inputs can be
+// inline, see resolveValue below), so this stays string-id-only.
 function getInputBlockId(sb, name) {
   const entry = sb.inputs && sb.inputs[name];
   if (!entry) return null;
@@ -109,23 +112,78 @@ function getInputBlockId(sb, name) {
 }
 
 const NUMBER_LITERAL_OPCODES = new Set(['math_number', 'math_integer', 'math_whole_number', 'math_positive_number', 'math_angle']);
+// Scratch's inline-primitive input encoding — `[primitiveType, value, id?]`
+// embedded directly in an input entry instead of a separate shadow block by
+// id. Empirically, this is the MORE common of the two forms in real
+// projects (confirmed against game/1.0.0.sb3: 57% of all input references
+// used this form, not a separate block id) — math_number-family types.
+const PRIMITIVE_NUMBER_TYPES = new Set([4, 5, 6, 7, 8]); // number/positive/whole/integer/angle
+const PRIMITIVE_VARIABLE = 12;
+const PRIMITIVE_LIST = 13;
+
+// Builds a `variables_get` reporter for a variable referenced *inline* by
+// name (Scratch embeds these directly in an input rather than pointing at a
+// separate `data_variable` block — see PRIMITIVE_VARIABLE above). Reuses
+// the workspace's existing variable of that name if one was already
+// registered (from `target.variables`); otherwise creates one on the fly —
+// this covers global ("for all sprites") variables, which live on the
+// Stage's own `variables`, not any individual sprite's, so they're never
+// pre-registered in a sprite's own workspace by the caller. generators.js's
+// variables_get/variables_set read by the field's displayed NAME, not its
+// Blockly id, so a freshly-minted id here is harmless as long as the name
+// is right.
+function buildVariableGetter(ws, name) {
+  const b = ws.newBlock('variables_get');
+  try {
+    const map = ws.getVariableMap();
+    const v = map.getVariable(name) || map.createVariable(name);
+    b.getField('VAR').setValue(v.getId());
+  } catch (e) { /* leave the field's own auto-created default variable */ }
+  return b;
+}
+
+// Resolves ONE raw Scratch input reference (a block id string, or an inline
+// primitive array) to either a literal or a real Blockly reporter block.
+function resolveRef(ws, blocksDict, ref, ctx) {
+  if (ref == null) return null;
+  if (typeof ref === 'string') {
+    const refBlock = blocksDict[ref];
+    if (!refBlock) return null;
+    if (LITERAL_OPCODES.has(refBlock.opcode) || MENU_OPCODES.has(refBlock.opcode)) {
+      const fieldEntry = Object.values(refBlock.fields || {})[0];
+      return { literal: fieldEntry ? fieldEntry[0] : '', isNumber: NUMBER_LITERAL_OPCODES.has(refBlock.opcode) };
+    }
+    const block = buildReporterBlock(ws, blocksDict, ref, ctx);
+    return block ? { block } : null;
+  }
+  if (Array.isArray(ref)) {
+    const [primitiveType, value] = ref;
+    if (primitiveType === PRIMITIVE_VARIABLE) return { block: buildVariableGetter(ws, value) };
+    if (primitiveType === PRIMITIVE_LIST) return { literal: String(value ?? ''), isNumber: false }; // best-effort: list name as text
+    return { literal: String(value ?? ''), isNumber: PRIMITIVE_NUMBER_TYPES.has(primitiveType) };
+  }
+  return null;
+}
 
 // Resolves a VALUE input to either a literal (for fields) or recursively
 // builds the real Blockly reporter block behind it (for inputs). `isNumber`
 // reflects the *original* Scratch shadow's own type (math_number-family vs.
 // text) — this must win over any caller hint, or a literal number ends up
 // re-wrapped as a text shadow and gets read back as a string at runtime.
+// The input entry itself is `[type, primary, shadow?]` — `primary` (the
+// live value) is tried first, falling back to `shadow` (the third element,
+// only present for type-3 "has both a block and a shadow behind it"
+// inputs) if the primary side resolves to nothing.
 function resolveValue(ws, blocksDict, sb, inputName, ctx) {
-  const blockId = getInputBlockId(sb, inputName);
-  if (!blockId) return { literal: '', isNumber: false };
-  const refBlock = blocksDict[blockId];
-  if (!refBlock) return { literal: '', isNumber: false };
-  if (LITERAL_OPCODES.has(refBlock.opcode) || MENU_OPCODES.has(refBlock.opcode)) {
-    const fieldEntry = Object.values(refBlock.fields || {})[0];
-    return { literal: fieldEntry ? fieldEntry[0] : '', isNumber: NUMBER_LITERAL_OPCODES.has(refBlock.opcode) };
+  const entry = sb.inputs && sb.inputs[inputName];
+  if (!entry) return { literal: '', isNumber: false };
+  const primary = resolveRef(ws, blocksDict, entry[1], ctx);
+  if (primary) return primary;
+  if (entry.length > 2) {
+    const fallback = resolveRef(ws, blocksDict, entry[2], ctx);
+    if (fallback) return fallback;
   }
-  const block = buildReporterBlock(ws, blocksDict, blockId, ctx);
-  return block ? { block } : { literal: '', isNumber: false };
+  return { literal: '', isNumber: false };
 }
 
 function literalNumberBlock(ws, value) {
@@ -210,6 +268,26 @@ reg('motion_glidesecstoxy', (sb, ws, blocksDict, ctx) => {
 });
 reg('motion_xposition', (sb, ws) => ws.newBlock('vk_x_position'));
 reg('motion_yposition', (sb, ws) => ws.newBlock('vk_y_position'));
+reg('motion_changexby', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_change_x_by');
+  connectValue(ws, b, 'DX', resolveValue(ws, blocksDict, sb, 'DX', ctx));
+  return b;
+});
+reg('motion_changeyby', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_change_y_by');
+  connectValue(ws, b, 'DY', resolveValue(ws, blocksDict, sb, 'DY', ctx));
+  return b;
+});
+reg('motion_pointindirection', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_point_in_direction');
+  connectValue(ws, b, 'DIRECTION', resolveValue(ws, blocksDict, sb, 'DIRECTION', ctx));
+  return b;
+});
+reg('motion_setrotationstyle', (sb, ws) => {
+  const b = ws.newBlock('vk_set_rotation_style');
+  b.setFieldValue((sb.fields.STYLE || ['all around'])[0], 'STYLE');
+  return b;
+});
 
 // ---------- Apparence ----------
 reg('looks_sayforsecs', (sb, ws, blocksDict, ctx) => {
@@ -241,6 +319,28 @@ reg('looks_setsizeto', (sb, ws, blocksDict, ctx) => {
 });
 reg('looks_show', (sb, ws) => ws.newBlock('vk_show'));
 reg('looks_hide', (sb, ws) => ws.newBlock('vk_hide'));
+reg('looks_costumenumbername', (sb, ws) => {
+  const which = (sb.fields.NUMBER_NAME || ['number'])[0];
+  return ws.newBlock(which === 'name' ? 'vk_costume_name' : 'vk_costume_number');
+});
+reg('looks_seteffectto', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_set_effect');
+  b.setFieldValue((sb.fields.EFFECT || ['GHOST'])[0], 'EFFECT');
+  connectValue(ws, b, 'VALUE', resolveValue(ws, blocksDict, sb, 'VALUE', ctx));
+  return b;
+});
+reg('looks_changeeffectby', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_change_effect');
+  b.setFieldValue((sb.fields.EFFECT || ['GHOST'])[0], 'EFFECT');
+  connectValue(ws, b, 'CHANGE', resolveValue(ws, blocksDict, sb, 'CHANGE', ctx));
+  return b;
+});
+reg('looks_cleargraphiceffects', (sb, ws) => ws.newBlock('vk_clear_graphic_effects'));
+reg('looks_gotofrontback', (sb, ws) => {
+  const b = ws.newBlock('vk_go_to_front_back');
+  b.setFieldValue((sb.fields.FRONT_BACK || ['front'])[0], 'FRONT_BACK');
+  return b;
+});
 
 // ---------- Contrôle ----------
 reg('control_wait', (sb, ws, blocksDict, ctx) => {
@@ -308,6 +408,60 @@ reg('control_create_clone_of', (sb, ws, blocksDict, ctx) => {
 });
 reg('control_start_as_clone', (sb, ws) => ws.newBlock('vk_when_i_start_as_clone'));
 reg('control_delete_this_clone', (sb, ws) => ws.newBlock('vk_delete_this_clone'));
+reg('control_repeat_until', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('controls_whileUntil');
+  b.setFieldValue('UNTIL', 'MODE');
+  const cond = resolveValue(ws, blocksDict, sb, 'CONDITION', ctx);
+  if (cond.block) b.getInput('BOOL').connection.connect(cond.block.outputConnection);
+  const bodyId = getInputBlockId(sb, 'SUBSTACK');
+  if (bodyId) {
+    const body = buildBlockChain(ws, blocksDict, bodyId, ctx);
+    if (body) b.getInput('DO').connection.connect(body.previousConnection);
+  }
+  return b;
+});
+
+// ---------- Mes blocs (custom procedures, no-parameter only — see
+// blocks.js's comment on vk_procedure_def; a proc with real Scratch
+// arguments is skipped with a warning naming it, rather than silently
+// dropping the arguments and producing a subtly wrong block). ----------
+function safeParseJsonArray(s) {
+  try { const v = JSON.parse(s || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+// `procedures_definition` is a hat (its own top-level script) whose BODY
+// lives via `.next`, like any hat — not in a SUBSTACK input like every
+// other C-block here. That's why it's handled as a special case in
+// `buildProjectFromSb3`'s topIds loop rather than as a normal
+// IMPORT_HANDLERS entry: a normal entry would leave buildBlockChain's own
+// `id = sb.next` continuing to walk the body as if it were a SIBLING
+// statement after the definition, double-processing it.
+function buildProcedureDef(ws, blocksDict, defId, ctx) {
+  const sb = blocksDict[defId];
+  const protoId = getInputBlockId(sb, 'custom_block');
+  const proto = protoId && blocksDict[protoId];
+  const mutation = proto?.mutation || {};
+  if (safeParseJsonArray(mutation.argumentnames).length > 0) {
+    ctx.warnings.add(`procedures_definition avec paramètres (${mutation.proccode || '?'})`);
+    return null;
+  }
+  const b = ws.newBlock('vk_procedure_def');
+  b.setFieldValue(String(mutation.proccode || 'bloc').slice(0, 50), 'NAME');
+  if (sb.next) {
+    const body = buildBlockChain(ws, blocksDict, sb.next, ctx);
+    if (body) b.getInput('DO').connection.connect(body.previousConnection);
+  }
+  return b;
+}
+reg('procedures_call', (sb, ws, blocksDict, ctx) => {
+  const mutation = sb.mutation || {};
+  if (safeParseJsonArray(mutation.argumentids).length > 0) {
+    ctx.warnings.add(`procedures_call avec paramètres (${mutation.proccode || '?'})`);
+    return null;
+  }
+  const b = ws.newBlock('vk_procedure_call');
+  b.setFieldValue(String(mutation.proccode || 'bloc').slice(0, 50), 'NAME');
+  return b;
+});
 
 // ---------- Détection ----------
 function targetLiteral(resolved) {
@@ -524,6 +678,52 @@ reg('sound_changevolumeby', (sb, ws, blocksDict, ctx) => {
 });
 reg('sound_volume', (sb, ws) => ws.newBlock('vk_volume'));
 
+// ---------- JSON (maps the third-party "SkyHigh173" TurboWarp JSON
+// extension's blocks — opcode-namespaced `skyhigh173JSON_*` — onto Vakar
+// Block's own JSON category). Input names (`json`/`item`/`value`, all
+// lowercase, and the `Stype` field) were read directly off a real project
+// using this extension rather than guessed, since the extension's own
+// source isn't available locally to confirm from. Every instance in that
+// real project was used purely as a value input, never as a statement,
+// confirming these are pure/functional reporters — see blocks.js's
+// vk_json_set/vk_json_array_push comment. ----------
+reg('skyhigh173JSON_json_get', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_json_get');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  connectValue(ws, b, 'KEY', resolveValue(ws, blocksDict, sb, 'item', ctx), { asText: true });
+  return b;
+});
+reg('skyhigh173JSON_json_array_get', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_json_array_get');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  connectValue(ws, b, 'INDEX', resolveValue(ws, blocksDict, sb, 'item', ctx));
+  return b;
+});
+reg('skyhigh173JSON_json_set', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_json_set');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  connectValue(ws, b, 'KEY', resolveValue(ws, blocksDict, sb, 'item', ctx), { asText: true });
+  connectValue(ws, b, 'VALUE', resolveValue(ws, blocksDict, sb, 'value', ctx), { asText: true });
+  return b;
+});
+reg('skyhigh173JSON_json_array_push', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_json_array_push');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  connectValue(ws, b, 'VALUE', resolveValue(ws, blocksDict, sb, 'item', ctx), { asText: true });
+  return b;
+});
+reg('skyhigh173JSON_json_get_all', (sb, ws, blocksDict, ctx) => {
+  const stype = (sb.fields.Stype || ['keys'])[0];
+  const b = ws.newBlock(stype === 'values' ? 'vk_json_values' : 'vk_json_keys');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  return b;
+});
+reg('skyhigh173JSON_json_length', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_json_length');
+  connectValue(ws, b, 'JSON', resolveValue(ws, blocksDict, sb, 'json', ctx), { asText: true });
+  return b;
+});
+
 // When a block has no IMPORT_HANDLERS entry, everything nested under it
 // (a C-block's SUBSTACK body, an if/else's branches, a reporter used as one
 // of its arguments…) is dropped too — `buildBlockChain`/`buildReporterBlock`
@@ -633,7 +833,13 @@ export function buildProjectFromSb3(projectJson) {
 
     const ctx = { warnings, varIdToName, listIdToName };
     const topIds = Object.entries(target.blocks || {}).filter(([, b]) => b.topLevel).map(([id]) => id);
-    for (const topId of topIds) buildBlockChain(ws, target.blocks, topId, ctx);
+    for (const topId of topIds) {
+      if ((target.blocks[topId] || {}).opcode === 'procedures_definition') {
+        buildProcedureDef(ws, target.blocks, topId, ctx);
+      } else {
+        buildBlockChain(ws, target.blocks, topId, ctx);
+      }
+    }
 
     let workspaceState = null;
     try { workspaceState = Blockly.serialization.workspaces.save(ws); } catch (err) { warnings.add(`sérialisation: ${err.message}`); }
@@ -710,7 +916,15 @@ function buildExportBlock(b, id, parentId, blocksOut, ctx) {
   if (!shape) return null;
   const inputs = {};
   for (const [k, v] of Object.entries(shape.inputs || {})) if (v) inputs[k] = v;
-  return { opcode: shape.opcode, next: null, parent: parentId, inputs, fields: shape.fields || {}, shadow: !!shape.shadow, topLevel: false };
+  // `next` and `mutation` are opt-in overrides — only `vk_procedure_def`
+  // needs `next` (its body is chained via `.next` like a hat's, not nested
+  // in a SUBSTACK input — see its handler below) and only the two
+  // procedure blocks need `mutation` (Scratch's own custom-block calling
+  // convention). Every other handler leaves both undefined, preserving the
+  // previous unconditional `next: null` / no-mutation behaviour.
+  const out = { opcode: shape.opcode, next: shape.next ?? null, parent: parentId, inputs, fields: shape.fields || {}, shadow: !!shape.shadow, topLevel: false };
+  if (shape.mutation) out.mutation = shape.mutation;
+  return out;
 }
 
 // Walks a statement chain (via getNextBlock()); `topXY` marks the first
@@ -758,6 +972,10 @@ regExport('vk_go_to_xy', (b, id, blocksOut, ctx) => ({ opcode: 'motion_gotoxy', 
 regExport('vk_glide_to_xy', (b, id, blocksOut, ctx) => ({ opcode: 'motion_glidesecstoxy', inputs: { SECS: exportValue(b, id, 'SECS', blocksOut, ctx), X: exportValue(b, id, 'X', blocksOut, ctx), Y: exportValue(b, id, 'Y', blocksOut, ctx) } }));
 regExport('vk_x_position', () => ({ opcode: 'motion_xposition' }));
 regExport('vk_y_position', () => ({ opcode: 'motion_yposition' }));
+regExport('vk_change_x_by', (b, id, blocksOut, ctx) => ({ opcode: 'motion_changexby', inputs: { DX: exportValue(b, id, 'DX', blocksOut, ctx) } }));
+regExport('vk_change_y_by', (b, id, blocksOut, ctx) => ({ opcode: 'motion_changeyby', inputs: { DY: exportValue(b, id, 'DY', blocksOut, ctx) } }));
+regExport('vk_point_in_direction', (b, id, blocksOut, ctx) => ({ opcode: 'motion_pointindirection', inputs: { DIRECTION: exportValue(b, id, 'DIRECTION', blocksOut, ctx) } }));
+regExport('vk_set_rotation_style', (b) => ({ opcode: 'motion_setrotationstyle', fields: { STYLE: scratchField(b.getFieldValue('STYLE')) } }));
 
 // ---------- Apparence ----------
 regExport('vk_say_for_secs', (b, id, blocksOut, ctx) => ({ opcode: 'looks_sayforsecs', inputs: { MESSAGE: exportValue(b, id, 'TEXT', blocksOut, ctx), SECS: exportValue(b, id, 'SECS', blocksOut, ctx) } }));
@@ -768,6 +986,12 @@ regExport('vk_change_size', (b, id, blocksOut, ctx) => ({ opcode: 'looks_changes
 regExport('vk_set_size', (b, id, blocksOut, ctx) => ({ opcode: 'looks_setsizeto', inputs: { SIZE: exportValue(b, id, 'SIZE', blocksOut, ctx) } }));
 regExport('vk_show', () => ({ opcode: 'looks_show' }));
 regExport('vk_hide', () => ({ opcode: 'looks_hide' }));
+regExport('vk_costume_number', () => ({ opcode: 'looks_costumenumbername', fields: { NUMBER_NAME: scratchField('number') } }));
+regExport('vk_costume_name', () => ({ opcode: 'looks_costumenumbername', fields: { NUMBER_NAME: scratchField('name') } }));
+regExport('vk_set_effect', (b, id, blocksOut, ctx) => ({ opcode: 'looks_seteffectto', fields: { EFFECT: scratchField(b.getFieldValue('EFFECT')) }, inputs: { VALUE: exportValue(b, id, 'VALUE', blocksOut, ctx) } }));
+regExport('vk_change_effect', (b, id, blocksOut, ctx) => ({ opcode: 'looks_changeeffectby', fields: { EFFECT: scratchField(b.getFieldValue('EFFECT')) }, inputs: { CHANGE: exportValue(b, id, 'CHANGE', blocksOut, ctx) } }));
+regExport('vk_clear_graphic_effects', () => ({ opcode: 'looks_cleargraphiceffects' }));
+regExport('vk_go_to_front_back', (b) => ({ opcode: 'looks_gotofrontback', fields: { FRONT_BACK: scratchField(b.getFieldValue('FRONT_BACK')) } }));
 
 // ---------- Contrôle ----------
 regExport('vk_wait_secs', (b, id, blocksOut, ctx) => ({ opcode: 'control_wait', inputs: { DURATION: exportValue(b, id, 'SECS', blocksOut, ctx) } }));
@@ -782,6 +1006,51 @@ regExport('vk_create_clone_of', (b) => {
   return { opcode: 'control_create_clone_of', fields: { CLONE_OPTION: scratchField(target === 'moi-même' ? '_myself_' : target) } };
 });
 regExport('vk_delete_this_clone', () => ({ opcode: 'control_delete_this_clone' }));
+regExport('controls_whileUntil', (b, id, blocksOut, ctx) => {
+  const mode = b.getFieldValue('MODE');
+  const bodyStatement = exportStatement(b, id, 'DO', blocksOut, ctx);
+  if (mode === 'UNTIL') {
+    return { opcode: 'control_repeat_until', inputs: { CONDITION: exportValue(b, id, 'BOOL', blocksOut, ctx), SUBSTACK: bodyStatement } };
+  }
+  // "repeat while <cond>" has no direct Scratch opcode — "while X" and
+  // "until not X" are logically equivalent, so wrapping the condition in a
+  // NOT still round-trips to a script that behaves identically, rather than
+  // silently dropping the block or the whole loop.
+  const target = b.getInputTargetBlock('BOOL');
+  if (!target) return { opcode: 'control_repeat_until', inputs: { SUBSTACK: bodyStatement } };
+  const notId = genScratchId();
+  const condId = genScratchId();
+  const condBuilt = buildExportBlock(target, condId, notId, blocksOut, ctx);
+  if (condBuilt) blocksOut[condId] = condBuilt;
+  blocksOut[notId] = {
+    opcode: 'operator_not', next: null, parent: id,
+    inputs: condBuilt ? { OPERAND: [condBuilt.shadow ? 1 : 2, condId] } : {},
+    fields: {}, shadow: false, topLevel: false,
+  };
+  return { opcode: 'control_repeat_until', inputs: { CONDITION: [2, notId], SUBSTACK: bodyStatement } };
+});
+
+// ---------- Mes blocs ----------
+// `vk_procedure_def` exports via `next` (its body is chained hat-style,
+// like Scratch's own `procedures_definition`), not via a normal nested
+// SUBSTACK input — see `buildExportBlock`'s `shape.next` handling above and
+// the import-side comment on `buildProcedureDef`.
+regExport('vk_procedure_def', (b, id, blocksOut, ctx) => {
+  const protoId = genScratchId();
+  const procCode = b.getFieldValue('NAME') || 'bloc';
+  blocksOut[protoId] = {
+    opcode: 'procedures_prototype', next: null, parent: id, inputs: {}, fields: {},
+    shadow: true, topLevel: false,
+    mutation: { tagName: 'mutation', children: [], proccode: procCode, argumentids: '[]', argumentnames: '[]', argumentdefaults: '[]', warp: 'false' },
+  };
+  const bodyBlock = b.getInputTargetBlock('DO');
+  const bodyFirstId = bodyBlock ? exportChain(bodyBlock, blocksOut, ctx, { parentId: id }) : null;
+  return { opcode: 'procedures_definition', inputs: { custom_block: [1, protoId] }, next: bodyFirstId };
+});
+regExport('vk_procedure_call', (b) => ({
+  opcode: 'procedures_call',
+  mutation: { tagName: 'mutation', children: [], proccode: b.getFieldValue('NAME') || 'bloc', argumentids: '[]', warp: 'false' },
+}));
 
 // ---------- Détection ----------
 function scratchTarget(v) {
@@ -860,6 +1129,21 @@ regExport('vk_stop_all_sounds', () => ({ opcode: 'sound_stopallsounds' }));
 regExport('vk_set_volume', (b, id, blocksOut, ctx) => ({ opcode: 'sound_setvolumeto', inputs: { VOLUME: exportValue(b, id, 'VOLUME', blocksOut, ctx) } }));
 regExport('vk_change_volume', (b, id, blocksOut, ctx) => ({ opcode: 'sound_changevolumeby', inputs: { VOLUME: exportValue(b, id, 'VOLUME', blocksOut, ctx) } }));
 regExport('vk_volume', () => ({ opcode: 'sound_volume' }));
+
+// ---------- JSON ----------
+// Exports back to the same third-party `skyhigh173JSON_*` opcode namespace
+// used on import — round-trips correctly if the destination project also
+// has that TurboWarp extension loaded; opens as unrecognized blocks
+// otherwise (an inherent limit of reusing a third-party extension's own
+// opcodes rather than inventing a Vakar-only namespace TurboWarp wouldn't
+// recognize either).
+regExport('vk_json_get', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_get', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx), item: exportValue(b, id, 'KEY', blocksOut, ctx) } }));
+regExport('vk_json_array_get', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_array_get', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx), item: exportValue(b, id, 'INDEX', blocksOut, ctx) } }));
+regExport('vk_json_set', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_set', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx), item: exportValue(b, id, 'KEY', blocksOut, ctx), value: exportValue(b, id, 'VALUE', blocksOut, ctx) } }));
+regExport('vk_json_array_push', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_array_push', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx), item: exportValue(b, id, 'VALUE', blocksOut, ctx) } }));
+regExport('vk_json_keys', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_get_all', fields: { Stype: scratchField('keys') }, inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
+regExport('vk_json_values', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_get_all', fields: { Stype: scratchField('values') }, inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
+regExport('vk_json_length', (b, id, blocksOut, ctx) => ({ opcode: 'skyhigh173JSON_json_length', inputs: { json: exportValue(b, id, 'JSON', blocksOut, ctx) } }));
 
 // Exports one sprite's stored Blockly workspace JSON into Scratch-shaped
 // `{blocks, variables}` for its target entry. `topXOffset` just fans

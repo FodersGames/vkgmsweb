@@ -675,7 +675,12 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   // Includes clones — `runtime.sprites` has extra entries beyond
   // `project.sprites` once a script has created any (see runtime.js's
   // createClone). Before anything has run, it mirrors project.sprites 1:1.
-  const displaySprites = runtime ? Array.from(runtime.sprites.values()) : project.sprites;
+  // Sorted by layer (see runtime.js's `goToFrontBack`) — DOM order alone
+  // gives correct visual stacking (later siblings draw on top), no z-index
+  // needed.
+  const displaySprites = (runtime ? Array.from(runtime.sprites.values()) : project.sprites)
+    .slice()
+    .sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0));
   const baseSize = 72;
 
   const handleStageMouseMove = (e) => {
@@ -865,6 +870,31 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                 const sizePx = (baseSize * (s.size ?? 100)) / 100;
                 const leftPct = ((stage.width / 2 + s.x) / stage.width) * 100;
                 const topPct = ((stage.height / 2 - s.y) / stage.height) * 100;
+                // 'all around' rotates the costume with direction (default,
+                // matches the sprite's own facing); 'left-right' only ever
+                // mirrors horizontally (Scratch's usual platformer-character
+                // convention — never tips the costume upside down); "don't
+                // rotate" always draws it upright regardless of direction.
+                const rotationStyle = s.rotationStyle || 'all around';
+                let visualTransform = '';
+                let bubbleCounterTransform = '';
+                if (rotationStyle === 'all around') {
+                  const deg = (s.direction ?? 90) - 90;
+                  visualTransform = `rotate(${deg}deg)`;
+                  bubbleCounterTransform = `rotate(${-deg}deg)`;
+                } else if (rotationStyle === 'left-right') {
+                  const normalized = (((s.direction ?? 90) + 180) % 360 + 360) % 360 - 180;
+                  if (normalized < 0) {
+                    visualTransform = 'scaleX(-1)';
+                    bubbleCounterTransform = 'scaleX(-1)';
+                  }
+                }
+                // Only couleur/fantôme/luminosité are visually implemented —
+                // see runtime.js's VakarSprite.effects comment.
+                const effects = s.effects || {};
+                const opacity = Math.max(0, Math.min(1, 1 - (effects.GHOST || 0) / 100));
+                const brightness = Math.max(0, (100 + (effects.BRIGHTNESS || 0)) / 100);
+                const hueDeg = ((effects.COLOR || 0) / 200) * 360;
                 return (
                   <div
                     key={s.id}
@@ -873,18 +903,20 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                     style={{
                       left: `${leftPct}%`, top: `${topPct}%`,
                       width: sizePx, height: sizePx,
-                      transform: `translate(-50%, -50%) rotate(${(s.direction ?? 90) - 90}deg)`,
+                      transform: 'translate(-50%, -50%)',
                     }}
                   >
-                    {costume ? (
-                      <img src={resolveUrl(costume.image_url)} alt="" className="w-full h-full object-contain select-none" draggable={false} />
-                    ) : (
-                      <div className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: COLORS.motion }}>
-                        {(s.name || '?').slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
+                    <div style={{ width: '100%', height: '100%', transform: visualTransform, opacity, filter: `brightness(${brightness}) hue-rotate(${hueDeg}deg)` }}>
+                      {costume ? (
+                        <img src={resolveUrl(costume.image_url)} alt="" className="w-full h-full object-contain select-none" draggable={false} />
+                      ) : (
+                        <div className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-xs" style={{ background: COLORS.motion }}>
+                          {(s.name || '?').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                     {s.bubbleText && (
-                      <div style={{ transform: `rotate(${-(((s.direction ?? 90) - 90))}deg)` }}>
+                      <div style={{ transform: bubbleCounterTransform }}>
                         <SpeechBubble text={s.bubbleText} />
                       </div>
                     )}

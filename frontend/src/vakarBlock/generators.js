@@ -52,6 +52,21 @@ forBlock['vk_x_position'] = function (block, generator) {
 forBlock['vk_y_position'] = function (block, generator) {
   return ['sprite.y', Order.MEMBER];
 };
+forBlock['vk_change_x_by'] = function (block, generator) {
+  const dx = generator.valueToCode(block, 'DX', Order.NONE) || '0';
+  return `sprite.changeXBy(${dx});\n`;
+};
+forBlock['vk_change_y_by'] = function (block, generator) {
+  const dy = generator.valueToCode(block, 'DY', Order.NONE) || '0';
+  return `sprite.changeYBy(${dy});\n`;
+};
+forBlock['vk_point_in_direction'] = function (block, generator) {
+  const dir = generator.valueToCode(block, 'DIRECTION', Order.NONE) || '90';
+  return `sprite.pointInDirection(${dir});\n`;
+};
+forBlock['vk_set_rotation_style'] = function (block) {
+  return `sprite.setRotationStyle(${JSON.stringify(block.getFieldValue('STYLE'))});\n`;
+};
 
 // ---------- Apparence ----------
 forBlock['vk_say_for_secs'] = function (block, generator) {
@@ -78,6 +93,20 @@ forBlock['vk_set_size'] = function (block, generator) {
 };
 forBlock['vk_show'] = () => 'sprite.setVisible(true);\n';
 forBlock['vk_hide'] = () => 'sprite.setVisible(false);\n';
+forBlock['vk_costume_number'] = () => ['sprite.costumeNumber', Order.MEMBER];
+forBlock['vk_costume_name'] = () => ["(sprite.currentCostume ? sprite.currentCostume.name : '')", Order.NONE];
+forBlock['vk_set_effect'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || '0';
+  return `sprite.setEffect(${JSON.stringify(block.getFieldValue('EFFECT'))}, ${value});\n`;
+};
+forBlock['vk_change_effect'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'CHANGE', Order.NONE) || '0';
+  return `sprite.changeEffect(${JSON.stringify(block.getFieldValue('EFFECT'))}, ${value});\n`;
+};
+forBlock['vk_clear_graphic_effects'] = () => 'sprite.clearGraphicEffects();\n';
+forBlock['vk_go_to_front_back'] = function (block) {
+  return `runtime.goToFrontBack(sprite, ${JSON.stringify(block.getFieldValue('FRONT_BACK'))});\n`;
+};
 
 // ---------- Contrôle ----------
 forBlock['vk_wait_secs'] = function (block, generator) {
@@ -87,6 +116,22 @@ forBlock['vk_wait_secs'] = function (block, generator) {
 forBlock['vk_forever'] = function (block, generator) {
   const body = generator.statementToCode(block, 'DO');
   return `while (true) {\n${body}yield;\n}\n`;
+};
+// Override Blockly's own stock generator for controls_whileUntil (used for
+// Scratch's "repeat until", reused here for round 6's sb3 import — see
+// sb3.js). The stock JS generator emits a plain synchronous `while` loop
+// with NO yield at all (confirmed by inspecting its actual output) — fine
+// for normal JS, but fatal here: every hat compiles to a JS generator
+// function driven one `.next()` per animation frame, so a loop with no
+// yield inside it runs to completion (or hangs forever) in a single frame,
+// freezing the whole cooperative scheduler exactly like a raw `while(true)`
+// would if `vk_forever` didn't yield either. Same fix, same shape.
+forBlock['controls_whileUntil'] = function (block, generator) {
+  const mode = block.getFieldValue('MODE');
+  const cond = generator.valueToCode(block, 'BOOL', Order.NONE) || 'false';
+  const body = generator.statementToCode(block, 'DO');
+  const test = mode === 'UNTIL' ? `!(${cond})` : cond;
+  return `while (${test}) {\n${body}yield;\n}\n`;
 };
 forBlock['vk_stop_all'] = () => 'runtime.stopAll(); return;\n';
 
@@ -227,6 +272,49 @@ forBlock['vk_procedure_def'] = function (block, generator) {
 };
 forBlock['vk_procedure_call'] = function (block) {
   return `yield* ${safeProcName(block.getFieldValue('NAME'))}(sprite, runtime);\n`;
+};
+
+// ---------- JSON ----------
+// Pure functions on JSON *text* — no sprite/runtime state, so unlike every
+// other reporter above these are generated as self-contained inline IIFEs
+// rather than calling into runtime.js. `json_set`/`json_array_push` return
+// a NEW json string rather than mutating anything (see blocks.js's
+// tooltip/comment — verified against a real project's usage pattern of the
+// third-party extension these came from). Value coercion tries JSON.parse
+// first (so setting a numeric-looking value stores a real number, matching
+// what the extension appeared to do) and falls back to the raw string.
+forBlock['vk_json_get'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'{}'";
+  const key = generator.valueToCode(block, 'KEY', Order.NONE) || "''";
+  return [`(function(){try{var o=JSON.parse(${json});return (o&&typeof o==='object')?(o[${key}] ?? ''):'';}catch(e){return '';}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_set'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'{}'";
+  const key = generator.valueToCode(block, 'KEY', Order.NONE) || "''";
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return [`(function(){try{var o=JSON.parse(${json})||{};var v=${value};var pv;try{pv=JSON.parse(v);}catch(e2){pv=v;}o[${key}]=pv;return JSON.stringify(o);}catch(e){return ${json};}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_array_get'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'[]'";
+  const index = generator.valueToCode(block, 'INDEX', Order.NONE) || '1';
+  return [`(function(){try{var a=JSON.parse(${json});return Array.isArray(a)?(a[(${index})-1] ?? ''):'';}catch(e){return '';}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_array_push'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'[]'";
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return [`(function(){try{var a=JSON.parse(${json});if(!Array.isArray(a))a=[];var v=${value};var pv;try{pv=JSON.parse(v);}catch(e2){pv=v;}a.push(pv);return JSON.stringify(a);}catch(e){return ${json};}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_keys'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'{}'";
+  return [`(function(){try{var o=JSON.parse(${json});return JSON.stringify(o&&typeof o==='object'?Object.keys(o):[]);}catch(e){return '[]';}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_values'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'{}'";
+  return [`(function(){try{var o=JSON.parse(${json});return JSON.stringify(o&&typeof o==='object'?Object.values(o):[]);}catch(e){return '[]';}})()`, Order.FUNCTION_CALL];
+};
+forBlock['vk_json_length'] = function (block, generator) {
+  const json = generator.valueToCode(block, 'JSON', Order.NONE) || "'[]'";
+  return [`(function(){try{var v=JSON.parse(${json});if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return String(v).length;}catch(e){return 0;}})()`, Order.FUNCTION_CALL];
 };
 
 export { javascriptGenerator, Order };

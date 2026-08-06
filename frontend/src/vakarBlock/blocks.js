@@ -35,6 +35,7 @@ export const COLORS = {
   pen: '#0FBD8C',
   sound: '#D65CD6',
   procedures: '#FF6680',
+  json: '#8395A7',
 };
 
 // French message overrides for the stock blocks we reuse, so the whole
@@ -70,6 +71,19 @@ const KEY_OPTIONS = [
   ['flèche gauche', 'left'], ['flèche droite', 'right'], ['entrée', 'enter'],
   ...'abcdefghijklmnopqrstuvwxyz'.split('').map((k) => [k, k]),
   ...'0123456789'.split('').map((k) => [k, k]),
+];
+
+// Values are Scratch's own EFFECT-field tokens directly (COLOR/GHOST/…) —
+// same trick as KEY_OPTIONS storing raw key names: it means .sb3 import/
+// export never needs a translation table, just French display labels.
+// Only couleur/fantôme/luminosité are actually rendered (see the CSS filter
+// in VakarBlockEditor.js) — the other four are tracked in sprite.effects
+// for round-trip fidelity but have no visible effect yet (documented gap,
+// not silently faked).
+const EFFECT_OPTIONS = [
+  ['couleur', 'COLOR'], ['fantôme', 'GHOST'], ['luminosité', 'BRIGHTNESS'],
+  ['œil de poisson', 'FISHEYE'], ['tourbillon', 'WHIRL'],
+  ['pixelisation', 'PIXELATE'], ['mosaïque', 'MOSAIC'],
 ];
 
 const jsonBlocks = [
@@ -180,6 +194,42 @@ const jsonBlocks = [
     output: 'Number',
     colour: COLORS.motion,
   },
+  {
+    type: 'vk_change_x_by',
+    message0: 'changer x de %1',
+    args0: [{ type: 'input_value', name: 'DX', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+  },
+  {
+    type: 'vk_change_y_by',
+    message0: 'changer y de %1',
+    args0: [{ type: 'input_value', name: 'DY', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+  },
+  {
+    type: 'vk_point_in_direction',
+    message0: "s'orienter à %1 degrés",
+    args0: [{ type: 'input_value', name: 'DIRECTION', check: 'Number' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+    tooltip: '90 = droite, 0 = haut, -90 = gauche, 180 = bas.',
+  },
+  {
+    type: 'vk_set_rotation_style',
+    message0: 'mettre le style de rotation à %1',
+    args0: [{
+      type: 'field_dropdown', name: 'STYLE',
+      options: [['tout autour', 'all around'], ['gauche-droite', 'left-right'], ['ne pas tourner', "don't rotate"]],
+    }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+  },
 
   // ---------- APPARENCE ----------
   {
@@ -246,6 +296,57 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.looks,
+  },
+  {
+    type: 'vk_costume_number',
+    message0: 'numéro du costume',
+    output: 'Number',
+    colour: COLORS.looks,
+  },
+  {
+    type: 'vk_costume_name',
+    message0: 'nom du costume',
+    output: null,
+    colour: COLORS.looks,
+  },
+  {
+    type: 'vk_set_effect',
+    message0: 'mettre l’effet %1 à %2',
+    args0: [
+      { type: 'field_dropdown', name: 'EFFECT', options: EFFECT_OPTIONS },
+      { type: 'input_value', name: 'VALUE', check: 'Number' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.looks,
+    tooltip: 'Seuls couleur/fantôme/luminosité sont visibles pour l’instant — les autres sont mémorisés mais sans effet visuel.',
+  },
+  {
+    type: 'vk_change_effect',
+    message0: 'changer l’effet %1 de %2',
+    args0: [
+      { type: 'field_dropdown', name: 'EFFECT', options: EFFECT_OPTIONS },
+      { type: 'input_value', name: 'CHANGE', check: 'Number' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.looks,
+  },
+  {
+    type: 'vk_clear_graphic_effects',
+    message0: 'retirer tous les effets graphiques',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.looks,
+  },
+  {
+    type: 'vk_go_to_front_back',
+    message0: 'aller %1',
+    args0: [{ type: 'field_dropdown', name: 'FRONT_BACK', options: [['devant', 'front'], ['derrière', 'back']] }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.looks,
+    tooltip: 'Change quel sprite est dessiné au-dessus des autres.',
   },
 
   // ---------- CONTRÔLE (blocs sans équivalent Blockly natif) ----------
@@ -546,6 +647,82 @@ const jsonBlocks = [
     nextStatement: null,
     colour: COLORS.procedures,
   },
+
+  // ---------- JSON ----------
+  // Works on plain JSON *text* (a string variable/value) — there's no
+  // separate "JSON" data type here, matching Scratch's own string-typed
+  // variables. `vk_json_set`/`vk_json_array_push` are pure/functional (they
+  // return a NEW json text rather than mutating anything) — verified empir-
+  // ically against a real project using the third-party SkyHigh173 JSON
+  // TurboWarp extension (see sb3.js's import mapping): every instance of
+  // its json_set/json_array_push blocks in that real project was used only
+  // as a value input, never as a statement, confirming this same "returns a
+  // copy" functional shape rather than an in-place mutation.
+  {
+    type: 'vk_json_get',
+    message0: 'valeur de %1 dans %2',
+    args0: [
+      { type: 'input_value', name: 'KEY' },
+      { type: 'input_value', name: 'JSON' },
+    ],
+    output: null,
+    colour: COLORS.json,
+    tooltip: 'Lit une valeur dans un texte JSON, par sa clé.',
+  },
+  {
+    type: 'vk_json_set',
+    message0: '%1 avec %2 défini à %3',
+    args0: [
+      { type: 'input_value', name: 'JSON' },
+      { type: 'input_value', name: 'KEY' },
+      { type: 'input_value', name: 'VALUE' },
+    ],
+    output: null,
+    colour: COLORS.json,
+    tooltip: "Renvoie une COPIE du JSON avec cette clé modifiée — ne change pas la variable d'origine, il faut la remettre dedans avec « mettre … à ».",
+  },
+  {
+    type: 'vk_json_array_get',
+    message0: 'élément %1 du tableau JSON %2',
+    args0: [
+      { type: 'input_value', name: 'INDEX', check: 'Number' },
+      { type: 'input_value', name: 'JSON' },
+    ],
+    output: null,
+    colour: COLORS.json,
+  },
+  {
+    type: 'vk_json_array_push',
+    message0: '%1 avec %2 ajouté',
+    args0: [
+      { type: 'input_value', name: 'JSON' },
+      { type: 'input_value', name: 'VALUE' },
+    ],
+    output: null,
+    colour: COLORS.json,
+    tooltip: 'Renvoie une COPIE du tableau JSON avec cette valeur ajoutée à la fin.',
+  },
+  {
+    type: 'vk_json_keys',
+    message0: 'clés de %1',
+    args0: [{ type: 'input_value', name: 'JSON' }],
+    output: null,
+    colour: COLORS.json,
+  },
+  {
+    type: 'vk_json_values',
+    message0: 'valeurs de %1',
+    args0: [{ type: 'input_value', name: 'JSON' }],
+    output: null,
+    colour: COLORS.json,
+  },
+  {
+    type: 'vk_json_length',
+    message0: 'longueur du JSON %1',
+    args0: [{ type: 'input_value', name: 'JSON' }],
+    output: 'Number',
+    colour: COLORS.json,
+  },
 ];
 
 Blockly.defineBlocksWithJsonArray(jsonBlocks);
@@ -556,6 +733,7 @@ const STOCK_COLOUR_OVERRIDES = {
   controls_repeat_ext: COLORS.control,
   controls_if: COLORS.control,
   controls_ifelse: COLORS.control,
+  controls_whileUntil: COLORS.control,
   math_arithmetic: COLORS.operators,
   logic_compare: COLORS.operators,
   logic_operation: COLORS.operators,
@@ -607,6 +785,10 @@ export const TOOLBOX = {
         } },
         { kind: 'block', type: 'vk_x_position' },
         { kind: 'block', type: 'vk_y_position' },
+        { kind: 'block', type: 'vk_change_x_by', inputs: { DX: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
+        { kind: 'block', type: 'vk_change_y_by', inputs: { DY: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
+        { kind: 'block', type: 'vk_point_in_direction', inputs: { DIRECTION: { shadow: { type: 'math_number', fields: { NUM: 90 } } } } },
+        { kind: 'block', type: 'vk_set_rotation_style' },
       ],
     },
     {
@@ -619,10 +801,16 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_say', inputs: { TEXT: { shadow: { type: 'text', fields: { TEXT: 'Bonjour !' } } } } },
         { kind: 'block', type: 'vk_next_costume' },
         { kind: 'block', type: 'vk_switch_costume', inputs: { NAME: { shadow: { type: 'text', fields: { TEXT: 'costume1' } } } } },
+        { kind: 'block', type: 'vk_costume_number' },
+        { kind: 'block', type: 'vk_costume_name' },
         { kind: 'block', type: 'vk_change_size', inputs: { DELTA: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_set_size', inputs: { SIZE: { shadow: { type: 'math_number', fields: { NUM: 100 } } } } },
         { kind: 'block', type: 'vk_show' },
         { kind: 'block', type: 'vk_hide' },
+        { kind: 'block', type: 'vk_go_to_front_back' },
+        { kind: 'block', type: 'vk_set_effect', inputs: { VALUE: { shadow: { type: 'math_number', fields: { NUM: 25 } } } } },
+        { kind: 'block', type: 'vk_change_effect', inputs: { CHANGE: { shadow: { type: 'math_number', fields: { NUM: 25 } } } } },
+        { kind: 'block', type: 'vk_clear_graphic_effects' },
       ],
     },
     {
@@ -631,6 +819,7 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_wait_secs', inputs: { SECS: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
         { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_forever' },
+        { kind: 'block', type: 'controls_whileUntil' },
         { kind: 'block', type: 'controls_if' },
         { kind: 'block', type: 'controls_ifelse' },
         { kind: 'block', type: 'vk_stop_all' },
@@ -712,6 +901,31 @@ export const TOOLBOX = {
       contents: [
         { kind: 'block', type: 'vk_procedure_def' },
         { kind: 'block', type: 'vk_procedure_call' },
+      ],
+    },
+    {
+      kind: 'category', name: 'JSON', colour: COLORS.json,
+      contents: [
+        { kind: 'block', type: 'vk_json_get', inputs: {
+          KEY: { shadow: { type: 'text', fields: { TEXT: 'clé' } } },
+          JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } },
+        } },
+        { kind: 'block', type: 'vk_json_set', inputs: {
+          JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } },
+          KEY: { shadow: { type: 'text', fields: { TEXT: 'clé' } } },
+          VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        } },
+        { kind: 'block', type: 'vk_json_array_get', inputs: {
+          INDEX: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
+          JSON: { shadow: { type: 'text', fields: { TEXT: '[]' } } },
+        } },
+        { kind: 'block', type: 'vk_json_array_push', inputs: {
+          JSON: { shadow: { type: 'text', fields: { TEXT: '[]' } } },
+          VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        } },
+        { kind: 'block', type: 'vk_json_keys', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } } } },
+        { kind: 'block', type: 'vk_json_values', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '{}' } } } } },
+        { kind: 'block', type: 'vk_json_length', inputs: { JSON: { shadow: { type: 'text', fields: { TEXT: '[]' } } } } },
       ],
     },
   ],

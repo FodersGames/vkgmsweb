@@ -52,10 +52,31 @@ export class VakarSprite {
     this.isClone = false;
     this.sounds = data.sounds || [];
     this.volume = data.volume ?? 100;
+    // 'all around' (default, full rotation) | 'left-right' (flip only,
+    // Scratch's usual platformer-character convention) | "don't rotate".
+    // Values are Scratch's own STYLE-field tokens directly — see blocks.js's
+    // EFFECT_OPTIONS comment for why (no translation table needed for sb3
+    // import/export). Draw-time handling lives in VakarBlockEditor.js.
+    this.rotationStyle = data.rotationStyle || 'all around';
+    // Only COLOR/GHOST/BRIGHTNESS are actually rendered (CSS filter, see
+    // VakarBlockEditor.js) — FISHEYE/WHIRL/PIXELATE/MOSAIC are tracked for
+    // round-trip fidelity with imported/exported .sb3 projects but have no
+    // visible effect yet. Documented gap, not a silent fake.
+    this.effects = { COLOR: 0, FISHEYE: 0, WHIRL: 0, PIXELATE: 0, MOSAIC: 0, BRIGHTNESS: 0, GHOST: 0 };
+    // Draw order relative to other sprites — higher draws on top. Assigned
+    // sequentially by VakarBlockRuntime's constructor (sprite-list order is
+    // the natural initial stacking order, matching Scratch's own default);
+    // only `goToFrontBack` changes it after that.
+    this.layer = 0;
   }
 
   get currentCostume() {
     return this.costumes.find((c) => c.id === this.currentCostumeId) || this.costumes[0] || null;
+  }
+
+  get costumeNumber() {
+    const idx = this.costumes.findIndex((c) => c.id === this.currentCostumeId);
+    return idx === -1 ? (this.costumes.length ? 1 : 0) : idx + 1;
   }
 
   resetToInitial(data) {
@@ -67,6 +88,8 @@ export class VakarSprite {
     this.currentCostumeId = data.current_costume_id || (this.costumes[0] && this.costumes[0].id) || null;
     this.bubbleText = null;
     this.vars = {};
+    this.rotationStyle = data.rotationStyle || 'all around';
+    this.clearGraphicEffects();
   }
 
   moveSteps(steps) {
@@ -82,6 +105,34 @@ export class VakarSprite {
   goTo(x, y) {
     this.x = x;
     this.y = y;
+  }
+
+  changeXBy(dx) {
+    this.x += dx;
+  }
+
+  changeYBy(dy) {
+    this.y += dy;
+  }
+
+  pointInDirection(deg) {
+    this.direction = ((deg % 360) + 360) % 360;
+  }
+
+  setRotationStyle(style) {
+    this.rotationStyle = style;
+  }
+
+  setEffect(name, value) {
+    if (name in this.effects) this.effects[name] = value;
+  }
+
+  changeEffect(name, delta) {
+    if (name in this.effects) this.effects[name] += delta;
+  }
+
+  clearGraphicEffects() {
+    for (const k of Object.keys(this.effects)) this.effects[k] = 0;
   }
 
   *glideTo(secs, targetX, targetY) {
@@ -176,6 +227,11 @@ export class VakarBlockRuntime {
     this.mouseDown = false;
     this._keysDown = new Set();
     this._activeAudio = new Set();
+
+    // Initial stacking order = sprite-list order, matching Scratch's own
+    // default (the sprite corral's order is also the initial layer order).
+    let layerIdx = 0;
+    for (const sprite of this.sprites.values()) sprite.layer = layerIdx++;
 
     this._keyDownHandler = (e) => {
       const key = KEY_MAP[e.code];
@@ -424,6 +480,12 @@ export class VakarBlockRuntime {
       tx = other.x; ty = other.y;
     }
     return Math.hypot(sprite.x - tx, sprite.y - ty);
+  }
+
+  // ---------- Apparence : ordre d'affichage (layers) ----------
+  goToFrontBack(sprite, direction) {
+    const layers = Array.from(this.sprites.values()).map((s) => s.layer ?? 0);
+    sprite.layer = direction === 'back' ? Math.min(0, ...layers) - 1 : Math.max(0, ...layers) + 1;
   }
 
   // ---------- Stylo (pen) ----------
