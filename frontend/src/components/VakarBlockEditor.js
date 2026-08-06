@@ -69,8 +69,56 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const costumeInputRef = useRef(null);
   const backdropInputRef = useRef(null);
   const resizingRef = useRef(false);
+  const penCanvasRef = useRef(null);
+  const penPrevRef = useRef(new Map()); // spriteId -> {x, y, penDown} from the previous render tick, for drawing trail segments
 
   const authHeaders = { Authorization: `Bearer ${token}` };
+
+  // ── Stylo (pen) canvas — a plain 2D canvas layered under the sprites,
+  // sized to the stage's logical resolution (not its on-screen CSS size)
+  // so drawing coordinates are just stage units, matching sprite.x/y
+  // directly, with the browser handling the visual downscale via CSS. ──
+  const clearPenCanvas = () => {
+    const canvas = penCanvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const drawPenTrails = () => {
+    const canvas = penCanvasRef.current;
+    const rt = runtimeRef.current;
+    if (!canvas || !rt) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    for (const sprite of rt.sprites.values()) {
+      const prev = penPrevRef.current.get(sprite.id);
+      if (sprite.penDown && prev && prev.penDown) {
+        ctx.strokeStyle = sprite.penColor;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(w / 2 + prev.x, h / 2 - prev.y);
+        ctx.lineTo(w / 2 + sprite.x, h / 2 - sprite.y);
+        ctx.stroke();
+      }
+      penPrevRef.current.set(sprite.id, { x: sprite.x, y: sprite.y, penDown: sprite.penDown });
+    }
+  };
+
+  const stampOnCanvas = (sprite) => {
+    const canvas = penCanvasRef.current;
+    const costume = sprite.costumes.find((c) => c.id === sprite.currentCostumeId) || sprite.costumes[0];
+    if (!canvas || !costume) return;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth * ((sprite.size ?? 100) / 100);
+      const h = img.naturalHeight * ((sprite.size ?? 100) / 100);
+      ctx.drawImage(img, canvas.width / 2 + sprite.x - w / 2, canvas.height / 2 - sprite.y - h / 2, w, h);
+    };
+    img.src = resolveUrl(costume.image_url);
+  };
 
   // ── Load project + create the runtime once ──────────────────────────────
   useEffect(() => {
@@ -85,8 +133,10 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
         setSelectedSpriteId(data.sprites?.[0]?.id || null);
         runtimeRef.current = new VakarBlockRuntime({
           sprites: new Map((data.sprites || []).map((s) => [s.id, new VakarSprite(s)])),
-          onRender: () => setRenderTick((t) => t + 1),
+          onRender: () => { setRenderTick((t) => t + 1); drawPenTrails(); },
           onError: (e) => setErrorMsg(e?.message || String(e)),
+          onPenClear: clearPenCanvas,
+          onStamp: stampOnCanvas,
         });
       } finally {
         if (!cancelled) setLoading(false);
@@ -384,8 +434,18 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
   const stage = project.stage || { width: 480, height: 360, backdrops: [], current_backdrop_id: null };
   const currentBackdrop = (stage.backdrops || []).find((b) => b.id === stage.current_backdrop_id);
-  const displaySprites = project.sprites.map((s) => runtime?.sprites.get(s.id) || s);
+  // Includes clones — `runtime.sprites` has extra entries beyond
+  // `project.sprites` once a script has created any (see runtime.js's
+  // createClone). Before anything has run, it mirrors project.sprites 1:1.
+  const displaySprites = runtime ? Array.from(runtime.sprites.values()) : project.sprites;
   const baseSize = 72;
+
+  const handleStageMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relX = ((e.clientX - rect.left) / rect.width) * stage.width - stage.width / 2;
+    const relY = stage.height / 2 - ((e.clientY - rect.top) / rect.height) * stage.height;
+    runtime?.setMousePosition(relX, relY);
+  };
 
   return (
     <div className="h-full flex flex-col bg-[#F5F5F7] dark:bg-[#0e0e15]">
@@ -468,7 +528,16 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                 borderColor: COLORS.events,
                 background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : 'linear-gradient(135deg, #eafcfb, #e4f3ff)',
               }}
+              onMouseMove={handleStageMouseMove}
+              onMouseDown={() => runtime?.setMouseDown(true)}
+              onMouseUp={() => runtime?.setMouseDown(false)}
             >
+              <canvas
+                ref={penCanvasRef}
+                width={stage.width}
+                height={stage.height}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+              />
               {displaySprites.map((s) => {
                 if (!s.visible) return null;
                 const costume = s.costumes?.find((c) => c.id === (s.currentCostumeId ?? s.current_costume_id)) || s.costumes?.[0];

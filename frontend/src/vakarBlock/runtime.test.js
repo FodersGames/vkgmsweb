@@ -102,3 +102,119 @@ test('toujours keeps a thread alive until stop() is called', async () => {
 
   rt.destroy();
 });
+
+test('vk_stop_all actually works (runtime.stopAll was a latent bug — the plain runtimeApi object never had that method)', async () => {
+  const ws = new Blockly.Workspace();
+  const hat = ws.newBlock('vk_when_green_flag');
+  const stopAll = ws.newBlock('vk_stop_all');
+  connectStack(hat, stopAll);
+
+  const sprite = new VakarSprite({ id: 's1', name: 'Chat' });
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[sprite.id, sprite]]),
+    onRender: () => {},
+    onError: (e) => { throw e; },
+  });
+  rt.compileSprite(sprite, ws);
+  expect(() => rt.greenFlag()).not.toThrow();
+  await new Promise((resolve) => { rt.onRender = resolve; });
+  expect(rt.running).toBe(false);
+  rt.destroy();
+});
+
+test('diffusion: broadcast from one sprite starts a "when I receive" thread on another', async () => {
+  const wsA = new Blockly.Workspace();
+  const hatA = wsA.newBlock('vk_when_green_flag');
+  const broadcast = wsA.newBlock('vk_broadcast');
+  broadcast.setFieldValue('score', 'MESSAGE');
+  connectStack(hatA, broadcast);
+
+  const wsB = new Blockly.Workspace();
+  const hatB = wsB.newBlock('vk_when_i_receive');
+  hatB.setFieldValue('score', 'MESSAGE');
+  const move = wsB.newBlock('vk_move_steps');
+  connectValue(move, 'STEPS', numberBlock(wsB, 10));
+  connectStack(hatB, move);
+
+  const spriteA = new VakarSprite({ id: 'a', name: 'Emetteur' });
+  const spriteB = new VakarSprite({ id: 'b', name: 'Recepteur', direction: 90 });
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[spriteA.id, spriteA], [spriteB.id, spriteB]]),
+    onRender: () => {},
+    onError: (e) => { throw e; },
+  });
+  rt.compileSprite(spriteA, wsA);
+  rt.compileSprite(spriteB, wsB);
+  rt.greenFlag();
+
+  await new Promise((resolve) => { rt.onRender = resolve; });
+  expect(spriteB.x).toBeCloseTo(10);
+  rt.destroy();
+});
+
+test('clones: createClone copies state and starts its own "when I start as clone" thread', () => {
+  const ws = new Blockly.Workspace();
+  const hat = ws.newBlock('vk_when_i_start_as_clone');
+  const move = ws.newBlock('vk_move_steps');
+  connectValue(move, 'STEPS', numberBlock(ws, 5));
+  connectStack(hat, move);
+
+  const source = new VakarSprite({ id: 'orig', name: 'Original', x: 20, y: 30, direction: 90 });
+  source.vars.hp = 3;
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[source.id, source]]),
+    onRender: () => {},
+    onError: (e) => { throw e; },
+  });
+  rt.compileSprite(source, ws);
+  rt.running = true; // clones' hats only start threads while the project is "running"
+
+  const clone = rt.createClone(source, 'moi-même');
+  expect(clone.isClone).toBe(true);
+  expect(clone.x).toBe(20);
+  expect(clone.y).toBe(30);
+  expect(clone.vars.hp).toBe(3);
+  expect(rt.sprites.get(clone.id)).toBe(clone);
+  expect(rt.threads.some((t) => t.sprite === clone)).toBe(true);
+
+  rt.deleteClone(clone.id);
+  expect(rt.sprites.has(clone.id)).toBe(false);
+  expect(rt.threads.some((t) => t.sprite === clone)).toBe(false);
+
+  rt.destroy();
+});
+
+test('détection: touching() and distanceTo() use AABB overlap in stage units', () => {
+  const a = new VakarSprite({ id: 'a', name: 'A', x: 0, y: 0, size: 100 });
+  const b = new VakarSprite({ id: 'b', name: 'B', x: 5, y: 0, size: 100 });
+  const c = new VakarSprite({ id: 'c', name: 'C', x: 500, y: 0, size: 100 });
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[a.id, a], [b.id, b], [c.id, c]]),
+    onRender: () => {},
+    onError: (e) => { throw e; },
+  });
+
+  expect(rt.touching(a, 'B')).toBe(true); // overlapping boxes
+  expect(rt.touching(a, 'C')).toBe(false); // far away
+  expect(rt.touching(c, 'bord')).toBe(true); // past the approximate stage edge
+  expect(rt.touching(a, 'bord')).toBe(false);
+
+  rt.setMousePosition(0, 0);
+  expect(rt.touching(a, 'souris')).toBe(true);
+  expect(Math.round(rt.distanceTo(a, 'B'))).toBe(5);
+
+  rt.destroy();
+});
+
+test('listes: runtime.list() lazily creates a per-sprite array that generated list blocks would mutate', () => {
+  const sprite = new VakarSprite({ id: 's1', name: 'Chat' });
+  const rt = new VakarBlockRuntime({ sprites: new Map([[sprite.id, sprite]]), onRender: () => {}, onError: () => {} });
+
+  const list = rt.list(sprite, 'inventaire');
+  list.push('épée');
+  list.push('bouclier');
+  expect(rt.list(sprite, 'inventaire')).toEqual(['épée', 'bouclier']);
+  expect(sprite.vars.inventaire).toEqual(['épée', 'bouclier']);
+
+  rt.destroy();
+});

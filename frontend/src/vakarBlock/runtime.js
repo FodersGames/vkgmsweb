@@ -7,12 +7,24 @@ import { javascriptGenerator } from './generators';
 // scripts progress "at the same time" without blocking the browser).
 // ============================================================
 
-const HAT_TYPES = ['vk_when_green_flag', 'vk_when_key_pressed', 'vk_when_sprite_clicked'];
+const HAT_TYPES = [
+  'vk_when_green_flag', 'vk_when_key_pressed', 'vk_when_sprite_clicked',
+  'vk_when_i_receive', 'vk_when_i_start_as_clone',
+];
 
 const KEY_MAP = {
   Space: 'space', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   KeyA: 'a', KeyB: 'b', KeyC: 'c', KeyD: 'd', KeyE: 'e', KeyW: 'w', KeyX: 'x', Enter: 'enter',
 };
+
+// Approximate hitbox used for collision/touching checks, in stage units
+// (not CSS pixels) — a real implementation would derive this from each
+// costume's actual pixel dimensions, which aren't tracked yet. Documented
+// simplification, not a bug: every sprite is treated as roughly the same
+// physical size at 100%, scaled by its own size%.
+const SENSING_HITBOX_UNITS = 40;
+
+const genId = () => Math.random().toString(36).slice(2, 10);
 
 export class VakarSprite {
   constructor(data) {
@@ -28,6 +40,9 @@ export class VakarSprite {
     this.workspaceJson = data.workspace || null;
     this.bubbleText = null;
     this.vars = {};
+    this.penDown = false;
+    this.penColor = '#4C97FF';
+    this.isClone = false;
   }
 
   get currentCostume() {
@@ -113,30 +128,41 @@ export class VakarSprite {
     while (performance.now() - start < durationMs) yield;
     this.bubbleText = null;
   }
+
+  setPenDown(v) {
+    this.penDown = v;
+  }
+
+  setPenColor(c) {
+    this.penColor = c;
+  }
+
+  hitboxHalfSize() {
+    return (SENSING_HITBOX_UNITS * (this.size ?? 100)) / 100 / 2;
+  }
 }
 
-const runtimeApi = {
-  wait: function* (secs) {
-    const durationMs = Math.max(0, secs) * 1000;
-    const start = performance.now();
-    while (performance.now() - start < durationMs) yield;
-  },
-};
-
 export class VakarBlockRuntime {
-  constructor({ sprites, onRender, onError }) {
-    this.sprites = sprites; // Map<id, VakarSprite>
+  constructor({ sprites, onRender, onError, onPenClear, onStamp }) {
+    this.sprites = sprites; // Map<id, VakarSprite> — includes clones once created
     this.onRender = onRender || (() => {});
     this.onError = onError || (() => {});
+    this.onPenClear = onPenClear || (() => {});
+    this.onStamp = onStamp || (() => {});
     this.threads = [];
     this.running = false;
     this._rafId = null;
     this._stopped = false;
-    this._compiled = new Map(); // spriteId -> { greenFlag: [fn], keyPressed: [{key, fn}], spriteClicked: [fn] }
-    this._keyHandler = (e) => {
-      if (!this.running) return;
+    this._compiled = new Map(); // spriteId -> { greenFlag, keyPressed, spriteClicked, messageReceived, cloneStart: [fn...] }
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.mouseDown = false;
+    this._keysDown = new Set();
+
+    this._keyDownHandler = (e) => {
       const key = KEY_MAP[e.code];
-      if (!key) return;
+      if (key) this._keysDown.add(key);
+      if (!this.running || !key) return;
       for (const sprite of this.sprites.values()) {
         const scripts = this._compiled.get(sprite.id);
         if (!scripts) continue;
@@ -145,14 +171,32 @@ export class VakarBlockRuntime {
         }
       }
     };
-    window.addEventListener('keydown', this._keyHandler);
+    this._keyUpHandler = (e) => {
+      const key = KEY_MAP[e.code];
+      if (key) this._keysDown.delete(key);
+    };
+    window.addEventListener('keydown', this._keyDownHandler);
+    window.addEventListener('keyup', this._keyUpHandler);
+  }
+
+  isKeyDown(key) {
+    return this._keysDown.has(key);
+  }
+
+  setMousePosition(x, y) {
+    this.mouseX = x;
+    this.mouseY = y;
+  }
+
+  setMouseDown(v) {
+    this.mouseDown = v;
   }
 
   // Recompiles one sprite's workspace (call whenever its blocks change or
   // when (re)loading a project — must be called before greenFlag() sees it).
   compileSprite(sprite, workspace) {
     const topBlocks = workspace.getTopBlocks(true);
-    const scripts = { greenFlag: [], keyPressed: [], spriteClicked: [] };
+    const scripts = { greenFlag: [], keyPressed: [], spriteClicked: [], messageReceived: [], cloneStart: [] };
     javascriptGenerator.init(workspace);
     for (const block of topBlocks) {
       if (block.isDisabled?.()) continue;
@@ -167,6 +211,8 @@ export class VakarBlockRuntime {
       if (block.type === 'vk_when_green_flag') scripts.greenFlag.push(fn);
       else if (block.type === 'vk_when_key_pressed') scripts.keyPressed.push({ key: block.getFieldValue('KEY'), fn });
       else if (block.type === 'vk_when_sprite_clicked') scripts.spriteClicked.push(fn);
+      else if (block.type === 'vk_when_i_receive') scripts.messageReceived.push({ message: block.getFieldValue('MESSAGE'), fn });
+      else if (block.type === 'vk_when_i_start_as_clone') scripts.cloneStart.push(fn);
     }
     javascriptGenerator.finish('');
     this._compiled.set(sprite.id, scripts);
@@ -184,6 +230,14 @@ export class VakarBlockRuntime {
     this._stopThreads();
     this._stopped = false;
     this.running = true;
+    // Drop any clones left over from a previous run — a fresh green flag
+    // starts from just the persisted sprites, matching Scratch's own reset.
+    for (const [id, sprite] of Array.from(this.sprites.entries())) {
+      if (sprite.isClone) {
+        this.sprites.delete(id);
+        this._compiled.delete(id);
+      }
+    }
     for (const sprite of this.sprites.values()) {
       const scripts = this._compiled.get(sprite.id);
       if (!scripts) continue;
@@ -200,13 +254,112 @@ export class VakarBlockRuntime {
     for (const fn of scripts.spriteClicked) this._startThread(sprite, fn);
   }
 
-  _startThread(sprite, genFn) {
-    try {
-      const gen = genFn(sprite, runtimeApi);
-      this.threads.push({ gen, sprite });
-    } catch (err) {
-      this.onError(err);
+  // ---------- Diffusion (broadcasts) ----------
+  broadcast(message) {
+    if (!this.running) return;
+    for (const sprite of this.sprites.values()) {
+      const scripts = this._compiled.get(sprite.id);
+      if (!scripts) continue;
+      for (const item of scripts.messageReceived) {
+        if (item.message === message) this._startThread(sprite, item.fn);
+      }
     }
+  }
+
+  // ---------- Clones ----------
+  createClone(sourceSprite, targetName) {
+    let source = sourceSprite;
+    if (targetName && targetName !== 'moi-même') {
+      const found = Array.from(this.sprites.values()).find((s) => s.name === targetName);
+      if (found) source = found;
+    }
+    const clone = new VakarSprite({ id: genId(), name: source.name, costumes: source.costumes });
+    clone.x = source.x;
+    clone.y = source.y;
+    clone.direction = source.direction;
+    clone.size = source.size;
+    clone.visible = source.visible;
+    clone.currentCostumeId = source.currentCostumeId;
+    clone.penDown = source.penDown;
+    clone.penColor = source.penColor;
+    clone.vars = { ...source.vars };
+    clone.isClone = true;
+    this.sprites.set(clone.id, clone);
+    const scripts = this._compiled.get(source.id);
+    if (scripts) {
+      this._compiled.set(clone.id, scripts);
+      for (const fn of scripts.cloneStart) this._startThread(clone, fn);
+    }
+    return clone;
+  }
+
+  deleteClone(spriteId) {
+    const sprite = this.sprites.get(spriteId);
+    if (!sprite || !sprite.isClone) return;
+    this.sprites.delete(spriteId);
+    this._compiled.delete(spriteId);
+    this.threads = this.threads.filter((t) => t.sprite.id !== spriteId);
+  }
+
+  // ---------- Détection (sensing) ----------
+  touching(sprite, target) {
+    const key = (target || '').trim().toLowerCase();
+    const half = sprite.hitboxHalfSize();
+    if (key === 'bord' || key === 'edge') {
+      // Stage bounds aren't known to the runtime (only the editor has the
+      // project's stage size) — approximate with a generous fixed half-
+      // extent; good enough until stage size is threaded through here too.
+      const stageHalf = 240;
+      return (
+        sprite.x - half < -stageHalf || sprite.x + half > stageHalf ||
+        sprite.y - half < -stageHalf || sprite.y + half > stageHalf
+      );
+    }
+    if (key === 'souris' || key === 'mouse') {
+      return (
+        this.mouseX >= sprite.x - half && this.mouseX <= sprite.x + half &&
+        this.mouseY >= sprite.y - half && this.mouseY <= sprite.y + half
+      );
+    }
+    for (const other of this.sprites.values()) {
+      if (other === sprite || !other.visible) continue;
+      if (other.name !== target) continue;
+      const oHalf = other.hitboxHalfSize();
+      const overlap =
+        Math.abs(sprite.x - other.x) < half + oHalf &&
+        Math.abs(sprite.y - other.y) < half + oHalf;
+      if (overlap) return true;
+    }
+    return false;
+  }
+
+  distanceTo(sprite, target) {
+    const key = (target || '').trim().toLowerCase();
+    let tx, ty;
+    if (key === 'souris' || key === 'mouse') {
+      tx = this.mouseX; ty = this.mouseY;
+    } else {
+      const other = Array.from(this.sprites.values()).find((s) => s.name === target);
+      if (!other) return 0;
+      tx = other.x; ty = other.y;
+    }
+    return Math.hypot(sprite.x - tx, sprite.y - ty);
+  }
+
+  // ---------- Stylo (pen) ----------
+  clearPen() {
+    this.onPenClear();
+  }
+
+  stamp(sprite) {
+    this.onStamp(sprite);
+  }
+
+  // ---------- Attendre / arrêter (called as `runtime.xxx` from generated code) ----------
+  *wait(secs) {
+    const durationMs = Math.max(0, secs) * 1000;
+    const start = performance.now();
+    while (performance.now() - start < durationMs) yield;
   }
 
   stopAll() {
@@ -218,6 +371,21 @@ export class VakarBlockRuntime {
     this._stopThreads();
     this.running = false;
     this.onRender();
+  }
+
+  _startThread(sprite, genFn) {
+    try {
+      const gen = genFn(sprite, this);
+      this.threads.push({ gen, sprite });
+    } catch (err) {
+      this.onError(err);
+    }
+  }
+
+  // ---------- Listes ----------
+  list(sprite, name) {
+    if (!Array.isArray(sprite.vars[name])) sprite.vars[name] = [];
+    return sprite.vars[name];
   }
 
   _stopThreads() {
@@ -262,6 +430,7 @@ export class VakarBlockRuntime {
 
   destroy() {
     this._stopThreads();
-    window.removeEventListener('keydown', this._keyHandler);
+    window.removeEventListener('keydown', this._keyDownHandler);
+    window.removeEventListener('keyup', this._keyUpHandler);
   }
 }
