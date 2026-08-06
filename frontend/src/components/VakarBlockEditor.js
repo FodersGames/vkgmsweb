@@ -52,12 +52,23 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const [errorMsg, setErrorMsg] = useState('');
   const [, setRenderTick] = useState(0);
   const [editingName, setEditingName] = useState(false);
+  // Right panel (stage + corral) width — bigger default than a first pass,
+  // and user-resizable via the drag handle between it and the Blockly pane.
+  const [rightPanelWidth, setRightPanelWidth] = useState(440);
+  // Stage width/height inputs: kept as separate "draft" text while the user
+  // is typing (null = not currently editing, show the live project value).
+  // Clamping/parsing on every keystroke used to snap the field to 160 the
+  // instant it was cleared, making it impossible to type a new number —
+  // now only committed (parsed + clamped) on blur/Enter.
+  const [widthDraft, setWidthDraft] = useState(null);
+  const [heightDraft, setHeightDraft] = useState(null);
 
   const blocklyDivRef = useRef(null);
   const workspaceRef = useRef(null);
   const runtimeRef = useRef(null);
   const costumeInputRef = useRef(null);
   const backdropInputRef = useRef(null);
+  const resizingRef = useRef(false);
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -286,10 +297,31 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     setDirty(true);
   };
 
-  const setStageSize = (dim, value) => {
-    const n = Math.max(160, Math.min(1280, parseInt(value, 10) || 0));
+  const commitStageSize = (dim, rawValue, currentValue) => {
+    const parsed = parseInt(rawValue, 10);
+    const n = Math.max(160, Math.min(1280, Number.isFinite(parsed) ? parsed : currentValue));
     setProject((p) => ({ ...p, stage: { ...p.stage, [dim]: n } }));
     setDirty(true);
+  };
+
+  const startPanelResize = (e) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = rightPanelWidth;
+    const onMove = (ev) => {
+      if (!resizingRef.current) return;
+      const next = Math.max(320, Math.min(680, startWidth + (startX - ev.clientX)));
+      setRightPanelWidth(next);
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      if (workspaceRef.current) Blockly.svgResize(workspaceRef.current);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
   };
 
   const saveProject = async () => {
@@ -418,13 +450,20 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           <div ref={blocklyDivRef} className="absolute inset-0" />
         </div>
 
-        <div className="w-[340px] shrink-0 flex flex-col border-l border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] overflow-y-auto">
+        {/* Drag handle — resizes the stage/corral panel; svgResize() on mouseup so Blockly's canvas catches up to its new width */}
+        <div
+          onMouseDown={startPanelResize}
+          title="Glisser pour redimensionner"
+          className="w-1.5 shrink-0 cursor-col-resize bg-[#D2D2D7] dark:bg-[#2a2a3c] hover:bg-[#4ECDC4] active:bg-[#4ECDC4] transition-colors"
+        />
+
+        <div style={{ width: rightPanelWidth }} className="shrink-0 flex flex-col bg-white dark:bg-[#151520] overflow-y-auto">
           {/* Stage */}
           <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <div
               className="relative rounded-xl overflow-hidden border-2 mx-auto"
               style={{
-                width: '100%', maxWidth: 320,
+                width: '100%', maxWidth: rightPanelWidth - 40,
                 aspectRatio: `${stage.width} / ${stage.height}`,
                 borderColor: COLORS.events,
                 background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : 'linear-gradient(135deg, #eafcfb, #e4f3ff)',
@@ -466,11 +505,23 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
             <div className="flex items-center gap-2 mt-2.5">
               <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Largeur</label>
-              <input type="number" value={stage.width} onChange={(e) => setStageSize('width', e.target.value)}
-                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]" />
+              <input
+                type="number"
+                value={widthDraft !== null ? widthDraft : stage.width}
+                onChange={(e) => setWidthDraft(e.target.value)}
+                onBlur={(e) => { commitStageSize('width', e.target.value, stage.width); setWidthDraft(null); }}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+              />
               <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Hauteur</label>
-              <input type="number" value={stage.height} onChange={(e) => setStageSize('height', e.target.value)}
-                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]" />
+              <input
+                type="number"
+                value={heightDraft !== null ? heightDraft : stage.height}
+                onChange={(e) => setHeightDraft(e.target.value)}
+                onBlur={(e) => { commitStageSize('height', e.target.value, stage.height); setHeightDraft(null); }}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+              />
             </div>
           </div>
 
