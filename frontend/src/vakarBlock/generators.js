@@ -21,6 +21,7 @@ forBlock['vk_when_i_receive'] = () => '';
 forBlock['vk_broadcast'] = function (block) {
   return `runtime.broadcast(${JSON.stringify(block.getFieldValue('MESSAGE'))});\n`;
 };
+forBlock['vk_when_backdrop_switches_to'] = () => '';
 
 // ---------- Mouvement ----------
 forBlock['vk_move_steps'] = function (block, generator) {
@@ -45,6 +46,12 @@ forBlock['vk_glide_to_xy'] = function (block, generator) {
   const x = generator.valueToCode(block, 'X', Order.NONE) || '0';
   const y = generator.valueToCode(block, 'Y', Order.NONE) || '0';
   return `yield* sprite.glideTo(${secs}, ${x}, ${y});\n`;
+};
+forBlock['vk_go_to'] = function (block) {
+  return `runtime.goToTarget(sprite, ${JSON.stringify(block.getFieldValue('TARGET'))});\n`;
+};
+forBlock['vk_point_towards'] = function (block) {
+  return `runtime.pointTowards(sprite, ${JSON.stringify(block.getFieldValue('TARGET'))});\n`;
 };
 forBlock['vk_x_position'] = function (block, generator) {
   return ['sprite.x', Order.MEMBER];
@@ -91,6 +98,10 @@ forBlock['vk_set_size'] = function (block, generator) {
   const size = generator.valueToCode(block, 'SIZE', Order.NONE) || '100';
   return `sprite.setSize(${size});\n`;
 };
+forBlock['vk_switch_backdrop'] = function (block, generator) {
+  const name = generator.valueToCode(block, 'NAME', Order.NONE) || "''";
+  return `runtime.switchBackdrop(${name});\n`;
+};
 forBlock['vk_show'] = () => 'sprite.setVisible(true);\n';
 forBlock['vk_hide'] = () => 'sprite.setVisible(false);\n';
 forBlock['vk_costume_number'] = () => ['sprite.costumeNumber', Order.MEMBER];
@@ -134,6 +145,11 @@ forBlock['controls_whileUntil'] = function (block, generator) {
   return `while (${test}) {\n${body}yield;\n}\n`;
 };
 forBlock['vk_stop_all'] = () => 'runtime.stopAll(); return;\n';
+forBlock['vk_stop_this_script'] = () => 'return;\n';
+forBlock['vk_wait_until'] = function (block, generator) {
+  const cond = generator.valueToCode(block, 'CONDITION', Order.NONE) || 'false';
+  return `while (!(${cond})) { yield; }\n`;
+};
 
 // ---------- Clones ----------
 forBlock['vk_when_i_start_as_clone'] = () => '';
@@ -272,6 +288,12 @@ forBlock['vk_procedure_def'] = function (block, generator) {
 };
 forBlock['vk_procedure_call'] = function (block) {
   return `yield* ${safeProcName(block.getFieldValue('NAME'))}(sprite, runtime);\n`;
+};
+
+forBlock['vk_text_contains'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'STRING1', Order.NONE) || "''";
+  const b = generator.valueToCode(block, 'STRING2', Order.NONE) || "''";
+  return [`String(${a}).toLowerCase().includes(String(${b}).toLowerCase())`, Order.FUNCTION_CALL];
 };
 
 // ---------- JSON ----------

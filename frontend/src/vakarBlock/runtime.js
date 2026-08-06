@@ -9,7 +9,7 @@ import { javascriptGenerator } from './generators';
 
 const HAT_TYPES = [
   'vk_when_green_flag', 'vk_when_key_pressed', 'vk_when_sprite_clicked',
-  'vk_when_i_receive', 'vk_when_i_start_as_clone',
+  'vk_when_i_receive', 'vk_when_i_start_as_clone', 'vk_when_backdrop_switches_to',
 ];
 
 // Full alphabet + digits, matching blocks.js's KEY_OPTIONS dropdown —
@@ -221,7 +221,7 @@ export class VakarSprite {
 }
 
 export class VakarBlockRuntime {
-  constructor({ sprites, onRender, onError, onPenClear, onStamp, onShowLoginPopup, onCloseLoginPopup, onLoadingScreen }) {
+  constructor({ sprites, onRender, onError, onPenClear, onStamp, onShowLoginPopup, onCloseLoginPopup, onLoadingScreen, onBackdropChange, initialBackdropName }) {
     this.sprites = sprites; // Map<id, VakarSprite> — includes clones once created
     this.onRender = onRender || (() => {});
     this.onError = onError || (() => {});
@@ -257,6 +257,17 @@ export class VakarBlockRuntime {
     this.onShowLoginPopup = onShowLoginPopup || ((onDone) => onDone(false));
     this.onCloseLoginPopup = onCloseLoginPopup || (() => {});
     this.onLoadingScreen = onLoadingScreen || (() => {});
+
+    // ---------- Décor (stage backdrop) ----------
+    // The stage/backdrop itself is owned by VakarBlockEditor.js's React
+    // state (project.stage), not the runtime — `onBackdropChange` is how a
+    // running script's `basculer sur le décor` actually moves the visible
+    // backdrop, mirroring how the login popup/loading screen are also
+    // React-rendered rather than runtime-owned. `currentBackdropName`
+    // still needs to live here too, since it's what
+    // `event_whenbackdropswitchesto` scripts compare against.
+    this.currentBackdropName = initialBackdropName || null;
+    this.onBackdropChange = onBackdropChange || (() => {});
 
     // Initial stacking order = sprite-list order, matching Scratch's own
     // default (the sprite corral's order is also the initial layer order).
@@ -328,7 +339,7 @@ export class VakarBlockRuntime {
   // when (re)loading a project — must be called before greenFlag() sees it).
   compileSprite(sprite, workspace) {
     const topBlocks = workspace.getTopBlocks(true);
-    const scripts = { greenFlag: [], keyPressed: [], spriteClicked: [], messageReceived: [], cloneStart: [] };
+    const scripts = { greenFlag: [], keyPressed: [], spriteClicked: [], messageReceived: [], cloneStart: [], backdropSwitch: [] };
     javascriptGenerator.init(workspace);
 
     // "Mes blocs" definitions aren't hats — collect their generated code
@@ -381,6 +392,7 @@ export class VakarBlockRuntime {
       else if (block.type === 'vk_when_sprite_clicked') scripts.spriteClicked.push(fn);
       else if (block.type === 'vk_when_i_receive') scripts.messageReceived.push({ message: block.getFieldValue('MESSAGE'), fn });
       else if (block.type === 'vk_when_i_start_as_clone') scripts.cloneStart.push(fn);
+      else if (block.type === 'vk_when_backdrop_switches_to') scripts.backdropSwitch.push({ backdrop: block.getFieldValue('BACKDROP'), fn });
     }
     this._compiled.set(sprite.id, scripts);
   }
@@ -428,6 +440,28 @@ export class VakarBlockRuntime {
       if (!scripts) continue;
       for (const item of scripts.messageReceived) {
         if (item.message === message) this._startThread(sprite, item.fn);
+      }
+    }
+  }
+
+  // ---------- Décor (stage backdrop) ----------
+  // Edge-triggered, matching real Scratch: only an actual switch fires
+  // `event_whenbackdropswitchesto` scripts — pressing green flag does NOT
+  // re-fire them for whatever backdrop happens to already be active (same
+  // reasoning as sprites not auto-resetting position on green flag, see
+  // VakarSprite.resetToInitial's comment — Vakar Block's own greenFlag()
+  // doesn't call it, on purpose, matching real Scratch VM behavior).
+  switchBackdrop(name) {
+    const target = String(name || '').trim();
+    if (!target) return;
+    this.currentBackdropName = target;
+    this.onBackdropChange(target);
+    if (!this.running) return;
+    for (const sprite of this.sprites.values()) {
+      const scripts = this._compiled.get(sprite.id);
+      if (!scripts) continue;
+      for (const item of scripts.backdropSwitch) {
+        if (item.backdrop === target) this._startThread(sprite, item.fn);
       }
     }
   }
@@ -510,6 +544,38 @@ export class VakarBlockRuntime {
       tx = other.x; ty = other.y;
     }
     return Math.hypot(sprite.x - tx, sprite.y - ty);
+  }
+
+  // ---------- Mouvement : cibles nommées (aller à / s'orienter vers) ----------
+  // Shared target resolution for `vk_go_to`/`vk_point_towards` — same
+  // souris/sprite-name convention as touching()/distanceTo() above, plus
+  // "aléatoire" for a random on-stage position. Uses the same hardcoded
+  // stage-half-extent approximation as touching()'s "bord" case (the
+  // runtime doesn't know the project's actual configured stage size, only
+  // the editor does) — same documented simplification, not a new one.
+  _resolveTargetPosition(target) {
+    const key = (target || '').trim().toLowerCase();
+    if (key === 'aléatoire' || key === 'random') {
+      const half = 240;
+      return { x: (Math.random() * 2 - 1) * half, y: (Math.random() * 2 - 1) * half * 0.75 };
+    }
+    if (key === 'souris' || key === 'mouse') return { x: this.mouseX, y: this.mouseY };
+    const other = Array.from(this.sprites.values()).find((s) => s.name === target);
+    return other ? { x: other.x, y: other.y } : null;
+  }
+
+  goToTarget(sprite, target) {
+    const pos = this._resolveTargetPosition(target);
+    if (pos) sprite.goTo(pos.x, pos.y);
+  }
+
+  pointTowards(sprite, target) {
+    const pos = this._resolveTargetPosition(target);
+    if (!pos) return;
+    const dx = pos.x - sprite.x;
+    const dy = pos.y - sprite.y;
+    if (dx === 0 && dy === 0) return;
+    sprite.pointInDirection(90 - (Math.atan2(dy, dx) * 180) / Math.PI);
   }
 
   // ---------- Apparence : ordre d'affichage (layers) ----------

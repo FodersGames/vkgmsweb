@@ -134,6 +134,14 @@ const jsonBlocks = [
     colour: COLORS.events,
     tooltip: 'Envoie ce message à tous les scripts « quand je reçois » qui l’attendent.',
   },
+  {
+    type: 'vk_when_backdrop_switches_to',
+    message0: '🖼 quand le décor devient %1',
+    args0: [{ type: 'field_input', name: 'BACKDROP', text: 'décor1' }],
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Démarre ce script quand le décor de la scène change pour celui-ci.',
+  },
 
   // ---------- MOUVEMENT ----------
   {
@@ -159,6 +167,24 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.motion,
+  },
+  {
+    type: 'vk_go_to',
+    message0: 'aller à %1',
+    args0: [{ type: 'field_input', name: 'TARGET', text: 'aléatoire' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+    tooltip: "Écris « aléatoire », « souris », ou le nom d'un sprite.",
+  },
+  {
+    type: 'vk_point_towards',
+    message0: "s'orienter vers %1",
+    args0: [{ type: 'field_input', name: 'TARGET', text: 'souris' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.motion,
+    tooltip: "Écris « souris » ou le nom d'un sprite.",
   },
   {
     type: 'vk_go_to_xy',
@@ -285,6 +311,15 @@ const jsonBlocks = [
     colour: COLORS.looks,
   },
   {
+    type: 'vk_switch_backdrop',
+    message0: 'basculer sur le décor %1',
+    args0: [{ type: 'input_value', name: 'NAME' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.looks,
+    tooltip: 'Change le décor de la scène et démarre tous les scripts « quand le décor devient » correspondants.',
+  },
+  {
     type: 'vk_show',
     message0: 'montrer',
     previousStatement: null,
@@ -374,6 +409,20 @@ const jsonBlocks = [
     type: 'vk_stop_all',
     message0: '⛔ tout arrêter',
     previousStatement: null,
+    colour: COLORS.control,
+  },
+  {
+    type: 'vk_stop_this_script',
+    message0: 'arrêter ce script',
+    previousStatement: null,
+    colour: COLORS.control,
+  },
+  {
+    type: 'vk_wait_until',
+    message0: 'attendre jusqu’à %1',
+    args0: [{ type: 'input_value', name: 'CONDITION', check: 'Boolean' }],
+    previousStatement: null,
+    nextStatement: null,
     colour: COLORS.control,
   },
   {
@@ -621,6 +670,22 @@ const jsonBlocks = [
     message0: 'volume',
     output: 'Number',
     colour: COLORS.sound,
+  },
+
+  // Opérateurs — the one text operator Blockly's stock library doesn't
+  // have an equivalent for (unlike text_join/text_length/math_modulo/
+  // math_round, which are reused wholesale — see the STOCK_COLOUR_OVERRIDES
+  // comment above).
+  {
+    type: 'vk_text_contains',
+    message0: '%1 contient %2 ?',
+    args0: [
+      { type: 'input_value', name: 'STRING1' },
+      { type: 'input_value', name: 'STRING2' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.operators,
+    tooltip: 'Vrai si le premier texte contient le second (sans tenir compte des majuscules/minuscules).',
   },
 
   // ---------- MES BLOCS ----------
@@ -922,6 +987,7 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_when_sprite_clicked' },
         { kind: 'block', type: 'vk_when_i_receive' },
         { kind: 'block', type: 'vk_broadcast' },
+        { kind: 'block', type: 'vk_when_backdrop_switches_to' },
       ],
     },
     {
@@ -930,6 +996,8 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_move_steps', inputs: { STEPS: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_turn_right', inputs: { DEGREES: { shadow: { type: 'math_number', fields: { NUM: 15 } } } } },
         { kind: 'block', type: 'vk_turn_left', inputs: { DEGREES: { shadow: { type: 'math_number', fields: { NUM: 15 } } } } },
+        { kind: 'block', type: 'vk_go_to' },
+        { kind: 'block', type: 'vk_point_towards' },
         { kind: 'block', type: 'vk_go_to_xy', inputs: {
           X: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
           Y: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
@@ -959,6 +1027,7 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_switch_costume', inputs: { NAME: { shadow: { type: 'text', fields: { TEXT: 'costume1' } } } } },
         { kind: 'block', type: 'vk_costume_number' },
         { kind: 'block', type: 'vk_costume_name' },
+        { kind: 'block', type: 'vk_switch_backdrop', inputs: { NAME: { shadow: { type: 'text', fields: { TEXT: 'décor1' } } } } },
         { kind: 'block', type: 'vk_change_size', inputs: { DELTA: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_set_size', inputs: { SIZE: { shadow: { type: 'math_number', fields: { NUM: 100 } } } } },
         { kind: 'block', type: 'vk_show' },
@@ -973,12 +1042,14 @@ export const TOOLBOX = {
       kind: 'category', name: 'Contrôle', colour: COLORS.control,
       contents: [
         { kind: 'block', type: 'vk_wait_secs', inputs: { SECS: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
+        { kind: 'block', type: 'vk_wait_until' },
         { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_forever' },
         { kind: 'block', type: 'controls_whileUntil' },
         { kind: 'block', type: 'controls_if' },
         { kind: 'block', type: 'controls_ifelse' },
         { kind: 'block', type: 'vk_stop_all' },
+        { kind: 'block', type: 'vk_stop_this_script' },
         { kind: 'block', type: 'vk_when_i_start_as_clone' },
         { kind: 'block', type: 'vk_create_clone_of' },
         { kind: 'block', type: 'vk_delete_this_clone' },
@@ -1005,6 +1076,10 @@ export const TOOLBOX = {
         { kind: 'block', type: 'math_random_int', inputs: {
           FROM: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
           TO: { shadow: { type: 'math_number', fields: { NUM: 10 } } },
+        } },
+        { kind: 'block', type: 'vk_text_contains', inputs: {
+          STRING1: { shadow: { type: 'text', fields: { TEXT: '' } } },
+          STRING2: { shadow: { type: 'text', fields: { TEXT: '' } } },
         } },
       ],
     },

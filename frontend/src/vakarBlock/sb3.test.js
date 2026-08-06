@@ -447,6 +447,139 @@ test('sb3 export: vakargames_* blocks round-trip through import again with the s
   ws.dispose();
 });
 
+// Round 10: found while investigating a real bug report ("pressing green
+// flag on the imported game/1.0.0.sb3 leaves most sprites invisible") —
+// the project relies heavily (23 switches, 15 event hooks in the real
+// file) on Scratch's backdrop-switching system to show/hide sprites per
+// game "screen", which Vakar Block never supported before this round.
+// Shapes below (BACKDROP as an input for looks_switchbackdropto vs. a
+// field for event_whenbackdropswitchesto, motion_goto/motion_pointtowards'
+// menu-shadow indirection) all confirmed against the real file first.
+function backdropAndMotionProject() {
+  return {
+    targets: [
+      { isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {}, costumes: [{ assetId: 'bg1', name: 'menu', dataFormat: 'svg' }, { assetId: 'bg2', name: 'jeu', dataFormat: 'svg' }], sounds: [], currentCostume: 0 },
+      {
+        // Listens for the backdrop switch fired by "A"'s script — proves
+        // it's a genuine cross-sprite event, not just local state.
+        isStage: false, name: 'B', variables: {}, lists: {}, x: 0, y: 0, direction: 90, size: 100, visible: false, currentCostume: 0, costumes: [], sounds: [],
+        blocks: {
+          hatShow: { opcode: 'event_whenbackdropswitchesto', next: 'show1', parent: null, inputs: {}, fields: { BACKDROP: ['jeu', null] }, topLevel: true, x: 0, y: 0 },
+          show1: { opcode: 'looks_show', next: null, parent: 'hatShow', inputs: {}, fields: {} },
+        },
+      },
+      {
+        isStage: false, name: 'A', variables: { v1: ['flag', 0] }, lists: {},
+        x: 0, y: 0, direction: 90, size: 100, visible: true, currentCostume: 0, costumes: [], sounds: [],
+        blocks: {
+          hat1: { opcode: 'event_whenflagclicked', next: 'switch1', parent: null, inputs: {}, fields: {}, topLevel: true, x: 0, y: 0 },
+          switch1: { opcode: 'looks_switchbackdropto', next: 'wait1', parent: 'hat1', inputs: { BACKDROP: [1, 'switchMenu'] }, fields: {} },
+          switchMenu: { opcode: 'looks_backdrops', next: null, parent: 'switch1', inputs: {}, fields: { BACKDROP: ['jeu', null] }, shadow: true },
+          wait1: { opcode: 'control_wait_until', next: 'goto1', parent: 'switch1', inputs: { CONDITION: [2, 'cmpTrue'] }, fields: {} },
+          cmpTrue: { opcode: 'operator_equals', next: null, parent: 'wait1', inputs: { OPERAND1: [1, [4, '1']], OPERAND2: [1, [4, '1']] }, fields: {} },
+          goto1: { opcode: 'motion_goto', next: 'point1', parent: 'wait1', inputs: { TO: [1, 'gotoMenu'] }, fields: {} },
+          gotoMenu: { opcode: 'motion_goto_menu', next: null, parent: 'goto1', inputs: {}, fields: { TO: ['_random_', null] }, shadow: true },
+          point1: { opcode: 'motion_pointtowards', next: 'setvar1', parent: 'goto1', inputs: { TOWARDS: [1, 'pointB'] }, fields: {} },
+          pointB: { opcode: 'motion_pointtowards_menu', next: null, parent: 'point1', inputs: {}, fields: { TOWARDS: ['B', null] }, shadow: true },
+          setvar1: { opcode: 'data_setvariableto', next: 'if1', parent: 'point1', inputs: { VALUE: [3, 'contains1'] }, fields: { VARIABLE: ['flag', 'v1'] } },
+          contains1: { opcode: 'operator_contains', next: null, parent: 'setvar1', inputs: { STRING1: [1, [10, 'Bonjour le monde']], STRING2: [1, [10, 'le monde']] }, fields: {} },
+          if1: { opcode: 'control_if', next: 'move1', parent: 'setvar1', inputs: { CONDITION: [2, 'isTrue'], SUBSTACK: [2, 'stopBlk'] }, fields: {} },
+          isTrue: { opcode: 'data_variable', next: null, parent: 'if1', inputs: {}, fields: { VARIABLE: ['flag', 'v1'] } },
+          stopBlk: { opcode: 'control_stop', next: null, parent: 'if1', inputs: {}, fields: { STOP_OPTION: ['this script', null] } },
+          move1: { opcode: 'motion_movesteps', next: null, parent: 'if1', inputs: { STEPS: [1, [4, '999']] }, fields: {} },
+        },
+      },
+    ],
+  };
+}
+
+test('sb3 import: backdrop switching, stop-this-script, wait-until, go-to/point-towards, and text-contains all compile and run correctly', async () => {
+  const { sprites, warnings } = buildProjectFromSb3(backdropAndMotionProject());
+  expect(warnings).toEqual([]);
+  expect(sprites.length).toBe(2);
+
+  const b = new VakarSprite({ id: 'b', name: 'B', x: 40, y: 20, direction: 90, visible: false, workspace: sprites[0].workspace });
+  const a = new VakarSprite({ id: 'a', name: 'A', x: 0, y: 0, direction: 90, workspace: sprites[1].workspace });
+  let backdropChanged = null;
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[b.id, b], [a.id, a]]),
+    onRender: () => {}, onError: (e) => { throw e; },
+    onBackdropChange: (name) => { backdropChanged = name; },
+    initialBackdropName: 'menu',
+  });
+  for (const [sprite, data] of [[b, sprites[0]], [a, sprites[1]]]) {
+    const ws = new Blockly.Workspace();
+    Blockly.serialization.workspaces.load(data.workspace, ws);
+    rt.compileSprite(sprite, ws);
+    ws.dispose();
+  }
+
+  await runToCompletion(rt);
+
+  // looks_switchbackdropto → vk_switch_backdrop actually changed the
+  // backdrop AND fired B's "quand le décor devient jeu" hat.
+  expect(backdropChanged).toBe('jeu');
+  expect(b.visible).toBe(true);
+
+  // motion_goto "_random_" moved A somewhere on stage (not still at 0,0 —
+  // astronomically unlikely to land exactly there by chance).
+  expect(a.x !== 0 || a.y !== 0).toBe(true);
+
+  // motion_pointtowards "B" — A's direction now points at wherever B is,
+  // relative to A's NEW (randomized) position.
+  const expectedDir = ((90 - (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI) % 360 + 360) % 360;
+  expect(a.direction).toBeCloseTo(expectedDir, 5);
+
+  // operator_contains("Bonjour le monde", "le monde") → true → sets flag,
+  // then control_if(flag) → control_stop(this script) — the 999-step move
+  // right after must NEVER have executed.
+  expect(a.vars.flag).toBe(true);
+  expect(a.x).not.toBeCloseTo(999, 0);
+
+  rt.destroy();
+});
+
+test('sb3 export: backdrop/motion/stop/wait/contains blocks round-trip through import again', async () => {
+  const { sprites } = buildProjectFromSb3(backdropAndMotionProject());
+  const warnings = new Set();
+  const exportedA = exportSpriteWorkspace(sprites[1].workspace, warnings); // "A"
+  expect(Array.from(warnings)).toEqual([]);
+  const opcodes = Object.values(exportedA.blocks).map((b) => b.opcode);
+  expect(opcodes).toEqual(expect.arrayContaining([
+    'looks_switchbackdropto', 'control_wait_until', 'motion_goto', 'motion_pointtowards',
+    'operator_contains', 'control_if', 'control_stop',
+  ]));
+  const stopBlock = Object.values(exportedA.blocks).find((b) => b.opcode === 'control_stop');
+  expect(stopBlock.fields.STOP_OPTION[0]).toBe('this script');
+
+  const exportedB = exportSpriteWorkspace(sprites[0].workspace, new Set());
+  expect(Object.values(exportedB.blocks).some((b) => b.opcode === 'event_whenbackdropswitchesto')).toBe(true);
+
+  const reimported = buildProjectFromSb3({
+    targets: [
+      { isStage: false, name: 'B2', variables: {}, lists: {}, blocks: exportedB.blocks, costumes: [], sounds: [], currentCostume: 0 },
+      { isStage: false, name: 'A2', variables: { v1: ['flag', 0] }, lists: {}, blocks: exportedA.blocks, costumes: [], sounds: [], currentCostume: 0 },
+    ],
+  });
+  expect(reimported.warnings).toEqual([]);
+
+  const b2 = new VakarSprite({ id: 'b2', name: 'B2', visible: false, workspace: reimported.sprites[0].workspace });
+  const a2 = new VakarSprite({ id: 'a2', name: 'A2', workspace: reimported.sprites[1].workspace });
+  const rt = new VakarBlockRuntime({ sprites: new Map([[b2.id, b2], [a2.id, a2]]), onRender: () => {}, onError: (e) => { throw e; }, initialBackdropName: 'menu' });
+  for (const [sprite, data] of [[b2, reimported.sprites[0]], [a2, reimported.sprites[1]]]) {
+    const ws = new Blockly.Workspace();
+    Blockly.serialization.workspaces.load(data.workspace, ws);
+    rt.compileSprite(sprite, ws);
+    ws.dispose();
+  }
+  await runToCompletion(rt);
+  expect(b2.visible).toBe(true);
+  expect(a2.vars.flag).toBe(true);
+  expect(a2.x).not.toBeCloseTo(999, 0);
+
+  rt.destroy();
+});
+
 function jsonExtensionProject() {
   return {
     targets: [

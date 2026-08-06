@@ -88,6 +88,7 @@ const MENU_OPCODES = new Set([
   // getInfo()) — same generic "extract the first field's value as a plain
   // literal" handling already works for these, no special-casing needed.
   'vakargames_menu_ouiNon', 'vakargames_menu_categoriesSave',
+  'motion_goto_menu', 'motion_pointtowards_menu',
 ]);
 const LITERAL_OPCODES = new Set([
   'math_number', 'math_integer', 'math_whole_number', 'math_positive_number', 'math_angle', 'text', 'colour_picker',
@@ -240,6 +241,11 @@ reg('event_broadcast', (sb, ws, blocksDict, ctx) => {
   b.setFieldValue(String(resolved.literal || 'message1'), 'MESSAGE');
   return b;
 });
+reg('event_whenbackdropswitchesto', (sb, ws) => {
+  const b = ws.newBlock('vk_when_backdrop_switches_to');
+  b.setFieldValue((sb.fields.BACKDROP || ['décor1'])[0], 'BACKDROP');
+  return b;
+});
 
 // ---------- Mouvement ----------
 reg('motion_movesteps', (sb, ws, blocksDict, ctx) => {
@@ -292,6 +298,23 @@ reg('motion_setrotationstyle', (sb, ws) => {
   b.setFieldValue((sb.fields.STYLE || ['all around'])[0], 'STYLE');
   return b;
 });
+// `_mouse_`/`_random_` are Scratch's own internal tokens for these two
+// motion menus — everything else is a plain sprite name, passed through.
+function motionTargetLiteral(resolved) {
+  if (resolved.literal === '_mouse_') return 'souris';
+  if (resolved.literal === '_random_') return 'aléatoire';
+  return resolved.literal;
+}
+reg('motion_goto', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_go_to');
+  b.setFieldValue(motionTargetLiteral(resolveValue(ws, blocksDict, sb, 'TO', ctx)) || 'aléatoire', 'TARGET');
+  return b;
+});
+reg('motion_pointtowards', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_point_towards');
+  b.setFieldValue(motionTargetLiteral(resolveValue(ws, blocksDict, sb, 'TOWARDS', ctx)) || 'souris', 'TARGET');
+  return b;
+});
 
 // ---------- Apparence ----------
 reg('looks_sayforsecs', (sb, ws, blocksDict, ctx) => {
@@ -323,6 +346,11 @@ reg('looks_setsizeto', (sb, ws, blocksDict, ctx) => {
 });
 reg('looks_show', (sb, ws) => ws.newBlock('vk_show'));
 reg('looks_hide', (sb, ws) => ws.newBlock('vk_hide'));
+reg('looks_switchbackdropto', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_switch_backdrop');
+  connectValue(ws, b, 'NAME', resolveValue(ws, blocksDict, sb, 'BACKDROP', ctx), { asText: true });
+  return b;
+});
 reg('looks_costumenumbername', (sb, ws) => {
   const which = (sb.fields.NUMBER_NAME || ['number'])[0];
   return ws.newBlock(which === 'name' ? 'vk_costume_name' : 'vk_costume_number');
@@ -400,8 +428,19 @@ reg('control_if_else', (sb, ws, blocksDict, ctx) => {
 });
 reg('control_stop', (sb, ws, blocksDict, ctx) => {
   const option = (sb.fields.STOP_OPTION || [''])[0];
-  if (option !== 'all') { ctx.warnings.add(`control_stop (${option})`); return null; }
-  return ws.newBlock('vk_stop_all');
+  if (option === 'all') return ws.newBlock('vk_stop_all');
+  if (option === 'this script') return ws.newBlock('vk_stop_this_script');
+  // "other scripts in sprite" has no Vakar Block equivalent (the runtime
+  // has no notion of "every other thread on this sprite" to target) —
+  // still skipped, with a warning naming exactly which variant.
+  ctx.warnings.add(`control_stop (${option})`);
+  return null;
+});
+reg('control_wait_until', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_wait_until');
+  const cond = resolveValue(ws, blocksDict, sb, 'CONDITION', ctx);
+  if (cond.block) b.getInput('CONDITION').connection.connect(cond.block.outputConnection);
+  return b;
 });
 reg('control_create_clone_of', (sb, ws, blocksDict, ctx) => {
   const b = ws.newBlock('vk_create_clone_of');
@@ -563,6 +602,12 @@ reg('operator_round', (sb, ws, blocksDict, ctx) => {
   const b = ws.newBlock('math_round');
   b.setFieldValue('ROUND', 'OP');
   connectValue(ws, b, 'NUM', resolveValue(ws, blocksDict, sb, 'NUM', ctx));
+  return b;
+});
+reg('operator_contains', (sb, ws, blocksDict, ctx) => {
+  const b = ws.newBlock('vk_text_contains');
+  connectValue(ws, b, 'STRING1', resolveValue(ws, blocksDict, sb, 'STRING1', ctx), { asText: true });
+  connectValue(ws, b, 'STRING2', resolveValue(ws, blocksDict, sb, 'STRING2', ctx), { asText: true });
   return b;
 });
 
@@ -1061,6 +1106,7 @@ regExport('vk_broadcast', (b, id, blocksOut) => {
   blocksOut[menuId] = { opcode: 'event_broadcast_menu', next: null, parent: id, inputs: {}, fields: { BROADCAST_OPTION: [b.getFieldValue('MESSAGE'), b.getFieldValue('MESSAGE')] }, shadow: true, topLevel: false };
   return { opcode: 'event_broadcast', inputs: { BROADCAST_INPUT: [1, menuId] } };
 });
+regExport('vk_when_backdrop_switches_to', (b) => ({ opcode: 'event_whenbackdropswitchesto', fields: { BACKDROP: scratchField(b.getFieldValue('BACKDROP')) } }));
 
 // ---------- Mouvement ----------
 regExport('vk_move_steps', (b, id, blocksOut, ctx) => ({ opcode: 'motion_movesteps', inputs: { STEPS: exportValue(b, id, 'STEPS', blocksOut, ctx) } }));
@@ -1070,6 +1116,21 @@ regExport('vk_go_to_xy', (b, id, blocksOut, ctx) => ({ opcode: 'motion_gotoxy', 
 regExport('vk_glide_to_xy', (b, id, blocksOut, ctx) => ({ opcode: 'motion_glidesecstoxy', inputs: { SECS: exportValue(b, id, 'SECS', blocksOut, ctx), X: exportValue(b, id, 'X', blocksOut, ctx), Y: exportValue(b, id, 'Y', blocksOut, ctx) } }));
 regExport('vk_x_position', () => ({ opcode: 'motion_xposition' }));
 regExport('vk_y_position', () => ({ opcode: 'motion_yposition' }));
+function scratchMotionTarget(v) {
+  if (v === 'souris') return '_mouse_';
+  if (v === 'aléatoire') return '_random_';
+  return v;
+}
+regExport('vk_go_to', (b, id, blocksOut) => {
+  const menuId = genScratchId();
+  blocksOut[menuId] = { opcode: 'motion_goto_menu', next: null, parent: id, inputs: {}, fields: { TO: scratchField(scratchMotionTarget(b.getFieldValue('TARGET'))) }, shadow: true, topLevel: false };
+  return { opcode: 'motion_goto', inputs: { TO: [1, menuId] } };
+});
+regExport('vk_point_towards', (b, id, blocksOut) => {
+  const menuId = genScratchId();
+  blocksOut[menuId] = { opcode: 'motion_pointtowards_menu', next: null, parent: id, inputs: {}, fields: { TOWARDS: scratchField(scratchMotionTarget(b.getFieldValue('TARGET'))) }, shadow: true, topLevel: false };
+  return { opcode: 'motion_pointtowards', inputs: { TOWARDS: [1, menuId] } };
+});
 regExport('vk_change_x_by', (b, id, blocksOut, ctx) => ({ opcode: 'motion_changexby', inputs: { DX: exportValue(b, id, 'DX', blocksOut, ctx) } }));
 regExport('vk_change_y_by', (b, id, blocksOut, ctx) => ({ opcode: 'motion_changeyby', inputs: { DY: exportValue(b, id, 'DY', blocksOut, ctx) } }));
 regExport('vk_point_in_direction', (b, id, blocksOut, ctx) => ({ opcode: 'motion_pointindirection', inputs: { DIRECTION: exportValue(b, id, 'DIRECTION', blocksOut, ctx) } }));
@@ -1082,6 +1143,7 @@ regExport('vk_next_costume', () => ({ opcode: 'looks_nextcostume' }));
 regExport('vk_switch_costume', (b, id, blocksOut, ctx) => ({ opcode: 'looks_switchcostumeto', inputs: { COSTUME: exportValue(b, id, 'NAME', blocksOut, ctx) } }));
 regExport('vk_change_size', (b, id, blocksOut, ctx) => ({ opcode: 'looks_changesizeby', inputs: { CHANGE: exportValue(b, id, 'DELTA', blocksOut, ctx) } }));
 regExport('vk_set_size', (b, id, blocksOut, ctx) => ({ opcode: 'looks_setsizeto', inputs: { SIZE: exportValue(b, id, 'SIZE', blocksOut, ctx) } }));
+regExport('vk_switch_backdrop', (b, id, blocksOut, ctx) => ({ opcode: 'looks_switchbackdropto', inputs: { BACKDROP: exportValue(b, id, 'NAME', blocksOut, ctx) } }));
 regExport('vk_show', () => ({ opcode: 'looks_show' }));
 regExport('vk_hide', () => ({ opcode: 'looks_hide' }));
 regExport('vk_costume_number', () => ({ opcode: 'looks_costumenumbername', fields: { NUMBER_NAME: scratchField('number') } }));
@@ -1098,6 +1160,8 @@ regExport('vk_forever', (b, id, blocksOut, ctx) => ({ opcode: 'control_forever',
 regExport('controls_if', (b, id, blocksOut, ctx) => ({ opcode: 'control_if', inputs: { CONDITION: exportValue(b, id, 'IF0', blocksOut, ctx), SUBSTACK: exportStatement(b, id, 'DO0', blocksOut, ctx) } }));
 regExport('controls_ifelse', (b, id, blocksOut, ctx) => ({ opcode: 'control_if_else', inputs: { CONDITION: exportValue(b, id, 'IF0', blocksOut, ctx), SUBSTACK: exportStatement(b, id, 'DO0', blocksOut, ctx), SUBSTACK2: exportStatement(b, id, 'ELSE', blocksOut, ctx) } }));
 regExport('vk_stop_all', () => ({ opcode: 'control_stop', fields: { STOP_OPTION: scratchField('all') } }));
+regExport('vk_stop_this_script', () => ({ opcode: 'control_stop', fields: { STOP_OPTION: scratchField('this script') } }));
+regExport('vk_wait_until', (b, id, blocksOut, ctx) => ({ opcode: 'control_wait_until', inputs: { CONDITION: exportValue(b, id, 'CONDITION', blocksOut, ctx) } }));
 regExport('vk_when_i_start_as_clone', () => ({ opcode: 'control_start_as_clone' }));
 regExport('vk_create_clone_of', (b) => {
   const target = b.getFieldValue('TARGET');
@@ -1185,6 +1249,7 @@ regExport('text_join', (b, id, blocksOut, ctx) => ({ opcode: 'operator_join', in
 regExport('text_length', (b, id, blocksOut, ctx) => ({ opcode: 'operator_length', inputs: { STRING: exportValue(b, id, 'VALUE', blocksOut, ctx) } }));
 regExport('math_modulo', (b, id, blocksOut, ctx) => ({ opcode: 'operator_mod', inputs: { NUM1: exportValue(b, id, 'DIVIDEND', blocksOut, ctx), NUM2: exportValue(b, id, 'DIVISOR', blocksOut, ctx) } }));
 regExport('math_round', (b, id, blocksOut, ctx) => ({ opcode: 'operator_round', inputs: { NUM: exportValue(b, id, 'NUM', blocksOut, ctx) } }));
+regExport('vk_text_contains', (b, id, blocksOut, ctx) => ({ opcode: 'operator_contains', inputs: { STRING1: exportValue(b, id, 'STRING1', blocksOut, ctx), STRING2: exportValue(b, id, 'STRING2', blocksOut, ctx) } }));
 
 // ---------- Variables / Listes ----------
 regExport('variables_get', (b) => {

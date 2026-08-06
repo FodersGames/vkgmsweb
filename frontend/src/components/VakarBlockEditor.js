@@ -234,6 +234,21 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           onShowLoginPopup: () => setVgLoginPopup({}),
           onCloseLoginPopup: () => setVgLoginPopup(null),
           onLoadingScreen: (state) => setVgLoadingScreen(state?.visible ? state : null),
+          initialBackdropName: (data.stage?.backdrops || []).find((b) => b.id === data.stage?.current_backdrop_id)?.name || null,
+          // `basculer sur le décor` (vk_switch_backdrop) changes the visible
+          // backdrop by NAME — look it up by name in the *live* project
+          // state (not `data`, which goes stale the moment this closure was
+          // created) and update `stage.current_backdrop_id` to match. An
+          // unrecognized name is left alone rather than clearing the
+          // backdrop — matches real Scratch, where switching to a
+          // nonexistent backdrop name is a silent no-op, not a blank stage.
+          onBackdropChange: (name) => {
+            setProject((p) => {
+              const found = (p.stage?.backdrops || []).find((b) => b.name === name);
+              if (!found || p.stage.current_backdrop_id === found.id) return p;
+              return { ...p, stage: { ...p.stage, current_backdrop_id: found.id } };
+            });
+          },
         });
       } finally {
         if (!cancelled) setLoading(false);
