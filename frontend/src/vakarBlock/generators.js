@@ -209,4 +209,24 @@ forBlock['vk_change_volume'] = function (block, generator) {
 };
 forBlock['vk_volume'] = () => ['sprite.volume', Order.MEMBER];
 
+// ---------- Mes blocs ----------
+// Named, no-parameter reusable sequences. `vk_procedure_def` compiles to a
+// real JS generator-function DECLARATION (function* proc_name(sprite,
+// runtime) {...}) — runtime.js's compileSprite() collects every top-level
+// def block's generated code and prepends it into *every* compiled hat's
+// function body (JS function declarations hoist within their containing
+// scope, so a call site doesn't care about source order). `yield*`
+// delegation on the call means a procedure's own waits/loops still
+// cooperate correctly with the rest of the concurrency model.
+function safeProcName(name) {
+  return `proc_${String(name || 'bloc').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+}
+forBlock['vk_procedure_def'] = function (block, generator) {
+  const body = generator.statementToCode(block, 'DO');
+  return `function* ${safeProcName(block.getFieldValue('NAME'))}(sprite, runtime) {\n${body}}\n`;
+};
+forBlock['vk_procedure_call'] = function (block) {
+  return `yield* ${safeProcName(block.getFieldValue('NAME'))}(sprite, runtime);\n`;
+};
+
 export { javascriptGenerator, Order };

@@ -34,6 +34,7 @@ export const COLORS = {
   lists: '#CF63CF',
   pen: '#0FBD8C',
   sound: '#D65CD6',
+  procedures: '#FF6680',
 };
 
 // French message overrides for the stock blocks we reuse, so the whole
@@ -519,6 +520,32 @@ const jsonBlocks = [
     output: 'Number',
     colour: COLORS.sound,
   },
+
+  // ---------- MES BLOCS ----------
+  // Reusable named blocks — no parameters (a real Blockly-mutator-driven
+  // parameter system is a much bigger feature; a callable named sequence
+  // already covers most real uses — reusable jump/death/reset sequences,
+  // etc). Referenced by name, same convention as costumes/sounds/lists
+  // throughout this codebase. `vk_procedure_def` is never chained (no
+  // previous/next) — it's always a standalone top-level definition, like
+  // Scratch's own custom-block hat.
+  {
+    type: 'vk_procedure_def',
+    message0: '🧩 définir %1',
+    args0: [{ type: 'field_input', name: 'NAME', text: 'mon_bloc' }],
+    message1: '%1',
+    args1: [{ type: 'input_statement', name: 'DO' }],
+    colour: COLORS.procedures,
+    tooltip: 'Crée un bloc réutilisable — utilise-le avec « exécuter » ci-dessous.',
+  },
+  {
+    type: 'vk_procedure_call',
+    message0: '▶ exécuter %1',
+    args0: [{ type: 'field_input', name: 'NAME', text: 'mon_bloc' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.procedures,
+  },
 ];
 
 Blockly.defineBlocksWithJsonArray(jsonBlocks);
@@ -678,6 +705,13 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_set_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: 100 } } } } },
         { kind: 'block', type: 'vk_change_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: -10 } } } } },
         { kind: 'block', type: 'vk_volume' },
+      ],
+    },
+    {
+      kind: 'category', name: 'Mes blocs', colour: COLORS.procedures,
+      contents: [
+        { kind: 'block', type: 'vk_procedure_def' },
+        { kind: 'block', type: 'vk_procedure_call' },
       ],
     },
   ],

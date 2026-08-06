@@ -242,3 +242,54 @@ test('son: playSound tracks active audio, stopAllSounds clears it, playSoundUnti
 
   rt.destroy();
 });
+
+test('mes blocs: a defined procedure runs when called, called twice from two different scripts, and its own wait still yields correctly', async () => {
+  const ws = new Blockly.Workspace();
+
+  // définir sauter: avancer de 5, attendre 0.01s, avancer de 5
+  const def = ws.newBlock('vk_procedure_def');
+  def.setFieldValue('sauter', 'NAME');
+  const move1 = ws.newBlock('vk_move_steps');
+  connectValue(move1, 'STEPS', numberBlock(ws, 5));
+  const wait = ws.newBlock('vk_wait_secs');
+  connectValue(wait, 'SECS', numberBlock(ws, 0.01));
+  const move2 = ws.newBlock('vk_move_steps');
+  connectValue(move2, 'STEPS', numberBlock(ws, 5));
+  connectStack(move1, wait, move2);
+  def.getInput('DO').connection.connect(move1.previousConnection);
+
+  // deux scripts séparés (déclenchés tous les deux par le drapeau vert)
+  // appellent tous les deux "sauter" en même temps — vérifie que des appels
+  // concurrents à la même procédure sont bien indépendants.
+  const hatA = ws.newBlock('vk_when_green_flag');
+  const callA = ws.newBlock('vk_procedure_call');
+  callA.setFieldValue('sauter', 'NAME');
+  connectStack(hatA, callA);
+
+  const hatB = ws.newBlock('vk_when_green_flag');
+  const callB = ws.newBlock('vk_procedure_call');
+  callB.setFieldValue('sauter', 'NAME');
+  connectStack(hatB, callB);
+
+  const sprite = new VakarSprite({ id: 's1', name: 'Chat', x: 0, y: 0, direction: 90 });
+  const rt = new VakarBlockRuntime({
+    sprites: new Map([[sprite.id, sprite]]),
+    onRender: () => {},
+    onError: (e) => { throw e; },
+  });
+  rt.compileSprite(sprite, ws);
+  rt.greenFlag();
+
+  // the wait inside the procedure means neither call finishes on frame 1
+  await new Promise((resolve) => { rt.onRender = resolve; });
+  expect(sprite.x).toBeCloseTo(10); // both scripts' first "avancer de 5" has run (2 x 5)
+
+  await new Promise((resolve) => {
+    const check = () => { if (sprite.x >= 19.9) resolve(); else rt.onRender = check; };
+    rt.onRender = check;
+  });
+  expect(sprite.x).toBeCloseTo(20); // both concurrent calls fully completed (2 x (5+5))
+  expect(rt.running).toBe(false);
+
+  rt.destroy();
+});

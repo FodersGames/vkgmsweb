@@ -244,12 +244,48 @@ export class VakarBlockRuntime {
     const topBlocks = workspace.getTopBlocks(true);
     const scripts = { greenFlag: [], keyPressed: [], spriteClicked: [], messageReceived: [], cloneStart: [] };
     javascriptGenerator.init(workspace);
+
+    // "Mes blocs" definitions aren't hats — collect their generated code
+    // first so it can be prepended into every hat's compiled function body
+    // (JS function declarations hoist within their scope, so any call site
+    // finds them regardless of source order).
+    let procedureDefs = '';
+    for (const block of topBlocks) {
+      if (block.type !== 'vk_procedure_def' || block.isDisabled?.()) continue;
+      try {
+        const raw = javascriptGenerator.blockToCode(block);
+        procedureDefs += Array.isArray(raw) ? raw[0] : raw;
+      } catch (err) {
+        this.onError(err);
+      }
+    }
+
+    // Generate every hat's code FIRST, deferring the `new Function(...)`
+    // build — some stock Blockly blocks (e.g. math_random_int) don't inline
+    // their own logic, they call a shared helper that Blockly only decides
+    // to emit once, collected via `finish()` *after* every blockToCode call
+    // has run. Building the Function per-hat immediately (the previous
+    // approach) meant that helper never made it into any compiled script —
+    // `nombre aléatoire entre` has been silently broken since round 1,
+    // only surfacing as a `ReferenceError: mathRandomInt is not defined`
+    // the first time a script that actually used it was really executed.
+    const pending = [];
     for (const block of topBlocks) {
       if (block.isDisabled?.()) continue;
       if (!HAT_TYPES.includes(block.type)) continue;
+      try {
+        const raw = javascriptGenerator.blockToCode(block);
+        pending.push({ block, code: Array.isArray(raw) ? raw[0] : raw });
+      } catch (err) {
+        this.onError(err);
+      }
+    }
+    const helperDefs = javascriptGenerator.finish('');
+
+    for (const { block, code } of pending) {
       let fn;
       try {
-        fn = this._compileHat(block);
+        fn = this._buildHatFunction(helperDefs + procedureDefs + code);
       } catch (err) {
         this.onError(err);
         continue;
@@ -260,15 +296,12 @@ export class VakarBlockRuntime {
       else if (block.type === 'vk_when_i_receive') scripts.messageReceived.push({ message: block.getFieldValue('MESSAGE'), fn });
       else if (block.type === 'vk_when_i_start_as_clone') scripts.cloneStart.push(fn);
     }
-    javascriptGenerator.finish('');
     this._compiled.set(sprite.id, scripts);
   }
 
-  _compileHat(hatBlock) {
-    const raw = javascriptGenerator.blockToCode(hatBlock);
-    const code = Array.isArray(raw) ? raw[0] : raw;
+  _buildHatFunction(fullCode) {
     // eslint-disable-next-line no-new-func
-    const factory = new Function(`return function*(sprite, runtime) {\n${code}\n}`);
+    const factory = new Function(`return function*(sprite, runtime) {\n${fullCode}\n}`);
     return factory();
   }
 
