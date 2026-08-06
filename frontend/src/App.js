@@ -21,6 +21,7 @@ import Careers from './pages/Careers';
 import StudioAppView from './pages/StudioAppView';
 import VakarPlus from './pages/VakarPlus';
 import MyApps from './pages/MyApps';
+import MyVakarBlockProjects from './pages/MyVakarBlockProjects';
 import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
@@ -70,6 +71,7 @@ const AppRoutes = () => {
         <Route path="/apps/:appId" element={<StudioAppView />} />
         <Route path="/vakar-plus" element={<VakarPlus />} />
         <Route path="/my-apps" element={<MyApps />} />
+        <Route path="/my-vakar-block" element={<MyVakarBlockProjects />} />
         <Route path="/choose-pseudo" element={<ChoosePseudo />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />

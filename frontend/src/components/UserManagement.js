@@ -84,6 +84,7 @@ const STATIC_GROUPS = [
     permissions: [
       { id: 'manage_studio_apps', label: 'App Builder' },
       { id: 'review_studio_apps', label: 'Review App Submissions' },
+      { id: 'manage_vakar_block', label: 'Vakar Block' },
     ]
   },
 ];

@@ -32,6 +32,7 @@ ALL_PERMISSIONS = [
     "game_logs_panel",
     "manage_studio_apps",
     "review_studio_apps",
+    "manage_vakar_block",
 ]
 
 def is_valid_permission(p: str) -> bool:

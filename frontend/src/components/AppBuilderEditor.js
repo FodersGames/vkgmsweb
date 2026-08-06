@@ -521,8 +521,30 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
           <div>
             <label className={FIELD_LABEL}>Item image (optional)</label>
             <input value={node.props.item_image_template || ''} onChange={e => set('item_image_template', e.target.value)} placeholder="{{item.image}}" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">If each entry is an object with an image URL field, show it as a small picture next to the text.</p>
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">If each entry is an object with an image URL field, show it as a picture next to (or as) each item.</p>
           </div>
+          <div className="grid grid-cols-2 gap-2 items-end">
+            <div>
+              <label className={FIELD_LABEL}>Layout</label>
+              <Select value={node.props.layout_mode || 'list'} onChange={e => set('layout_mode', e.target.value)} size="sm">
+                <option value="list">List (rows)</option>
+                <option value="grid">Grid (cards)</option>
+              </Select>
+            </div>
+            {node.props.layout_mode === 'grid' && (
+              <div>
+                <label className={FIELD_LABEL}>Columns</label>
+                <input
+                  type="number" min="1" max="4" value={node.props.grid_columns ?? 2}
+                  onChange={e => set('grid_columns', Math.max(1, Math.min(4, Number(e.target.value) || 2)))}
+                  className={FIELD_INPUT}
+                />
+              </div>
+            )}
+          </div>
+          {node.props.layout_mode === 'grid' && (
+            <p className="text-[10px] text-[#A1A1A6] -mt-1">Grid mode makes the image the main element per cell — great for a card/photo collection.</p>
+          )}
           <div>
             <label className={FIELD_LABEL}>Empty state text</label>
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
@@ -807,6 +829,66 @@ function ActionStepFields({ action, screens, targets, allTargets = [], setField 
             <input value={action.collection_variable || ''} onChange={e => setField('collection_variable', e.target.value)} placeholder="e.g. myCards" className={FIELD_INPUT} />
             <p className="mt-1 text-[10px] text-[#A1A1A6]">If set, the reward is appended here too — bind a list component to it to show a collection.</p>
           </div>
+          {action.collection_variable && (
+            <div className="pt-2 border-t border-[#EDEDEF] dark:border-[#1c1c2e] space-y-2">
+              <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-widest">Avoid duplicates (optional)</p>
+              <div>
+                <label className={FIELD_LABEL}>Field to compare (e.g. "name")</label>
+                <input value={action.dedupe_field || ''} onChange={e => setField('dedupe_field', e.target.value)} placeholder="e.g. name" className={FIELD_INPUT} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={FIELD_LABEL}>If already owned, credit</label>
+                  <input value={action.duplicate_variable || ''} onChange={e => setField('duplicate_variable', e.target.value)} placeholder="e.g. shards" className={FIELD_INPUT} />
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Amount</label>
+                  <input type="number" min="1" value={action.duplicate_amount ?? 1} onChange={e => setField('duplicate_amount', Math.max(1, Number(e.target.value) || 1))} className={FIELD_INPUT} />
+                </div>
+              </div>
+              <p className="text-[10px] text-[#A1A1A6]">If the collection already has an entry with a matching field, this credits the variable above instead of adding a duplicate.</p>
+            </div>
+          )}
+        </>
+      );
+    case 'list_contains':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>List (variable)</label>
+            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. myCards" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Field to check (optional)</label>
+            <input value={action.field || ''} onChange={e => setField('field', e.target.value)} placeholder="e.g. name" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Leave empty if the list holds plain values; set this if each entry is an object.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Value to look for</label>
+            <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder="e.g. Sorcerer" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Store the result in (true/false)</label>
+            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. hasSorcerer" className={FIELD_INPUT} />
+          </div>
+        </>
+      );
+    case 'get_elapsed_time':
+      return (
+        <>
+          <div>
+            <label className={FIELD_LABEL}>Since (variable holding a timestamp)</label>
+            <input value={action.since_variable || ''} onChange={e => setField('since_variable', e.target.value)} placeholder="e.g. lastDailyClaim" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">If this variable was never set, elapsed time starts at 0 and the timer begins now.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Store elapsed seconds in</label>
+            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. secondsSinceClaim" className={FIELD_INPUT} />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-[#1D1D1F] dark:text-[#e4e4e7]">
+            <input type="checkbox" checked={action.update_since !== false} onChange={e => setField('update_since', e.target.checked)} />
+            Reset the timer now (use for "claim" buttons — turn off to just peek without resetting)
+          </label>
         </>
       );
     case 'reset_variables':

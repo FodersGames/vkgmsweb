@@ -227,25 +227,52 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       }
       const itemAction = node.props?.item_action;
       const imageTemplate = node.props?.item_image_template;
+      const isGrid = node.props?.layout_mode === 'grid';
+      const columns = Math.max(1, Number(node.props?.grid_columns) || 2);
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }}>
+        <div
+          style={
+            isGrid
+              ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 10, width: '100%', height: '100%', overflowY: 'auto', alignContent: 'start' }
+              : { display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }
+          }
+        >
           {items.slice(0, 50).map((item, i) => {
             const imgSrc = imageTemplate ? interpolate(imageTemplate, vars, { item }) : '';
+            const text = interpolate(node.props?.item_template, vars, { item });
+            const clickable = itemAction && interactive;
+            const onClick = () => { if (clickable && runAction) runAction(itemAction, { item, index: i }); };
+            if (isGrid) {
+              return (
+                <div
+                  key={i} onClick={onClick}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    cursor: clickable ? 'pointer' : 'default',
+                  }}
+                >
+                  {imgSrc && (
+                    <img src={imgSrc} alt="" style={{ width: '100%', aspectRatio: '0.79', objectFit: 'contain', borderRadius: 12 }} />
+                  )}
+                  {text && <span style={{ fontSize: 12, color: theme.colors.text, textAlign: 'center' }}>{text}</span>}
+                </div>
+              );
+            }
             return (
               <div
                 key={i}
-                onClick={() => { if (itemAction && interactive && runAction) runAction(itemAction, { item, index: i }); }}
+                onClick={onClick}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 12px', borderRadius: theme.radius * 0.7, background: theme.colors.surface,
                   border: `1px solid ${theme.colors.border}`, fontSize: 13, color: theme.colors.text, flexShrink: 0,
-                  cursor: itemAction && interactive ? 'pointer' : 'default',
+                  cursor: clickable ? 'pointer' : 'default',
                 }}
               >
                 {imgSrc && (
                   <img src={imgSrc} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                 )}
-                <span>{interpolate(node.props?.item_template, vars, { item })}</span>
+                <span>{text}</span>
               </div>
             );
           })}
@@ -498,10 +525,56 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
           const rawColl = currentVars[action.collection_variable];
           let arr = [];
           try { const parsed = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
-          arr.push(pickedValue);
-          const nextColl = JSON.stringify(arr);
-          currentVars[action.collection_variable] = nextColl;
-          setVars(v => ({ ...v, [action.collection_variable]: nextColl }));
+          // dedupe_field: if the collection already has an entry matching
+          // the picked value on this field, credit duplicate_variable
+          // instead of adding a duplicate (e.g. a card already owned turns
+          // into "shards"). Checked here, not via a separately-chained
+          // list_contains step, because only this action still has
+          // pickedValue as a real object — once stored in a flat variable
+          // it's just a JSON string with no dotted-path access outside a
+          // list's {item} scope.
+          const isDuplicate = action.dedupe_field && pickedValue && typeof pickedValue === 'object'
+            && arr.some(entry => entry && entry[action.dedupe_field] === pickedValue[action.dedupe_field]);
+          if (isDuplicate && action.duplicate_variable) {
+            const amt = Number(action.duplicate_amount) || 1;
+            const cur = Number(currentVars[action.duplicate_variable]) || 0;
+            const next = String(cur + amt);
+            currentVars[action.duplicate_variable] = next;
+            setVars(v => ({ ...v, [action.duplicate_variable]: next }));
+          } else {
+            arr.push(pickedValue);
+            const nextColl = JSON.stringify(arr);
+            currentVars[action.collection_variable] = nextColl;
+            setVars(v => ({ ...v, [action.collection_variable]: nextColl }));
+          }
+        }
+        break;
+      }
+      case 'list_contains': {
+        if (!action.variable || !action.target_variable) break;
+        const raw = currentVars[action.variable];
+        let arr = [];
+        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* empty */ }
+        const needle = action.value ?? '';
+        const found = action.field
+          ? arr.some(entry => entry && String(entry[action.field]) === String(needle))
+          : arr.some(entry => String(entry) === String(needle));
+        const next = found ? 'true' : 'false';
+        currentVars[action.target_variable] = next;
+        setVars(v => ({ ...v, [action.target_variable]: next }));
+        break;
+      }
+      case 'get_elapsed_time': {
+        if (!action.target_variable) break;
+        const now = Date.now();
+        const sinceRaw = action.since_variable ? currentVars[action.since_variable] : '';
+        const since = Number(sinceRaw) || now; // never set → 0 elapsed, bootstrapped below
+        const elapsedSeconds = Math.max(0, Math.floor((now - since) / 1000));
+        currentVars[action.target_variable] = String(elapsedSeconds);
+        setVars(v => ({ ...v, [action.target_variable]: String(elapsedSeconds) }));
+        if (action.since_variable && (action.update_since || !sinceRaw)) {
+          currentVars[action.since_variable] = String(now);
+          setVars(v => ({ ...v, [action.since_variable]: String(now) }));
         }
         break;
       }

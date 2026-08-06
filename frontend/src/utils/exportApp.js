@@ -96,7 +96,10 @@ async function renderComponentHTML(node, index = 0) {
     case 'list': {
       const itemActionAttr = node.props?.item_action ? ` data-item-action="${escJsonAttr(node.props.item_action)}"` : '';
       const imgTplAttr = node.props?.item_image_template ? ` data-img-tpl="${esc(node.props.item_image_template)}"` : '';
-      return `${wrapperOpen}<div class="vk-list" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${imgTplAttr}${itemActionAttr} style="width:100%;height:100%;"></div></div>`;
+      const isGrid = node.props?.layout_mode === 'grid';
+      const gridClass = isGrid ? ' vk-list-grid' : '';
+      const gridColsStyle = isGrid ? `grid-template-columns:repeat(${Math.max(1, Number(node.props?.grid_columns) || 2)},1fr);` : '';
+      return `${wrapperOpen}<div class="vk-list${gridClass}" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${imgTplAttr}${itemActionAttr} style="width:100%;height:100%;${gridColsStyle}"></div></div>`;
     }
     case 'container': {
       const bg = node.props?.background === 'surface' ? 'var(--vk-surface)' : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
@@ -235,6 +238,10 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
 .vk-list-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: calc(var(--vk-radius) * 0.7); background: var(--vk-surface); border: 1px solid var(--vk-border); font-size: 13px; color: var(--vk-text); flex-shrink: 0; }
 .vk-list-item-img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.vk-list-grid { display: grid; gap: 10px; align-content: start; }
+.vk-list-item-grid { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vk-list-item-grid-img { width: 100%; aspect-ratio: 0.79; object-fit: contain; border-radius: 12px; }
+.vk-list-item-grid span { font-size: 12px; color: var(--vk-text); text-align: center; }
 .vk-list-empty { font-size: 13px; color: var(--vk-text-muted); margin: 0; }
 #vk-toast { display: none; position: absolute; top: 12px; left: 12px; right: 12px; background: var(--vk-text); color: var(--vk-bg); font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: calc(var(--vk-radius) * 0.7); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 10; }
 .vk-watermark { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -379,22 +386,26 @@ function generateJS(app) {
       el.appendChild(empty);
       return;
     }
+    var isGrid = el.classList.contains('vk-list-grid');
     items.slice(0, 50).forEach(function (item, idx) {
       var row = document.createElement('div');
-      row.className = 'vk-list-item';
+      row.className = isGrid ? 'vk-list-item-grid' : 'vk-list-item';
+      var text = interpolate(tpl, { item: item });
       if (imgTpl) {
         var imgSrc = interpolate(imgTpl, { item: item });
         if (imgSrc) {
           var img = document.createElement('img');
-          img.className = 'vk-list-item-img';
+          img.className = isGrid ? 'vk-list-item-grid-img' : 'vk-list-item-img';
           img.src = imgSrc;
           img.alt = '';
           row.appendChild(img);
         }
       }
-      var textSpan = document.createElement('span');
-      textSpan.textContent = interpolate(tpl, { item: item });
-      row.appendChild(textSpan);
+      if (!isGrid || text) {
+        var textSpan = document.createElement('span');
+        textSpan.textContent = text;
+        row.appendChild(textSpan);
+      }
       if (itemAction) {
         row.style.cursor = 'pointer';
         row.addEventListener('click', function () { runAction(itemAction, { item: item, index: idx }); });
@@ -510,8 +521,46 @@ function generateJS(app) {
           var rawColl = vars[action.collection_variable];
           var arr = [];
           try { var parsedColl = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsedColl)) arr = parsedColl; } catch (e) { /* start fresh */ }
-          arr.push(pickedValue);
-          vars[action.collection_variable] = JSON.stringify(arr);
+          var isDuplicate = false;
+          if (action.dedupe_field && pickedValue && typeof pickedValue === 'object') {
+            for (var di = 0; di < arr.length; di++) {
+              if (arr[di] && arr[di][action.dedupe_field] === pickedValue[action.dedupe_field]) { isDuplicate = true; break; }
+            }
+          }
+          if (isDuplicate && action.duplicate_variable) {
+            var dupAmt = Number(action.duplicate_amount) || 1;
+            var dupCur = Number(vars[action.duplicate_variable]) || 0;
+            vars[action.duplicate_variable] = String(dupCur + dupAmt);
+          } else {
+            arr.push(pickedValue);
+            vars[action.collection_variable] = JSON.stringify(arr);
+          }
+        }
+        break;
+      }
+      case 'list_contains': {
+        if (!action.variable || !action.target_variable) break;
+        var rawList = vars[action.variable];
+        var listArr = [];
+        try { var parsedList = rawList ? JSON.parse(rawList) : []; if (Array.isArray(parsedList)) listArr = parsedList; } catch (e) { /* empty */ }
+        var needle = action.value == null ? '' : action.value;
+        var found = false;
+        for (var li = 0; li < listArr.length; li++) {
+          var entry = listArr[li];
+          if (action.field ? (entry && String(entry[action.field]) === String(needle)) : String(entry) === String(needle)) { found = true; break; }
+        }
+        vars[action.target_variable] = found ? 'true' : 'false';
+        break;
+      }
+      case 'get_elapsed_time': {
+        if (!action.target_variable) break;
+        var nowMs = Date.now();
+        var sinceRaw = action.since_variable ? vars[action.since_variable] : '';
+        var sinceMs = Number(sinceRaw) || nowMs;
+        var elapsedSec = Math.max(0, Math.floor((nowMs - sinceMs) / 1000));
+        vars[action.target_variable] = String(elapsedSec);
+        if (action.since_variable && (action.update_since || !sinceRaw)) {
+          vars[action.since_variable] = String(nowMs);
         }
         break;
       }

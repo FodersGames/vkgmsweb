@@ -111,7 +111,11 @@ export const COMPONENT_TYPES = [
     // item_image_template: optional, resolved the same way as item_template
     // (interpolate against {item}) — when set, each row also shows a small
     // image (e.g. {{item.image}}), for things like a card/product picture.
-    defaultProps: { source_variable: '', item_template: '{{item}}', item_image_template: '', empty_text: 'No items yet.', item_action: null },
+    // layout_mode/grid_columns: 'list' (default, single column, unchanged
+    // behavior) or 'grid' — a real multi-column grid for things like a
+    // trading-card collection, where the image is the dominant element per
+    // cell instead of a small row thumbnail.
+    defaultProps: { source_variable: '', item_template: '{{item}}', item_image_template: '', empty_text: 'No items yet.', item_action: null, layout_mode: 'list', grid_columns: 2 },
   },
   {
     type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, supportsAction: true,
@@ -185,10 +189,12 @@ export const ACTION_TYPES = [
   { type: 'set_visibility', label: 'Show/hide an element', category: 'Elements' },
   { type: 'list_add', label: 'Add to a list', category: 'Lists' },
   { type: 'list_remove', label: 'Remove from a list', category: 'Lists' },
+  { type: 'list_contains', label: 'Check if a list contains something', category: 'Lists' },
   { type: 'show_message', label: 'Show a message', category: 'Feedback & Device' },
   { type: 'copy_to_clipboard', label: 'Copy to clipboard', category: 'Feedback & Device' },
   { type: 'vibrate', label: 'Vibrate', category: 'Feedback & Device' },
   { type: 'wait', label: 'Wait', category: 'Feedback & Device' },
+  { type: 'get_elapsed_time', label: 'Time since a variable was set', category: 'Feedback & Device' },
   { type: 'open_link', label: 'Open a link', category: 'Links' },
 ];
 
@@ -205,10 +211,12 @@ export const ACTION_DESCRIPTIONS = {
   set_visibility: 'Shows, hides, or toggles another element.',
   list_add: 'Adds a value to a list, at the start, end, or a specific position.',
   list_remove: 'Removes an item from a list.',
+  list_contains: 'Checks whether a list already has a matching entry — stores true or false in a variable.',
   show_message: 'Flashes a short message on screen.',
   copy_to_clipboard: 'Copies text so the visitor can paste it elsewhere.',
   vibrate: 'Triggers a short haptic buzz (phones only — no effect in a browser).',
   wait: 'Pauses before the next step runs — useful for pacing a sequence.',
+  get_elapsed_time: 'Measures how long it’s been since a variable was last set — perfect for daily rewards or idle earnings.',
   open_link: 'Opens a URL, in this app or a new tab.',
 };
 
@@ -221,7 +229,11 @@ export function createAction(type) {
     // "value" can be plain text or a {..} object (e.g. {"name":"Phoenix","rarity":"legendary"})
     // for rich card data. collection_variable is optional — when set, the
     // picked reward is also appended there (bind a `list` component to it).
-    case 'random_pick': return { type, options_variable: '', target_variable: '', collection_variable: '' };
+    // dedupe_field/duplicate_variable/duplicate_amount are all optional —
+    // when set, a reward whose dedupe_field already exists in the
+    // collection increments duplicate_variable instead of adding a
+    // duplicate entry (e.g. a card you already own becomes "shards").
+    case 'random_pick': return { type, options_variable: '', target_variable: '', collection_variable: '', dedupe_field: '', duplicate_variable: '', duplicate_amount: 1 };
     case 'reset_variables': return { type };
     case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
     case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
@@ -231,10 +243,16 @@ export function createAction(type) {
     // require manually typing {{entryText}}.
     case 'list_add': return { type, variable: '', mode: 'append', value_mode: 'literal', value: '', index: 0 };
     case 'list_remove': return { type, variable: '', mode: 'last', index: 0 };
+    // field left empty checks for a plain scalar value directly in the list;
+    // set it to check one field of each object entry instead (e.g. "name").
+    case 'list_contains': return { type, variable: '', field: '', value: '', target_variable: '' };
     case 'show_message': return { type, text: '' };
     case 'copy_to_clipboard': return { type, text: '' };
     case 'vibrate': return { type, duration_ms: 200 };
     case 'wait': return { type, duration_ms: 500 };
+    // update_since true resets since_variable to now after reading it (use
+    // for "claim" actions); false just peeks without consuming the timer.
+    case 'get_elapsed_time': return { type, since_variable: '', target_variable: '', update_since: true };
     case 'open_link': return { type, url: '', new_tab: true };
     default: return null;
   }

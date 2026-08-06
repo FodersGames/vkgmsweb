@@ -9,7 +9,7 @@ import {
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical, AppWindow,
-  ClipboardCheck, ShieldCheck,
+  ClipboardCheck, ShieldCheck, Blocks,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -34,6 +34,7 @@ import CareersManagement      from '../components/CareersManagement';
 import AppBuilderList         from '../components/AppBuilderList';
 import AppReviewQueue         from '../components/AppReviewQueue';
 import PublishedAppsManager   from '../components/PublishedAppsManager';
+import VakarBlockList         from '../components/VakarBlockList';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
@@ -68,6 +69,7 @@ const NAV_GROUPS = [
       { id: 'app-builder',   label: 'App Builder',     icon: AppWindow,      permission: 'manage_studio_apps' },
       { id: 'app-reviews',   label: 'Reviews',         icon: ClipboardCheck, permission: 'review_studio_apps' },
       { id: 'app-published', label: 'Published Apps',  icon: ShieldCheck,    permission: 'review_studio_apps' },
+      { id: 'vakar-block',   label: 'Vakar Block',     icon: Blocks,         permission: 'manage_vakar_block' },
     ],
   },
   {
@@ -758,6 +760,7 @@ const DashboardContent = () => {
             {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList onNavigate={setActiveTab} />}
             {activeTab === 'app-reviews'      && hasPermission('review_studio_apps') && <AppReviewQueue />}
             {activeTab === 'app-published'    && hasPermission('review_studio_apps') && <PublishedAppsManager />}
+            {activeTab === 'vakar-block'      && hasPermission('manage_vakar_block') && <VakarBlockList />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

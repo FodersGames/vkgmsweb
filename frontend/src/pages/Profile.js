@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
+import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow, PuzzlePiece } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Mirrors backend/app/deps.py's FIRSTNAME_COOLDOWN_DAYS — client-side only
@@ -398,6 +398,19 @@ const Profile = () => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-[#1D1D1F]">My Apps</p>
               <p className="text-xs text-[#6E6E73]">Build your own app — no code required</p>
+            </div>
+            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
+          </Link>
+          <Link
+            to="/my-vakar-block"
+            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
+          >
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
+              <PuzzlePiece size={16} className="text-[#6E6E73]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-[#1D1D1F]">Vakar Block</p>
+              <p className="text-xs text-[#6E6E73]">Assemble des blocs façon Scratch — pour tous les âges</p>
             </div>
             <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
           </Link>

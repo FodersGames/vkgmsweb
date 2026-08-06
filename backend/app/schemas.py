@@ -443,6 +443,20 @@ class StudioAppStatusRequest(BaseModel):
 class StudioAppVisibilityRequest(BaseModel):
     visibility: Literal["public", "private"]
 
+# ============== VAKAR BLOCK — a second, Scratch-style editor. Genuinely
+# separate data shape from the App Builder above (sprites/costumes/stage/
+# per-sprite Blockly workspaces vs. screens/components/actions) — see
+# routers/vakar_block.py for the full picture. ==============
+class VakarBlockCreateRequest(BaseModel):
+    name: str
+    slug: Optional[str] = None
+
+class VakarBlockUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    stage: Optional[dict] = None
+    sprites: Optional[List[dict]] = None
+    variables: Optional[List[dict]] = None
+
 class VakarPlusCheckoutRequest(BaseModel):
     plan: Literal["monthly", "yearly"]
 
