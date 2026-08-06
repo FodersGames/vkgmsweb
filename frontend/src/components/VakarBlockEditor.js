@@ -71,9 +71,38 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const backdropInputRef = useRef(null);
   const resizingRef = useRef(false);
   const penCanvasRef = useRef(null);
+  const stageBoxRef = useRef(null);
   const penPrevRef = useRef(new Map()); // spriteId -> {x, y, penDown} from the previous render tick, for drawing trail segments
+  // Kept in sync (via plain assignment, further down, once `saveProject`/
+  // `dirty`/`saving` actually exist) so the autosave interval and the
+  // beforeunload warning below always see fresh values without needing to
+  // re-run this effect on every render — it's set up exactly once.
+  const saveProjectRef = useRef(() => {});
+  const dirtyRef = useRef(false);
+  const savingRef = useRef(false);
 
   const authHeaders = { Authorization: `Bearer ${token}` };
+
+  // ── Autosave (every 20s while dirty) + warn before closing/reloading the
+  // tab with unsaved changes. Declared here (before the loading-gate early
+  // return below) since hooks must run unconditionally on every render —
+  // the same lesson as the Blockly-injection effect's `[loading]` fix. ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (dirtyRef.current && !savingRef.current) saveProjectRef.current();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (!dirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   // ── Stylo (pen) canvas — a plain 2D canvas layered under the sprites,
   // sized to the stage's logical resolution (not its on-screen CSS size)
@@ -438,6 +467,9 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
       setSaving(false);
     }
   };
+  saveProjectRef.current = saveProject;
+  dirtyRef.current = dirty;
+  savingRef.current = saving;
 
   const pressGreenFlag = () => {
     if (!runtime) return;
@@ -486,11 +518,56 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     runtime?.setMousePosition(relX, relY);
   };
 
+  // Drag a sprite directly on the stage to reposition it — a plain click
+  // (no movement past a small threshold) still triggers "quand ce sprite
+  // est cliqué" instead, same distinction Scratch itself makes. Clones are
+  // draggable too but never persisted back to `project.sprites` — they're
+  // ephemeral runtime-only sprites with nothing to save.
+  const startSpriteDrag = (e, sprite) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const startX = sprite.x;
+    const startY = sprite.y;
+    let moved = false;
+    const onMove = (ev) => {
+      const rect = stageBoxRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      if (!moved && Math.hypot(ev.clientX - startClientX, ev.clientY - startClientY) > 3) moved = true;
+      if (!moved) return;
+      const dxUnits = ((ev.clientX - startClientX) / rect.width) * stage.width;
+      const dyUnits = ((ev.clientY - startClientY) / rect.height) * stage.height;
+      sprite.x = startX + dxUnits;
+      sprite.y = startY - dyUnits;
+      setRenderTick((t) => t + 1);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      if (moved) {
+        if (!sprite.isClone) {
+          setProject((p) => ({ ...p, sprites: p.sprites.map((s) => (s.id === sprite.id ? { ...s, x: sprite.x, y: sprite.y } : s)) }));
+          setDirty(true);
+        }
+      } else {
+        runtime?.spriteClicked(sprite.id);
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleBack = () => {
+    if (dirty && !window.confirm('Des modifications ne sont pas enregistrées. Quitter quand même ?')) return;
+    onBack();
+  };
+
   return (
     <div className="h-full flex flex-col bg-[#F5F5F7] dark:bg-[#0e0e15]">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] shrink-0 flex-wrap">
-        <button onClick={onBack} className="p-2 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
+        <button onClick={handleBack} className="p-2 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
           <ArrowLeft size={16} />
         </button>
 
@@ -560,6 +637,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           {/* Stage */}
           <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <div
+              ref={stageBoxRef}
               className="relative rounded-xl overflow-hidden border-2 mx-auto"
               style={{
                 width: '100%', maxWidth: rightPanelWidth - 40,
@@ -586,8 +664,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                 return (
                   <div
                     key={s.id}
-                    className="absolute cursor-pointer"
-                    onClick={() => runtime?.spriteClicked(s.id)}
+                    className="absolute cursor-grab"
+                    onMouseDown={(e) => startSpriteDrag(e, s)}
                     style={{
                       left: `${leftPct}%`, top: `${topPct}%`,
                       width: sizePx, height: sizePx,
