@@ -3,6 +3,7 @@ import * as Blockly from 'blockly/core';
 import {
   ArrowLeft, Flag, Square, Plus, Trash2, Upload,
   Loader2, Check, AlertTriangle, Pencil, MonitorPlay, Volume2,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +15,19 @@ const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL |
 
 const resolveUrl = (url) => (url && url.startsWith('/') ? `${API}${url}` : url);
 const genId = () => Math.random().toString(36).slice(2, 10);
+
+// Moves the item with `id` one slot earlier/later in `list` (by id, not
+// index, since callers always have the id at hand) — used for reordering
+// costumes/sounds/backdrops. Returns the same array reference if the move
+// is a no-op (already at that edge), so callers can skip a re-render.
+function reorderById(list, id, direction) {
+  const idx = list.findIndex((item) => item.id === id);
+  const target = idx + direction;
+  if (idx === -1 || target < 0 || target >= list.length) return list;
+  const next = list.slice();
+  [next[idx], next[target]] = [next[target], next[idx]];
+  return next;
+}
 
 function SpeechBubble({ text }) {
   if (!text) return null;
@@ -80,6 +94,9 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const saveProjectRef = useRef(() => {});
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
+  const pressGreenFlagRef = useRef(() => {});
+  const pressStopRef = useRef(() => {});
+  const [presentMode, setPresentMode] = useState(false);
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -102,6 +119,25 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
+  // Keyboard shortcuts — Espace = drapeau vert, Échap = tout arrêter.
+  // Ignored while an input/textarea (renaming a sprite, editing stage size,
+  // a Blockly text field, …) has focus so a literal space keystroke isn't
+  // hijacked.
+  useEffect(() => {
+    const handler = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        pressGreenFlagRef.current();
+      } else if (e.code === 'Escape') {
+        pressStopRef.current();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
   // ── Stylo (pen) canvas — a plain 2D canvas layered under the sprites,
@@ -328,6 +364,15 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     setDirty(true);
   };
 
+  const moveCostume = (costumeId, direction) => {
+    if (!selectedSpriteId) return;
+    setProject((p) => ({
+      ...p,
+      sprites: p.sprites.map((s) => (s.id === selectedSpriteId ? { ...s, costumes: reorderById(s.costumes, costumeId, direction) } : s)),
+    }));
+    setDirty(true);
+  };
+
   const uploadSound = async (file) => {
     if (!selectedSpriteId || !file) return;
     setErrorMsg('');
@@ -361,6 +406,15 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
     setDirty(true);
   };
 
+  const moveSound = (soundId, direction) => {
+    if (!selectedSpriteId) return;
+    setProject((p) => ({
+      ...p,
+      sprites: p.sprites.map((s) => (s.id === selectedSpriteId ? { ...s, sounds: reorderById(s.sounds || [], soundId, direction) } : s)),
+    }));
+    setDirty(true);
+  };
+
   const playSoundPreview = (soundUrl) => {
     const audio = new Audio(resolveUrl(soundUrl));
     audio.play().catch(() => {});
@@ -389,6 +443,11 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
   const selectBackdrop = (id) => {
     setProject((p) => ({ ...p, stage: { ...p.stage, current_backdrop_id: id } }));
+    setDirty(true);
+  };
+
+  const moveBackdrop = (id, direction) => {
+    setProject((p) => ({ ...p, stage: { ...p.stage, backdrops: reorderById(p.stage.backdrops || [], id, direction) } }));
     setDirty(true);
   };
 
@@ -502,6 +561,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   };
 
   const pressStop = () => runtime?.stop();
+  pressGreenFlagRef.current = pressGreenFlag;
+  pressStopRef.current = pressStop;
 
   const stage = project.stage || { width: 480, height: 360, backdrops: [], current_backdrop_id: null };
   const currentBackdrop = (stage.backdrops || []).find((b) => b.id === stage.current_backdrop_id);
@@ -612,35 +673,51 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
               <AlertTriangle size={12} className="shrink-0" />{errorMsg}
             </span>
           )}
-          <span className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">{dirty ? 'Modifications non enregistrées' : 'À jour'}</span>
-          <Button size="sm" icon={dirty ? Upload : Check} loading={saving} onClick={saveProject}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
-          </Button>
+          {!presentMode && <span className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">{dirty ? 'Modifications non enregistrées' : 'À jour'}</span>}
+          {!presentMode && (
+            <Button size="sm" icon={dirty ? Upload : Check} loading={saving} onClick={saveProject}>
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
+          )}
+          <button
+            onClick={() => { if (workspaceRef.current) Blockly.svgResize(workspaceRef.current); setPresentMode((v) => !v); }}
+            title={presentMode ? 'Quitter la présentation' : 'Mode présentation — juste la scène'}
+            className="p-2 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]"
+          >
+            {presentMode ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
         </div>
       </div>
 
-      {/* Body: Blockly workspace (left, majority — palette lives inside it) / stage+corral (right), same arrangement as Scratch's own editor */}
+      {/* Body: Blockly workspace (left, majority — palette lives inside it) / stage+corral (right), same arrangement as Scratch's own editor.
+          En mode présentation : seule la scène est affichée, en grand. */}
       <div className="flex-1 flex min-h-0">
-        {/* Blockly workspace */}
-        <div className="flex-1 min-w-0 relative">
+        {/* Blockly workspace — hidden (not unmounted) in present mode: unmounting
+            this div would detach Blockly's live injected SVG from the document
+            while `workspaceRef.current` still points at it, and remounting a
+            *new* div afterwards would leave the workspace's actual content
+            stranded on the orphaned old node. CSS hiding keeps the same node. */}
+        <div className={`flex-1 min-w-0 relative ${presentMode ? 'hidden' : ''}`}>
           <div ref={blocklyDivRef} className="absolute inset-0" />
         </div>
 
         {/* Drag handle — resizes the stage/corral panel; svgResize() on mouseup so Blockly's canvas catches up to its new width */}
-        <div
-          onMouseDown={startPanelResize}
-          title="Glisser pour redimensionner"
-          className="w-1.5 shrink-0 cursor-col-resize bg-[#D2D2D7] dark:bg-[#2a2a3c] hover:bg-[#4ECDC4] active:bg-[#4ECDC4] transition-colors"
-        />
+        {!presentMode && (
+          <div
+            onMouseDown={startPanelResize}
+            title="Glisser pour redimensionner"
+            className="w-1.5 shrink-0 cursor-col-resize bg-[#D2D2D7] dark:bg-[#2a2a3c] hover:bg-[#4ECDC4] active:bg-[#4ECDC4] transition-colors"
+          />
+        )}
 
-        <div style={{ width: rightPanelWidth }} className="shrink-0 flex flex-col bg-white dark:bg-[#151520] overflow-y-auto">
+        <div style={presentMode ? undefined : { width: rightPanelWidth }} className={`${presentMode ? 'flex-1 items-center justify-center' : 'shrink-0'} flex flex-col bg-white dark:bg-[#151520] overflow-y-auto`}>
           {/* Stage */}
-          <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+          <div className={presentMode ? 'p-6 w-full max-w-3xl' : 'p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]'}>
             <div
               ref={stageBoxRef}
               className="relative rounded-xl overflow-hidden border-2 mx-auto"
               style={{
-                width: '100%', maxWidth: rightPanelWidth - 40,
+                width: '100%', maxWidth: presentMode ? 960 : rightPanelWidth - 40,
                 aspectRatio: `${stage.width} / ${stage.height}`,
                 borderColor: COLORS.events,
                 background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : 'linear-gradient(135deg, #eafcfb, #e4f3ff)',
@@ -689,29 +766,32 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
               })}
             </div>
 
-            <div className="flex items-center gap-2 mt-2.5">
-              <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Largeur</label>
-              <input
-                type="number"
-                value={widthDraft !== null ? widthDraft : stage.width}
-                onChange={(e) => setWidthDraft(e.target.value)}
-                onBlur={(e) => { commitStageSize('width', e.target.value, stage.width); setWidthDraft(null); }}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
-              />
-              <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Hauteur</label>
-              <input
-                type="number"
-                value={heightDraft !== null ? heightDraft : stage.height}
-                onChange={(e) => setHeightDraft(e.target.value)}
-                onBlur={(e) => { commitStageSize('height', e.target.value, stage.height); setHeightDraft(null); }}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
-              />
-            </div>
+            {!presentMode && (
+              <div className="flex items-center gap-2 mt-2.5">
+                <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Largeur</label>
+                <input
+                  type="number"
+                  value={widthDraft !== null ? widthDraft : stage.width}
+                  onChange={(e) => setWidthDraft(e.target.value)}
+                  onBlur={(e) => { commitStageSize('width', e.target.value, stage.width); setWidthDraft(null); }}
+                  onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                  className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                />
+                <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Hauteur</label>
+                <input
+                  type="number"
+                  value={heightDraft !== null ? heightDraft : stage.height}
+                  onChange={(e) => setHeightDraft(e.target.value)}
+                  onBlur={(e) => { commitStageSize('height', e.target.value, stage.height); setHeightDraft(null); }}
+                  onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                  className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                />
+              </div>
+            )}
           </div>
 
           {/* Corral: Scène (backdrops) tile + sprite tiles, Scratch's own layout */}
+          {!presentMode && (
           <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Scène et sprites</p>
             <div className="grid grid-cols-3 gap-2">
@@ -747,9 +827,10 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
               </button>
             </div>
           </div>
+          )}
 
           {/* Scène sélectionnée : liste des décors */}
-          {stageSelected && (
+          {!presentMode && stageSelected && (
             <div className="p-3 flex-1">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Décors</p>
@@ -769,6 +850,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                       <span className="text-[9px] text-[#6E6E73] dark:text-[#a1a1aa] truncate max-w-full">{b.name}</span>
                     </button>
                     <button onClick={() => deleteBackdrop(b.id)} className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 rounded-full bg-red-500 text-white items-center justify-center text-[9px]">×</button>
+                    <button onClick={() => moveBackdrop(b.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
+                    <button onClick={() => moveBackdrop(b.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
                   </div>
                 ))}
                 {(stage.backdrops || []).length === 0 && (
@@ -786,7 +869,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
           )}
 
           {/* Selected sprite: name + costumes */}
-          {!stageSelected && selectedSprite && (
+          {!presentMode && !stageSelected && selectedSprite && (
             <div className="p-3 flex-1">
               <div className="flex items-center gap-2 mb-3">
                 <input
@@ -820,6 +903,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                     <img src={resolveUrl(c.image_url)} alt={c.name} className="w-9 h-9 object-contain" />
                     <span className="text-[9px] text-[#6E6E73] dark:text-[#a1a1aa] truncate max-w-full">{c.name}</span>
                     <button onClick={() => deleteCostume(c.id)} className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 rounded-full bg-red-500 text-white items-center justify-center text-[9px]">×</button>
+                    <button onClick={() => moveCostume(c.id, -1)} className="absolute bottom-0.5 left-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronLeft size={10} /></button>
+                    <button onClick={() => moveCostume(c.id, 1)} className="absolute bottom-0.5 right-0.5 hidden group-hover:flex w-4 h-4 rounded-full bg-white/90 dark:bg-black/60 text-[#1D1D1F] dark:text-white items-center justify-center shadow"><ChevronRight size={10} /></button>
                   </div>
                 ))}
                 {selectedSprite.costumes.length === 0 && (
@@ -841,6 +926,8 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
                       <Volume2 size={13} />
                     </button>
                     <span className="text-xs text-[#1D1D1F] dark:text-[#e4e4e7] truncate flex-1">{snd.name}</span>
+                    <button onClick={() => moveSound(snd.id, -1)} className="p-1 rounded text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white shrink-0"><ChevronUp size={12} /></button>
+                    <button onClick={() => moveSound(snd.id, 1)} className="p-1 rounded text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white shrink-0"><ChevronDown size={12} /></button>
                     <button onClick={() => deleteSound(snd.id)} className="p-1 rounded text-[#A1A1A6] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 shrink-0">
                       <Trash2 size={12} />
                     </button>
