@@ -1,6 +1,15 @@
 import * as Blockly from 'blockly/core';
 import 'blockly/blocks';
 import { Order } from 'blockly/javascript';
+import * as FrLocale from 'blockly/msg/fr';
+
+// Blockly.inject() throws internally (reads `Blockly.Msg.WORKSPACE_ARIA_LABEL`
+// and other core strings that are undefined without this) unless a locale
+// message pack is loaded first — this MUST run before any workspace is
+// created. Loading French also gives every stock block (repeat/if/variables/
+// operators) sensible French wording for free; the Msg overrides below only
+// override the handful of strings deliberately simplified further.
+Blockly.setLocale(FrLocale);
 
 // ============================================================
 // VAKAR BLOCK — custom block definitions.

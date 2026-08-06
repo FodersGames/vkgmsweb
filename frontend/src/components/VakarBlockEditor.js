@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Blockly from 'blockly/core';
 import {
-  ArrowLeft, Flag, Square, Plus, Trash2, Upload, Image as ImageIcon,
-  Loader2, Check, AlertTriangle, Pencil,
+  ArrowLeft, Flag, Square, Plus, Trash2, Upload,
+  Loader2, Check, AlertTriangle, Pencil, MonitorPlay,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +48,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [selectedSpriteId, setSelectedSpriteId] = useState(null);
+  const [stageSelected, setStageSelected] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [, setRenderTick] = useState(0);
   const [editingName, setEditingName] = useState(false);
@@ -141,6 +142,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
 
   // ── Sprite selection (persists the outgoing sprite's live workspace first) ─
   const selectSprite = (id) => {
+    setStageSelected(false);
     if (id === selectedSpriteId) return;
     if (workspaceRef.current && selectedSpriteId) {
       const json = Blockly.serialization.workspaces.save(workspaceRef.current);
@@ -153,6 +155,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   };
 
   const addSprite = () => {
+    setStageSelected(false);
     const id = genId();
     const newSprite = {
       id, name: `Sprite${project.sprites.length + 1}`,
@@ -244,6 +247,34 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
         backdrops: [...(p.stage.backdrops || []), { id: backdropId, name, image_url: data.url }],
         current_backdrop_id: p.stage.current_backdrop_id || backdropId,
       },
+    }));
+    setDirty(true);
+  };
+
+  const selectBackdrop = (id) => {
+    setProject((p) => ({ ...p, stage: { ...p.stage, current_backdrop_id: id } }));
+    setDirty(true);
+  };
+
+  const deleteBackdrop = (id) => {
+    setProject((p) => {
+      const backdrops = (p.stage.backdrops || []).filter((b) => b.id !== id);
+      return {
+        ...p,
+        stage: {
+          ...p.stage,
+          backdrops,
+          current_backdrop_id: p.stage.current_backdrop_id === id ? (backdrops[0]?.id || null) : p.stage.current_backdrop_id,
+        },
+      };
+    });
+    setDirty(true);
+  };
+
+  const renameBackdrop = (id, name) => {
+    setProject((p) => ({
+      ...p,
+      stage: { ...p.stage, backdrops: (p.stage.backdrops || []).map((b) => (b.id === id ? { ...b, name } : b)) },
     }));
     setDirty(true);
   };
@@ -373,15 +404,20 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
         </div>
       </div>
 
-      {/* Body: stage+sprites (left) / Blockly workspace (right) */}
+      {/* Body: Blockly workspace (left, majority — palette lives inside it) / stage+corral (right), same arrangement as Scratch's own editor */}
       <div className="flex-1 flex min-h-0">
-        <div className="w-[300px] shrink-0 flex flex-col border-r border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] overflow-y-auto">
+        {/* Blockly workspace */}
+        <div className="flex-1 min-w-0 relative">
+          <div ref={blocklyDivRef} className="absolute inset-0" />
+        </div>
+
+        <div className="w-[340px] shrink-0 flex flex-col border-l border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520] overflow-y-auto">
           {/* Stage */}
           <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
             <div
               className="relative rounded-xl overflow-hidden border-2 mx-auto"
               style={{
-                width: '100%', maxWidth: 260,
+                width: '100%', maxWidth: 320,
                 aspectRatio: `${stage.width} / ${stage.height}`,
                 borderColor: COLORS.events,
                 background: currentBackdrop ? `url(${resolveUrl(currentBackdrop.image_url)}) center/cover no-repeat` : 'linear-gradient(135deg, #eafcfb, #e4f3ff)',
@@ -428,37 +464,85 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
               <label className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] font-semibold">Hauteur</label>
               <input type="number" value={stage.height} onChange={(e) => setStageSize('height', e.target.value)}
                 className="w-16 rounded px-1.5 py-1 text-xs bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]" />
-              <button onClick={() => backdropInputRef.current?.click()} title="Importer un décor" className="ml-auto p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
-                <ImageIcon size={13} />
-              </button>
-              <input ref={backdropInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { uploadBackdrop(e.target.files?.[0]); e.target.value = ''; }} />
             </div>
           </div>
 
-          {/* Sprite list */}
+          {/* Corral: Scène (backdrops) tile + sprite tiles, Scratch's own layout */}
           <div className="p-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Sprites</p>
-              <button onClick={addSprite} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
-                <Plus size={14} />
-              </button>
-            </div>
+            <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Scène et sprites</p>
             <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setStageSelected(true)}
+                className={`relative rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${stageSelected ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+              >
+                {currentBackdrop ? (
+                  <img src={resolveUrl(currentBackdrop.image_url)} alt="" className="w-9 h-9 rounded object-cover" />
+                ) : (
+                  <div className="w-9 h-9 rounded flex items-center justify-center text-white" style={{ background: COLORS.events }}>
+                    <MonitorPlay size={18} />
+                  </div>
+                )}
+                <span className="text-[10px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Scène</span>
+              </button>
               {project.sprites.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => selectSprite(s.id)}
-                  className={`relative rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${selectedSpriteId === s.id ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+                  className={`relative rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${!stageSelected && selectedSpriteId === s.id ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
                 >
                   <SpriteThumb sprite={s} size={36} />
                   <span className="text-[10px] font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate max-w-full">{s.name}</span>
                 </button>
               ))}
+              <button
+                onClick={addSprite}
+                title="Ajouter un sprite"
+                className="rounded-lg p-1.5 flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] hover:border-[#4ECDC4] hover:text-[#4ECDC4] min-h-[62px]"
+              >
+                <Plus size={16} />
+              </button>
             </div>
           </div>
 
+          {/* Scène sélectionnée : liste des décors */}
+          {stageSelected && (
+            <div className="p-3 flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest">Décors</p>
+                <button onClick={() => backdropInputRef.current?.click()} className="p-1 rounded-lg text-[#4ECDC4] hover:bg-[#4ECDC4]/10">
+                  <Plus size={13} />
+                </button>
+                <input ref={backdropInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { uploadBackdrop(e.target.files?.[0]); e.target.value = ''; }} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(stage.backdrops || []).map((b) => (
+                  <div key={b.id} className="relative group">
+                    <button
+                      onClick={() => selectBackdrop(b.id)}
+                      className={`w-full rounded-lg p-1.5 flex flex-col items-center gap-1 border-2 transition-all ${stage.current_backdrop_id === b.id ? 'border-[#4ECDC4] bg-[#4ECDC4]/5' : 'border-transparent bg-[#F5F5F7] dark:bg-[#0d0d14] hover:border-[#D2D2D7]'}`}
+                    >
+                      <img src={resolveUrl(b.image_url)} alt={b.name} className="w-9 h-9 rounded object-cover" />
+                      <span className="text-[9px] text-[#6E6E73] dark:text-[#a1a1aa] truncate max-w-full">{b.name}</span>
+                    </button>
+                    <button onClick={() => deleteBackdrop(b.id)} className="absolute -top-1 -right-1 hidden group-hover:flex w-4 h-4 rounded-full bg-red-500 text-white items-center justify-center text-[9px]">×</button>
+                  </div>
+                ))}
+                {(stage.backdrops || []).length === 0 && (
+                  <p className="col-span-3 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Aucun décor — importe une image pour habiller la scène.</p>
+                )}
+              </div>
+              {stage.current_backdrop_id && (
+                <input
+                  value={(stage.backdrops || []).find((b) => b.id === stage.current_backdrop_id)?.name || ''}
+                  onChange={(e) => renameBackdrop(stage.current_backdrop_id, e.target.value)}
+                  className="mt-3 w-full rounded-lg px-2 py-1.5 text-xs font-semibold bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                />
+              )}
+            </div>
+          )}
+
           {/* Selected sprite: name + costumes */}
-          {selectedSprite && (
+          {!stageSelected && selectedSprite && (
             <div className="p-3 flex-1">
               <div className="flex items-center gap-2 mb-3">
                 <input
@@ -500,11 +584,6 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
               </div>
             </div>
           )}
-        </div>
-
-        {/* Blockly workspace */}
-        <div className="flex-1 min-w-0 relative">
-          <div ref={blocklyDivRef} className="absolute inset-0" />
         </div>
       </div>
     </div>
