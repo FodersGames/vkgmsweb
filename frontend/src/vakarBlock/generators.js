@@ -207,5 +207,6 @@ forBlock['vk_change_volume'] = function (block, generator) {
   const v = generator.valueToCode(block, 'VOLUME', Order.NONE) || '0';
   return `sprite.changeVolume(${v});\n`;
 };
+forBlock['vk_volume'] = () => ['sprite.volume', Order.MEMBER];
 
 export { javascriptGenerator, Order };

@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Blockly from 'blockly/core';
+import JSZip from 'jszip';
 import {
   ArrowLeft, Flag, Square, Plus, Trash2, Upload,
   Loader2, Check, AlertTriangle, Pencil, MonitorPlay, Volume2,
-  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Maximize2, Minimize2, Download,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { TOOLBOX, COLORS } from '../vakarBlock/blocks';
 import '../vakarBlock/generators';
 import { VakarBlockRuntime, VakarSprite } from '../vakarBlock/runtime';
+import { exportSpriteWorkspace, md5 } from '../vakarBlock/sb3';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
@@ -60,6 +62,7 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exportingSb3, setExportingSb3] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [selectedSpriteId, setSelectedSpriteId] = useState(null);
   const [stageSelected, setStageSelected] = useState(false);
@@ -530,6 +533,91 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
   dirtyRef.current = dirty;
   savingRef.current = saving;
 
+  // Fetches an asset's real bytes (needed to MD5-name it the way .sb3
+  // requires) and adds it to the zip, memoized per URL since costumes are
+  // often reused across sprites/backdrops.
+  const exportProjectAsSb3 = async () => {
+    setExportingSb3(true);
+    setErrorMsg('');
+    try {
+      let sprites = project.sprites;
+      if (workspaceRef.current && selectedSpriteId) {
+        const json = Blockly.serialization.workspaces.save(workspaceRef.current);
+        sprites = sprites.map((s) => (s.id === selectedSpriteId ? { ...s, workspace: json } : s));
+      }
+
+      const zip = new JSZip();
+      const warnings = new Set();
+      const assetCache = new Map();
+      const addAsset = async (url) => {
+        if (!url) return null;
+        if (assetCache.has(url)) return assetCache.get(url);
+        const resp = await fetch(resolveUrl(url));
+        const buf = await resp.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const hash = md5(bytes);
+        const ext = (url.split('.').pop() || 'png').toLowerCase().split('?')[0];
+        const filename = `${hash}.${ext}`;
+        zip.file(filename, bytes);
+        const entry = { assetId: hash, md5ext: filename, dataFormat: ext };
+        assetCache.set(url, entry);
+        return entry;
+      };
+
+      const targets = [];
+      const stageBackdrops = [];
+      for (const b of (project.stage?.backdrops || [])) {
+        const a = await addAsset(b.image_url);
+        if (a) stageBackdrops.push({ assetId: a.assetId, name: b.name, md5ext: a.md5ext, dataFormat: a.dataFormat, rotationCenterX: 0, rotationCenterY: 0 });
+      }
+      targets.push({
+        isStage: true, name: 'Stage', variables: {}, lists: {}, broadcasts: {}, blocks: {}, comments: {},
+        currentCostume: Math.max(0, stageBackdrops.findIndex((b, i) => (project.stage.backdrops[i] || {}).id === project.stage.current_backdrop_id)),
+        costumes: stageBackdrops, sounds: [], volume: 100, layerOrder: 0, tempo: 60,
+        videoTransparency: 50, videoState: 'on', textToSpeechLanguage: null,
+      });
+
+      for (const sprite of sprites) {
+        const { blocks, variables } = exportSpriteWorkspace(sprite.workspace, warnings);
+        const costumes = [];
+        for (const c of sprite.costumes || []) {
+          const a = await addAsset(c.image_url);
+          if (a) costumes.push({ assetId: a.assetId, name: c.name, md5ext: a.md5ext, dataFormat: a.dataFormat, rotationCenterX: 0, rotationCenterY: 0 });
+        }
+        const sounds = [];
+        for (const s of sprite.sounds || []) {
+          const a = await addAsset(s.audio_url);
+          if (a) sounds.push({ assetId: a.assetId, name: s.name, md5ext: a.md5ext, dataFormat: a.dataFormat, rate: 44100, sampleCount: 0 });
+        }
+        targets.push({
+          isStage: false, name: sprite.name, variables, lists: {}, broadcasts: {}, blocks, comments: {},
+          currentCostume: Math.max(0, (sprite.costumes || []).findIndex((c) => c.id === sprite.current_costume_id)),
+          costumes, sounds, volume: sprite.volume ?? 100, visible: sprite.visible !== false,
+          x: sprite.x || 0, y: sprite.y || 0, size: sprite.size ?? 100, direction: sprite.direction ?? 90,
+          draggable: false, rotationStyle: 'all around', layerOrder: 1,
+        });
+      }
+
+      const projectJson = { targets, monitors: [], extensions: [], meta: { semver: '3.0.0', vm: '0.2.0', agent: 'Vakar Block' } };
+      zip.file('project.json', JSON.stringify(projectJson));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.slug || 'projet'}.sb3`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      if (warnings.size > 0) setErrorMsg(`Export : ${warnings.size} bloc(s) non exportés — ${Array.from(warnings).slice(0, 3).join(', ')}${warnings.size > 3 ? '…' : ''}`);
+    } catch (err) {
+      setErrorMsg(`Échec de l'export : ${err.message}`);
+    } finally {
+      setExportingSb3(false);
+    }
+  };
+
   const pressGreenFlag = () => {
     if (!runtime) return;
     let sprites = project.sprites;
@@ -674,6 +762,11 @@ export default function VakarBlockEditor({ projectId, onBack, apiBase = '/api/ad
             </span>
           )}
           {!presentMode && <span className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">{dirty ? 'Modifications non enregistrées' : 'À jour'}</span>}
+          {!presentMode && (
+            <Button size="sm" variant="secondary" icon={Download} loading={exportingSb3} onClick={exportProjectAsSb3} title="Exporter en .sb3 (ouvrable dans Scratch/TurboWarp)">
+              {exportingSb3 ? 'Export…' : '.sb3'}
+            </Button>
+          )}
           {!presentMode && (
             <Button size="sm" icon={dirty ? Upload : Check} loading={saving} onClick={saveProject}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}

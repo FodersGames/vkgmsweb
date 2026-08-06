@@ -61,6 +61,16 @@ Object.assign(Blockly.Msg, {
   MATH_RANDOM_INT_TITLE: 'nombre aléatoire entre %1 et %2',
 });
 
+// Full alphabet + digits (not just a handful) — needed so a Scratch
+// project's "when key pressed" events (which allow any letter/digit) can
+// actually be imported without silently losing the specific key.
+const KEY_OPTIONS = [
+  ['espace', 'space'], ['flèche haut', 'up'], ['flèche bas', 'down'],
+  ['flèche gauche', 'left'], ['flèche droite', 'right'], ['entrée', 'enter'],
+  ...'abcdefghijklmnopqrstuvwxyz'.split('').map((k) => [k, k]),
+  ...'0123456789'.split('').map((k) => [k, k]),
+];
+
 const jsonBlocks = [
   // ---------- ÉVÉNEMENTS ----------
   {
@@ -77,12 +87,7 @@ const jsonBlocks = [
       {
         type: 'field_dropdown',
         name: 'KEY',
-        options: [
-          ['espace', 'space'], ['flèche haut', 'up'], ['flèche bas', 'down'],
-          ['flèche gauche', 'left'], ['flèche droite', 'right'],
-          ['a', 'a'], ['b', 'b'], ['c', 'c'], ['d', 'd'], ['e', 'e'],
-          ['w', 'w'], ['x', 'x'], ['entrée', 'enter'],
-        ],
+        options: KEY_OPTIONS,
       },
     ],
     nextStatement: null,
@@ -329,18 +334,7 @@ const jsonBlocks = [
   {
     type: 'vk_key_down',
     message0: 'touche %1 pressée ?',
-    args0: [
-      {
-        type: 'field_dropdown',
-        name: 'KEY',
-        options: [
-          ['espace', 'space'], ['flèche haut', 'up'], ['flèche bas', 'down'],
-          ['flèche gauche', 'left'], ['flèche droite', 'right'],
-          ['a', 'a'], ['b', 'b'], ['c', 'c'], ['d', 'd'], ['e', 'e'],
-          ['w', 'w'], ['x', 'x'], ['entrée', 'enter'],
-        ],
-      },
-    ],
+    args0: [{ type: 'field_dropdown', name: 'KEY', options: KEY_OPTIONS }],
     output: 'Boolean',
     colour: COLORS.sensing,
   },
@@ -519,6 +513,12 @@ const jsonBlocks = [
     nextStatement: null,
     colour: COLORS.sound,
   },
+  {
+    type: 'vk_volume',
+    message0: 'volume',
+    output: 'Number',
+    colour: COLORS.sound,
+  },
 ];
 
 Blockly.defineBlocksWithJsonArray(jsonBlocks);
@@ -528,6 +528,7 @@ Blockly.defineBlocksWithJsonArray(jsonBlocks);
 const STOCK_COLOUR_OVERRIDES = {
   controls_repeat_ext: COLORS.control,
   controls_if: COLORS.control,
+  controls_ifelse: COLORS.control,
   math_arithmetic: COLORS.operators,
   logic_compare: COLORS.operators,
   logic_operation: COLORS.operators,
@@ -604,6 +605,7 @@ export const TOOLBOX = {
         { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
         { kind: 'block', type: 'vk_forever' },
         { kind: 'block', type: 'controls_if' },
+        { kind: 'block', type: 'controls_ifelse' },
         { kind: 'block', type: 'vk_stop_all' },
         { kind: 'block', type: 'vk_when_i_start_as_clone' },
         { kind: 'block', type: 'vk_create_clone_of' },
@@ -675,6 +677,7 @@ export const TOOLBOX = {
         { kind: 'block', type: 'vk_stop_all_sounds' },
         { kind: 'block', type: 'vk_set_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: 100 } } } } },
         { kind: 'block', type: 'vk_change_volume', inputs: { VOLUME: { shadow: { type: 'math_number', fields: { NUM: -10 } } } } },
+        { kind: 'block', type: 'vk_volume' },
       ],
     },
   ],

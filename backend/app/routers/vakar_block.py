@@ -31,7 +31,7 @@ router = APIRouter()
 
 FREE_MAX_BLOCK_PROJECTS = 2
 PLUS_MAX_BLOCK_PROJECTS = 20
-ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
 ALLOWED_SOUND_EXTS = {".mp3", ".wav", ".ogg"}
 
 DEFAULT_STAGE = {"width": 480, "height": 360, "backdrops": [], "current_backdrop_id": None}

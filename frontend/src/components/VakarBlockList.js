@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Blocks, Building2, Users, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Trash2, Blocks, Building2, Users, Search, Upload, AlertTriangle, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import VakarBlockEditor from './VakarBlockEditor';
+import { parseSb3, buildProjectFromSb3 } from '../vakarBlock/sb3';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
@@ -27,6 +28,10 @@ export default function VakarBlockList() {
   const [confirm, setConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importWarnings, setImportWarnings] = useState(null); // null = no import done yet; [] = clean import
+  const [pendingOpenId, setPendingOpenId] = useState(null); // project imported with warnings, waiting for the user to review before opening
+  const importInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +57,104 @@ export default function VakarBlockList() {
     setNewName('');
     setCreating(false);
     if (data.id) setEditingId(data.id);
+  };
+
+  // Uploads one costume/backdrop/sound asset (extracted from the .sb3 zip)
+  // through the same endpoint the editor's own upload buttons use.
+  const uploadAssetBlob = async (projectId, blob, filename) => {
+    const formData = new FormData();
+    formData.append('file', new File([blob], filename));
+    const r = await fetch(`${API}/api/admin/vakar-block-projects/${projectId}/asset`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || `Échec de l'import de ${filename}`);
+    return data.url;
+  };
+
+  const importSb3File = async (file) => {
+    if (!file) return;
+    setImporting(true);
+    setImportWarnings(null);
+    try {
+      const buffer = await file.arrayBuffer();
+      const { zip, projectJson } = await parseSb3(buffer);
+      const { stage, sprites, warnings } = buildProjectFromSb3(projectJson);
+
+      const name = file.name.replace(/\.sb3$/i, '').slice(0, 80) || 'Projet importé';
+      const createRes = await fetch(`${API}/api/admin/vakar-block-projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name }),
+      });
+      const created = await createRes.json();
+      if (!created.id) throw new Error('Impossible de créer le projet.');
+      const projectId = created.id;
+
+      const uploadSpec = async (spec) => {
+        const zipEntry = zip.file(spec.zipName);
+        if (!zipEntry) { warnings.push(`fichier manquant dans le .sb3 : ${spec.zipName}`); return null; }
+        const blob = await zipEntry.async('blob');
+        try {
+          const url = await uploadAssetBlob(projectId, blob, spec.zipName);
+          return { id: Math.random().toString(36).slice(2, 10), name: spec.name, url };
+        } catch (err) {
+          warnings.push(err.message);
+          return null;
+        }
+      };
+
+      const backdrops = [];
+      for (const spec of stage._backdropSpecs || []) {
+        const up = await uploadSpec(spec);
+        if (up) backdrops.push({ id: up.id, name: up.name, image_url: up.url });
+      }
+      stage.backdrops = backdrops;
+      stage.current_backdrop_id = backdrops[stage._currentBackdropIndex]?.id || backdrops[0]?.id || null;
+      delete stage._backdropSpecs;
+      delete stage._currentBackdropIndex;
+
+      const finalSprites = [];
+      for (const sprite of sprites) {
+        const costumes = [];
+        for (const spec of sprite._costumeSpecs || []) {
+          const up = await uploadSpec(spec);
+          if (up) costumes.push({ id: up.id, name: up.name, image_url: up.url });
+        }
+        const sounds = [];
+        for (const spec of sprite._soundSpecs || []) {
+          const up = await uploadSpec(spec);
+          if (up) sounds.push({ id: up.id, name: up.name, audio_url: up.url });
+        }
+        finalSprites.push({
+          id: Math.random().toString(36).slice(2, 10),
+          name: sprite.name, x: sprite.x, y: sprite.y, direction: sprite.direction,
+          size: sprite.size, visible: sprite.visible,
+          costumes, current_costume_id: costumes[sprite._currentCostumeIndex]?.id || costumes[0]?.id || null,
+          sounds, workspace: sprite.workspace,
+        });
+      }
+      if (finalSprites.length === 0) {
+        finalSprites.push({ id: Math.random().toString(36).slice(2, 10), name: 'Sprite1', x: 0, y: 0, direction: 90, size: 100, visible: true, costumes: [], current_costume_id: null, sounds: [], workspace: null });
+      }
+
+      await fetch(`${API}/api/admin/vakar-block-projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ stage, sprites: finalSprites }),
+      });
+
+      if (warnings.length > 0) {
+        setImportWarnings(warnings);
+        setPendingOpenId(projectId);
+      } else {
+        setEditingId(projectId);
+      }
+    } catch (err) {
+      setImportWarnings([`Import échoué : ${err.message}`]);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const deleteProject = async (id) => {
@@ -80,8 +183,32 @@ export default function VakarBlockList() {
             <h2 className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">Vakar Block</h2>
             <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">L'éditeur de blocs façon Scratch — sprites, costumes et scripts glisser-déposer</p>
           </div>
-          <Button icon={Plus} onClick={() => setCreating(true)}>Nouveau projet</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" icon={Upload} loading={importing} onClick={() => importInputRef.current?.click()}>Importer .sb3</Button>
+            <input ref={importInputRef} type="file" accept=".sb3" className="hidden" onChange={(e) => { importSb3File(e.target.files?.[0]); e.target.value = ''; }} />
+            <Button icon={Plus} onClick={() => setCreating(true)}>Nouveau projet</Button>
+          </div>
         </div>
+
+        {importWarnings && (
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <AlertTriangle size={13} />
+                {importWarnings.length === 0 ? 'Import terminé sans problème.' : `Import terminé — ${importWarnings.length} élément(s) non pris en charge`}
+              </p>
+              <button onClick={() => setImportWarnings(null)} className="text-amber-700 dark:text-amber-400 hover:opacity-70"><X size={13} /></button>
+            </div>
+            {importWarnings.length > 0 && (
+              <ul className="text-[11px] text-amber-700 dark:text-amber-400 list-disc list-inside space-y-0.5 max-h-32 overflow-y-auto">
+                {importWarnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+            {pendingOpenId && (
+              <Button size="sm" onClick={() => { setEditingId(pendingOpenId); setPendingOpenId(null); }}>Ouvrir le projet</Button>
+            )}
+          </div>
+        )}
 
         {creating && (
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 space-y-4">

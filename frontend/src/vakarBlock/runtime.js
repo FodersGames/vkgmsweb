@@ -12,9 +12,13 @@ const HAT_TYPES = [
   'vk_when_i_receive', 'vk_when_i_start_as_clone',
 ];
 
+// Full alphabet + digits, matching blocks.js's KEY_OPTIONS dropdown —
+// DOM `event.code` values (KeyA.."KeyZ", Digit0.."Digit9") to our own key
+// strings ('a'.."z", '0'.."9").
 const KEY_MAP = {
-  Space: 'space', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  KeyA: 'a', KeyB: 'b', KeyC: 'c', KeyD: 'd', KeyE: 'e', KeyW: 'w', KeyX: 'x', Enter: 'enter',
+  Space: 'space', ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'enter',
+  ...Object.fromEntries('abcdefghijklmnopqrstuvwxyz'.split('').map((k) => [`Key${k.toUpperCase()}`, k])),
+  ...Object.fromEntries('0123456789'.split('').map((k) => [`Digit${k}`, k])),
 };
 
 // Approximate hitbox used for collision/touching checks, in stage units
