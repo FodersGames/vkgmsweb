@@ -221,6 +221,13 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
         ...orig,
         x: Math.min(maxX, Math.max(0, orig.x + dx)),
         y: Math.min(maxY, Math.max(0, orig.y + dy)),
+        // Preserved explicitly — getLayout()'s return shape is plain
+        // {x,y,w,h} even for an anchored node, so without this a drag would
+        // silently wipe its anchors on write (updateLayout replaces the
+        // whole layout object, see below). A locked axis just won't
+        // visually move — getLayout re-derives it from the anchor on the
+        // next render regardless of what x/y was written here.
+        anchors: node.layout?.anchors,
       });
     };
     const onUp = () => {
@@ -244,7 +251,7 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
       if (corner.includes('s')) h = Math.min(bounds.h - orig.y, Math.max(MIN_SIZE, orig.h + dy));
       if (corner.includes('w')) { w = Math.max(MIN_SIZE, Math.min(orig.x + orig.w, orig.w - dx)); x = orig.x + (orig.w - w); }
       if (corner.includes('n')) { h = Math.max(MIN_SIZE, Math.min(orig.y + orig.h, orig.h - dy)); y = orig.y + (orig.h - h); }
-      onChangeLayout(node.id, { x, y, w, h });
+      onChangeLayout(node.id, { x, y, w, h, anchors: node.layout?.anchors });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
@@ -1105,6 +1112,36 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     });
   };
 
+  // Anchors — pinning an edge captures the component's CURRENT resolved
+  // margin from that edge so toggling one on never jumps its position; see
+  // getLayout() in constants/appBuilder.js for how these are resolved back
+  // into x/y/w/h at render time.
+  const toggleAnchor = (edge) => {
+    if (!selected) return;
+    const current = getLayout(selected);
+    updateSelected(node => {
+      const anchors = { ...(node.layout?.anchors || {}) };
+      if (anchors[edge] != null) {
+        delete anchors[edge];
+      } else if (edge === 'top') {
+        anchors.top = Math.round(current.y);
+      } else if (edge === 'bottom') {
+        anchors.bottom = Math.round(CANVAS_HEIGHT - current.y - current.h);
+      } else if (edge === 'left') {
+        anchors.left = Math.round(current.x);
+      } else if (edge === 'right') {
+        anchors.right = Math.round(CANVAS_WIDTH - current.x - current.w);
+      }
+      node.layout = { ...(node.layout || {}), ...current, anchors: Object.keys(anchors).length ? anchors : undefined };
+    });
+  };
+
+  const updateAnchorMargin = (edge, value) => {
+    updateSelected(node => {
+      node.layout = { ...(node.layout || {}), anchors: { ...(node.layout?.anchors || {}), [edge]: Math.max(0, Number(value) || 0) } };
+    });
+  };
+
   const deleteComponent = (id) => {
     mutate(a => {
       const screen = a.screens.find(s => s.id === activeScreenId);
@@ -1127,7 +1164,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       if (!found) return;
       const clone = { ...structuredClone(found.node), id: genId() };
       const l = getLayout(clone);
-      clone.layout = { ...l, x: l.x + 16, y: l.y + 16 };
+      clone.layout = { ...l, x: l.x + 16, y: l.y + 16, anchors: found.node.layout?.anchors };
       if (found.containerId) {
         const container = screen.components.find(c => c.id === found.containerId);
         const idx = container.children.findIndex(c => c.id === id);
@@ -1179,7 +1216,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         if (!found) return;
         const l = getLayout(found.node);
         const step = e.shiftKey ? 10 : 1;
-        const next = { ...l };
+        const next = { ...l, anchors: found.node.layout?.anchors };
         if (e.key === 'ArrowUp') next.y = Math.max(0, next.y - step);
         if (e.key === 'ArrowDown') next.y += step;
         if (e.key === 'ArrowLeft') next.x = Math.max(0, next.x - step);
@@ -1616,7 +1653,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     return <div className="p-6"><div className="h-96 rounded-xl bg-[#F5F5F7] dark:bg-[#1c1c2e] animate-pulse" /></div>;
   }
 
-  const selected = selectedId ? findComponent(activeScreen, selectedId)?.node : null;
+  const selectedFound = selectedId ? findComponent(activeScreen, selectedId) : null;
+  const selected = selectedFound?.node || null;
+  const selectedContainerId = selectedFound?.containerId || null;
   const theme = resolveTheme(app.theme);
 
   // Resolved fresh from `blocksTarget` (not from `selected`) so the
@@ -2096,22 +2135,67 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {['x', 'y', 'w', 'h'].map(key => {
                   const l = getLayout(selected);
+                  const anchors = selected.layout?.anchors;
+                  const locked = (
+                    ((key === 'x') && (anchors?.left != null || anchors?.right != null)) ||
+                    ((key === 'y') && (anchors?.top != null || anchors?.bottom != null)) ||
+                    ((key === 'w') && anchors?.left != null && anchors?.right != null) ||
+                    ((key === 'h') && anchors?.top != null && anchors?.bottom != null)
+                  );
                   return (
                     <div key={key}>
                       <label className="block text-[9px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-wider mb-1">{key}</label>
                       <input
                         type="number" value={Math.round(l[key])}
+                        disabled={locked}
+                        title={locked ? 'Derived from this component\'s anchors — unpin to edit directly' : undefined}
                         onChange={e => {
                           const n = Number(e.target.value) || 0;
                           const min = (key === 'w' || key === 'h') ? MIN_SIZE : 0;
-                          updateLayout(selected.id, { ...l, [key]: Math.max(min, n) });
+                          updateLayout(selected.id, { ...l, [key]: Math.max(min, n), anchors: selected.layout?.anchors });
                         }}
-                        className="w-full rounded-md px-1.5 py-1 text-xs bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4]"
+                        className={`w-full rounded-md px-1.5 py-1 text-xs bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4] ${locked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       />
                     </div>
                   );
                 })}
               </div>
+              {!selectedContainerId && (
+                <div className="mb-4">
+                  <label className="block text-[9px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-wider mb-1.5">
+                    Anchors — pin to the screen's edges
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {['top', 'bottom', 'left', 'right'].map(edge => {
+                      const active = selected.layout?.anchors?.[edge] != null;
+                      return (
+                        <div key={edge} className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleAnchor(edge)}
+                            className={`flex-1 py-1 rounded-md border text-[10px] font-medium capitalize transition-colors ${
+                              active
+                                ? 'border-[#4ECDC4] text-[#4ECDC4] bg-[#4ECDC4]/10'
+                                : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4]'
+                            }`}
+                          >
+                            {edge}
+                          </button>
+                          {active && (
+                            <input
+                              type="number" value={selected.layout.anchors[edge]}
+                              onChange={e => updateAnchorMargin(edge, e.target.value)}
+                              className="w-12 rounded-md px-1 py-1 text-[10px] bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selected.layout?.anchors && Object.keys(selected.layout.anchors).length > 0 && (
+                    <p className="mt-1.5 text-[9px] text-[#A1A1A6] dark:text-[#71717a]">Pinning both edges on an axis stretches it (e.g. top + bottom = always full height). A pinned edge stops responding to dragging — edit its margin above, or unpin to move it freely again.</p>
+                  )}
+                </div>
+              )}
               {HAT_TYPES_BY_COMPONENT[selected.type] && (
                 <p className="flex items-center gap-1.5 mb-4 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">
                   <Zap size={10} className="shrink-0" />This component has blocks — switch to <strong className="font-semibold text-[#6E6E73] dark:text-[#a1a1aa]">Builder</strong> above to edit them.

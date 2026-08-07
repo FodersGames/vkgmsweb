@@ -57,10 +57,47 @@ export const DEFAULT_LAYOUT = {
 // legacy same-type component on the exact same default spot, it cascades
 // them top to bottom by their position in the list, roughly approximating
 // the old flow layout until the user drags them where they actually want.
+//
+// `layout.anchors` (optional, top-level components only — see the Anchors
+// inspector section in AppBuilderEditor.js) pins one or more edges to the
+// screen's own edges, constraint-style: {top, bottom, left, right}, each
+// either a pixel margin or undefined/null for "not pinned". Pinning BOTH
+// edges on an axis stretches the element to fill the gap between them
+// (its stored w/h on that axis becomes a fallback, not the live size);
+// pinning just one keeps its own w/h and only derives the offset. This
+// resolves against the fixed CANVAS_WIDTH/CANVAS_HEIGHT reference frame —
+// same one the runtime's letterboxed scale-to-fit already uses everywhere
+// (see AppRuntime.js/exportApp.js) — so it's a purely additive, backward
+// compatible convenience: a node with no `anchors` behaves exactly as
+// before, byte-for-byte.
+const ANCHOR_MIN_SIZE = 8;
+
 export const getLayout = (node, index = 0) => {
-  if (node?.layout) return node.layout;
-  const base = DEFAULT_LAYOUT[node?.type] || { x: 20, y: 20, w: 120, h: 40 };
-  return { ...base, y: base.y + index * (base.h + 12) };
+  const base = node?.layout
+    ? node.layout
+    : { ...(DEFAULT_LAYOUT[node?.type] || { x: 20, y: 20, w: 120, h: 40 }) };
+  const resolved = node?.layout ? base : { ...base, y: base.y + index * (base.h + 12) };
+  const anchors = node?.layout?.anchors;
+  if (!anchors) return resolved;
+
+  let { x, y, w, h } = resolved;
+  if (anchors.left != null && anchors.right != null) {
+    x = anchors.left;
+    w = Math.max(ANCHOR_MIN_SIZE, CANVAS_WIDTH - anchors.left - anchors.right);
+  } else if (anchors.left != null) {
+    x = anchors.left;
+  } else if (anchors.right != null) {
+    x = CANVAS_WIDTH - anchors.right - w;
+  }
+  if (anchors.top != null && anchors.bottom != null) {
+    y = anchors.top;
+    h = Math.max(ANCHOR_MIN_SIZE, CANVAS_HEIGHT - anchors.top - anchors.bottom);
+  } else if (anchors.top != null) {
+    y = anchors.top;
+  } else if (anchors.bottom != null) {
+    y = CANVAS_HEIGHT - anchors.bottom - h;
+  }
+  return { x, y, w, h };
 };
 
 export const COMPONENT_TYPES = [
