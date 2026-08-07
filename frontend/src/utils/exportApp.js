@@ -6,6 +6,12 @@ import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveT
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
 import { compileNodeBlocksSource } from '../appBuilderBlock/generators';
 
+// Baked into the generated script.js's Data-block requests (see host.dataRequest
+// below) — this build-time value, not a runtime one, since the exported app
+// runs standalone on its own domain/device and has no other way to know
+// where Vakar Games' API lives.
+const EXPORT_API_BASE = process.env.REACT_APP_BACKEND_URL || '';
+
 // Generates a real, standalone HTML/CSS/JS project from a Studio App —
 // no build step, no framework, just open index.html. Deliberately a
 // separate, simpler implementation from AppRuntime.js's React rendering
@@ -564,6 +570,18 @@ ${actionsSource}
     // decrypted values before calling this) — embedded in plain text in
     // this generated script.js, same as any client app. Not a secret vault.
     secrets: ${JSON.stringify(app.secrets || {})},
+    // Data blocks — talks directly to Vakar Games' own API (this app's own
+    // shared data collections), not sandboxed like sandboxFetch since it's
+    // scoped by this app's own id, not an arbitrary external URL.
+    dataRequest: function (method, collection, recordId, fields) {
+      var base = ${JSON.stringify(EXPORT_API_BASE)} + '/api/apps/' + encodeURIComponent(${JSON.stringify(app.public_id || app.slug || '')}) + '/data/' + encodeURIComponent(collection);
+      var url = recordId ? (base + '/' + encodeURIComponent(recordId)) : base;
+      return fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: fields !== undefined ? JSON.stringify({ fields: fields }) : undefined,
+      }).then(function (r) { return r.json(); });
+    },
   });
 
   function runAction(key, scope) {

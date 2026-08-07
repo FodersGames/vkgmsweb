@@ -42,6 +42,7 @@ export const COLORS = {
   item: '#2F9E44',
   network: '#457B9D',
   secrets: '#6D597A',
+  data: '#E07A5F',
 };
 
 const jsonBlocks = [
@@ -945,6 +946,59 @@ const jsonBlocks = [
   },
 
   // ============================================================
+  // Data — a tiny shared database per app (see backend/app/routers/
+  // studio_data.py). Records are plain JSON objects, no fixed schema.
+  // Shared/public, not per-visitor-private — see that file's docstring.
+  // ============================================================
+  {
+    type: 'ab_data_list_into',
+    message0: 'load all records from %1 into list %2',
+    args0: [
+      { type: 'field_input', name: 'COLLECTION', text: 'myCollection' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.data,
+    tooltip: 'Fetches every record into a list variable — each item is a JSON object with an "id" field plus whatever fields you gave it. Use the List blocks (field of, item at index, for each…) to work with it.',
+  },
+  {
+    type: 'ab_data_add',
+    message0: 'add record to %1 with fields %2',
+    args0: [
+      { type: 'field_input', name: 'COLLECTION', text: 'myCollection' },
+      { type: 'input_value', name: 'FIELDS' },
+    ],
+    output: null,
+    colour: COLORS.data,
+    tooltip: 'Creates a new record from a JSON object of fields, e.g. {"name": "Alice", "score": 10}. Returns the new record\'s id — store it if you\'ll need to update/delete this record later.',
+  },
+  {
+    type: 'ab_data_update',
+    message0: 'update record %1 in %2 with fields %3',
+    args0: [
+      { type: 'input_value', name: 'RECORD_ID' },
+      { type: 'field_input', name: 'COLLECTION', text: 'myCollection' },
+      { type: 'input_value', name: 'FIELDS' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.data,
+    tooltip: 'Merges the given fields into an existing record — get its id from a loaded list\'s "id" field.',
+  },
+  {
+    type: 'ab_data_delete',
+    message0: 'delete record %1 from %2',
+    args0: [
+      { type: 'input_value', name: 'RECORD_ID' },
+      { type: 'field_input', name: 'COLLECTION', text: 'myCollection' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.data,
+  },
+
+  // ============================================================
   // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
   // also reused inside "for each item in list" loop bodies)
   // ============================================================
@@ -1209,6 +1263,15 @@ const BASE_CATEGORIES = [
     kind: 'category', name: 'Secrets', colour: COLORS.secrets,
     contents: [
       { kind: 'block', type: 'ab_secret' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Data', colour: COLORS.data,
+    contents: [
+      { kind: 'block', type: 'ab_data_list_into' },
+      { kind: 'block', type: 'ab_data_add', inputs: { FIELDS: { shadow: { type: 'text', fields: { TEXT: '{"name": "Alice"}' } } } } },
+      { kind: 'block', type: 'ab_data_update', inputs: { FIELDS: { shadow: { type: 'text', fields: { TEXT: '{"name": "Alice"}' } } } } },
+      { kind: 'block', type: 'ab_data_delete' },
     ],
   },
 ];

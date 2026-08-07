@@ -408,6 +408,27 @@ forBlock['ab_secret'] = function (block) {
   return [`helpers.getSecret(${fieldStr(block, 'NAME')})`, Order.FUNCTION_CALL];
 };
 
+// ---------- Data ----------
+forBlock['ab_data_list_into'] = function (block) {
+  return `setVar(${fieldStr(block, 'LIST_VAR')}, JSON.stringify(await helpers.dataList(${fieldStr(block, 'COLLECTION')})));\n`;
+};
+forBlock['ab_data_add'] = function (block, generator) {
+  const collection = fieldStr(block, 'COLLECTION');
+  const fields = generator.valueToCode(block, 'FIELDS', Order.NONE) || "'{}'";
+  return [`(await helpers.dataAdd(${collection}, ${fields}))`, Order.NONE];
+};
+forBlock['ab_data_update'] = function (block, generator) {
+  const recordId = generator.valueToCode(block, 'RECORD_ID', Order.NONE) || "''";
+  const collection = fieldStr(block, 'COLLECTION');
+  const fields = generator.valueToCode(block, 'FIELDS', Order.NONE) || "'{}'";
+  return `await helpers.dataUpdate(${collection}, ${recordId}, ${fields});\n`;
+};
+forBlock['ab_data_delete'] = function (block, generator) {
+  const recordId = generator.valueToCode(block, 'RECORD_ID', Order.NONE) || "''";
+  const collection = fieldStr(block, 'COLLECTION');
+  return `await helpers.dataDelete(${collection}, ${recordId});\n`;
+};
+
 // ---------- Navigate ----------
 forBlock['ab_navigate'] = function (block) {
   return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;

@@ -22,7 +22,7 @@ from .routers import (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
     play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block,
+    vakar_block, studio_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ for _router_module in (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
     play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block,
+    vakar_block, studio_data,
 ):
     app.include_router(_router_module.router, prefix="/api")
 
@@ -140,6 +140,7 @@ async def startup_event():
         await db.vakar_block_projects.create_index([("user_id", 1), ("updated_at", -1)], sparse=True)
         await db.users.create_index("stripe_customer_id", sparse=True)
         await db.apk_builds.create_index([("app_id", 1), ("created_at", -1)])
+        await db.studio_records.create_index([("app_id", 1), ("collection", 1), ("created_at", -1)])
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)

@@ -23,6 +23,7 @@
 //   storagePrefix               — string, namespaces localStorage keys per app
 //   sandboxFetch(url, method, body) — Promise<{ok, status, text}>, see httpGet/httpPost below
 //   secrets                     — {name: value}, the app's Integrations tab entries (see getSecret below)
+//   dataRequest(method, collection, recordId, fields) — Promise<response JSON>, see the Data blocks below
 export function createRuntimeHelpers(host) {
   function parseArray(raw) {
     if (!raw) return [];
@@ -31,6 +32,16 @@ export function createRuntimeHelpers(host) {
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
+    }
+  }
+
+  function parseObject(raw) {
+    if (!raw) return {};
+    try {
+      var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+    } catch (e) {
+      return {};
     }
   }
 
@@ -404,6 +415,38 @@ export function createRuntimeHelpers(host) {
     // as any client app. Empty string if the name isn't defined/loaded yet.
     getSecret: function (name) {
       return (host.secrets && host.secrets[name]) || '';
+    },
+
+    // Data collections — a tiny shared database per app (see
+    // backend/app/routers/studio_data.py). Records are plain
+    // {field: value} objects; dataList returns each with an added "id" so
+    // it can be plugged straight into ab_data_update/ab_data_delete after
+    // being read back out with "field of" (ab_json_field). Every call
+    // fails quiet (empty list / empty id / no-op) on network or validation
+    // errors, same convention as everything else here.
+    dataList: function (collection) {
+      return host.dataRequest('GET', collection).then(function (r) {
+        var records = (r && r.records) || [];
+        return records.map(function (rec) {
+          var withId = {};
+          for (var k in rec.fields) { if (Object.prototype.hasOwnProperty.call(rec.fields, k)) withId[k] = rec.fields[k]; }
+          withId.id = rec.id;
+          return withId;
+        });
+      }).catch(function () { return []; });
+    },
+    dataAdd: function (collection, fieldsJsonText) {
+      return host.dataRequest('POST', collection, null, parseObject(fieldsJsonText)).then(function (r) {
+        return (r && r.id) || '';
+      }).catch(function () { return ''; });
+    },
+    dataUpdate: function (collection, recordId, fieldsJsonText) {
+      if (!recordId) return Promise.resolve();
+      return host.dataRequest('PATCH', collection, recordId, parseObject(fieldsJsonText)).catch(function () {});
+    },
+    dataDelete: function (collection, recordId) {
+      if (!recordId) return Promise.resolve();
+      return host.dataRequest('DELETE', collection, recordId).catch(function () {});
     },
   };
 }

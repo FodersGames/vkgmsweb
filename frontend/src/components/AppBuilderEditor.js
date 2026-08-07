@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
-  ShieldAlert, EyeOff, History, Zap, Key,
+  ShieldAlert, EyeOff, History, Zap, Key, Database,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -935,6 +935,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [secrets, setSecrets] = useState([]);
   const [secretsLoading, setSecretsLoading] = useState(false);
   const [secretsSaving, setSecretsSaving] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
+  const [dataCollections, setDataCollections] = useState([]);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataClearingName, setDataClearingName] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
@@ -1515,6 +1519,33 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     }
   };
 
+  // Data tab — collection names + record counts (see backend/app/routers/
+  // studio_data.py). Read-only overview + the one owner-only destructive
+  // action (bulk clear) that's deliberately NOT a runtime block — see that
+  // file's docstring for why.
+  const loadDataCollections = async () => {
+    setDataLoading(true);
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/data`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      const data = await r.json();
+      setDataCollections(data.collections || []);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const clearDataCollection = async (name) => {
+    if (!window.confirm(`Delete every record in "${name}"? This can't be undone.`)) return;
+    setDataClearingName(name);
+    try {
+      await fetch(`${API}${apiBase}/${appId}/data/${encodeURIComponent(name)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await loadDataCollections();
+    } finally {
+      setDataClearingName('');
+    }
+  };
+
   useEffect(() => {
     if (!enableApkBuild) return undefined;
     if (!apkBuild || (apkBuild.status !== 'queued' && apkBuild.status !== 'building')) return undefined;
@@ -1715,6 +1746,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           title="API keys/tokens your blocks can reference by name"
         >
           Integrations
+        </Button>
+        <Button
+          size="sm" variant="secondary" icon={Database}
+          onClick={() => { loadDataCollections(); setDataOpen(true); }}
+          title="This app's shared data collections"
+        >
+          Data
         </Button>
         <Button size="sm" variant="secondary" icon={Undo2} onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)" />
         <Button size="sm" variant="secondary" icon={Redo2} onClick={redo} disabled={future.length === 0} title="Redo (Ctrl+Shift+Z)" />
@@ -2330,6 +2368,53 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               >
                 Save
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Data — collections overview + owner-only bulk clear. Records
+          themselves are only ever added/edited through the app's own
+          blocks at runtime, not from here. */}
+      {dataOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setDataOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Data</h3>
+              <button onClick={() => setDataOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3 overflow-y-auto">
+              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
+                Collections your app's "Data" blocks have created. They're shared and public — any visitor of a live app can add/edit/delete individual records. There's no per-user private data yet.
+              </p>
+              {dataLoading ? (
+                <p className="text-xs text-[#A1A1A6]">Loading…</p>
+              ) : dataCollections.length === 0 ? (
+                <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No collections yet — they appear automatically the first time a "Data" block writes to one.</p>
+              ) : (
+                <div className="space-y-2">
+                  {dataCollections.map(c => (
+                    <div key={c.name} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                      <div className="min-w-0">
+                        <span className="block text-xs font-mono font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{c.name}</span>
+                        <span className="block text-[10px] text-[#A1A1A6]">{c.count} record{c.count === 1 ? '' : 's'}</span>
+                      </div>
+                      <button
+                        onClick={() => clearDataCollection(c.name)}
+                        disabled={dataClearingName === c.name}
+                        className="text-[11px] font-semibold text-red-500 hover:underline disabled:opacity-50 shrink-0"
+                      >
+                        {dataClearingName === c.name ? 'Clearing…' : 'Clear'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -467,7 +467,7 @@ export function PositionedNode({ node, index = 0, vars, setVars, runAction, them
   );
 }
 
-export default function AppRuntime({ app, className = '', showWatermark = false }) {
+export default function AppRuntime({ app, token, className = '', showWatermark = false }) {
   const theme = useMemo(() => resolveTheme(app?.theme), [app?.theme]);
   const screens = useMemo(() => app?.screens || [], [app]);
   const [screenId, setScreenId] = useState(screens[0]?.id);
@@ -542,8 +542,23 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     // app's secrets via the owner-only endpoint) since the general app-load
     // response never includes decrypted values.
     secrets: app?.secrets || {},
+    // Data blocks talk to OUR OWN backend (not an arbitrary external URL),
+    // scoped by this app's own id/collection name — unlike sandboxFetch,
+    // there's no ambient-session risk in calling it directly, and sending
+    // the owner's token (when present) is what lets the editor's own
+    // Preview reach a private/unpublished app's data.
+    dataRequest: (method, collection, recordId, fields) => {
+      const appKey = app?.public_id || app?.slug || '';
+      const base = `${API}/api/apps/${encodeURIComponent(appKey)}/data/${encodeURIComponent(collection)}`;
+      const url = recordId ? `${base}/${encodeURIComponent(recordId)}` : base;
+      return fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: fields !== undefined ? JSON.stringify({ fields }) : undefined,
+      }).then(r => r.json());
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [screens, app]);
+  }), [screens, app, token]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);
 
   // `node` is a component OR a screen object; `hatType` picks which of its
