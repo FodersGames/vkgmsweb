@@ -3,23 +3,36 @@ import { normalizeActions } from '../constants/appBuilder';
 import './blocks';
 
 // ============================================================
-// APP BUILDER BLOCKS — converts the old flat action-list format (a plain
-// array of {type, ...fields} objects, see createAction()/ACTION_TYPES in
-// constants/appBuilder.js) into a Blockly workspace JSON blob, the shape
-// every trigger (node.actions.onClick/onChange, node.props.item_action) is
-// stored as from here on (`{v: 1, blockly: <...>}`).
+// APP BUILDER BLOCKS — migrates old trigger data all the way to the current
+// shape: `{v: 2, blockly: <workspace JSON with a hat block>}`, the shape
+// every element/screen's single `.blocks` field is stored as from here on.
+// Three historical shapes feed into this, oldest first:
+//   1. A flat action-list array (the original pre-Blockly ActionEditor;
+//      see createAction()/ACTION_TYPES history in constants/appBuilder.js)
+//      -> legacyActionsToBlockly() -> plain v1 Blockly JSON, no hat.
+//   2. v1 Blockly JSON (`{v:1, blockly}`) — real blocks, but saved back
+//      when a component still had one implicit trigger per type (onClick/
+//      onChange) rather than explicit hat blocks -> wrapLegacyWorkspaceWithHat()
+//      adds the right hat (ab_when_clicked/ab_when_changed/ab_when_row_tapped/
+//      ab_when_screen_opens, chosen by the caller — see AppBuilderEditor.js/
+//      AppRuntime.js, which own the element-type -> hat mapping since it
+//      needs COMPONENT_META).
+//   3. Already `{v:2, blockly}` — nothing to do.
+// migrateToHatWorkspace() (bottom of this file) is the single entry point
+// that walks 1 -> 2 -> 3 (or starts partway through) for one old value.
 //
-// Modeled directly on Vakar Block's own .sb3 importer (vakarBlock/sb3.js):
-// a per-action-type handler table building real Blockly block instances in
-// a throwaway headless `new Blockly.Workspace()`, then serialized once via
+// legacyActionsToBlockly() modeled directly on Vakar Block's own .sb3
+// importer (vakarBlock/sb3.js): a per-action-type handler table building
+// real Blockly block instances in a throwaway headless
+// `new Blockly.Workspace()`, then serialized once via
 // Blockly.serialization.workspaces.save(). Unmapped/malformed actions are
 // never silently dropped — they're collected into `warnings` and surfaced
 // to the user, same convention as the sb3 importer.
 //
-// Run once, when an app with old-shape actions is opened in the editor
-// (see AppBuilderEditor.js's load()) — the migrated shape is written into
+// Run once, when an app with old-shape data is opened in the editor (see
+// AppBuilderEditor.js's load()) — the migrated shape is written into
 // in-memory app state; the next explicit save persists it. AppRuntime.js
-// also calls this on the fly for any trigger it encounters that's still
+// also calls this on the fly for any element it encounters that's still
 // old-shape (e.g. a published app nobody has re-opened in the editor yet),
 // without persisting anything — it has nowhere to save to.
 // ============================================================
@@ -362,4 +375,74 @@ export function legacyActionsToBlockly(actions, { variableNames = [] } = {}) {
   } finally {
     ws.dispose();
   }
+}
+
+// ============================================================
+// v1 -> v2: wraps a v1 workspace (a flat statement chain with no hat block
+// — everything in it ran unconditionally, since App Builder didn't have
+// hats yet) under a fresh hat of the given type, so it keeps running under
+// the new "only code under a matching hat ever runs" model (blocks.js/
+// generators.js's compileNodeBlocks). Uses Blockly's own per-BLOCK
+// serialization (not per-workspace) to move the old chain's root block —
+// and everything chained after it — into the new workspace as a single
+// unit, then connects it under the hat.
+// ============================================================
+function wrapLegacyWorkspaceWithHat(v1WorkspaceJson, hatType) {
+  const ws = new Blockly.Workspace();
+  const tempWs = new Blockly.Workspace();
+  try {
+    const hat = newBlock(ws, hatType);
+    Blockly.serialization.workspaces.load(v1WorkspaceJson, tempWs);
+    const roots = tempWs.getTopBlocks(true);
+    if (roots.length > 0) {
+      // v1 workspaces only ever held one linear chain (the old per-trigger
+      // ActionEditor was strictly linear) — defensively only the first if
+      // there happen to be more than one disconnected fragment.
+      const rootState = Blockly.serialization.blocks.save(roots[0]);
+      const imported = Blockly.serialization.blocks.append(rootState, ws);
+      hat.nextConnection.connect(imported.previousConnection);
+    }
+    return Blockly.serialization.workspaces.save(ws);
+  } finally {
+    tempWs.dispose();
+    ws.dispose();
+  }
+}
+
+// isLegacyShape() (above) detects the oldest shape (a flat action array or
+// pre-list single action). This detects the shape one step newer — a
+// hat-less v1 workspace, saved by the block editor before hats existed —
+// which also needs migrating (via wrapLegacyWorkspaceWithHat) but NOT
+// through legacyActionsToBlockly again (it's already real Blockly JSON).
+export function isV1Shape(value) {
+  return !!(value && value.blockly && value.v === 1);
+}
+
+// True once a value is in the current, final shape — nothing to migrate.
+export function isV2Shape(value) {
+  return !!(value && value.blockly && value.v === 2);
+}
+
+// Orchestrates the full chain for one element's one old trigger value,
+// whatever shape it's currently in, down to the final `{v: 2, blockly}` —
+// or straight through unchanged if it's already there. `hatType` is the
+// hat the caller has already decided this old value corresponds to (a
+// button's old onClick -> ab_when_clicked, a list's old item_action ->
+// ab_when_row_tapped, etc. — see AppBuilderEditor.js/AppRuntime.js, which
+// own that per-element-type mapping since it needs COMPONENT_META).
+export function migrateToHatWorkspace(oldValue, hatType, { variableNames = [] } = {}) {
+  if (!oldValue) return { value: null, warnings: [] };
+  if (isV2Shape(oldValue)) return { value: oldValue, warnings: [] };
+  let v1Json;
+  let warnings = [];
+  if (isV1Shape(oldValue)) {
+    v1Json = oldValue.blockly;
+  } else {
+    const migrated = legacyActionsToBlockly(oldValue, { variableNames });
+    v1Json = migrated.value?.blockly;
+    warnings = migrated.warnings;
+  }
+  if (!v1Json) return { value: null, warnings };
+  const v2Json = wrapLegacyWorkspaceWithHat(v1Json, hatType);
+  return { value: { v: 2, blockly: v2Json }, warnings };
 }

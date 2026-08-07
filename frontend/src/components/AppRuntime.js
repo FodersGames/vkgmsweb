@@ -1,35 +1,51 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, COMPONENT_META, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
-import { compileTrigger } from '../appBuilderBlock/generators';
-import { legacyActionsToBlockly, isLegacyShape } from '../appBuilderBlock/legacyMigration';
+import { compileNodeBlocks } from '../appBuilderBlock/generators';
+import { migrateToHatWorkspace, isV2Shape } from '../appBuilderBlock/legacyMigration';
 import { setAbBlockContext } from '../appBuilderBlock/fields';
+import { LEGACY_TRIGGER_TO_HAT } from '../appBuilderBlock/blocks';
 
-// A trigger value is either the new `{v, blockly}` shape, or (for apps not
-// yet re-saved since the block-editor rollout — see legacyMigration.js's
-// header comment) the old flat action-list shape, migrated to Blockly JSON
-// on the fly here. Unlike the editor (AppBuilderEditor.js's load()), this
-// has nothing to persist the migration back to — it's re-derived on every
-// call, which is fine since it's a pure, cheap, in-memory transform.
-// `screen`/`screens` populate the same target/screen dropdown registry
-// AppBuilderBlockPanel does before authoring — a migrated target_id/
-// screen_id must be a real option in that registry or the field silently
-// drops it (see AppBuilderEditor.js's migrateLegacyActions for the same
-// requirement on the editor side).
-function resolveBlocklyJson(value, variableNames, screen, screens) {
-  if (!value) return null;
-  if (value.blockly) return value.blockly;
-  if (isLegacyShape(value)) {
-    setAbBlockContext({
-      components: flattenAllTargets(screen),
-      updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)),
-      screens,
-    });
-    const { value: migrated } = legacyActionsToBlockly(value, { variableNames });
-    return migrated?.blockly || null;
+// Resolves one element's (or screen's) single `.blocks` workspace to real
+// Blockly JSON, migrating on the fly if it's still on an old shape (a flat
+// action-list array, or a pre-hat v1 workspace saved under the old
+// per-type actions.onClick/onChange/props.item_action/screen.actions.onOpen
+// fields — see legacyMigration.js's header comment for the full chain).
+// Unlike the editor (AppBuilderEditor.js's load()), this has nothing to
+// persist the migration back to — it's re-derived on every call, which is
+// fine since it's a pure, cheap, in-memory transform. `isScreen` picks
+// which old field/hat mapping applies; everything else is looked up from
+// COMPONENT_META exactly like AppBuilderEditor.js's migrateLegacyActions
+// does. `screen`/`screens` populate the same target/screen dropdown
+// registry AppBuilderBlockPanel does before authoring — a migrated
+// target_id/screen_id must be a real option in that registry or the field
+// silently drops it.
+function resolveNodeWorkspace(node, isScreen, variableNames, screen, screens) {
+  if (!node) return null;
+  if (isV2Shape(node.blocks)) return node.blocks.blockly;
+
+  let oldValue, hatType;
+  if (isScreen) {
+    oldValue = node.actions?.onOpen;
+    hatType = 'ab_when_screen_opens';
+  } else if (node.type === 'list') {
+    oldValue = node.props?.item_action;
+    hatType = 'ab_when_row_tapped';
+  } else {
+    const trigger = COMPONENT_META[node.type]?.actionTrigger;
+    hatType = LEGACY_TRIGGER_TO_HAT[trigger];
+    oldValue = trigger ? node.actions?.[trigger] : null;
   }
-  return null;
+  if (!oldValue || !hatType) return null;
+
+  setAbBlockContext({
+    components: flattenAllTargets(screen),
+    updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)),
+    screens,
+  });
+  const { value } = migrateToHatWorkspace(oldValue, hatType, { variableNames });
+  return value?.blockly || null;
 }
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -138,7 +154,9 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
     case 'button':
       return (
         <button
-          onClick={() => runAction && runAction(node.actions?.onClick)}
+          onClick={() => runAction && runAction(node, 'ab_when_clicked')}
+          onPointerDown={() => runAction && runAction(node, 'ab_when_pressed')}
+          onPointerUp={() => runAction && runAction(node, 'ab_when_released')}
           style={{
             ...buttonStyle(theme, node.props?.style),
             width: '100%', height: '100%', borderRadius: theme.radius * 0.7, fontSize: 14, fontWeight: 600,
@@ -201,7 +219,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
               if (!interactive || !bound) return;
               const next = vars[node.props.variable] === 'true' ? 'false' : 'true';
               setVars(v => ({ ...v, [node.props.variable]: next }));
-              runAction && runAction(node.actions?.onChange);
+              runAction && runAction(node, 'ab_when_changed');
             }}
             style={{
               width: 42, height: 24, borderRadius: 12, border: 'none', cursor: (bound && interactive) ? 'pointer' : 'default',
@@ -235,7 +253,6 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       if (items.length === 0) {
         return <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 13, color: theme.colors.textMuted }}>{node.props?.empty_text || 'No items yet.'}</p>;
       }
-      const itemAction = node.props?.item_action;
       const imageTemplate = node.props?.item_image_template;
       const isGrid = node.props?.layout_mode === 'grid';
       const columns = Math.max(1, Number(node.props?.grid_columns) || 2);
@@ -250,8 +267,13 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           {items.slice(0, 50).map((item, i) => {
             const imgSrc = imageTemplate ? interpolate(imageTemplate, vars, { item }) : '';
             const text = interpolate(node.props?.item_template, vars, { item });
-            const clickable = itemAction && interactive;
-            const onClick = () => { if (clickable && runAction) runAction(itemAction, { item, index: i }); };
+            // Whether this row is "tappable" no longer depends on knowing
+            // ahead of time if a real "when a row is tapped" hat exists —
+            // runAction() itself no-ops harmlessly if it doesn't, same as a
+            // button with nothing wired to "when clicked" (see its own
+            // unconditional `cursor: interactive ? 'pointer' : 'default'`).
+            const clickable = interactive;
+            const onClick = () => { if (clickable && runAction) runAction(node, 'ab_when_row_tapped', { item, index: i }); };
             if (isGrid) {
               return (
                 <div
@@ -297,7 +319,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           onClick={() => {
             if (!interactive || !bound) return;
             setVars(v => ({ ...v, [node.props.variable]: checked ? 'false' : 'true' }));
-            runAction && runAction(node.actions?.onChange);
+            runAction && runAction(node, 'ab_when_changed');
           }}
           style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: '100%', cursor: (bound && interactive) ? 'pointer' : 'default', opacity: bound ? 1 : 0.5 }}
         >
@@ -324,7 +346,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
               key={n} disabled={!bound || !interactive}
               onClick={() => {
                 setVars(v => ({ ...v, [node.props.variable]: String(n) }));
-                runAction && runAction(node.actions?.onChange);
+                runAction && runAction(node, 'ab_when_changed');
               }}
               style={{ background: 'none', border: 'none', padding: 0, cursor: (bound && interactive) ? 'pointer' : 'default', lineHeight: 0 }}
             >
@@ -359,7 +381,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
             // continuous) — fine for the common case (set another variable,
             // show/hide something) but worth remembering if it's ever wired
             // to something expensive.
-            runAction && runAction(node.actions?.onChange);
+            runAction && runAction(node, 'ab_when_changed');
           }}
           style={{ width: '100%', accentColor: theme.colors.primary, opacity: bound ? 1 : 0.5 }}
         />
@@ -377,7 +399,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
           type="date" value={vars[node.props.variable] || ''}
           onChange={e => {
             setVars(v => ({ ...v, [node.props.variable]: e.target.value }));
-            runAction && runAction(node.actions?.onChange);
+            runAction && runAction(node, 'ab_when_changed');
           }}
           style={style}
         />
@@ -480,9 +502,13 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
   // "add 1 to coins" then "update text1 with coins") and must see each
   // other's just-written value without waiting for a re-render — same
   // reasoning the old flat-action interpreter used `currentVars` for.
-  // `scope` is only set for a list's item_action, read by the "This item"
+  // `scope` is only set for a list row's tap, read by the "This item"
   // blocks (ab_item/ab_item_field/ab_item_index in appBuilderBlock/).
   const variableNames = useMemo(() => (app?.variables || []).map(v => v.name), [app]);
+  // Keyed by workspace JSON (one per element/screen), value is the
+  // {hatType: compiledFn} map compileNodeBlocks() returns — so switching
+  // between a button's "when clicked"/"when pressed"/"when released" only
+  // ever compiles that button's workspace once, not once per hat.
   const compileCacheRef = useRef(new WeakMap());
   const host = useMemo(() => ({
     screens,
@@ -507,12 +533,19 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
   }), [screens, app]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);
 
-  const runAction = async (actionOrList, scope) => {
-    const blocklyJson = resolveBlocklyJson(actionOrList, variableNames, screen, screens);
+  // `node` is a component OR a screen object; `hatType` picks which of its
+  // hats to run ('ab_when_clicked'/'ab_when_pressed'/'ab_when_released'/
+  // 'ab_when_changed'/'ab_when_row_tapped'/'ab_when_screen_opens') — code
+  // NOT chained under a matching hat in that element's workspace is simply
+  // never compiled/called (see compileNodeBlocks), exactly like Scratch/MIT
+  // App Inventor.
+  const runAction = async (node, hatType, scope) => {
+    const isScreen = node === screen;
+    const blocklyJson = resolveNodeWorkspace(node, isScreen, variableNames, screen, screens);
     if (!blocklyJson) return;
     const cache = compileCacheRef.current;
-    if (!cache.has(blocklyJson)) cache.set(blocklyJson, compileTrigger(blocklyJson));
-    const fn = cache.get(blocklyJson);
+    if (!cache.has(blocklyJson)) cache.set(blocklyJson, compileNodeBlocks(blocklyJson));
+    const fn = cache.get(blocklyJson)[hatType];
     if (!fn) return;
     const currentVars = { ...vars };
     const setVar = (name, value) => {
@@ -522,14 +555,12 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     await fn(currentVars, setVar, scope, helpers);
   };
 
-  // Runs a screen's "when this screen opens" trigger (screen.actions.onOpen,
-  // edited via the ⚡ button next to each screen in AppBuilderEditor.js's
-  // Screens list) whenever the visible screen changes — including the very
-  // first screen shown on mount, matching the natural "just opened" meaning.
-  // A screen isn't a component, so this bypasses the normal per-component
-  // runAction call sites and reads `screen` straight from the dependency.
+  // Runs a screen's "when this screen opens" hat (edited via the ⚡ button
+  // next to each screen in AppBuilderEditor.js's Screens list) whenever the
+  // visible screen changes — including the very first screen shown on
+  // mount, matching the natural "just opened" meaning.
   useEffect(() => {
-    if (screen?.actions?.onOpen) runAction(screen.actions.onOpen);
+    if (screen) runAction(screen, 'ab_when_screen_opens');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen?.id]);
 

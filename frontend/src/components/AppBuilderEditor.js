@@ -21,8 +21,9 @@ import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 import { ConfirmDialog } from './ConfirmDialog';
 import { VersionHistoryModal } from './VersionHistoryModal';
 import AppBuilderBlockPanel from './AppBuilderBlockPanel';
-import { legacyActionsToBlockly, isLegacyShape } from '../appBuilderBlock/legacyMigration';
+import { migrateToHatWorkspace, isV2Shape } from '../appBuilderBlock/legacyMigration';
 import { setAbBlockContext } from '../appBuilderBlock/fields';
+import { HAT_TYPES_BY_COMPONENT, SCREEN_HAT_TYPES, LEGACY_TRIGGER_TO_HAT, buildToolbox } from '../appBuilderBlock/blocks';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 const MIN_SIZE = 24;
@@ -98,23 +99,25 @@ function formatBytes(bytes) {
   return `${Math.round(bytes / 1024)} KB`;
 }
 
-// Auto-converts every trigger still in the old flat action-list shape to
-// Blockly JSON, in place, the moment an app is opened in the editor — see
-// legacyMigration.js's header comment. Mutates `app` directly (freshly
-// parsed JSON from load(), not shared/rendered yet) and returns any
-// per-trigger warnings for unmappable actions, surfaced via the banner
+// Auto-converts every element/screen still on an old data shape — a flat
+// action-list array, or a pre-hat v1 Blockly workspace saved under the old
+// per-type actions.onClick/onChange/props.item_action/screen.actions.onOpen
+// fields — all the way to the current `{v: 2, blockly}` shape stored in a
+// single `.blocks` field, wrapping each in the hat block it now needs (see
+// legacyMigration.js's header comment for the full 3-step chain). Mutates
+// `app` directly (freshly parsed JSON from load(), not shared/rendered yet)
+// and returns any warnings for unmappable actions, surfaced via the banner
 // rendered near the top of this component.
 function migrateLegacyActions(app) {
   const warnings = [];
   const variableNames = (app.variables || []).map(v => v.name);
-  const migrateValue = (value, where) => {
-    if (!isLegacyShape(value)) return value;
-    const { value: migrated, warnings: w } = legacyActionsToBlockly(value, { variableNames });
+  const migrate = (oldValue, hatType, where) => {
+    const { value, warnings: w } = migrateToHatWorkspace(oldValue, hatType, { variableNames });
     w.forEach(msg => warnings.push(`${where}: ${msg}`));
-    return migrated;
+    return value;
   };
   for (const screen of app.screens || []) {
-    // Target/screen dropdown fields (ab_update_text/ab_set_visibility's
+    // Target/screen dropdown fields (ab_update_text/ab_show_element's
     // TARGET, ab_navigate's SCREEN) validate against whatever
     // setAbBlockContext registry is live when a block's field is set — a
     // migrated action's target_id/screen_id must be a real option in that
@@ -126,16 +129,25 @@ function migrateLegacyActions(app) {
       updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)),
       screens: app.screens || [],
     });
+
+    if (screen.actions?.onOpen && !isV2Shape(screen.blocks)) {
+      screen.blocks = migrate(screen.actions.onOpen, 'ab_when_screen_opens', `${screen.name || 'Screen'} (when it opens)`);
+    }
+    delete screen.actions;
+
     const walk = (comp) => {
-      if (comp.actions) {
-        for (const trigger of Object.keys(comp.actions)) {
-          const next = migrateValue(comp.actions[trigger], `${screen.name || 'Screen'} → ${COMPONENT_META[comp.type]?.label || comp.type}`);
-          if (next) comp.actions[trigger] = next; else delete comp.actions[trigger];
+      if (!isV2Shape(comp.blocks)) {
+        const label = COMPONENT_META[comp.type]?.label || comp.type;
+        if (comp.type === 'list') {
+          if (comp.props?.item_action) comp.blocks = migrate(comp.props.item_action, 'ab_when_row_tapped', `${screen.name || 'Screen'} → ${label}`);
+        } else {
+          const trigger = COMPONENT_META[comp.type]?.actionTrigger;
+          const hatType = LEGACY_TRIGGER_TO_HAT[trigger];
+          if (hatType && comp.actions?.[trigger]) comp.blocks = migrate(comp.actions[trigger], hatType, `${screen.name || 'Screen'} → ${label}`);
         }
       }
-      if (comp.type === 'list' && comp.props?.item_action) {
-        comp.props.item_action = migrateValue(comp.props.item_action, `${screen.name || 'Screen'} → List`);
-      }
+      delete comp.actions;
+      if (comp.props) delete comp.props.item_action;
       if (comp.type === 'container') (comp.children || []).forEach(walk);
     };
     (screen.components || []).forEach(walk);
@@ -846,11 +858,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [activeScreenId, setActiveScreenId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [inspectorTab, setInspectorTab] = useState('props');
-  // { nodeId, trigger } when the full-screen block editor is open (trigger
-  // is 'onClick'/'onChange'/etc for a component's action, or the literal
-  // 'item_action' for a list's row-tap) — null means the normal Designer
-  // view (palette/canvas/inspector). Replaces the old cramped in-sidebar
-  // Blockly panel with a real MIT-App-Inventor-style full-page Blocks mode.
+  // { nodeId, isScreen? } when the full-screen block editor is open for that
+  // element's or screen's single `.blocks` workspace — null means the
+  // normal Designer view (palette/canvas/inspector). Replaces the old
+  // cramped in-sidebar Blockly panel with a real MIT-App-Inventor-style
+  // full-page Blocks mode.
   const [blocksTarget, setBlocksTarget] = useState(null);
   const [dirty, setDirty] = useState(false);
   // Undo/redo — a plain stack of whole-app snapshots, capped at 50. mutate()
@@ -1374,40 +1386,29 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const theme = resolveTheme(app.theme);
 
   // Resolved fresh from `blocksTarget` (not from `selected`) so the
-  // full-screen Blocks view keeps working correctly even for a list's
-  // item_action or a screen's "when opens" trigger, both of which can
-  // belong to a different node than whatever's currently selected in the
-  // (hidden, while Blocks is open) inspector — a screen's own trigger isn't
-  // even scoped to `activeScreen` at all, since the Zap button that opens it
-  // lives on every row in the Screens list, not just the active one.
-  const blocksIsItemAction = blocksTarget?.trigger === 'item_action';
+  // full-screen Blocks view keeps working correctly regardless of what's
+  // currently selected in the (hidden, while Blocks is open) inspector — a
+  // screen's own workspace isn't even scoped to `activeScreen` at all,
+  // since the Zap button that opens it lives on every row in the Screens
+  // list, not just the active one. Every element/screen has exactly ONE
+  // workspace (`.blocks`) now — no more per-trigger split, since a single
+  // workspace can hold every hat ("when clicked", "when pressed down", …)
+  // that element supports side by side.
   const blocksScreen = blocksTarget?.isScreen ? app.screens.find(s => s.id === blocksTarget.nodeId) : null;
   const blocksNode = blocksTarget && !blocksTarget.isScreen ? findComponent(activeScreen, blocksTarget.nodeId)?.node : null;
-  const blocksValue = blocksTarget?.isScreen
-    ? blocksScreen?.actions?.onOpen
-    : blocksNode
-      ? (blocksIsItemAction ? blocksNode.props.item_action : blocksNode.actions?.[blocksTarget.trigger])
-      : null;
-  const blocksLabel = blocksTarget?.isScreen
-    ? 'When this screen opens'
-    : blocksNode
-      ? (blocksIsItemAction ? 'When a row is tapped' : (COMPONENT_META[blocksNode.type]?.actionLabel || 'When clicked'))
-      : '';
+  const blocksValue = blocksTarget?.isScreen ? blocksScreen?.blocks : blocksNode?.blocks;
+  const blocksHatTypes = blocksTarget?.isScreen ? SCREEN_HAT_TYPES : (HAT_TYPES_BY_COMPONENT[blocksNode?.type] || []);
   const setBlocksValue = (next) => {
     if (!blocksTarget) return;
     mutate(a => {
       if (blocksTarget.isScreen) {
         const screen = a.screens.find(s => s.id === blocksTarget.nodeId);
-        if (!screen) return;
-        screen.actions = screen.actions || {};
-        if (next) screen.actions.onOpen = next; else delete screen.actions.onOpen;
+        if (screen) screen.blocks = next;
         return;
       }
       const screen = a.screens.find(s => s.id === activeScreenId);
       const found = findComponent(screen, blocksTarget.nodeId);
-      if (!found) return;
-      if (blocksIsItemAction) found.node.props.item_action = next;
-      else found.node.actions[blocksTarget.trigger] = next;
+      if (found) found.node.blocks = next;
     });
   };
 
@@ -1629,10 +1630,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             </button>
             <div className="w-px h-4 bg-[#D2D2D7] dark:bg-[#2a2a3c]" />
             <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
-              {blocksTarget.isScreen ? `Screen: ${blocksScreen?.name || 'Untitled'}` : COMPONENT_META[blocksNode.type]?.label} — {blocksLabel}
+              {blocksTarget.isScreen ? `Screen: ${blocksScreen?.name || 'Untitled'} — Blocks` : `${COMPONENT_META[blocksNode.type]?.label} — Blocks`}
             </span>
           </div>
-          {!blocksIsItemAction && !blocksTarget.isScreen && (() => {
+          {!blocksTarget.isScreen && (() => {
             const dependents = findVisibilityDependents(activeScreen, blocksNode.props?.variable);
             return dependents.length > 0 ? (
               <div className="mx-5 mt-3 p-2.5 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7] shrink-0">
@@ -1642,7 +1643,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           })()}
           <div className="flex-1 min-h-0 p-4">
             <AppBuilderBlockPanel
-              key={`${blocksTarget.nodeId}:${blocksTarget.trigger}`}
+              key={blocksTarget.nodeId}
               value={blocksValue}
               onChange={setBlocksValue}
               context={{
@@ -1650,8 +1651,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 updatableIds: new Set(flattenUpdatableTargets(blocksScreen || activeScreen).map(t => t.id)),
                 screens: app.screens,
               }}
-              itemScope={blocksIsItemAction}
-              label={blocksLabel}
+              toolbox={buildToolbox(blocksHatTypes)}
               fullScreen
             />
           </div>
@@ -1678,8 +1678,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                     className="flex-1 min-w-0 bg-transparent focus:outline-none truncate"
                   />
                   <button
-                    title="When this screen opens"
-                    onClick={e => { e.stopPropagation(); setBlocksTarget({ nodeId: s.id, trigger: 'onOpen', isScreen: true }); }}
+                    title="Screen blocks"
+                    onClick={e => { e.stopPropagation(); setBlocksTarget({ nodeId: s.id, isScreen: true }); }}
                     className="opacity-0 group-hover:opacity-100 shrink-0"
                   >
                     <Zap size={11} />
@@ -1842,17 +1842,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   );
                 })}
               </div>
-              {COMPONENT_META[selected.type]?.supportsAction && (
+              {HAT_TYPES_BY_COMPONENT[selected.type] && (
                 <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 mb-4 w-full">
-                  {[{ id: 'props', label: 'Content' }, { id: 'action', label: 'Action' }].map(t => (
+                  {[{ id: 'props', label: 'Content' }, { id: 'action', label: 'Blocks' }].map(t => (
                     <button
                       key={t.id}
                       onClick={() => {
-                        if (t.id === 'action') {
-                          setBlocksTarget({ nodeId: selected.id, trigger: COMPONENT_META[selected.type]?.actionTrigger || 'onClick' });
-                        } else {
-                          setInspectorTab('props');
-                        }
+                        if (t.id === 'action') setBlocksTarget({ nodeId: selected.id });
+                        else setInspectorTab('props');
                       }}
                       className={`flex-1 py-1.5 rounded-full text-[11px] font-semibold transition-all ${inspectorTab === t.id ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}
                     >
@@ -1865,7 +1862,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset}
                 onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })}
                 screens={app.screens} screen={activeScreen}
-                onEditItemAction={() => setBlocksTarget({ nodeId: selected.id, trigger: 'item_action' })}
+                onEditItemAction={() => setBlocksTarget({ nodeId: selected.id })}
               />
               <ComponentExtras
                 node={selected} onChange={updateSelected} allowPremium={allowPremium}

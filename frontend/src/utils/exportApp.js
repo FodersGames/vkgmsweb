@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
-import { compileTriggerSource } from '../appBuilderBlock/generators';
+import { compileNodeBlocksSource } from '../appBuilderBlock/generators';
 
 // Generates a real, standalone HTML/CSS/JS project from a Studio App —
 // no build step, no framework, just open index.html. Deliberately a
@@ -17,7 +17,7 @@ import { compileTriggerSource } from '../appBuilderBlock/generators';
 //
 // Actions are the one exception: both this file and AppRuntime.js run
 // literally the same compiled-Blockly action code (via
-// appBuilderBlock/generators.js's compileTriggerSource and
+// appBuilderBlock/generators.js's compileNodeBlocksSource and
 // appBuilderBlock/runtime.js's createRuntimeHelpers, embedded here via
 // .toString() — see generateJS() below) instead of two hand-written
 // interpreters, which is exactly what this file used to be before the App
@@ -39,9 +39,11 @@ function hexToRgba(hex, alpha) {
 
 // Escapes for a single-quoted HTML attribute holding JSON (JSON.stringify
 // already produces double quotes internally, so a double-quoted attribute
-// would break — used only for data-vis (visible_if). Actions themselves are
-// no longer inlined as JSON attributes (see data-action-key/-onchange-key/
-// -item-action-key below, and generateJS()'s ACTIONS map).
+// would break — used only for data-vis (visible_if). Actions aren't
+// inlined as JSON attributes at all — every element already carries
+// data-comp-id, and generateJS()'s event handlers compute an
+// "<id>:<hatType>" ACTIONS lookup key generically from whichever DOM event
+// actually fired (see hatKey() below).
 const escJsonAttr = (obj) => JSON.stringify(obj)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
 
@@ -69,12 +71,11 @@ async function renderComponentHTML(node, index = 0) {
     }
     case 'button': {
       const label = node.props?.label || 'Button';
-      const action = node.actions?.onClick?.blockly ? ` data-action-key="${esc(node.id)}:onClick"` : '';
       const iconSvg = node.props?.icon
         ? renderToStaticMarkup(React.createElement(AppIcon, { id: node.props.icon, size: 16, color: 'currentColor' }))
         : '';
       const iconHtml = iconSvg ? `<span class="vk-btn-icon">${iconSvg}</span>` : '';
-      return `${wrapperOpen}<button class="vk-btn vk-btn-${node.props?.style || 'primary'}"${action} style="width:100%;height:100%;">${iconHtml}<span data-id="${esc(node.id)}" data-tpl="${esc(label)}">${esc(label)}</span></button></div>`;
+      return `${wrapperOpen}<button class="vk-btn vk-btn-${node.props?.style || 'primary'}" style="width:100%;height:100%;">${iconHtml}<span data-id="${esc(node.id)}" data-tpl="${esc(label)}">${esc(label)}</span></button></div>`;
     }
     case 'image': {
       const fit = node.props?.fit || 'cover';
@@ -95,8 +96,7 @@ async function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}${inner}</div>`;
     }
     case 'toggle': {
-      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
-      return `${wrapperOpen}<div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}${changeAction}><span class="vk-toggle-knob"></span></button></div></div>`;
+      return `${wrapperOpen}<div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}><span class="vk-toggle-knob"></span></button></div></div>`;
     }
     case 'icon': {
       const svg = renderToStaticMarkup(
@@ -105,12 +105,11 @@ async function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}<div class="vk-icon" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${node.props?.color || 'var(--vk-text)'}">${svg}</div></div>`;
     }
     case 'list': {
-      const itemActionAttr = node.props?.item_action?.blockly ? ` data-item-action-key="${esc(node.id)}:item_action"` : '';
       const imgTplAttr = node.props?.item_image_template ? ` data-img-tpl="${esc(node.props.item_image_template)}"` : '';
       const isGrid = node.props?.layout_mode === 'grid';
       const gridClass = isGrid ? ' vk-list-grid' : '';
       const gridColsStyle = isGrid ? `grid-template-columns:repeat(${Math.max(1, Number(node.props?.grid_columns) || 2)},1fr);` : '';
-      return `${wrapperOpen}<div class="vk-list${gridClass}" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${imgTplAttr}${itemActionAttr} style="width:100%;height:100%;${gridColsStyle}"></div></div>`;
+      return `${wrapperOpen}<div class="vk-list${gridClass}" data-source="${esc(node.props?.source_variable || '')}" data-tpl="${esc(node.props?.item_template || '{{item}}')}" data-empty="${esc(node.props?.empty_text || 'No items yet.')}"${imgTplAttr} style="width:100%;height:100%;${gridColsStyle}"></div></div>`;
     }
     case 'container': {
       const bg = node.props?.background === 'surface' ? 'var(--vk-surface)' : (node.props?.background && node.props.background !== 'none' ? node.props.background : 'transparent');
@@ -126,17 +125,15 @@ async function renderComponentHTML(node, index = 0) {
     case 'spacer':
       return `${wrapperOpen}</div>`;
     case 'checkbox': {
-      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
-      return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'}${changeAction} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
+      return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
     }
     case 'rating': {
       const max = Math.max(1, Number(node.props?.max) || 5);
       const color = node.props?.color || 'var(--vk-primary)';
-      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       const stars = Array.from({ length: max }, (_, i) => i + 1)
         .map(n => `<button class="vk-rating-star" data-n="${n}" style="color:var(--vk-border)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6z"/></svg></button>`)
         .join('');
-      return `${wrapperOpen}<div class="vk-rating" data-variable="${esc(node.props?.variable || '')}" data-color="${esc(color)}"${changeAction} style="width:100%;height:100%;">${stars}</div></div>`;
+      return `${wrapperOpen}<div class="vk-rating" data-variable="${esc(node.props?.variable || '')}" data-color="${esc(color)}" style="width:100%;height:100%;">${stars}</div></div>`;
     }
     case 'progress': {
       const bound = !!node.props?.variable;
@@ -153,14 +150,12 @@ async function renderComponentHTML(node, index = 0) {
     case 'slider': {
       const bound = !!node.props?.variable;
       const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
-      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
-      return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'}${changeAction} style="width:100%;"></div>`;
+      return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'} style="width:100%;"></div>`;
     }
     case 'date': {
       const bound = !!node.props?.variable;
-      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       return bound
-        ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}"${changeAction} style="width:100%;height:100%;"></div>`
+        ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}" style="width:100%;height:100%;"></div>`
         : `${wrapperOpen}<input type="date" class="vk-input" disabled title="Not bound to a variable" style="width:100%;height:100%;"></div>`;
     }
     case 'video':
@@ -288,56 +283,55 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 `;
 }
 
-// Walks the component tree collecting every trigger that has a compiled
-// block workspace (node.actions.onClick/.onChange, a list's
-// props.item_action) — one level into containers, matching the editor's own
-// nesting limit (findComponent in AppBuilderEditor.js). Runs at export time
-// (client-side, in the admin's browser, same as the rest of this file), not
-// at app-runtime — the output is baked into the exported script.js as plain
-// JS text.
-function collectTriggers(app) {
+// Walks the component tree collecting every element/screen that has a
+// saved `.blocks` workspace — one level into containers, matching the
+// editor's own nesting limit (findComponent in AppBuilderEditor.js). Runs
+// at export time (client-side, in the admin's browser, same as the rest of
+// this file), not at app-runtime — the output is baked into the exported
+// script.js as plain JS text.
+function collectNodeWorkspaces(app) {
   const out = [];
   const walk = (comp) => {
-    if (comp.actions) {
-      for (const trigger of Object.keys(comp.actions)) {
-        const val = comp.actions[trigger];
-        if (val?.blockly) out.push({ key: `${comp.id}:${trigger}`, json: val.blockly });
-      }
-    }
-    if (comp.type === 'list' && comp.props?.item_action?.blockly) {
-      out.push({ key: `${comp.id}:item_action`, json: comp.props.item_action.blockly });
-    }
+    if (comp.blocks?.blockly) out.push({ id: comp.id, blockly: comp.blocks.blockly });
     if (comp.type === 'container') (comp.children || []).forEach(walk);
   };
   (app.screens || []).forEach(s => {
-    if (s.actions?.onOpen?.blockly) out.push({ key: `screen:${s.id}:onOpen`, json: s.actions.onOpen.blockly });
+    if (s.blocks?.blockly) out.push({ id: `screen:${s.id}`, blockly: s.blocks.blockly });
     (s.components || []).forEach(walk);
   });
   return out;
 }
 
-// Compiles every collected trigger (via appBuilderBlock/generators.js's
-// compileTriggerSource — the same Blockly-to-JS codegen the live editor
-// uses to build a callable function) into a literal `ACTIONS['key'] = ...`
-// assignment, spliced into the exported script.js. A trigger that fails to
-// compile (should not happen for anything saved through the editor, but
-// defensive here since this is the export path) degrades to a no-op rather
-// than breaking the whole export.
-function compileTriggersSource(app) {
-  return collectTriggers(app).map(({ key, json }) => {
-    let body;
+// Compiles every collected workspace (via appBuilderBlock/generators.js's
+// compileNodeBlocksSource — the same Blockly-to-JS codegen the live
+// editor's compileNodeBlocks() uses) into one `ACTIONS['id:hatType'] = ...`
+// assignment per hat block it contains, spliced into the exported
+// script.js — a floating stack with no hat above it compiles to nothing at
+// all, same "only what's under a hat runs" rule the live runtime follows.
+// A workspace that fails to compile (should not happen for anything saved
+// through the editor, but defensive here since this is the export path)
+// degrades to a comment rather than breaking the whole export.
+function compileActionsSource(app) {
+  const pieces = [];
+  for (const { id, blockly } of collectNodeWorkspaces(app)) {
+    let byHat;
     try {
-      body = compileTriggerSource(json);
+      byHat = compileNodeBlocksSource(blockly);
     } catch (err) {
-      body = `/* failed to compile: ${String(err?.message || err).replace(/\*\//g, '')} */`;
+      pieces.push(`  /* ${JSON.stringify(id)} failed to compile: ${String(err?.message || err).replace(/\*\//g, '')} */`);
+      continue;
     }
-    return `  ACTIONS[${JSON.stringify(key)}] = async function (vars, setVar, scope, helpers) {\n${body}\n  };`;
-  }).join('\n');
+    for (const [hatType, body] of Object.entries(byHat)) {
+      const key = `${id}:${hatType}`;
+      pieces.push(`  ACTIONS[${JSON.stringify(key)}] = async function (vars, setVar, scope, helpers) {\n${body}\n  };`);
+    }
+  }
+  return pieces.join('\n');
 }
 
 function generateJS(app) {
   const initialVars = Object.fromEntries((app.variables || []).map(v => [v.name, v.initial_value ?? '']));
-  const actionsSource = compileTriggersSource(app);
+  const actionsSource = compileActionsSource(app);
   // createRuntimeHelpers (frontend/src/appBuilderBlock/runtime.js) is
   // written as one fully self-contained function specifically so it can be
   // embedded verbatim here via .toString() — the live editor preview,
@@ -415,7 +409,7 @@ function generateJS(app) {
     for (var i = 0; i < list.length; i++) {
       list[i].style.display = list[i].getAttribute('data-screen-id') === id ? 'block' : 'none';
     }
-    runAction('screen:' + id + ':onOpen');
+    runAction('screen:' + id + ':ab_when_screen_opens');
   }
 
   function renderList(el) {
@@ -429,7 +423,13 @@ function generateJS(app) {
     }
     var tpl = el.getAttribute('data-tpl');
     var imgTpl = el.getAttribute('data-img-tpl');
-    var itemActionKey = el.getAttribute('data-item-action-key');
+    // The list's own <div data-comp-id> is the parent wrapper (see
+    // renderComponentHTML's list case) — every row's tap dispatches through
+    // that id, same generic "<comp-id>:<hatType>" scheme every other
+    // element uses (runAction no-ops harmlessly if there's no "when a row
+    // is tapped" hat under it).
+    var wrap = el.closest('[data-comp-id]');
+    var rowActionKey = wrap ? wrap.getAttribute('data-comp-id') + ':ab_when_row_tapped' : null;
     el.innerHTML = '';
     if (items.length === 0) {
       var empty = document.createElement('p');
@@ -458,9 +458,9 @@ function generateJS(app) {
         textSpan.textContent = text;
         row.appendChild(textSpan);
       }
-      if (itemActionKey) {
+      if (rowActionKey) {
         row.style.cursor = 'pointer';
-        row.addEventListener('click', function () { runAction(itemActionKey, { item: item, index: idx }); });
+        row.addEventListener('click', function () { runAction(rowActionKey, { item: item, index: idx }); });
       }
       el.appendChild(row);
     });
@@ -521,13 +521,17 @@ function generateJS(app) {
   }
 
   // ============================================================
-  // Compiled block actions — each trigger (a button's onClick, a toggle's
-  // onChange, a list row's tap) was authored as a Blockly workspace in the
-  // App Builder editor and compiled ahead of export time (see
-  // compileTriggersSource() above, which drives
-  // appBuilderBlock/generators.js's compileTriggerSource — the exact same
-  // Blockly-to-JS codegen the live editor's compileTrigger() uses) into the
-  // plain async functions below, keyed by "<componentId>:<trigger>".
+  // Compiled block actions — each element/screen's single Blockly workspace
+  // (which can hold several "when X" hats side by side — a button's "when
+  // clicked" and "when pressed down" and "when released" all at once) was
+  // authored in the App Builder editor and compiled ahead of export time
+  // (see compileActionsSource() above, which drives
+  // appBuilderBlock/generators.js's compileNodeBlocksSource — the exact
+  // same Blockly-to-JS codegen the live editor's compileNodeBlocks() uses)
+  // into one plain async function per hat below, keyed by
+  // "<componentId>:<hatType>". Code not chained under a hat was never
+  // compiled at all — same "only what's under a hat runs" rule as the live
+  // editor/runtime.
   // ============================================================
   var ACTIONS = {};
 ${actionsSource}
@@ -555,34 +559,58 @@ ${actionsSource}
     return fn(vars, setVar, scope, helpers).then(function () { render(); });
   }
 
+  // Every dispatch below resolves a key generically as "<the nearest
+  // data-comp-id ancestor>:<hatType>" and lets runAction() no-op if that
+  // hat was never authored — same scheme collectNodeWorkspaces()/
+  // compileActionsSource() populate ACTIONS with, and the same "only code
+  // under a matching hat ever runs" rule the live editor/runtime follows.
+  function hatKey(el, hatType) {
+    var wrap = el.closest('[data-comp-id]');
+    return wrap ? wrap.getAttribute('data-comp-id') + ':' + hatType : null;
+  }
+
   document.addEventListener('click', function (e) {
-    var actionEl = e.target.closest('[data-action-key]');
-    if (actionEl) runAction(actionEl.getAttribute('data-action-key'));
+    var btnEl = e.target.closest('.vk-btn');
+    if (btnEl) {
+      var clickKey = hatKey(btnEl, 'ab_when_clicked');
+      if (clickKey) runAction(clickKey);
+    }
     var toggleEl = e.target.closest('.vk-toggle[data-variable]');
     if (toggleEl) {
       var v = toggleEl.getAttribute('data-variable');
       vars[v] = vars[v] === 'true' ? 'false' : 'true';
-      fireOnChange(toggleEl);
+      fireChanged(toggleEl);
     }
     var checkboxEl = e.target.closest('.vk-checkbox-row[data-variable]:not([data-unbound])');
     if (checkboxEl) {
       var cv = checkboxEl.getAttribute('data-variable');
       vars[cv] = vars[cv] === 'true' ? 'false' : 'true';
-      fireOnChange(checkboxEl);
+      fireChanged(checkboxEl);
     }
     var starEl = e.target.closest('.vk-rating-star');
     if (starEl) {
       var ratingEl = starEl.closest('.vk-rating[data-variable]');
       var rv = ratingEl && ratingEl.getAttribute('data-variable');
-      if (rv) { vars[rv] = starEl.getAttribute('data-n'); fireOnChange(ratingEl); }
+      if (rv) { vars[rv] = starEl.getAttribute('data-n'); fireChanged(ratingEl); }
     }
   });
 
+  // "when pressed down" / "when released" — buttons only, mirrors
+  // AppRuntime.js's onPointerDown/onPointerUp on the same element.
+  document.addEventListener('pointerdown', function (e) {
+    var btnEl = e.target.closest('.vk-btn');
+    if (btnEl) { var key = hatKey(btnEl, 'ab_when_pressed'); if (key) runAction(key); }
+  });
+  document.addEventListener('pointerup', function (e) {
+    var btnEl = e.target.closest('.vk-btn');
+    if (btnEl) { var key = hatKey(btnEl, 'ab_when_released'); if (key) runAction(key); }
+  });
+
   // Shared by toggle/checkbox/rating/slider/date — runs the element's
-  // onChange trigger if it has one, otherwise just re-renders (same as
-  // every discrete state change already did before onChange existed).
-  function fireOnChange(el) {
-    var key = el.getAttribute('data-onchange-key');
+  // "when value changes" hat if it has one, otherwise just re-renders (same
+  // as every discrete state change already did before hats existed).
+  function fireChanged(el) {
+    var key = hatKey(el, 'ab_when_changed');
     if (key) runAction(key); else render();
   }
 
@@ -591,9 +619,9 @@ ${actionsSource}
     if (el.classList && (el.classList.contains('vk-input') || el.classList.contains('vk-slider'))) {
       var v = el.getAttribute('data-variable');
       if (v) vars[v] = el.value;
-      // Text/multiline inputs don't have an onChange trigger (only bind a
+      // Text/multiline inputs don't have a "when changed" hat (only bind a
       // variable) — sliders and dates (class vk-input, type=date) do.
-      if (el.classList.contains('vk-slider') || el.type === 'date') fireOnChange(el);
+      if (el.classList.contains('vk-slider') || el.type === 'date') fireChanged(el);
     }
   });
 
@@ -602,7 +630,7 @@ ${actionsSource}
   // baked in by generateHTML()), not a showScreen() call — so its "when
   // this screen opens" trigger needs one explicit run here; every
   // subsequent screen change already fires it from inside showScreen().
-  runAction(${JSON.stringify(`screen:${app.screens?.[0]?.id || ''}:onOpen`)});
+  runAction(${JSON.stringify(`screen:${app.screens?.[0]?.id || ''}:ab_when_screen_opens`)});
 })();
 `;
 }
@@ -630,9 +658,9 @@ The app is designed at a fixed ${CANVAS_WIDTH}×${CANVAS_HEIGHT} reference size 
 
 ## Editing
 
-Each component is a positioned \`<div>\` (\`left\`/\`top\`/\`width\`/\`height\` in its inline style) with a couple of data attributes on the element inside it:
+Each component is a positioned \`<div data-comp-id="...">\` (\`left\`/\`top\`/\`width\`/\`height\` in its inline style) with a couple of data attributes on the element inside it:
 - \`data-tpl\` — text template, supports \`{{variableName}}\`
-- \`data-action-key\` — which compiled action (see the \`ACTIONS\` map in script.js) runs when a button is clicked
+- \`data-comp-id\` — looked up in script.js's \`ACTIONS\` map as "\<id\>:\<hatType\>" (e.g. \`ab_when_clicked\`) whenever a matching event fires on it
 - \`data-variable\` — which variable an input/toggle is bound to
 
 This is a real, standalone project — edit the markup, CSS and JS directly.

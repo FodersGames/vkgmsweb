@@ -69,8 +69,8 @@ export const COMPONENT_TYPES = [
     defaultProps: { content: 'Text', size: 'md', weight: 'normal', align: 'left', color: '' },
   },
   {
-    type: 'button', label: 'Button', icon: MousePointerClick, isContainer: false, supportsAction: true,
-    actionTrigger: 'onClick', actionLabel: 'When clicked', tier: 'free',
+    type: 'button', label: 'Button', icon: MousePointerClick, isContainer: false,
+    actionTrigger: 'onClick', tier: 'free',
     defaultProps: { label: 'Button', style: 'primary', icon: '' },
   },
   {
@@ -98,16 +98,16 @@ export const COMPONENT_TYPES = [
     defaultProps: { icon: 'star', color: '' },
   },
   {
-    type: 'toggle', label: 'Toggle', icon: ToggleLeft, isContainer: false, supportsAction: true,
-    actionTrigger: 'onChange', actionLabel: 'When toggled', tier: 'premium',
+    type: 'toggle', label: 'Toggle', icon: ToggleLeft, isContainer: false,
+    actionTrigger: 'onChange', tier: 'premium',
     defaultProps: { label: 'Toggle', variable: '' },
   },
   {
     type: 'list', label: 'List', icon: ListIcon, isContainer: false, tier: 'premium',
-    // item_action: an optional single action (same shape as createAction())
-    // run when a rendered row is tapped, with {{item...}} interpolation
-    // available in its fields. No separate premium gate needed — `list`
-    // itself is already a fully premium type.
+    // A row's tap runs the "when a row is tapped" hat in this node's own
+    // `.blocks` workspace (appBuilderBlock/), with "This item"/"This item's
+    // field"/"This item's position" blocks available inside it. No separate
+    // premium gate needed — `list` itself is already a fully premium type.
     // item_image_template: optional, resolved the same way as item_template
     // (interpolate against {item}) — when set, each row also shows a small
     // image (e.g. {{item.image}}), for things like a card/product picture.
@@ -115,16 +115,16 @@ export const COMPONENT_TYPES = [
     // behavior) or 'grid' — a real multi-column grid for things like a
     // trading-card collection, where the image is the dominant element per
     // cell instead of a small row thumbnail.
-    defaultProps: { source_variable: '', item_template: '{{item}}', item_image_template: '', empty_text: 'No items yet.', item_action: null, layout_mode: 'list', grid_columns: 2 },
+    defaultProps: { source_variable: '', item_template: '{{item}}', item_image_template: '', empty_text: 'No items yet.', layout_mode: 'list', grid_columns: 2 },
   },
   {
-    type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false, supportsAction: true,
-    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'free',
+    type: 'checkbox', label: 'Checkbox', icon: CheckSquare, isContainer: false,
+    actionTrigger: 'onChange', tier: 'free',
     defaultProps: { label: 'Checkbox', variable: '' },
   },
   {
-    type: 'rating', label: 'Rating', icon: Star, isContainer: false, supportsAction: true,
-    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'free',
+    type: 'rating', label: 'Rating', icon: Star, isContainer: false,
+    actionTrigger: 'onChange', tier: 'free',
     defaultProps: { variable: '', max: 5, color: '' },
   },
   {
@@ -142,13 +142,13 @@ export const COMPONENT_TYPES = [
     defaultProps: { content: 'https://vakargames.com' },
   },
   {
-    type: 'slider', label: 'Slider', icon: SlidersHorizontal, isContainer: false, supportsAction: true,
-    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'premium',
+    type: 'slider', label: 'Slider', icon: SlidersHorizontal, isContainer: false,
+    actionTrigger: 'onChange', tier: 'premium',
     defaultProps: { variable: '', min: 0, max: 100, step: 1 },
   },
   {
-    type: 'date', label: 'Date picker', icon: Calendar, isContainer: false, supportsAction: true,
-    actionTrigger: 'onChange', actionLabel: 'When changed', tier: 'premium',
+    type: 'date', label: 'Date picker', icon: Calendar, isContainer: false,
+    actionTrigger: 'onChange', tier: 'premium',
     defaultProps: { variable: '' },
   },
   {
@@ -170,7 +170,9 @@ export function createComponent(type, layoutOverride) {
     id: genId(),
     type,
     props: { ...meta.defaultProps },
-    actions: {},
+    // `blocks` (a single Blockly workspace holding this element's "when X"
+    // hats — see appBuilderBlock/) starts undefined, not an empty
+    // placeholder — nothing to migrate, nothing to run.
     layout: { ...DEFAULT_LAYOUT[type], ...(layoutOverride || {}) },
     ...(meta.isContainer ? { children: [] } : {}),
   };
@@ -424,7 +426,7 @@ export function AppIcon({ id, size = 24, color = 'currentColor', strokeWidth = 1
 // `props.animation` every loop instead (PreviewPlayer remounts them).
 // ============================================================
 function previewNode(id, type, layout, props, animation) {
-  return { id, type, actions: {}, layout, props: animation ? { ...props, animation } : props };
+  return { id, type, layout, props: animation ? { ...props, animation } : props };
 }
 
 export const PREMIUM_PREVIEW_SCENES = {

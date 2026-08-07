@@ -1,23 +1,27 @@
 import React, { useEffect, useRef } from 'react';
 import * as Blockly from 'blockly/core';
-import { TOOLBOX, TOOLBOX_ITEM } from '../appBuilderBlock/blocks';
 import { setAbBlockContext } from '../appBuilderBlock/fields';
 
 // Replaces the old ActionEditor/ActionStepFields flat step-list editor
 // (AppBuilderEditor.js) with a real Blockly canvas — see
 // frontend/src/appBuilderBlock/ for the block defs/codegen/runtime this
-// drives. Mirrors VakarBlockEditor.js's mount pattern, but simpler: rather
-// than one workspace shared across the whole editor with an explicit
+// drives. One workspace per element/screen, holding every "when X" hat it
+// has (a button's "when clicked" and "when pressed down" live side by
+// side) — `toolbox` is built by the caller via blocks.js's buildToolbox(),
+// scoped to whichever hats that element/screen actually supports.
+//
+// Mirrors VakarBlockEditor.js's mount pattern, but simpler: rather than one
+// workspace shared across the whole editor with an explicit
 // save-outgoing/load-incoming effect on every context switch (needed there
 // for cross-sprite undo continuity), each mount owns a fresh, disposable
-// workspace — the parent forces a remount via a `key` change (node id +
-// trigger) whenever the user selects a different component/trigger, so
-// there's nothing to explicitly hand off. `value`/`context` are only read
-// at mount time; the parent is expected to always change `key` alongside
-// any `value` it wants reloaded (this holds for every call site today: a
+// workspace — the parent forces a remount via a `key` change (the node's
+// id) whenever the user selects a different element, so there's nothing to
+// explicitly hand off. `value`/`context`/`toolbox` are only read at mount
+// time; the parent is expected to always change `key` alongside any
+// `value` it wants reloaded (this holds for every call site today: a
 // legacy-migration rewrite happens before the panel ever mounts for that
-// trigger, not while it's already open).
-export default function AppBuilderBlockPanel({ value, onChange, context, itemScope = false, label, fullScreen = false }) {
+// element, not while it's already open).
+export default function AppBuilderBlockPanel({ value, onChange, context, toolbox, label, fullScreen = false }) {
   const divRef = useRef(null);
   const wsRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -27,7 +31,7 @@ export default function AppBuilderBlockPanel({ value, onChange, context, itemSco
     if (!divRef.current || wsRef.current) return;
     setAbBlockContext(context);
     const ws = Blockly.inject(divRef.current, {
-      toolbox: itemScope ? TOOLBOX_ITEM : TOOLBOX,
+      toolbox,
       renderer: 'zelos',
       trashcan: true,
       zoom: { controls: true, wheel: true, startScale: 0.85 },
@@ -45,7 +49,7 @@ export default function AppBuilderBlockPanel({ value, onChange, context, itemSco
     ws.addChangeListener((e) => {
       if (e.isUiEvent) return;
       const json = Blockly.serialization.workspaces.save(ws);
-      onChangeRef.current({ v: 1, blockly: json });
+      onChangeRef.current({ v: 2, blockly: json });
     });
     // The container can be resized by the surrounding layout (most notably
     // fullScreen mode, whose content area tracks the window) — Blockly only

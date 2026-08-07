@@ -1,19 +1,23 @@
 import * as Blockly from 'blockly/core';
 import { javascriptGenerator, Order } from 'blockly/javascript';
-import './blocks';
+import { ALL_HAT_TYPES } from './blocks';
 
 // ============================================================
 // APP BUILDER BLOCKS — JS code generators for the ab_* blocks in blocks.js,
-// plus compileTrigger()/compileTriggerSource() which turn a saved workspace
-// into runnable code.
+// plus compileNodeBlocks()/compileNodeBlocksSource() which turn one
+// element's saved workspace into a map of {hatType: runnable code} — one
+// entry per "when X" hat it contains. Only code chained below a hat block
+// is ever compiled/runnable; a floating stack with no hat above it is
+// silently never included (same "only what's under a hat runs" rule
+// Scratch and MIT App Inventor both use), matching HAT_TYPES below.
 //
 // Unlike Vakar Block (frontend/src/vakarBlock/generators.js), which compiles
 // every hat block to a JS *generator* function driven by a
 // requestAnimationFrame scheduler (needed because Scratch scripts run
 // indefinitely and concurrently), App Builder triggers are one-shot event
-// handlers (a button's onClick, a toggle's onChange, a list row's tap) —
-// there's no per-frame loop and no concurrent scripts sharing state, so
-// compiled code is a plain `async function`, and `ab_wait`/`ab_wait_until`
+// handlers (a click, a value change, a screen opening) — there's no
+// per-frame loop and no concurrent scripts sharing state, so each hat
+// compiles to a plain `async function`, and `ab_wait`/`ab_wait_until`
 // compile to a real `await`. No yield/generator scheduler needed here.
 //
 // Pure/stateless blocks (math, text) generate plain inline JS expressions
@@ -27,6 +31,16 @@ const forBlock = javascriptGenerator.forBlock;
 function fieldStr(block, name) {
   return JSON.stringify(block.getFieldValue(name) || '');
 }
+
+// ---------- Events (hat blocks contribute no code of their own — the
+// statements chained BELOW them are what compileNodeBlocks below actually
+// compiles per hat) ----------
+forBlock['ab_when_clicked'] = () => '';
+forBlock['ab_when_pressed'] = () => '';
+forBlock['ab_when_released'] = () => '';
+forBlock['ab_when_changed'] = () => '';
+forBlock['ab_when_row_tapped'] = () => '';
+forBlock['ab_when_screen_opens'] = () => '';
 
 // ---------- Variables ----------
 forBlock['ab_get_variable'] = function (block) {
@@ -405,56 +419,72 @@ forBlock['ab_legacy_text'] = function (block) {
 
 // ============================================================
 // Compile a saved Blockly workspace (Blockly.serialization.workspaces.save
-// output) into either a callable async function (live editor/runtime) or
-// its raw source text (static export — see exportApp.js). Both load the
-// JSON into a throwaway headless workspace (compile-only, never rendered),
-// walk its top-level blocks in canvas order (independent stacks execute
-// top-to-bottom — there's no "hat" block needed to mark an entry point,
-// unlike Vakar Block, since which trigger this workspace belongs to is
-// already implied by which inspector panel/list saved it), and concatenate
-// their generated code.
+// output) into per-hat code — one entry per "when X" hat block found among
+// its TOP-LEVEL blocks. Any top-level stack that ISN'T one of ALL_HAT_TYPES
+// is skipped entirely: it was never attached under a hat, so — same rule
+// Scratch/MIT App Inventor use — it's simply never run by the app. Loads
+// into a throwaway headless workspace (compile-only, never rendered).
+//
+// `blockToCode(hatBlock)` (default opt_thisOnly=false) returns the hat's
+// own contribution (empty, see the `forBlock['ab_when_*']` no-ops above)
+// PLUS, by Blockly's own default behavior, everything chained after it via
+// nextConnection — so this one call already yields exactly "the hat's
+// whole body", with no manual chain-walking needed.
 //
 // `javascriptGenerator.finish('')` must run AFTER every blockToCode() call,
 // not per-block — some stock generators (and potentially future ab_*
 // helpers) emit a shared helper function lazily, collected once across the
 // whole compile pass. Getting this order wrong is exactly the bug Vakar
 // Block's own runtime.js documents hitting with math_random_int (see its
-// compileSprite() comment) — same fix applied here preemptively.
+// compileSprite() comment) — same fix applied here preemptively. Every hat
+// gets its own copy of the shared helper defs, since each compiles to an
+// independent function.
 // ============================================================
-function generateBody(workspaceJson) {
-  if (!workspaceJson) return '';
+function generateByHat(workspaceJson) {
+  const byHat = {};
+  if (!workspaceJson) return byHat;
   const ws = new Blockly.Workspace();
   try {
     Blockly.serialization.workspaces.load(workspaceJson, ws);
     javascriptGenerator.init(ws);
-    const pieces = [];
+    const pending = [];
     for (const block of ws.getTopBlocks(true)) {
+      if (!ALL_HAT_TYPES.includes(block.type)) continue; // not under a hat — ignored, on purpose
       const raw = javascriptGenerator.blockToCode(block);
-      pieces.push(Array.isArray(raw) ? raw[0] : raw);
+      pending.push({ type: block.type, code: Array.isArray(raw) ? raw[0] : raw });
     }
     const helperDefs = javascriptGenerator.finish('');
-    return helperDefs + pieces.join('');
+    for (const { type, code } of pending) {
+      // Two hats of the same type (e.g. someone adds "when clicked" twice)
+      // both run, back to back, rather than one silently winning.
+      byHat[type] = (byHat[type] || '') + helperDefs + code;
+    }
+    return byHat;
   } finally {
     ws.dispose();
   }
 }
 
-// Live editor preview + public runtime: a callable `async (vars, setVar,
-// scope, helpers) => {...}`. Returns null for an empty/missing workspace —
-// callers treat that as a no-op trigger.
-export function compileTrigger(workspaceJson) {
-  const body = generateBody(workspaceJson);
-  if (!body.trim()) return null;
-  // eslint-disable-next-line no-new-func
-  const factory = new Function(`return async function (vars, setVar, scope, helpers) {\n${body}\n}`);
-  return factory();
+// Live editor preview + public runtime: {hatType: async (vars, setVar,
+// scope, helpers) => {...}}. A hat with no code under it (or not present at
+// all) simply has no entry — callers treat a missing entry as a no-op.
+export function compileNodeBlocks(workspaceJson) {
+  const byHat = generateByHat(workspaceJson);
+  const compiled = {};
+  for (const [hatType, body] of Object.entries(byHat)) {
+    if (!body.trim()) continue;
+    // eslint-disable-next-line no-new-func
+    const factory = new Function(`return async function (vars, setVar, scope, helpers) {\n${body}\n}`);
+    compiled[hatType] = factory();
+  }
+  return compiled;
 }
 
-// Static export (exportApp.js): the same body as literal source text, so it
-// can be embedded as a named function declaration directly in the generated
-// script.js instead of going through `new Function` at export-open time.
-export function compileTriggerSource(workspaceJson) {
-  return generateBody(workspaceJson);
+// Static export (exportApp.js): {hatType: raw source text}, so each can be
+// embedded as its own function body directly in the generated script.js
+// instead of going through `new Function` at export-open time.
+export function compileNodeBlocksSource(workspaceJson) {
+  return generateByHat(workspaceJson);
 }
 
 export { javascriptGenerator, Order };

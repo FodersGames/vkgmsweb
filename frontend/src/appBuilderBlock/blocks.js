@@ -25,6 +25,7 @@ import './fields';
 // ============================================================
 
 export const COLORS = {
+  events: '#FFBF00',
   navigate: '#2F80ED',
   variables: '#F2A93B',
   math: '#5B9E56',
@@ -42,6 +43,60 @@ export const COLORS = {
 };
 
 const jsonBlocks = [
+  // ============================================================
+  // Events — hat blocks (Scratch/MIT-App-Inventor style): each element (or
+  // screen) has exactly ONE Blockly workspace, which can hold several of
+  // these, one per thing that can happen to it (a button can have "when
+  // clicked" AND "when pressed down" AND "when released" side by side).
+  // Only the blocks chained BELOW a hat run when that hat's event actually
+  // fires — a floating stack with no hat above it is never called by the
+  // app at all (see generators.js's compileNodeBlocks, which only compiles
+  // top-level chains that start with one of these). `nextStatement` only —
+  // a hat can never be attached below another block.
+  // ============================================================
+  {
+    type: 'ab_when_clicked',
+    message0: '👆 when clicked',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs when this element is clicked/tapped.',
+  },
+  {
+    type: 'ab_when_pressed',
+    message0: '👇 when pressed down',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs the instant the finger/mouse button goes down — before it’s released.',
+  },
+  {
+    type: 'ab_when_released',
+    message0: '☝️ when released',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs when the finger/mouse button lifts back up.',
+  },
+  {
+    type: 'ab_when_changed',
+    message0: '🔄 when value changes',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs whenever this element’s value changes.',
+  },
+  {
+    type: 'ab_when_row_tapped',
+    message0: '👆 when a row is tapped',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs when the visitor taps one of this list’s rows — use the "This item" blocks below to read what was tapped.',
+  },
+  {
+    type: 'ab_when_screen_opens',
+    message0: '🏁 when this screen opens',
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Runs once, every time this screen becomes visible (including when the app first opens on it).',
+  },
+
   // ============================================================
   // Navigate
   // ============================================================
@@ -845,8 +900,8 @@ const jsonBlocks = [
   },
 
   // ============================================================
-  // This item (list row tap only — see TOOLBOX_ITEM below; also reused
-  // inside "for each item in list" loop bodies)
+  // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
+  // also reused inside "for each item in list" loop bodies)
   // ============================================================
   {
     type: 'ab_item',
@@ -1105,16 +1160,44 @@ const ITEM_CATEGORY = {
   ],
 };
 
-// Default toolbox (component/toggle/etc. actions) — no "This item" category,
-// scope.item/scope.index only exist while running a list row's tap action
-// or inside a "for each" loop.
-export const TOOLBOX = { kind: 'categoryToolbox', contents: BASE_CATEGORIES };
+// Which hat(s) each element type can have — drives both the toolbox's
+// Events category (buildToolbox below) and the mapping legacyMigration.js
+// uses to wrap an old pre-hat trigger in the right hat automatically.
+export const HAT_TYPES_BY_COMPONENT = {
+  button: ['ab_when_clicked', 'ab_when_pressed', 'ab_when_released'],
+  toggle: ['ab_when_changed'],
+  checkbox: ['ab_when_changed'],
+  rating: ['ab_when_changed'],
+  slider: ['ab_when_changed'],
+  date: ['ab_when_changed'],
+  list: ['ab_when_row_tapped'],
+};
+export const SCREEN_HAT_TYPES = ['ab_when_screen_opens'];
+// Which hat an element's single old (pre-hat) trigger becomes when migrated
+// — see legacyMigration.js's migrateToHatWorkspace(). A button's old
+// COMPONENT_META actionTrigger is 'onClick', everything else that had one
+// was 'onChange'; lists never had an actionTrigger (their old item_action
+// always maps to ab_when_row_tapped, handled as its own special case by
+// the callers, not through this map).
+export const LEGACY_TRIGGER_TO_HAT = { onClick: 'ab_when_clicked', onChange: 'ab_when_changed' };
+export const ALL_HAT_TYPES = [
+  'ab_when_clicked', 'ab_when_pressed', 'ab_when_released',
+  'ab_when_changed', 'ab_when_row_tapped', 'ab_when_screen_opens',
+];
 
-// Shown instead of TOOLBOX only when editing a list's `item_action`. (Note:
-// "for each" loop bodies also expose ab_item/ab_item_field/ab_item_index
-// even under the plain TOOLBOX, since Control's category isn't scope-gated
-// — they'll simply read an empty/default value if used outside a "for
-// each"/item-tap context, same fail-soft behavior as every other block.)
-export const TOOLBOX_ITEM = { kind: 'categoryToolbox', contents: [...BASE_CATEGORIES, ITEM_CATEGORY] };
+// Builds a toolbox scoped to one element's own possible hats — an "Events"
+// category up front (so it's the first thing you see, same emphasis
+// Scratch gives its hat blocks) plus every general-purpose category, plus
+// "This item" only when a row-tap hat is on offer (scope.item/scope.index
+// only ever exist while that specific hat's code is actually running).
+export function buildToolbox(hatTypes) {
+  const events = {
+    kind: 'category', name: 'Events', colour: COLORS.events,
+    contents: hatTypes.map(type => ({ kind: 'block', type })),
+  };
+  const categories = [events, ...BASE_CATEGORIES];
+  if (hatTypes.includes('ab_when_row_tapped')) categories.push(ITEM_CATEGORY);
+  return { kind: 'categoryToolbox', contents: categories };
+}
 
 export { Order };
