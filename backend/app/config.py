@@ -86,3 +86,14 @@ VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-fil
 # developer's app on Google Play, so it's encrypted at rest with this
 # server-only key and only ever decrypted transiently (see apk_builds.py).
 STUDIO_SIGNING_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"studio-signing-key-v1:{JWT_SECRET}".encode()).digest())
+
+# Studio App Builder "Integrations" tab — named API keys/tokens (e.g. a
+# Firebase project config) an app's blocks can reference by name instead of
+# being pasted raw into a block field. Encrypted at rest with the same
+# derivation pattern as the two keys above, purely as hygiene for our own
+# database (nobody browsing Mongo directly sees them in plain text) — NOT a
+# genuine secret vault: once an app is published or exported, its compiled
+# script embeds the real values same as any client app (see studio_apps.py's
+# get_public_studio_app), so this never hides a value from that app's own
+# end users/reverse engineers, only from anyone who isn't the app's owner.
+STUDIO_SECRETS_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"studio-secrets-v1:{JWT_SECRET}".encode()).digest())

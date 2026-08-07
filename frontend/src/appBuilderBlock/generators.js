@@ -403,6 +403,11 @@ forBlock['ab_http_post'] = function (block, generator) {
   return [`(await helpers.httpPost(${url}, ${body}))`, Order.NONE];
 };
 
+// ---------- Secrets ----------
+forBlock['ab_secret'] = function (block) {
+  return [`helpers.getSecret(${fieldStr(block, 'NAME')})`, Order.FUNCTION_CALL];
+};
+
 // ---------- Navigate ----------
 forBlock['ab_navigate'] = function (block) {
   return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;

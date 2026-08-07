@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
-  ShieldAlert, EyeOff, History, Zap,
+  ShieldAlert, EyeOff, History, Zap, Key,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -918,6 +918,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSecrets, setPreviewSecrets] = useState({});
   const [editingName, setEditingName] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingFile, setExportingFile] = useState(false);
@@ -930,6 +931,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [signingImportOpen, setSigningImportOpen] = useState(false);
   const [signingImportForm, setSigningImportForm] = useState({ store_password: '', key_password: '', key_alias: '' });
   const signingFileInputRef = useRef(null);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [secrets, setSecrets] = useState([]);
+  const [secretsLoading, setSecretsLoading] = useState(false);
+  const [secretsSaving, setSecretsSaving] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
@@ -1328,7 +1333,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     if (!allowPremium) { setSaveError('Code export requires Vakar+.'); return; }
     setExporting(true);
     try {
-      await exportAppAsZip(app, { showWatermark: !allowPremium });
+      const secretsMap = await fetchSecretsMap();
+      await exportAppAsZip({ ...app, secrets: secretsMap }, { showWatermark: !allowPremium });
     } finally {
       setExporting(false);
     }
@@ -1460,6 +1466,55 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     }
   };
 
+  // Integrations tab — named tokens (Firebase config, API keys…) the
+  // "Secrets" block category reads by name. Fetched lazily (only while the
+  // modal — or the Preview, which needs real values to test blocks — is
+  // actually open), not on every load like signing-key status, since these
+  // are more sensitive values not worth pulling for every editor session.
+  const loadSecrets = async () => {
+    setSecretsLoading(true);
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/secrets`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      const data = await r.json();
+      setSecrets(data.secrets || []);
+    } finally {
+      setSecretsLoading(false);
+    }
+  };
+
+  const saveSecrets = async (next) => {
+    setSecretsSaving(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/secrets`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ secrets: next }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.detail || 'Could not save integrations.');
+      setSecrets(next);
+    } catch (e) {
+      setSaveError(e.message);
+      throw e;
+    } finally {
+      setSecretsSaving(false);
+    }
+  };
+
+  // {name: value} map, fetched fresh right before it's needed (Preview open,
+  // Export, Build APK/AAB) rather than kept in React state permanently.
+  const fetchSecretsMap = async () => {
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/secrets`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return {};
+      const data = await r.json();
+      return Object.fromEntries((data.secrets || []).map(s => [s.name, s.value]));
+    } catch {
+      return {};
+    }
+  };
+
   useEffect(() => {
     if (!enableApkBuild) return undefined;
     if (!apkBuild || (apkBuild.status !== 'queued' && apkBuild.status !== 'building')) return undefined;
@@ -1485,7 +1540,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     setApkBusy(true);
     setSaveError('');
     try {
-      const blob = await generateAppZipBlob(app, { showWatermark: !allowPremium });
+      const secretsMap = await fetchSecretsMap();
+      const blob = await generateAppZipBlob({ ...app, secrets: secretsMap }, { showWatermark: !allowPremium });
       const formData = new FormData();
       formData.append('file', blob, 'bundle.zip');
       const uploadRes = await fetch(`${API}${apiBase}/${appId}/apk-bundle`, {
@@ -1649,9 +1705,16 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             </Button>
           </>
         )}
-        <Button size="sm" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>Preview</Button>
+        <Button size="sm" variant="secondary" icon={Eye} onClick={() => { fetchSecretsMap().then(setPreviewSecrets); setPreviewOpen(true); }}>Preview</Button>
         <Button size="sm" variant="secondary" icon={Download} onClick={() => setExportHubOpen(true)} title="Export or build this app">
           Export
+        </Button>
+        <Button
+          size="sm" variant="secondary" icon={Key}
+          onClick={() => { loadSecrets(); setIntegrationsOpen(true); }}
+          title="API keys/tokens your blocks can reference by name"
+        >
+          Integrations
         </Button>
         <Button size="sm" variant="secondary" icon={Undo2} onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)" />
         <Button size="sm" variant="secondary" icon={Redo2} onClick={redo} disabled={future.length === 0} title="Redo (Ctrl+Shift+Z)" />
@@ -1787,6 +1850,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 components: flattenAllTargets(blocksScreen || activeScreen),
                 updatableIds: new Set(flattenUpdatableTargets(blocksScreen || activeScreen).map(t => t.id)),
                 screens: app.screens,
+                secretNames: app.secret_names || [],
               }}
               toolbox={buildToolbox(blocksHatTypes)}
               fullScreen
@@ -2042,7 +2106,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             <button onClick={() => setPreviewOpen(false)} className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center">
               <X size={14} />
             </button>
-            <AppRuntime app={app} token={token} className="w-full h-full" showWatermark={!allowPremium} />
+            <AppRuntime app={{ ...app, secrets: previewSecrets }} token={token} className="w-full h-full" showWatermark={!allowPremium} />
           </div>
         </div>
       )}
@@ -2204,6 +2268,68 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   </span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Integrations — named API keys/tokens the "Secrets" block category
+          reads by name (see appBuilderBlock/blocks.js's ab_secret block).
+          NOT a real secret vault past this editor — see the warning banner
+          below and config.STUDIO_SECRETS_KEY's comment. */}
+      {integrationsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setIntegrationsOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Integrations</h3>
+              <button onClick={() => setIntegrationsOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-3 overflow-y-auto">
+              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
+                Store API keys/tokens (e.g. a Firebase config) here once, then read them from any "Secrets" block by name instead of pasting the raw value everywhere. <strong className="text-[#1D1D1F] dark:text-[#e4e4e7]">Not a hidden vault</strong> — once this app is published or exported, its real value is embedded in the app's own code, same as any client app.
+              </p>
+              {secretsLoading ? (
+                <p className="text-xs text-[#A1A1A6]">Loading…</p>
+              ) : (
+                <div className="space-y-2">
+                  {secrets.map((s, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <input
+                        value={s.name}
+                        onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                        placeholder="NAME"
+                        className="w-[38%] rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
+                      />
+                      <input
+                        value={s.value}
+                        onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
+                        placeholder="value"
+                        className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
+                      />
+                      <button onClick={() => setSecrets(list => list.filter((_, j) => j !== i))} className="text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={13} /></button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setSecrets(list => [...list, { name: '', value: '' }])}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors"
+                  >
+                    <Plus size={11} />Add key
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <Button
+                className="w-full" icon={Save} loading={secretsSaving}
+                onClick={() => saveSecrets(secrets.map(s => ({ ...s, name: s.name.trim() })).filter(s => s.name)).then(() => setIntegrationsOpen(false)).catch(() => {})}
+              >
+                Save
+              </Button>
             </div>
           </div>
         </div>

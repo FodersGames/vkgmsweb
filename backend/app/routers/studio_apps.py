@@ -12,13 +12,13 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File, Response
 
 from ..database import db
-from ..config import UPLOADS_DIR, VAKARSTUDIO_FILE_KEY
+from ..config import UPLOADS_DIR, VAKARSTUDIO_FILE_KEY, STUDIO_SECRETS_KEY
 from ..deps import require_permission, get_current_user, get_optional_user
 from ..utils import slugify, log_action, _validate_file, _IMAGE_MIMES, _create_notification, _get_origin
 from ..rate_limit import limiter
 from ..schemas import (
     StudioAppCreateRequest, StudioAppUpdateRequest, StudioAppStatusRequest, StudioAppVisibilityRequest,
-    StudioAppSubmitReviewRequest, StudioAppReviewDecisionRequest,
+    StudioAppSubmitReviewRequest, StudioAppReviewDecisionRequest, StudioAppSecretsRequest,
 )
 
 router = APIRouter()
@@ -386,6 +386,11 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
     if full:
         result["screens"] = doc.get("screens", [])
         result["variables"] = doc.get("variables", [])
+        # Names only, never values — the owner's editor fetches actual
+        # values from the dedicated GET .../secrets endpoint below, and a
+        # published app's real visitors get them embedded directly in
+        # get_public_studio_app's response (see the section above).
+        result["secret_names"] = sorted(_decrypt_secrets(doc.get("secrets_enc")).keys())
         # Staff/house apps (no user_id) aren't storage-quota'd, same as
         # they aren't app/screen quota'd — only self-service apps are.
         result["storage_used_bytes"] = _compute_storage_bytes(doc)
@@ -405,6 +410,26 @@ def _with_earnings(result, doc):
     result["creator_earnings_cents"] = doc.get("creator_earnings_cents", 0)
     result["total_sales_cents"] = doc.get("total_sales_cents", 0)
     return result
+
+# ============================================================
+# INTEGRATIONS ("Secrets") — named API keys/tokens (e.g. a Firebase config)
+# an app's blocks reference by name via the "Secrets" block category
+# instead of pasting the raw value into a block field. Encrypted at rest
+# (config.STUDIO_SECRETS_KEY) purely as DB hygiene — see the config.py
+# comment for why this is NOT a genuine secret vault: a published/exported
+# app embeds the real values in its compiled script like any client app.
+# ============================================================
+
+def _encrypt_secrets(secrets_dict: dict) -> bytes:
+    return Fernet(STUDIO_SECRETS_KEY).encrypt(json.dumps(secrets_dict).encode())
+
+def _decrypt_secrets(enc) -> dict:
+    if not enc:
+        return {}
+    try:
+        return json.loads(Fernet(STUDIO_SECRETS_KEY).decrypt(bytes(enc)))
+    except (InvalidToken, ValueError, json.JSONDecodeError):
+        return {}
 
 # ============================================================
 # ADMIN — builder CRUD for staff-owned apps + moderation surface. Since
@@ -923,6 +948,39 @@ async def update_my_studio_app(app_id: str, body: StudioAppUpdateRequest, user=D
     await db.studio_apps.update_one({"_id": oid}, {"$set": update})
     return {"ok": True}
 
+@router.get("/my/studio-apps/{app_id}/secrets")
+async def get_my_studio_app_secrets(app_id: str, user=Depends(get_current_user)):
+    """Decrypted values, owner-only — used by the Integrations tab's editor
+    and by the Preview modal (see AppBuilderEditor.js) so blocks can be
+    tested live without waiting for a publish."""
+    _oid, doc = await _get_owned_app(app_id, user)
+    secrets_dict = _decrypt_secrets(doc.get("secrets_enc"))
+    return {"secrets": [{"name": k, "value": v} for k, v in sorted(secrets_dict.items())]}
+
+@router.put("/my/studio-apps/{app_id}/secrets")
+async def set_my_studio_app_secrets(app_id: str, body: StudioAppSecretsRequest, user=Depends(get_current_user)):
+    oid, _doc = await _get_owned_app(app_id, user)
+    seen = set()
+    secrets_dict = {}
+    for item in body.secrets:
+        name = item.name.strip()
+        if not name:
+            continue
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+            raise HTTPException(status_code=400, detail=f"Invalid secret name '{name}' — use letters, numbers and underscores, not starting with a number.")
+        if len(name) > 64:
+            raise HTTPException(status_code=400, detail=f"Secret name '{name}' is too long (max 64 characters).")
+        if name in seen:
+            raise HTTPException(status_code=400, detail=f"Duplicate secret name '{name}'.")
+        seen.add(name)
+        secrets_dict[name] = item.value[:4000]
+    if len(secrets_dict) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 secrets per app.")
+    await db.studio_apps.update_one({"_id": oid}, {"$set": {
+        "secrets_enc": _encrypt_secrets(secrets_dict), "updated_at": datetime.now(timezone.utc),
+    }})
+    return {"ok": True}
+
 @router.patch("/my/studio-apps/{app_id}/status")
 async def set_my_studio_app_status(app_id: str, body: StudioAppStatusRequest, user=Depends(get_current_user)):
     oid, doc = await _get_owned_app(app_id, user)
@@ -1258,6 +1316,10 @@ async def get_public_studio_app(app_id: str, rev: str = "live", user=Depends(get
 
     result = _serialize(view_doc, full=True)
     result["requires_purchase"] = False
+    # Real visitors of a live/exported app need the actual values to make
+    # the calls their blocks compile to — see the INTEGRATIONS section above
+    # for why this isn't a genuine secret from this point on.
+    result["secrets"] = _decrypt_secrets(view_doc.get("secrets_enc"))
     # Staff/"house" apps (no owner) never show the free-tier watermark —
     # only self-service apps built by a non-Vakar+ user do.
     if doc.get("user_id"):

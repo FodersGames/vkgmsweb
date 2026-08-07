@@ -41,6 +41,7 @@ export const COLORS = {
   storage: '#8395A7',
   item: '#2F9E44',
   network: '#457B9D',
+  secrets: '#6D597A',
 };
 
 const jsonBlocks = [
@@ -929,6 +930,21 @@ const jsonBlocks = [
   },
 
   // ============================================================
+  // Secrets (Integrations tab) — a named token, picked from a dropdown (not
+  // free text) so it can't silently typo into an empty string. Not a real
+  // secret vault once this app is live/exported — see the Integrations
+  // modal's own warning copy (AppBuilderEditor.js) for why.
+  // ============================================================
+  {
+    type: 'ab_secret',
+    message0: 'value of key %1',
+    args0: [{ type: 'field_ab_secret', name: 'NAME' }],
+    output: null,
+    colour: COLORS.secrets,
+    tooltip: 'Reads a value stored in this app\'s Integrations tab. Empty text if not set.',
+  },
+
+  // ============================================================
   // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
   // also reused inside "for each item in list" loop bodies)
   // ============================================================
@@ -1187,6 +1203,12 @@ const BASE_CATEGORIES = [
         BODY: { shadow: { type: 'text', fields: { TEXT: '' } } },
       } },
       { kind: 'block', type: 'ab_json_field' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Secrets', colour: COLORS.secrets,
+    contents: [
+      { kind: 'block', type: 'ab_secret' },
     ],
   },
 ];

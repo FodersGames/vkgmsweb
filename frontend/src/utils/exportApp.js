@@ -560,6 +560,10 @@ ${actionsSource}
         .then(function (res) { return res.text().then(function (text) { return { ok: res.ok, status: res.status, text: text }; }); })
         .catch(function (err) { return { ok: false, status: 0, text: '', error: String((err && err.message) || err) }; });
     },
+    // Baked in at export/build time (see AppBuilderEditor.js, which fetches
+    // decrypted values before calling this) — embedded in plain text in
+    // this generated script.js, same as any client app. Not a secret vault.
+    secrets: ${JSON.stringify(app.secrets || {})},
   });
 
   function runAction(key, scope) {

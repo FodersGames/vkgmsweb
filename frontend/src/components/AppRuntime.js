@@ -536,6 +536,12 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     // origin with the logged-in user's session), regardless of what URL a
     // block is told to call.
     sandboxFetch,
+    // Real decrypted values on the public app-play page (get_public_studio_app
+    // includes them there — see studio_apps.py). The editor's own Preview
+    // modal passes them in separately (AppBuilderEditor.js fetches its own
+    // app's secrets via the owner-only endpoint) since the general app-load
+    // response never includes decrypted values.
+    secrets: app?.secrets || {},
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [screens, app]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);

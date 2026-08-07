@@ -22,6 +22,7 @@
 //   initialVars                 — {name: initial_value}, for resetVariables()
 //   storagePrefix               — string, namespaces localStorage keys per app
 //   sandboxFetch(url, method, body) — Promise<{ok, status, text}>, see httpGet/httpPost below
+//   secrets                     — {name: value}, the app's Integrations tab entries (see getSecret below)
 export function createRuntimeHelpers(host) {
   function parseArray(raw) {
     if (!raw) return [];
@@ -395,6 +396,14 @@ export function createRuntimeHelpers(host) {
       return host.sandboxFetch(String(url == null ? '' : url), 'POST', String(body == null ? '' : body)).then(function (r) {
         return r && r.ok ? r.text : '';
       }).catch(function () { return ''; });
+    },
+
+    // Integrations tab — named tokens, NOT a real secret vault (see
+    // config.STUDIO_SECRETS_KEY's comment): once this app is live or
+    // exported, the actual value is embedded in the compiled script same
+    // as any client app. Empty string if the name isn't defined/loaded yet.
+    getSecret: function (name) {
+      return (host.secrets && host.secrets[name]) || '';
     },
   };
 }

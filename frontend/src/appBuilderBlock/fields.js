@@ -17,11 +17,13 @@ import * as Blockly from 'blockly/core';
 let _components = [];
 let _updatableIds = null; // Set|null — null means "no filter" (any component)
 let _screens = [];
+let _secretNames = [];
 
-export function setAbBlockContext({ components = [], updatableIds = null, screens = [] } = {}) {
+export function setAbBlockContext({ components = [], updatableIds = null, screens = [], secretNames = [] } = {}) {
   _components = components;
   _updatableIds = updatableIds;
   _screens = screens;
+  _secretNames = secretNames;
 }
 
 function targetOptions(updatableOnly) {
@@ -57,3 +59,18 @@ export class AbScreenField extends Blockly.FieldDropdown {
   }
 }
 Blockly.fieldRegistry.register('field_ab_screen', AbScreenField);
+
+function secretOptions() {
+  if (!_secretNames.length) return [['(no keys yet — see Integrations)', '']];
+  return _secretNames.map(n => [n, n]);
+}
+
+export class AbSecretField extends Blockly.FieldDropdown {
+  constructor(opt_validator, opt_config) {
+    super(() => secretOptions(), opt_validator, opt_config);
+  }
+  static fromJson() {
+    return new AbSecretField();
+  }
+}
+Blockly.fieldRegistry.register('field_ab_secret', AbSecretField);

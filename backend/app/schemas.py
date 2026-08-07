@@ -438,6 +438,13 @@ class StudioAppUpdateRequest(BaseModel):
     app_display_name: Optional[str] = None
     app_icon_url: Optional[str] = None
 
+class StudioAppSecretItem(BaseModel):
+    name: str
+    value: str = ""
+
+class StudioAppSecretsRequest(BaseModel):
+    secrets: List[StudioAppSecretItem] = []
+
 class StudioAppStatusRequest(BaseModel):
     status: Literal["draft", "published"]
 
