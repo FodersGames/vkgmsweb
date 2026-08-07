@@ -13,8 +13,13 @@ import './blocks';
 // indefinitely and concurrently), App Builder triggers are one-shot event
 // handlers (a button's onClick, a toggle's onChange, a list row's tap) —
 // there's no per-frame loop and no concurrent scripts sharing state, so
-// compiled code is a plain `async function`, and `ab_wait` compiles to a
-// real `await`. No yield/generator scheduler needed here.
+// compiled code is a plain `async function`, and `ab_wait`/`ab_wait_until`
+// compile to a real `await`. No yield/generator scheduler needed here.
+//
+// Pure/stateless blocks (math, text) generate plain inline JS expressions
+// directly — no helpers.* call needed. Only blocks that touch `vars`/
+// `setVar` or non-trivial browser APIs call into `helpers.*`
+// (appBuilderBlock/runtime.js).
 // ============================================================
 
 const forBlock = javascriptGenerator.forBlock;
@@ -44,15 +49,109 @@ forBlock['ab_reset_variables'] = function () {
   return 'helpers.resetVariables(setVar);\n';
 };
 
-// ---------- Navigate ----------
-forBlock['ab_navigate'] = function (block) {
-  return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;
+// ---------- Math (pure inline expressions, no helpers) ----------
+forBlock['ab_random_number'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '0';
+  return [`(function(){var lo=Math.round(Number(${a})||0),hi=Math.round(Number(${b})||0);if(lo>hi){var t=lo;lo=hi;hi=t;}return Math.floor(Math.random()*(hi-lo+1))+lo;})()`, Order.FUNCTION_CALL];
+};
+forBlock['ab_round'] = function (block, generator) {
+  const num = generator.valueToCode(block, 'NUM', Order.NONE) || '0';
+  return [`Math.round(Number(${num}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_round_up'] = function (block, generator) {
+  const num = generator.valueToCode(block, 'NUM', Order.NONE) || '0';
+  return [`Math.ceil(Number(${num}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_round_down'] = function (block, generator) {
+  const num = generator.valueToCode(block, 'NUM', Order.NONE) || '0';
+  return [`Math.floor(Number(${num}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_abs'] = function (block, generator) {
+  const num = generator.valueToCode(block, 'NUM', Order.NONE) || '0';
+  return [`Math.abs(Number(${num}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_min'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '0';
+  return [`Math.min(Number(${a}) || 0, Number(${b}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_max'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '0';
+  return [`Math.max(Number(${a}) || 0, Number(${b}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_sqrt'] = function (block, generator) {
+  const num = generator.valueToCode(block, 'NUM', Order.NONE) || '0';
+  return [`Math.sqrt(Number(${num}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_power'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '0';
+  return [`Math.pow(Number(${a}) || 0, Number(${b}) || 0)`, Order.FUNCTION_CALL];
+};
+forBlock['ab_modulo'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '1';
+  return [`((Number(${a}) || 0) % (Number(${b}) || 1))`, Order.NONE];
+};
+forBlock['ab_is_number'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return [`(${value} !== '' && !isNaN(Number(${value})))`, Order.NONE];
+};
+forBlock['ab_text_to_number'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`(Number(${text}) || 0)`, Order.NONE];
 };
 
-// ---------- Random reward ----------
-forBlock['ab_random_pick'] = function (block, generator) {
-  const dupAmount = generator.valueToCode(block, 'DUP_AMOUNT', Order.NONE) || '1';
-  return `helpers.randomPick(vars, setVar, ${fieldStr(block, 'OPTIONS_VAR')}, ${fieldStr(block, 'TARGET_VAR')}, ${fieldStr(block, 'COLLECTION_VAR')}, ${fieldStr(block, 'DEDUPE_FIELD')}, ${fieldStr(block, 'DUP_VAR')}, ${dupAmount});\n`;
+// ---------- Text (pure inline expressions, no helpers) ----------
+forBlock['ab_text_is_empty'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`(String(${text}).length === 0)`, Order.NONE];
+};
+forBlock['ab_text_contains'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  const sub = generator.valueToCode(block, 'SUBSTR', Order.NONE) || "''";
+  return [`String(${text}).includes(String(${sub}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_starts_with'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  const sub = generator.valueToCode(block, 'SUBSTR', Order.NONE) || "''";
+  return [`String(${text}).startsWith(String(${sub}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_ends_with'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  const sub = generator.valueToCode(block, 'SUBSTR', Order.NONE) || "''";
+  return [`String(${text}).endsWith(String(${sub}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_replace'] = function (block, generator) {
+  const find = generator.valueToCode(block, 'FIND', Order.NONE) || "''";
+  const replace = generator.valueToCode(block, 'REPLACE', Order.NONE) || "''";
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`String(${text}).split(String(${find})).join(String(${replace}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_uppercase'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`String(${text}).toUpperCase()`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_lowercase'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`String(${text}).toLowerCase()`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_split'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  const sep = generator.valueToCode(block, 'SEPARATOR', Order.NONE) || "''";
+  return [`JSON.stringify(String(${text}).split(String(${sep})))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_join_list'] = function (block, generator) {
+  const sep = generator.valueToCode(block, 'SEPARATOR', Order.NONE) || "''";
+  return [`helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')}).map(String).join(String(${sep}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_text_substring'] = function (block, generator) {
+  const start = generator.valueToCode(block, 'START', Order.NONE) || '0';
+  const end = generator.valueToCode(block, 'END', Order.NONE) || '0';
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  return [`String(${text}).slice(Number(${start}) || 0, Number(${end}) || 0)`, Order.FUNCTION_CALL];
 };
 
 // ---------- Elements ----------
@@ -60,23 +159,91 @@ forBlock['ab_update_text'] = function (block, generator) {
   const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
   return `helpers.updateText(${fieldStr(block, 'TARGET')}, ${value});\n`;
 };
-forBlock['ab_set_visibility'] = function (block) {
-  return `helpers.setVisibility(${fieldStr(block, 'TARGET')}, ${fieldStr(block, 'MODE')});\n`;
+forBlock['ab_show_element'] = function (block) {
+  return `helpers.setVisibility(${fieldStr(block, 'TARGET')}, 'show');\n`;
+};
+forBlock['ab_hide_element'] = function (block) {
+  return `helpers.setVisibility(${fieldStr(block, 'TARGET')}, 'hide');\n`;
+};
+forBlock['ab_toggle_visibility'] = function (block) {
+  return `helpers.setVisibility(${fieldStr(block, 'TARGET')}, 'toggle');\n`;
 };
 
 // ---------- Lists ----------
-forBlock['ab_list_add'] = function (block, generator) {
+forBlock['ab_list_add_last'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return `helpers.listAdd(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${value}, 'append', 0);\n`;
+};
+forBlock['ab_list_add_first'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return `helpers.listAdd(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${value}, 'prepend', 0);\n`;
+};
+forBlock['ab_list_insert_at'] = function (block, generator) {
   const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
   const index = generator.valueToCode(block, 'INDEX', Order.NONE) || '0';
-  return `helpers.listAdd(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${value}, ${fieldStr(block, 'MODE')}, ${index});\n`;
+  return `helpers.listAdd(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${value}, 'at_index', ${index});\n`;
 };
-forBlock['ab_list_remove'] = function (block, generator) {
+forBlock['ab_list_remove_first'] = function (block) {
+  return `helpers.listRemove(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, 'first', 0);\n`;
+};
+forBlock['ab_list_remove_last'] = function (block) {
+  return `helpers.listRemove(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, 'last', 0);\n`;
+};
+forBlock['ab_list_remove_at'] = function (block, generator) {
   const index = generator.valueToCode(block, 'INDEX', Order.NONE) || '0';
-  return `helpers.listRemove(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${fieldStr(block, 'MODE')}, ${index});\n`;
+  return `helpers.listRemove(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, 'at_index', ${index});\n`;
+};
+forBlock['ab_list_clear'] = function (block) {
+  return `helpers.listRemove(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, 'clear', 0);\n`;
 };
 forBlock['ab_list_contains'] = function (block, generator) {
   const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
   return [`helpers.listContains(vars, ${fieldStr(block, 'LIST_VAR')}, ${value}, ${fieldStr(block, 'FIELD')})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_list_length'] = function (block) {
+  return [`helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')}).length`, Order.MEMBER];
+};
+forBlock['ab_list_is_empty'] = function (block) {
+  return [`(helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')}).length === 0)`, Order.NONE];
+};
+forBlock['ab_list_item_at'] = function (block, generator) {
+  const index = generator.valueToCode(block, 'INDEX', Order.NONE) || '0';
+  return [`(helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')})[Number(${index}) || 0] ?? '')`, Order.NONE];
+};
+forBlock['ab_list_replace_at'] = function (block, generator) {
+  const index = generator.valueToCode(block, 'INDEX', Order.NONE) || '0';
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return `helpers.listReplaceAt(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${index}, ${value});\n`;
+};
+forBlock['ab_list_index_of'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return [`helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')}).findIndex(function (x) { return String(x) === String(${value}); })`, Order.FUNCTION_CALL];
+};
+forBlock['ab_list_shuffle'] = function (block) {
+  return `helpers.listShuffle(vars, setVar, ${fieldStr(block, 'LIST_VAR')});\n`;
+};
+forBlock['ab_list_reverse'] = function (block) {
+  return `helpers.listReverse(vars, setVar, ${fieldStr(block, 'LIST_VAR')});\n`;
+};
+forBlock['ab_list_sort'] = function (block) {
+  return `helpers.listSort(vars, setVar, ${fieldStr(block, 'LIST_VAR')}, ${fieldStr(block, 'MODE')});\n`;
+};
+forBlock['ab_list_duplicate'] = function (block) {
+  return [`JSON.stringify(helpers.getList(vars, ${fieldStr(block, 'LIST_VAR')}))`, Order.FUNCTION_CALL];
+};
+forBlock['ab_list_create_empty'] = function () {
+  return ["'[]'", Order.ATOMIC];
+};
+forBlock['ab_pick_random'] = function (block) {
+  return [`helpers.pickRandom(vars, ${fieldStr(block, 'LIST_VAR')})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_pick_weighted'] = function (block) {
+  return [`helpers.pickWeighted(vars, ${fieldStr(block, 'LIST_VAR')}, ${fieldStr(block, 'FIELD')})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_json_field'] = function (block, generator) {
+  const jsonText = generator.valueToCode(block, 'JSON_TEXT', Order.NONE) || "''";
+  const field = fieldStr(block, 'FIELD');
+  return [`(function(){try{var o=JSON.parse(${jsonText});return (o&&typeof o==='object')?(o[${field}] ?? ''):'';}catch(e){return '';}})()`, Order.FUNCTION_CALL];
 };
 
 // ---------- Feedback & Device ----------
@@ -102,15 +269,124 @@ forBlock['ab_elapsed_seconds'] = function (block) {
 forBlock['ab_mark_time'] = function (block) {
   return `helpers.markTime(setVar, ${fieldStr(block, 'VAR')});\n`;
 };
-
-// ---------- Links ----------
-forBlock['ab_open_link'] = function (block, generator) {
+forBlock['ab_play_sound'] = function (block, generator) {
   const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
-  const newTab = JSON.stringify(block.getFieldValue('NEW_TAB') === 'TRUE');
-  return `helpers.openLink(${url}, ${newTab});\n`;
+  return `helpers.playSound(${url});\n`;
+};
+forBlock['ab_prompt_input'] = function (block, generator) {
+  const msg = generator.valueToCode(block, 'MSG', Order.NONE) || "''";
+  return [`helpers.promptInput(${msg})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_confirm'] = function (block, generator) {
+  const msg = generator.valueToCode(block, 'MSG', Order.NONE) || "''";
+  return [`helpers.confirmYesNo(${msg})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_share'] = function (block, generator) {
+  const text = generator.valueToCode(block, 'TEXT', Order.NONE) || "''";
+  const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
+  return `await helpers.shareContent(${text}, ${url});\n`;
+};
+forBlock['ab_choose_photo'] = function () {
+  return ['(await helpers.choosePhoto())', Order.NONE];
+};
+forBlock['ab_get_latitude'] = function () {
+  return ['(await helpers.getLatitude())', Order.NONE];
+};
+forBlock['ab_get_longitude'] = function () {
+  return ['(await helpers.getLongitude())', Order.NONE];
+};
+forBlock['ab_is_online'] = function () {
+  return ['helpers.isOnline()', Order.FUNCTION_CALL];
+};
+forBlock['ab_request_notification_permission'] = function () {
+  return ['(await helpers.requestNotificationPermission())', Order.NONE];
 };
 
-// ---------- This item (list row tap scope) ----------
+// ---------- Links & Communication ----------
+forBlock['ab_open_link_new_tab'] = function (block, generator) {
+  const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
+  return `helpers.openLink(${url}, true);\n`;
+};
+forBlock['ab_open_link_same_tab'] = function (block, generator) {
+  const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
+  return `helpers.openLink(${url}, false);\n`;
+};
+forBlock['ab_open_email'] = function (block, generator) {
+  const address = generator.valueToCode(block, 'ADDRESS', Order.NONE) || "''";
+  const subject = generator.valueToCode(block, 'SUBJECT', Order.NONE) || "''";
+  const body = generator.valueToCode(block, 'BODY', Order.NONE) || "''";
+  return `helpers.openEmail(${address}, ${subject}, ${body});\n`;
+};
+forBlock['ab_call_phone'] = function (block, generator) {
+  const number = generator.valueToCode(block, 'NUMBER', Order.NONE) || "''";
+  return `helpers.callPhone(${number});\n`;
+};
+forBlock['ab_send_sms'] = function (block, generator) {
+  const number = generator.valueToCode(block, 'NUMBER', Order.NONE) || "''";
+  const message = generator.valueToCode(block, 'MESSAGE', Order.NONE) || "''";
+  return `helpers.sendSms(${number}, ${message});\n`;
+};
+
+// ---------- Date & Time ----------
+forBlock['ab_current_timestamp'] = function () {
+  return ['Date.now()', Order.FUNCTION_CALL];
+};
+forBlock['ab_format_date'] = function (block, generator) {
+  const timestamp = generator.valueToCode(block, 'TIMESTAMP', Order.NONE) || '0';
+  return [`helpers.formatDate(${timestamp}, ${fieldStr(block, 'STYLE')})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_time_difference_seconds'] = function (block, generator) {
+  const a = generator.valueToCode(block, 'A', Order.NONE) || '0';
+  const b = generator.valueToCode(block, 'B', Order.NONE) || '0';
+  return [`helpers.timeDifferenceSeconds(${a}, ${b})`, Order.FUNCTION_CALL];
+};
+
+// ---------- Control ----------
+// Wraps its own { } block so `__list`/`__i` never collide with a sibling
+// (or nested) ab_for_each elsewhere in the same compiled function — each
+// gets its own JS block scope. `scope` is shadowed with `let` for the loop
+// body only, so ab_item/ab_item_field/ab_item_index work inside it exactly
+// like they do for a list row's tap, without leaking into code after the
+// loop (which should still see whatever `scope` this trigger started with,
+// e.g. nested for-each inside a list's own item_action).
+forBlock['ab_for_each'] = function (block, generator) {
+  const listVar = fieldStr(block, 'LIST_VAR');
+  const body = generator.statementToCode(block, 'DO');
+  return `{\n  const __list = helpers.getList(vars, ${listVar});\n  for (let __i = 0; __i < __list.length; __i++) {\n    let scope = { item: __list[__i], index: __i };\n${body}  }\n}\n`;
+};
+// Polls with a short delay rather than a tight loop, since compiled
+// triggers are plain async functions (not Vakar Block's yield-driven
+// generators) — an await-free `while` here would either resolve instantly
+// forever or genuinely freeze the tab if the condition never becomes true.
+forBlock['ab_wait_until'] = function (block, generator) {
+  const cond = generator.valueToCode(block, 'CONDITION', Order.NONE) || 'false';
+  return `while (!(${cond})) { await helpers.wait(50); }\n`;
+};
+forBlock['ab_stop_script'] = function () {
+  return 'return;\n';
+};
+
+// ---------- Storage ----------
+forBlock['ab_storage_set'] = function (block, generator) {
+  const value = generator.valueToCode(block, 'VALUE', Order.NONE) || "''";
+  return `helpers.storageSet(${fieldStr(block, 'KEY')}, ${value});\n`;
+};
+forBlock['ab_storage_get'] = function (block) {
+  return [`helpers.storageGet(${fieldStr(block, 'KEY')})`, Order.FUNCTION_CALL];
+};
+forBlock['ab_storage_remove'] = function (block) {
+  return `helpers.storageRemove(${fieldStr(block, 'KEY')});\n`;
+};
+
+// ---------- Navigate ----------
+forBlock['ab_navigate'] = function (block) {
+  return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;
+};
+forBlock['ab_close_app'] = function () {
+  return 'helpers.closeApp();\n';
+};
+
+// ---------- This item (list row tap scope / for-each loop scope) ----------
 forBlock['ab_item'] = function () {
   return ["(scope && Object.prototype.hasOwnProperty.call(scope, 'item') ? scope.item : '')", Order.NONE];
 };

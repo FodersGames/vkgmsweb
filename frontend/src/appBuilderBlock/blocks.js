@@ -12,6 +12,13 @@ import './fields';
 // math, logic, text, variable get/set), only domain-specific `ab_*` blocks
 // defined here.
 //
+// One block, one operation: every block here does exactly one thing (no
+// mode/behavior dropdowns bundling several distinct actions into one block,
+// e.g. "add to list" is three separate blocks — add-to-end/add-to-start/
+// insert-at-position — not one block with an ADD/PREPEND/INSERT dropdown).
+// This matches MIT App Inventor's own block palette philosophy and is
+// deliberately simpler to read/compose than the terser Scratch convention.
+//
 // English labels (App Builder's UI is English, unlike Vakar Block's French
 // Scratch-style editor) — no Blockly.setLocale() call needed, core ships
 // with English messages built in.
@@ -20,18 +27,24 @@ import './fields';
 export const COLORS = {
   navigate: '#2F80ED',
   variables: '#F2A93B',
+  math: '#5B9E56',
+  text: '#EB5757',
   elements: '#9966FF',
   lists: '#CF63CF',
   feedback: '#5CB1D6',
+  device: '#3D8EBF',
   links: '#4ECDC4',
+  datetime: '#B08968',
   logic: '#59C059',
   control: '#FFAB19',
-  text: '#EB5757',
+  storage: '#8395A7',
   item: '#2F9E44',
 };
 
 const jsonBlocks = [
-  // ---------- Navigate ----------
+  // ============================================================
+  // Navigate
+  // ============================================================
   {
     type: 'ab_navigate',
     message0: 'go to screen %1',
@@ -41,15 +54,25 @@ const jsonBlocks = [
     colour: COLORS.navigate,
     tooltip: 'Switches to a different screen.',
   },
+  {
+    type: 'ab_close_app',
+    message0: 'close the app',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.navigate,
+    tooltip: 'Attempts to close the app. Only works in limited cases (e.g. a window the app itself opened) — browsers don’t allow a normal page to close itself or a real device to quit an app from a webpage.',
+  },
 
-  // ---------- Variables & Math ----------
+  // ============================================================
+  // Variables & Math
+  // ============================================================
   // App Builder variables are declared centrally (the Variables panel in
   // AppBuilderEditor.js's sidebar, a flat {name, initial_value} list), not
   // through Blockly's own variable-creation UI — so get/set/change use plain
-  // field_input name fields (same convention as ab_list_add's LIST_VAR)
-  // instead of reusing Blockly's stock variables_get/variables_set/
-  // math_change, which are hard-wired to Blockly's own separate variable
-  // model and would give users two conflicting places to manage variables.
+  // field_input name fields instead of reusing Blockly's stock
+  // variables_get/variables_set/math_change, which are hard-wired to
+  // Blockly's own separate variable model and would give users two
+  // conflicting places to manage variables.
   {
     type: 'ab_get_variable',
     message0: '%1',
@@ -99,28 +122,213 @@ const jsonBlocks = [
     colour: COLORS.variables,
     tooltip: 'Resets every variable back to its starting value.',
   },
+  // ---------- Math ----------
   {
-    type: 'ab_random_pick',
-    message0: 'pick a random reward from %1',
-    args0: [{ type: 'field_input', name: 'OPTIONS_VAR', text: 'rewards' }],
-    message1: 'store picked reward in %1',
-    args1: [{ type: 'field_input', name: 'TARGET_VAR', text: '' }],
-    message2: 'also add it to list %1',
-    args2: [{ type: 'field_input', name: 'COLLECTION_VAR', text: '' }],
-    message3: 'if already owned (by field %1) credit %2 with %3',
-    args3: [
-      { type: 'field_input', name: 'DEDUPE_FIELD', text: '' },
-      { type: 'field_input', name: 'DUP_VAR', text: '' },
-      { type: 'input_value', name: 'DUP_AMOUNT', check: 'Number' },
+    type: 'ab_random_number',
+    message0: 'random number from %1 to %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
     ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: COLORS.variables,
-    inputsInline: false,
-    tooltip: 'Rolls a random reward from a weighted list (e.g. rarity odds) — perfect for chests, loot boxes, or gacha mechanics. Leave a field blank to skip that part.',
+    output: 'Number',
+    colour: COLORS.math,
+    tooltip: 'A random whole number between the two values (inclusive).',
+  },
+  {
+    type: 'ab_round',
+    message0: 'round %1',
+    args0: [{ type: 'input_value', name: 'NUM', check: 'Number' }],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_round_up',
+    message0: 'round up %1',
+    args0: [{ type: 'input_value', name: 'NUM', check: 'Number' }],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_round_down',
+    message0: 'round down %1',
+    args0: [{ type: 'input_value', name: 'NUM', check: 'Number' }],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_abs',
+    message0: 'absolute value of %1',
+    args0: [{ type: 'input_value', name: 'NUM', check: 'Number' }],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_min',
+    message0: 'smaller of %1 and %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
+    ],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_max',
+    message0: 'larger of %1 and %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
+    ],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_sqrt',
+    message0: 'square root of %1',
+    args0: [{ type: 'input_value', name: 'NUM', check: 'Number' }],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_power',
+    message0: '%1 to the power of %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
+    ],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_modulo',
+    message0: 'remainder of %1 ÷ %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
+    ],
+    output: 'Number',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_is_number',
+    message0: '%1 is a number?',
+    args0: [{ type: 'input_value', name: 'VALUE' }],
+    output: 'Boolean',
+    colour: COLORS.math,
+  },
+  {
+    type: 'ab_text_to_number',
+    message0: 'convert %1 to a number',
+    args0: [{ type: 'input_value', name: 'TEXT' }],
+    output: 'Number',
+    colour: COLORS.math,
+    tooltip: 'Reads a number out of text — 0 if the text isn’t a valid number.',
   },
 
-  // ---------- Elements ----------
+  // ============================================================
+  // Text
+  // ============================================================
+  {
+    type: 'ab_text_is_empty',
+    message0: '%1 is empty?',
+    args0: [{ type: 'input_value', name: 'TEXT' }],
+    output: 'Boolean',
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_contains',
+    message0: '%1 contains %2 ?',
+    args0: [
+      { type: 'input_value', name: 'TEXT' },
+      { type: 'input_value', name: 'SUBSTR' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_starts_with',
+    message0: '%1 starts with %2 ?',
+    args0: [
+      { type: 'input_value', name: 'TEXT' },
+      { type: 'input_value', name: 'SUBSTR' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_ends_with',
+    message0: '%1 ends with %2 ?',
+    args0: [
+      { type: 'input_value', name: 'TEXT' },
+      { type: 'input_value', name: 'SUBSTR' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_replace',
+    message0: 'replace %1 with %2 in %3',
+    args0: [
+      { type: 'input_value', name: 'FIND' },
+      { type: 'input_value', name: 'REPLACE' },
+      { type: 'input_value', name: 'TEXT' },
+    ],
+    output: null,
+    colour: COLORS.text,
+    tooltip: 'Replaces every occurrence, not just the first.',
+  },
+  {
+    type: 'ab_text_uppercase',
+    message0: '%1 in UPPERCASE',
+    args0: [{ type: 'input_value', name: 'TEXT' }],
+    output: null,
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_lowercase',
+    message0: '%1 in lowercase',
+    args0: [{ type: 'input_value', name: 'TEXT' }],
+    output: null,
+    colour: COLORS.text,
+  },
+  {
+    type: 'ab_text_split',
+    message0: 'split %1 by %2',
+    args0: [
+      { type: 'input_value', name: 'TEXT' },
+      { type: 'input_value', name: 'SEPARATOR' },
+    ],
+    output: null,
+    colour: COLORS.text,
+    tooltip: 'Splits text into a list — plug this into "set [variable] to" to store the result as a list.',
+  },
+  {
+    type: 'ab_text_join_list',
+    message0: 'join list %1 with %2',
+    args0: [
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+      { type: 'input_value', name: 'SEPARATOR' },
+    ],
+    output: null,
+    colour: COLORS.text,
+    tooltip: 'Combines every item of a list into one piece of text.',
+  },
+  {
+    type: 'ab_text_substring',
+    message0: 'text from position %1 to %2 in %3',
+    args0: [
+      { type: 'input_value', name: 'START', check: 'Number' },
+      { type: 'input_value', name: 'END', check: 'Number' },
+      { type: 'input_value', name: 'TEXT' },
+    ],
+    output: null,
+    colour: COLORS.text,
+    tooltip: 'Position 0 is the first character.',
+  },
+
+  // ============================================================
+  // Elements
+  // ============================================================
   {
     type: 'ab_update_text',
     message0: 'update %1 to %2',
@@ -134,53 +342,101 @@ const jsonBlocks = [
     tooltip: "Replaces an element's visible text.",
   },
   {
-    type: 'ab_set_visibility',
-    message0: '%1 element %2',
-    args0: [
-      { type: 'field_dropdown', name: 'MODE', options: [['show', 'show'], ['hide', 'hide'], ['toggle', 'toggle']] },
-      { type: 'field_ab_target', name: 'TARGET' },
-    ],
+    type: 'ab_show_element',
+    message0: 'show element %1',
+    args0: [{ type: 'field_ab_target', name: 'TARGET' }],
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.elements,
-    tooltip: 'Shows, hides, or toggles another element.',
+  },
+  {
+    type: 'ab_hide_element',
+    message0: 'hide element %1',
+    args0: [{ type: 'field_ab_target', name: 'TARGET' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.elements,
+  },
+  {
+    type: 'ab_toggle_visibility',
+    message0: 'toggle visibility of element %1',
+    args0: [{ type: 'field_ab_target', name: 'TARGET' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.elements,
   },
 
-  // ---------- Lists ----------
+  // ============================================================
+  // Lists
+  // ============================================================
   {
-    type: 'ab_list_add',
-    message0: 'add %1 to list %2 %3',
+    type: 'ab_list_add_last',
+    message0: 'add %1 to end of list %2',
     args0: [
       { type: 'input_value', name: 'VALUE' },
       { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
-      {
-        type: 'field_dropdown', name: 'MODE',
-        options: [['at the end', 'append'], ['at the start', 'prepend'], ['at position', 'at_index']],
-      },
     ],
-    message1: 'position (if "at position") %1',
-    args1: [{ type: 'input_value', name: 'INDEX', check: 'Number' }],
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.lists,
-    tooltip: 'Adds a value to a list, at the start, end, or a specific position.',
   },
   {
-    type: 'ab_list_remove',
-    message0: 'remove from list %1 %2',
+    type: 'ab_list_add_first',
+    message0: 'add %1 to start of list %2',
     args0: [
+      { type: 'input_value', name: 'VALUE' },
       { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
-      {
-        type: 'field_dropdown', name: 'MODE',
-        options: [['last item', 'last'], ['first item', 'first'], ['item at position', 'at_index'], ['everything', 'clear']],
-      },
     ],
-    message1: 'position (if "item at position") %1',
-    args1: [{ type: 'input_value', name: 'INDEX', check: 'Number' }],
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.lists,
-    tooltip: 'Removes an item from a list.',
+  },
+  {
+    type: 'ab_list_insert_at',
+    message0: 'insert %1 at position %2 in list %3',
+    args0: [
+      { type: 'input_value', name: 'VALUE' },
+      { type: 'input_value', name: 'INDEX', check: 'Number' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_remove_first',
+    message0: 'remove first item from list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_remove_last',
+    message0: 'remove last item from list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_remove_at',
+    message0: 'remove item at position %1 from list %2',
+    args0: [
+      { type: 'input_value', name: 'INDEX', check: 'Number' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_clear',
+    message0: 'clear list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
   },
   {
     type: 'ab_list_contains',
@@ -194,8 +450,132 @@ const jsonBlocks = [
     colour: COLORS.lists,
     tooltip: 'Checks whether a list has a matching entry. Leave the field blank to compare whole items; set it to check one object field of each entry (e.g. "name").',
   },
+  {
+    type: 'ab_list_length',
+    message0: 'length of list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    output: 'Number',
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_is_empty',
+    message0: 'list %1 is empty?',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    output: 'Boolean',
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_item_at',
+    message0: 'item at position %1 in list %2',
+    args0: [
+      { type: 'input_value', name: 'INDEX', check: 'Number' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+    ],
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'Position 0 is the first item.',
+  },
+  {
+    type: 'ab_list_replace_at',
+    message0: 'replace item at position %1 in list %2 with %3',
+    args0: [
+      { type: 'input_value', name: 'INDEX', check: 'Number' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+      { type: 'input_value', name: 'VALUE' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_index_of',
+    message0: 'position of %1 in list %2',
+    args0: [
+      { type: 'input_value', name: 'VALUE' },
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+    ],
+    output: 'Number',
+    colour: COLORS.lists,
+    tooltip: '-1 if the value isn’t in the list.',
+  },
+  {
+    type: 'ab_list_shuffle',
+    message0: 'shuffle list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_reverse',
+    message0: 'reverse list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_sort',
+    message0: 'sort list %1 %2',
+    args0: [
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+      {
+        type: 'field_dropdown', name: 'MODE',
+        options: [['A → Z', 'alpha_asc'], ['Z → A', 'alpha_desc'], ['smallest → largest', 'num_asc'], ['largest → smallest', 'num_desc']],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_list_duplicate',
+    message0: 'copy of list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'A new, independent copy — plug into "set [variable] to" to store it separately.',
+  },
+  {
+    type: 'ab_list_create_empty',
+    message0: 'empty list',
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'Plug into "set [variable] to", then add items with the "add to list" blocks.',
+  },
+  {
+    type: 'ab_pick_random',
+    message0: 'random item from list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    output: null,
+    colour: COLORS.lists,
+  },
+  {
+    type: 'ab_pick_weighted',
+    message0: 'weighted random item from list %1 (weight field %2)',
+    args0: [
+      { type: 'field_input', name: 'LIST_VAR', text: 'myList' },
+      { type: 'field_input', name: 'FIELD', text: 'weight' },
+    ],
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'Each item should be an object with a number field (e.g. "weight") — higher numbers are picked more often. Great for loot boxes / gacha-style rewards.',
+  },
+  {
+    type: 'ab_json_field',
+    message0: 'field %1 of %2',
+    args0: [
+      { type: 'field_input', name: 'FIELD', text: 'name' },
+      { type: 'input_value', name: 'JSON_TEXT' },
+    ],
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'Reads one field out of a rich (object-shaped) list item — e.g. the "name" field of a reward.',
+  },
 
-  // ---------- Feedback & Device ----------
+  // ============================================================
+  // Feedback & Device
+  // ============================================================
   {
     type: 'ab_show_message',
     message0: 'show message %1',
@@ -212,7 +592,6 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.feedback,
-    tooltip: 'Copies text so the visitor can paste it elsewhere.',
   },
   {
     type: 'ab_vibrate',
@@ -221,7 +600,7 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.feedback,
-    tooltip: 'Triggers a short haptic buzz (phones only — no effect in a browser).',
+    tooltip: 'Phones only — no effect in a desktop browser.',
   },
   {
     type: 'ab_wait',
@@ -230,7 +609,6 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.feedback,
-    tooltip: 'Pauses before the next block runs — useful for pacing a sequence.',
   },
   {
     type: 'ab_elapsed_seconds',
@@ -249,28 +627,233 @@ const jsonBlocks = [
     colour: COLORS.feedback,
     tooltip: 'Stamps a variable with the current time — pair with "seconds since" above.',
   },
-
-  // ---------- Links ----------
   {
-    type: 'ab_open_link',
-    message0: 'open link %1 new tab %2',
+    type: 'ab_play_sound',
+    message0: 'play sound %1',
+    args0: [{ type: 'input_value', name: 'URL' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.feedback,
+  },
+  {
+    type: 'ab_prompt_input',
+    message0: 'ask for text with message %1',
+    args0: [{ type: 'input_value', name: 'MSG' }],
+    output: null,
+    colour: COLORS.feedback,
+    tooltip: 'Pops up a native dialog asking the visitor to type something — empty text if they cancel.',
+  },
+  {
+    type: 'ab_confirm',
+    message0: 'ask yes/no %1',
+    args0: [{ type: 'input_value', name: 'MSG' }],
+    output: 'Boolean',
+    colour: COLORS.feedback,
+    tooltip: 'Pops up a native OK/Cancel dialog.',
+  },
+  {
+    type: 'ab_share',
+    message0: 'share text %1 link %2',
     args0: [
+      { type: 'input_value', name: 'TEXT' },
       { type: 'input_value', name: 'URL' },
-      { type: 'field_checkbox', name: 'NEW_TAB', checked: true },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.device,
+    tooltip: 'Opens the device’s native share sheet. On devices without one, copies the text/link instead.',
+  },
+  {
+    type: 'ab_choose_photo',
+    message0: 'choose or take a photo',
+    output: null,
+    colour: COLORS.device,
+    tooltip: 'Opens the device’s camera/photo picker and waits for a picture — returns it as image data, or nothing if cancelled. Plug into an Image element’s URL or into "set [variable] to".',
+  },
+  {
+    type: 'ab_get_latitude',
+    message0: 'current latitude',
+    output: 'Number',
+    colour: COLORS.device,
+    tooltip: 'Asks the visitor to share their location the first time it’s used.',
+  },
+  {
+    type: 'ab_get_longitude',
+    message0: 'current longitude',
+    output: 'Number',
+    colour: COLORS.device,
+  },
+  {
+    type: 'ab_is_online',
+    message0: 'device is online?',
+    output: 'Boolean',
+    colour: COLORS.device,
+  },
+  {
+    type: 'ab_request_notification_permission',
+    message0: 'ask for notification permission',
+    output: 'Boolean',
+    colour: COLORS.device,
+    tooltip: 'True if the visitor allowed notifications.',
+  },
+
+  // ============================================================
+  // Links & Communication
+  // ============================================================
+  {
+    type: 'ab_open_link_new_tab',
+    message0: 'open link %1 in new tab',
+    args0: [{ type: 'input_value', name: 'URL' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.links,
+  },
+  {
+    type: 'ab_open_link_same_tab',
+    message0: 'open link %1 in this app',
+    args0: [{ type: 'input_value', name: 'URL' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.links,
+  },
+  {
+    type: 'ab_open_email',
+    message0: 'open email to %1 subject %2 body %3',
+    args0: [
+      { type: 'input_value', name: 'ADDRESS' },
+      { type: 'input_value', name: 'SUBJECT' },
+      { type: 'input_value', name: 'BODY' },
     ],
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.links,
-    tooltip: 'Opens a URL, in this app or a new tab.',
+  },
+  {
+    type: 'ab_call_phone',
+    message0: 'call phone number %1',
+    args0: [{ type: 'input_value', name: 'NUMBER' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.links,
+  },
+  {
+    type: 'ab_send_sms',
+    message0: 'send text message to %1 saying %2',
+    args0: [
+      { type: 'input_value', name: 'NUMBER' },
+      { type: 'input_value', name: 'MESSAGE' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.links,
   },
 
-  // ---------- This item (list row tap only — see TOOLBOX_ITEM below) ----------
+  // ============================================================
+  // Date & Time
+  // ============================================================
+  {
+    type: 'ab_current_timestamp',
+    message0: 'current date and time',
+    output: 'Number',
+    colour: COLORS.datetime,
+    tooltip: 'A number you can store and compare — plug into "format" below to show it, or into "seconds between" to measure a duration.',
+  },
+  {
+    type: 'ab_format_date',
+    message0: 'format %1 as %2',
+    args0: [
+      { type: 'input_value', name: 'TIMESTAMP', check: 'Number' },
+      {
+        type: 'field_dropdown', name: 'STYLE',
+        options: [['date', 'date'], ['time', 'time'], ['date and time', 'datetime']],
+      },
+    ],
+    output: null,
+    colour: COLORS.datetime,
+  },
+  {
+    type: 'ab_time_difference_seconds',
+    message0: 'seconds between %1 and %2',
+    args0: [
+      { type: 'input_value', name: 'A', check: 'Number' },
+      { type: 'input_value', name: 'B', check: 'Number' },
+    ],
+    output: 'Number',
+    colour: COLORS.datetime,
+  },
+
+  // ============================================================
+  // Control (additions — if/else/repeat/logic/text stay on Blockly's stock
+  // blocks, imported wholesale via 'blockly/blocks' above)
+  // ============================================================
+  {
+    type: 'ab_for_each',
+    message0: 'for each item in list %1',
+    args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
+    message1: 'do %1',
+    args1: [{ type: 'input_statement', name: 'DO' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.control,
+    tooltip: 'Use the "This item"/"This item’s position" blocks inside to read the current item.',
+  },
+  {
+    type: 'ab_wait_until',
+    message0: 'wait until %1 is true',
+    args0: [{ type: 'input_value', name: 'CONDITION', check: 'Boolean' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.control,
+  },
+  {
+    type: 'ab_stop_script',
+    message0: '⛔ stop this script',
+    previousStatement: null,
+    colour: COLORS.control,
+  },
+
+  // ============================================================
+  // Storage — persists after the visitor closes the app, unlike variables
+  // (which reset to their initial value every session).
+  // ============================================================
+  {
+    type: 'ab_storage_set',
+    message0: 'save %1 under %2',
+    args0: [
+      { type: 'input_value', name: 'VALUE' },
+      { type: 'field_input', name: 'KEY', text: 'myKey' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.storage,
+  },
+  {
+    type: 'ab_storage_get',
+    message0: 'read saved value %1',
+    args0: [{ type: 'field_input', name: 'KEY', text: 'myKey' }],
+    output: null,
+    colour: COLORS.storage,
+    tooltip: 'Empty text if nothing was saved under this key yet.',
+  },
+  {
+    type: 'ab_storage_remove',
+    message0: 'delete saved value %1',
+    args0: [{ type: 'field_input', name: 'KEY', text: 'myKey' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.storage,
+  },
+
+  // ============================================================
+  // This item (list row tap only — see TOOLBOX_ITEM below; also reused
+  // inside "for each item in list" loop bodies)
+  // ============================================================
   {
     type: 'ab_item',
     message0: 'this item',
     output: null,
     colour: COLORS.item,
-    tooltip: 'The whole tapped row.',
+    tooltip: 'The whole current item.',
   },
   {
     type: 'ab_item_field',
@@ -278,17 +861,19 @@ const jsonBlocks = [
     args0: [{ type: 'field_input', name: 'FIELD', text: 'name' }],
     output: null,
     colour: COLORS.item,
-    tooltip: 'One field of the tapped row (when each entry is an object).',
+    tooltip: 'One field of the current item (when it’s an object).',
   },
   {
     type: 'ab_item_index',
     message0: 'this item’s position',
     output: 'Number',
     colour: COLORS.item,
-    tooltip: 'The tapped row’s position in the list (0 = first).',
+    tooltip: 'The current item’s position in the list (0 = first).',
   },
 
-  // ---------- Legacy-migration compatibility bridge (never in the toolbox) ----------
+  // ============================================================
+  // Legacy-migration compatibility bridge (never in the toolbox)
+  // ============================================================
   {
     type: 'ab_legacy_text',
     message0: '⚠ legacy text %1',
@@ -308,11 +893,12 @@ const STOCK_COLOUR_OVERRIDES = {
   controls_if: COLORS.control,
   controls_ifelse: COLORS.control,
   controls_repeat_ext: COLORS.control,
+  controls_whileUntil: COLORS.control,
   logic_compare: COLORS.logic,
   logic_operation: COLORS.logic,
   logic_negate: COLORS.logic,
-  math_arithmetic: COLORS.variables,
-  math_number: COLORS.variables,
+  math_arithmetic: COLORS.math,
+  math_number: COLORS.math,
   text: COLORS.text,
   text_join: COLORS.text,
   text_length: COLORS.text,
@@ -330,40 +916,106 @@ for (const [type, colour] of Object.entries(STOCK_COLOUR_OVERRIDES)) {
 const BASE_CATEGORIES = [
   {
     kind: 'category', name: 'Navigate', colour: COLORS.navigate,
-    contents: [{ kind: 'block', type: 'ab_navigate' }],
+    contents: [
+      { kind: 'block', type: 'ab_navigate' },
+      { kind: 'block', type: 'ab_close_app' },
+    ],
   },
   {
-    kind: 'category', name: 'Variables & Math', colour: COLORS.variables,
+    kind: 'category', name: 'Variables', colour: COLORS.variables,
     contents: [
       { kind: 'block', type: 'ab_set_variable', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
       { kind: 'block', type: 'ab_get_variable' },
       { kind: 'block', type: 'ab_change_variable', inputs: { DELTA: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
       { kind: 'block', type: 'ab_toggle_variable' },
       { kind: 'block', type: 'ab_reset_variables' },
-      { kind: 'block', type: 'ab_random_pick', inputs: { DUP_AMOUNT: { shadow: { type: 'math_number', fields: { NUM: 1 } } } } },
+    ],
+  },
+  {
+    kind: 'category', name: 'Math', colour: COLORS.math,
+    contents: [
       { kind: 'block', type: 'math_arithmetic', inputs: {
         A: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
         B: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
       } },
       { kind: 'block', type: 'math_number' },
+      { kind: 'block', type: 'ab_random_number', inputs: {
+        A: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
+        B: { shadow: { type: 'math_number', fields: { NUM: 10 } } },
+      } },
+      { kind: 'block', type: 'ab_round' },
+      { kind: 'block', type: 'ab_round_up' },
+      { kind: 'block', type: 'ab_round_down' },
+      { kind: 'block', type: 'ab_abs' },
+      { kind: 'block', type: 'ab_min' },
+      { kind: 'block', type: 'ab_max' },
+      { kind: 'block', type: 'ab_sqrt' },
+      { kind: 'block', type: 'ab_power', inputs: { B: { shadow: { type: 'math_number', fields: { NUM: 2 } } } } },
+      { kind: 'block', type: 'ab_modulo' },
+      { kind: 'block', type: 'ab_is_number' },
+      { kind: 'block', type: 'ab_text_to_number' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Text', colour: COLORS.text,
+    contents: [
+      { kind: 'block', type: 'text' },
+      { kind: 'block', type: 'text_join' },
+      { kind: 'block', type: 'text_length', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_text_is_empty' },
+      { kind: 'block', type: 'ab_text_contains' },
+      { kind: 'block', type: 'ab_text_starts_with' },
+      { kind: 'block', type: 'ab_text_ends_with' },
+      { kind: 'block', type: 'ab_text_replace' },
+      { kind: 'block', type: 'ab_text_uppercase' },
+      { kind: 'block', type: 'ab_text_lowercase' },
+      { kind: 'block', type: 'ab_text_split', inputs: { SEPARATOR: { shadow: { type: 'text', fields: { TEXT: ',' } } } } },
+      { kind: 'block', type: 'ab_text_join_list', inputs: { SEPARATOR: { shadow: { type: 'text', fields: { TEXT: ', ' } } } } },
+      { kind: 'block', type: 'ab_text_substring', inputs: {
+        START: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
+        END: { shadow: { type: 'math_number', fields: { NUM: 1 } } },
+      } },
     ],
   },
   {
     kind: 'category', name: 'Elements', colour: COLORS.elements,
     contents: [
       { kind: 'block', type: 'ab_update_text', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
-      { kind: 'block', type: 'ab_set_visibility' },
+      { kind: 'block', type: 'ab_show_element' },
+      { kind: 'block', type: 'ab_hide_element' },
+      { kind: 'block', type: 'ab_toggle_visibility' },
     ],
   },
   {
     kind: 'category', name: 'Lists', colour: COLORS.lists,
     contents: [
-      { kind: 'block', type: 'ab_list_add', inputs: {
+      { kind: 'block', type: 'ab_list_create_empty' },
+      { kind: 'block', type: 'ab_list_add_last', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_list_add_first', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_list_insert_at', inputs: {
         VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } },
         INDEX: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
       } },
-      { kind: 'block', type: 'ab_list_remove', inputs: { INDEX: { shadow: { type: 'math_number', fields: { NUM: 0 } } } } },
+      { kind: 'block', type: 'ab_list_remove_first' },
+      { kind: 'block', type: 'ab_list_remove_last' },
+      { kind: 'block', type: 'ab_list_remove_at', inputs: { INDEX: { shadow: { type: 'math_number', fields: { NUM: 0 } } } } },
+      { kind: 'block', type: 'ab_list_clear' },
+      { kind: 'block', type: 'ab_list_replace_at', inputs: {
+        INDEX: { shadow: { type: 'math_number', fields: { NUM: 0 } } },
+        VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
       { kind: 'block', type: 'ab_list_contains', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_list_length' },
+      { kind: 'block', type: 'ab_list_is_empty' },
+      { kind: 'block', type: 'ab_list_item_at', inputs: { INDEX: { shadow: { type: 'math_number', fields: { NUM: 0 } } } } },
+      { kind: 'block', type: 'ab_list_index_of', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_list_shuffle' },
+      { kind: 'block', type: 'ab_list_reverse' },
+      { kind: 'block', type: 'ab_list_sort' },
+      { kind: 'block', type: 'ab_list_duplicate' },
+      { kind: 'block', type: 'ab_pick_random' },
+      { kind: 'block', type: 'ab_pick_weighted' },
+      { kind: 'block', type: 'ab_json_field' },
     ],
   },
   {
@@ -375,11 +1027,44 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_wait', inputs: { DURATION: { shadow: { type: 'math_number', fields: { NUM: 500 } } } } },
       { kind: 'block', type: 'ab_elapsed_seconds' },
       { kind: 'block', type: 'ab_mark_time' },
+      { kind: 'block', type: 'ab_play_sound', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_prompt_input', inputs: { MSG: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_confirm', inputs: { MSG: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_share', inputs: {
+        TEXT: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        URL: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+      { kind: 'block', type: 'ab_choose_photo' },
+      { kind: 'block', type: 'ab_get_latitude' },
+      { kind: 'block', type: 'ab_get_longitude' },
+      { kind: 'block', type: 'ab_is_online' },
+      { kind: 'block', type: 'ab_request_notification_permission' },
     ],
   },
   {
-    kind: 'category', name: 'Links', colour: COLORS.links,
-    contents: [{ kind: 'block', type: 'ab_open_link', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } } } }],
+    kind: 'category', name: 'Links & Communication', colour: COLORS.links,
+    contents: [
+      { kind: 'block', type: 'ab_open_link_new_tab', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } } } },
+      { kind: 'block', type: 'ab_open_link_same_tab', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } } } },
+      { kind: 'block', type: 'ab_open_email', inputs: {
+        ADDRESS: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        SUBJECT: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        BODY: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+      { kind: 'block', type: 'ab_call_phone', inputs: { NUMBER: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_send_sms', inputs: {
+        NUMBER: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+    ],
+  },
+  {
+    kind: 'category', name: 'Date & Time', colour: COLORS.datetime,
+    contents: [
+      { kind: 'block', type: 'ab_current_timestamp' },
+      { kind: 'block', type: 'ab_format_date' },
+      { kind: 'block', type: 'ab_time_difference_seconds' },
+    ],
   },
   {
     kind: 'category', name: 'Logic', colour: COLORS.logic,
@@ -393,14 +1078,20 @@ const BASE_CATEGORIES = [
   },
   {
     kind: 'category', name: 'Control', colour: COLORS.control,
-    contents: [{ kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } }],
+    contents: [
+      { kind: 'block', type: 'controls_repeat_ext', inputs: { TIMES: { shadow: { type: 'math_number', fields: { NUM: 10 } } } } },
+      { kind: 'block', type: 'controls_whileUntil' },
+      { kind: 'block', type: 'ab_for_each' },
+      { kind: 'block', type: 'ab_wait_until' },
+      { kind: 'block', type: 'ab_stop_script' },
+    ],
   },
   {
-    kind: 'category', name: 'Text', colour: COLORS.text,
+    kind: 'category', name: 'Storage', colour: COLORS.storage,
     contents: [
-      { kind: 'block', type: 'text' },
-      { kind: 'block', type: 'text_join' },
-      { kind: 'block', type: 'text_length', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_storage_set', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+      { kind: 'block', type: 'ab_storage_get' },
+      { kind: 'block', type: 'ab_storage_remove' },
     ],
   },
 ];
@@ -415,10 +1106,15 @@ const ITEM_CATEGORY = {
 };
 
 // Default toolbox (component/toggle/etc. actions) — no "This item" category,
-// scope.item/scope.index only exist while running a list row's tap action.
+// scope.item/scope.index only exist while running a list row's tap action
+// or inside a "for each" loop.
 export const TOOLBOX = { kind: 'categoryToolbox', contents: BASE_CATEGORIES };
 
-// Shown instead of TOOLBOX only when editing a list's `item_action`.
+// Shown instead of TOOLBOX only when editing a list's `item_action`. (Note:
+// "for each" loop bodies also expose ab_item/ab_item_field/ab_item_index
+// even under the plain TOOLBOX, since Control's category isn't scope-gated
+// — they'll simply read an empty/default value if used outside a "for
+// each"/item-tap context, same fail-soft behavior as every other block.)
 export const TOOLBOX_ITEM = { kind: 'categoryToolbox', contents: [...BASE_CATEGORIES, ITEM_CATEGORY] };
 
 export { Order };

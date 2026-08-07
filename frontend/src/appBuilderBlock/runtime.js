@@ -1,22 +1,26 @@
 // App Builder Blocks — the shared "standard library" that every compiled
-// trigger script calls into (helpers.*). Ported 1:1 from AppRuntime.js's old
-// runOne() switch. Deliberately written as ONE fully self-contained function
-// (no imports, no references to anything outside its own body) so
-// exportApp.js can embed it verbatim into the static export bundle via
-// `createRuntimeHelpers.toString()` — the live editor/public runtime and the
-// static export then run the literal same helper code instead of two
-// hand-synced reimplementations (the problem the old flat action-list system
-// had between AppRuntime.js and exportApp.js).
+// trigger script calls into (helpers.*). Deliberately written as ONE fully
+// self-contained function (no imports, no references to anything outside
+// its own body) so exportApp.js can embed it verbatim into the static
+// export bundle via `createRuntimeHelpers.toString()` — the live
+// editor/public runtime and the static export then run the literal same
+// helper code instead of hand-synced reimplementations.
+//
+// Pure, stateless one-liners (math/text operations) are NOT here — they're
+// inlined directly as plain JS expressions in generators.js, since they
+// don't need `vars`/`host` access and don't benefit from indirection. Only
+// genuinely stateful or non-trivial operations (touching vars/localStorage/
+// browser APIs) live here.
 //
 // `host` is the only thing that differs between callers:
 //   screens          — [{id, ...}], for navigate()'s existence check
 //   setScreen(id)
 //   updateText(id, value)
 //   setVisibility(id, mode)     — mode: 'show' | 'hide' | 'toggle'
-//   getVisibilityOverride(id)   — current override, or undefined
 //   flash(text)
 //   now()                       — current time in ms (Date.now, injectable)
 //   initialVars                 — {name: initial_value}, for resetVariables()
+//   storagePrefix               — string, namespaces localStorage keys per app
 export function createRuntimeHelpers(host) {
   function parseArray(raw) {
     if (!raw) return [];
@@ -26,6 +30,10 @@ export function createRuntimeHelpers(host) {
     } catch (e) {
       return [];
     }
+  }
+
+  function stringifyPicked(picked) {
+    return typeof picked === 'object' && picked !== null ? JSON.stringify(picked) : String(picked == null ? '' : picked);
   }
 
   return {
@@ -63,6 +71,14 @@ export function createRuntimeHelpers(host) {
       if (id) host.setVisibility(id, mode);
     },
 
+    // Read-only parse, shared by every list-reading block (length/is-empty/
+    // item-at/index-of/join/for-each) — mutating ops below each do their own
+    // parse-mutate-stringify-setVar cycle instead, since none of the reads
+    // benefit from a shared mutate step.
+    getList: function (vars, name) {
+      return parseArray(vars[name]);
+    },
+
     listAdd: function (vars, setVar, name, value, mode, index) {
       if (!name) return;
       var arr = parseArray(vars[name]);
@@ -94,39 +110,68 @@ export function createRuntimeHelpers(host) {
         : arr.some(function (entry) { return String(entry) === String(needle); });
     },
 
-    randomPick: function (vars, setVar, optionsVar, targetVar, collectionVar, dedupeField, dupVar, dupAmount) {
-      if (!optionsVar) return;
-      var options = parseArray(vars[optionsVar]);
-      if (options.length === 0) return;
-      var totalWeight = options.reduce(function (sum, o) { return sum + (Number(o.weight) || 0); }, 0);
-      var picked = options[options.length - 1];
-      if (totalWeight > 0) {
-        var roll = Math.random() * totalWeight;
-        for (var i = 0; i < options.length; i++) {
-          roll -= (Number(options[i].weight) || 0);
-          if (roll <= 0) { picked = options[i]; break; }
+    listReplaceAt: function (vars, setVar, name, index, value) {
+      if (!name) return;
+      var arr = parseArray(vars[name]);
+      var i = Math.trunc(Number(index)) || 0;
+      if (i >= 0 && i < arr.length) {
+        arr[i] = value;
+        setVar(name, JSON.stringify(arr));
+      }
+    },
+
+    listShuffle: function (vars, setVar, name) {
+      if (!name) return;
+      var arr = parseArray(vars[name]);
+      for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      }
+      setVar(name, JSON.stringify(arr));
+    },
+
+    listReverse: function (vars, setVar, name) {
+      if (!name) return;
+      var arr = parseArray(vars[name]);
+      arr.reverse();
+      setVar(name, JSON.stringify(arr));
+    },
+
+    // mode: 'alpha_asc' | 'alpha_desc' | 'num_asc' | 'num_desc'.
+    listSort: function (vars, setVar, name, mode) {
+      if (!name) return;
+      var arr = parseArray(vars[name]);
+      var numeric = mode === 'num_asc' || mode === 'num_desc';
+      var desc = mode === 'alpha_desc' || mode === 'num_desc';
+      arr.sort(function (a, b) {
+        var cmp = numeric ? (Number(a) || 0) - (Number(b) || 0) : String(a).localeCompare(String(b));
+        return desc ? -cmp : cmp;
+      });
+      setVar(name, JSON.stringify(arr));
+    },
+
+    pickRandom: function (vars, name) {
+      var arr = parseArray(vars[name]);
+      if (arr.length === 0) return '';
+      return stringifyPicked(arr[Math.floor(Math.random() * arr.length)]);
+    },
+
+    pickWeighted: function (vars, name, weightField) {
+      var arr = parseArray(vars[name]);
+      if (arr.length === 0) return '';
+      var field = weightField || 'weight';
+      var total = arr.reduce(function (sum, o) { return sum + (Number(o && o[field]) || 0); }, 0);
+      var picked = arr[arr.length - 1];
+      if (total > 0) {
+        var roll = Math.random() * total;
+        for (var i = 0; i < arr.length; i++) {
+          roll -= (Number(arr[i] && arr[i][field]) || 0);
+          if (roll <= 0) { picked = arr[i]; break; }
         }
       } else {
-        picked = options[Math.floor(Math.random() * options.length)];
+        picked = arr[Math.floor(Math.random() * arr.length)];
       }
-      var pickedValue = picked ? picked.value : undefined;
-      if (targetVar) {
-        setVar(targetVar, typeof pickedValue === 'object' ? JSON.stringify(pickedValue) : String(pickedValue == null ? '' : pickedValue));
-      }
-      if (collectionVar) {
-        var arr = parseArray(vars[collectionVar]);
-        var isDuplicate = false;
-        if (dedupeField && pickedValue && typeof pickedValue === 'object') {
-          isDuplicate = arr.some(function (entry) { return entry && entry[dedupeField] === pickedValue[dedupeField]; });
-        }
-        if (isDuplicate && dupVar) {
-          var cur = Number(vars[dupVar]) || 0;
-          setVar(dupVar, String(cur + (Number(dupAmount) || 1)));
-        } else {
-          arr.push(pickedValue);
-          setVar(collectionVar, JSON.stringify(arr));
-        }
-      }
+      return stringifyPicked(picked);
     },
 
     elapsedSeconds: function (vars, sinceVar) {
@@ -165,6 +210,167 @@ export function createRuntimeHelpers(host) {
     resetVariables: function (setVar) {
       var defaults = host.initialVars || {};
       Object.keys(defaults).forEach(function (k) { setVar(k, defaults[k]); });
+    },
+
+    // ---------- Persistent storage (localStorage — survives closing the app,
+    // unlike variables which reset to their initial_value every session).
+    // Namespaced with host.storagePrefix so multiple apps sharing one origin
+    // (e.g. every app's live preview inside the admin dashboard) never read
+    // or clobber each other's saved values.
+    storageSet: function (key, value) {
+      if (!key || typeof localStorage === 'undefined') return;
+      try { localStorage.setItem((host.storagePrefix || '') + key, value == null ? '' : String(value)); } catch (e) { /* storage unavailable/full */ }
+    },
+    storageGet: function (key) {
+      if (!key || typeof localStorage === 'undefined') return '';
+      try { return localStorage.getItem((host.storagePrefix || '') + key) || ''; } catch (e) { return ''; }
+    },
+    storageRemove: function (key) {
+      if (!key || typeof localStorage === 'undefined') return;
+      try { localStorage.removeItem((host.storagePrefix || '') + key); } catch (e) { /* ignore */ }
+    },
+
+    // ---------- Device & feedback ----------
+    playSound: function (url) {
+      if (!url) return;
+      try { new Audio(url).play().catch(function () {}); } catch (e) { /* unsupported */ }
+    },
+
+    // Native browser dialogs — plain, not custom-styled (this project's
+    // "show a message" toast already covers styled feedback); prompt/confirm
+    // are synchronous browser built-ins, so no async plumbing is needed for
+    // real user input/confirmation.
+    promptInput: function (message) {
+      if (typeof window === 'undefined' || !window.prompt) return '';
+      var result = window.prompt(message || '');
+      return result == null ? '' : result;
+    },
+    confirmYesNo: function (message) {
+      if (typeof window === 'undefined' || !window.confirm) return false;
+      return !!window.confirm(message || '');
+    },
+
+    shareContent: function (text, url) {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        return navigator.share({ text: text || '', url: url || '' }).catch(function () {});
+      }
+      // No Web Share API (most desktop browsers) — fall back to copying
+      // whatever was given so the action still does *something* useful.
+      var fallback = [text, url].filter(Boolean).join(' ');
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fallback).catch(function () {});
+      }
+      host.flash('Copied to clipboard (sharing isn’t supported on this device).');
+      return Promise.resolve();
+    },
+
+    // Opens the device's photo picker/camera (a temporary, invisible
+    // <input type=file>) and resolves with a data: URL, or '' if the user
+    // cancels. `capture` makes mobile browsers offer the camera directly
+    // alongside the gallery.
+    choosePhoto: function () {
+      return new Promise(function (resolve) {
+        if (typeof document === 'undefined') { resolve(''); return; }
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.setAttribute('capture', 'environment');
+        input.style.display = 'none';
+        var settled = false;
+        var finish = function (value) {
+          if (settled) return;
+          settled = true;
+          input.remove();
+          resolve(value);
+        };
+        input.addEventListener('change', function () {
+          var file = input.files && input.files[0];
+          if (!file) { finish(''); return; }
+          var reader = new FileReader();
+          reader.onload = function () { finish(String(reader.result || '')); };
+          reader.onerror = function () { finish(''); };
+          reader.readAsDataURL(file);
+        });
+        // No 'cancel' event exists on <input type=file> — a window focus
+        // regained shortly after with no file chosen is the closest signal.
+        window.addEventListener('focus', function onFocus() {
+          window.removeEventListener('focus', onFocus);
+          setTimeout(function () { finish(''); }, 500);
+        });
+        document.body.appendChild(input);
+        input.click();
+      });
+    },
+
+    getLatitude: function () {
+      return new Promise(function (resolve) {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) { resolve(0); return; }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) { resolve(pos.coords.latitude); },
+          function () { resolve(0); }
+        );
+      });
+    },
+    getLongitude: function () {
+      return new Promise(function (resolve) {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) { resolve(0); return; }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) { resolve(pos.coords.longitude); },
+          function () { resolve(0); }
+        );
+      });
+    },
+
+    isOnline: function () {
+      return typeof navigator === 'undefined' || navigator.onLine === undefined ? true : navigator.onLine;
+    },
+
+    requestNotificationPermission: function () {
+      if (typeof Notification === 'undefined') return Promise.resolve(false);
+      if (Notification.permission === 'granted') return Promise.resolve(true);
+      if (Notification.permission === 'denied') return Promise.resolve(false);
+      return Notification.requestPermission().then(function (perm) { return perm === 'granted'; });
+    },
+
+    // ---------- Links & communication (all plain URI-scheme navigations,
+    // same mechanism as openLink) ----------
+    openEmail: function (address, subject, body) {
+      if (typeof window === 'undefined') return;
+      var params = [];
+      if (subject) params.push('subject=' + encodeURIComponent(subject));
+      if (body) params.push('body=' + encodeURIComponent(body));
+      window.open('mailto:' + (address || '') + (params.length ? '?' + params.join('&') : ''), '_self');
+    },
+    callPhone: function (number) {
+      if (typeof window === 'undefined' || !number) return;
+      window.open('tel:' + number, '_self');
+    },
+    sendSms: function (number, message) {
+      if (typeof window === 'undefined') return;
+      var body = message ? '?body=' + encodeURIComponent(message) : '';
+      window.open('sms:' + (number || '') + body, '_self');
+    },
+
+    // ---------- Date & time ----------
+    // style: 'date' | 'time' | 'datetime'.
+    formatDate: function (timestamp, style) {
+      var d = new Date(Number(timestamp) || 0);
+      if (style === 'time') return d.toLocaleTimeString();
+      if (style === 'datetime') return d.toLocaleString();
+      return d.toLocaleDateString();
+    },
+    timeDifferenceSeconds: function (a, b) {
+      return Math.round((Number(b) - Number(a)) / 1000);
+    },
+
+    closeApp: function () {
+      // Best-effort only — browsers only allow window.close() on a window/tab
+      // the page itself opened via script; there's no general "quit" API for
+      // a normal tab (a real native app-exit would need an APK/Capacitor
+      // bridge this project doesn't have). Silently does nothing otherwise,
+      // same graceful-no-op convention as vibrate()/clipboard() on
+      // unsupported devices.
+      if (typeof window !== 'undefined' && window.close) window.close();
     },
   };
 }

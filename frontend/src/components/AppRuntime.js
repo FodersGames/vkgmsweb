@@ -496,6 +496,13 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     flash,
     now: () => Date.now(),
     initialVars: Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])),
+    // Namespaces localStorage keys (Storage blocks) per app — every app's
+    // live preview here shares the admin dashboard's own origin, so without
+    // this, two different apps' "save value" blocks would read/overwrite
+    // each other's data. The exported static bundle (exportApp.js) each get
+    // their own real domain in production, where this matters less but is
+    // harmless to keep for consistency.
+    storagePrefix: `vkstore:${app?.slug || app?.id || 'app'}:`,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [screens, app]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);
@@ -514,6 +521,17 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     };
     await fn(currentVars, setVar, scope, helpers);
   };
+
+  // Runs a screen's "when this screen opens" trigger (screen.actions.onOpen,
+  // edited via the ⚡ button next to each screen in AppBuilderEditor.js's
+  // Screens list) whenever the visible screen changes — including the very
+  // first screen shown on mount, matching the natural "just opened" meaning.
+  // A screen isn't a component, so this bypasses the normal per-component
+  // runAction call sites and reads `screen` straight from the dependency.
+  useEffect(() => {
+    if (screen?.actions?.onOpen) runAction(screen.actions.onOpen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen?.id]);
 
   if (!screen) {
     return (

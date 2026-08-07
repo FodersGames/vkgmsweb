@@ -309,7 +309,10 @@ function collectTriggers(app) {
     }
     if (comp.type === 'container') (comp.children || []).forEach(walk);
   };
-  (app.screens || []).forEach(s => (s.components || []).forEach(walk));
+  (app.screens || []).forEach(s => {
+    if (s.actions?.onOpen?.blockly) out.push({ key: `screen:${s.id}:onOpen`, json: s.actions.onOpen.blockly });
+    (s.components || []).forEach(walk);
+  });
   return out;
 }
 
@@ -412,6 +415,7 @@ function generateJS(app) {
     for (var i = 0; i < list.length; i++) {
       list[i].style.display = list[i].getAttribute('data-screen-id') === id ? 'block' : 'none';
     }
+    runAction('screen:' + id + ':onOpen');
   }
 
   function renderList(el) {
@@ -541,6 +545,7 @@ ${actionsSource}
     flash: flash,
     now: function () { return Date.now(); },
     initialVars: INITIAL_VARS,
+    storagePrefix: ${JSON.stringify(`vkstore:${app.slug || app.id || 'app'}:`)},
   });
 
   function runAction(key, scope) {
@@ -593,6 +598,11 @@ ${actionsSource}
   });
 
   render();
+  // The first screen's visibility comes from the static HTML (display:block
+  // baked in by generateHTML()), not a showScreen() call — so its "when
+  // this screen opens" trigger needs one explicit run here; every
+  // subsequent screen change already fires it from inside showScreen().
+  runAction(${JSON.stringify(`screen:${app.screens?.[0]?.id || ''}:onOpen`)});
 })();
 `;
 }

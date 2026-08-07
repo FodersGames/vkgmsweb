@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
-  ShieldAlert, EyeOff, History,
+  ShieldAlert, EyeOff, History, Zap,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -1375,19 +1375,34 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
   // Resolved fresh from `blocksTarget` (not from `selected`) so the
   // full-screen Blocks view keeps working correctly even for a list's
-  // item_action, which can belong to a different node than whatever's
-  // currently selected in the (hidden, while Blocks is open) inspector.
-  const blocksNode = blocksTarget ? findComponent(activeScreen, blocksTarget.nodeId)?.node : null;
+  // item_action or a screen's "when opens" trigger, both of which can
+  // belong to a different node than whatever's currently selected in the
+  // (hidden, while Blocks is open) inspector — a screen's own trigger isn't
+  // even scoped to `activeScreen` at all, since the Zap button that opens it
+  // lives on every row in the Screens list, not just the active one.
   const blocksIsItemAction = blocksTarget?.trigger === 'item_action';
-  const blocksValue = blocksNode
-    ? (blocksIsItemAction ? blocksNode.props.item_action : blocksNode.actions?.[blocksTarget.trigger])
-    : null;
-  const blocksLabel = blocksNode
-    ? (blocksIsItemAction ? 'When a row is tapped' : (COMPONENT_META[blocksNode.type]?.actionLabel || 'When clicked'))
-    : '';
+  const blocksScreen = blocksTarget?.isScreen ? app.screens.find(s => s.id === blocksTarget.nodeId) : null;
+  const blocksNode = blocksTarget && !blocksTarget.isScreen ? findComponent(activeScreen, blocksTarget.nodeId)?.node : null;
+  const blocksValue = blocksTarget?.isScreen
+    ? blocksScreen?.actions?.onOpen
+    : blocksNode
+      ? (blocksIsItemAction ? blocksNode.props.item_action : blocksNode.actions?.[blocksTarget.trigger])
+      : null;
+  const blocksLabel = blocksTarget?.isScreen
+    ? 'When this screen opens'
+    : blocksNode
+      ? (blocksIsItemAction ? 'When a row is tapped' : (COMPONENT_META[blocksNode.type]?.actionLabel || 'When clicked'))
+      : '';
   const setBlocksValue = (next) => {
     if (!blocksTarget) return;
     mutate(a => {
+      if (blocksTarget.isScreen) {
+        const screen = a.screens.find(s => s.id === blocksTarget.nodeId);
+        if (!screen) return;
+        screen.actions = screen.actions || {};
+        if (next) screen.actions.onOpen = next; else delete screen.actions.onOpen;
+        return;
+      }
       const screen = a.screens.find(s => s.id === activeScreenId);
       const found = findComponent(screen, blocksTarget.nodeId);
       if (!found) return;
@@ -1600,7 +1615,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       )}
 
       {/* Body */}
-      {blocksTarget && blocksNode ? (
+      {blocksTarget && (blocksNode || blocksScreen) ? (
         /* Full-screen Blocks mode (MIT-App-Inventor-style Designer/Blocks
            toggle) — replaces the palette/canvas/inspector entirely instead
            of squeezing a Blockly canvas into the 288px inspector sidebar. */
@@ -1614,10 +1629,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             </button>
             <div className="w-px h-4 bg-[#D2D2D7] dark:bg-[#2a2a3c]" />
             <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
-              {COMPONENT_META[blocksNode.type]?.label} — {blocksLabel}
+              {blocksTarget.isScreen ? `Screen: ${blocksScreen?.name || 'Untitled'}` : COMPONENT_META[blocksNode.type]?.label} — {blocksLabel}
             </span>
           </div>
-          {!blocksIsItemAction && (() => {
+          {!blocksIsItemAction && !blocksTarget.isScreen && (() => {
             const dependents = findVisibilityDependents(activeScreen, blocksNode.props?.variable);
             return dependents.length > 0 ? (
               <div className="mx-5 mt-3 p-2.5 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7] shrink-0">
@@ -1630,7 +1645,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               key={`${blocksTarget.nodeId}:${blocksTarget.trigger}`}
               value={blocksValue}
               onChange={setBlocksValue}
-              context={{ components: flattenAllTargets(activeScreen), updatableIds: new Set(flattenUpdatableTargets(activeScreen).map(t => t.id)), screens: app.screens }}
+              context={{
+                components: flattenAllTargets(blocksScreen || activeScreen),
+                updatableIds: new Set(flattenUpdatableTargets(blocksScreen || activeScreen).map(t => t.id)),
+                screens: app.screens,
+              }}
               itemScope={blocksIsItemAction}
               label={blocksLabel}
               fullScreen
@@ -1658,6 +1677,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                     onClick={e => e.stopPropagation()}
                     className="flex-1 min-w-0 bg-transparent focus:outline-none truncate"
                   />
+                  <button
+                    title="When this screen opens"
+                    onClick={e => { e.stopPropagation(); setBlocksTarget({ nodeId: s.id, trigger: 'onOpen', isScreen: true }); }}
+                    className="opacity-0 group-hover:opacity-100 shrink-0"
+                  >
+                    <Zap size={11} />
+                  </button>
                   {app.screens.length > 1 && (
                     <button onClick={e => { e.stopPropagation(); deleteScreen(s.id); }} className="opacity-0 group-hover:opacity-100 shrink-0">
                       <X size={11} />

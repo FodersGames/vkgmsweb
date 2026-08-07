@@ -153,15 +153,74 @@ reg('calculate', (a, ws, ctx) => {
   return set;
 });
 
+// ab_random_pick no longer exists (split into simpler, composable blocks —
+// see blocks.js's header comment) — reconstructs the exact same behavior as
+// a small chain: pick a weighted item into a temp variable, copy it to
+// target_variable if set, and (if collection_variable is set) either add it
+// or — when dedupe_field is set and it's already present — credit
+// duplicate_variable instead, via a real if/else + the new ab_json_field
+// block (reading a field back out of the temp variable's JSON text, since
+// the old in-memory-object shortcut the previous single block relied on
+// isn't available once the picked value has to live in a variable).
 reg('random_pick', (a, ws) => {
-  const b = newBlock(ws, 'ab_random_pick');
-  b.setFieldValue(a.options_variable || '', 'OPTIONS_VAR');
-  b.setFieldValue(a.target_variable || '', 'TARGET_VAR');
-  b.setFieldValue(a.collection_variable || '', 'COLLECTION_VAR');
-  b.setFieldValue(a.dedupe_field || '', 'DEDUPE_FIELD');
-  b.setFieldValue(a.duplicate_variable || '', 'DUP_VAR');
-  connectValue(b, 'DUP_AMOUNT', numberBlock(ws, a.duplicate_amount ?? 1));
-  return b;
+  const tempVar = `_picked_${(a.options_variable || 'reward').replace(/[^a-zA-Z0-9_]/g, '_')}`;
+
+  const setPick = newBlock(ws, 'ab_set_variable');
+  setPick.setFieldValue(tempVar, 'VAR');
+  const pick = newBlock(ws, 'ab_pick_weighted');
+  pick.setFieldValue(a.options_variable || '', 'LIST_VAR');
+  pick.setFieldValue('weight', 'FIELD');
+  connectValue(setPick, 'VALUE', pick);
+
+  let tail = setPick;
+  const chain = (next) => { tail.nextConnection.connect(next.previousConnection); tail = next; };
+  const getTemp = () => { const g = newBlock(ws, 'ab_get_variable'); g.setFieldValue(tempVar, 'VAR'); return g; };
+
+  if (a.target_variable) {
+    const setTarget = newBlock(ws, 'ab_set_variable');
+    setTarget.setFieldValue(a.target_variable, 'VAR');
+    connectValue(setTarget, 'VALUE', getTemp());
+    chain(setTarget);
+  }
+
+  if (a.collection_variable) {
+    if (a.dedupe_field) {
+      const ifElse = newBlock(ws, 'controls_ifelse');
+      const contains = newBlock(ws, 'ab_list_contains');
+      contains.setFieldValue(a.collection_variable, 'LIST_VAR');
+      contains.setFieldValue(a.dedupe_field, 'FIELD');
+      const field = newBlock(ws, 'ab_json_field');
+      field.setFieldValue(a.dedupe_field, 'FIELD');
+      connectValue(field, 'JSON_TEXT', getTemp());
+      connectValue(contains, 'VALUE', field);
+      const ifInput = ifElse.getInput('IF0');
+      if (ifInput) ifInput.connection.connect(contains.outputConnection);
+
+      let doHead = null;
+      if (a.duplicate_variable) {
+        doHead = newBlock(ws, 'ab_change_variable');
+        doHead.setFieldValue(a.duplicate_variable, 'VAR');
+        connectValue(doHead, 'DELTA', numberBlock(ws, a.duplicate_amount ?? 1));
+      }
+      const elseHead = newBlock(ws, 'ab_list_add_last');
+      elseHead.setFieldValue(a.collection_variable, 'LIST_VAR');
+      connectValue(elseHead, 'VALUE', getTemp());
+
+      const doInput = ifElse.getInput('DO0');
+      if (doHead && doInput) doInput.connection.connect(doHead.previousConnection);
+      const elseInput = ifElse.getInput('ELSE');
+      if (elseInput) elseInput.connection.connect(elseHead.previousConnection);
+
+      chain(ifElse);
+    } else {
+      const addLast = newBlock(ws, 'ab_list_add_last');
+      addLast.setFieldValue(a.collection_variable, 'LIST_VAR');
+      connectValue(addLast, 'VALUE', getTemp());
+      chain(addLast);
+    }
+  }
+
+  return setPick;
 });
 
 reg('reset_variables', (a, ws) => newBlock(ws, 'ab_reset_variables'));
@@ -173,27 +232,33 @@ reg('update_text', (a, ws) => {
   return b;
 });
 
+// ab_set_visibility no longer exists — split into ab_show_element/
+// ab_hide_element/ab_toggle_visibility (see blocks.js).
 reg('set_visibility', (a, ws) => {
-  const b = newBlock(ws, 'ab_set_visibility');
+  const type = a.visible === 'show' ? 'ab_show_element' : a.visible === 'hide' ? 'ab_hide_element' : 'ab_toggle_visibility';
+  const b = newBlock(ws, type);
   b.setFieldValue(a.target_id || '', 'TARGET');
-  b.setFieldValue(a.visible || 'toggle', 'MODE');
   return b;
 });
 
+// ab_list_add no longer exists — split into ab_list_add_last/
+// ab_list_add_first/ab_list_insert_at (see blocks.js).
 reg('list_add', (a, ws) => {
-  const b = newBlock(ws, 'ab_list_add');
+  const type = a.mode === 'prepend' ? 'ab_list_add_first' : a.mode === 'at_index' ? 'ab_list_insert_at' : 'ab_list_add_last';
+  const b = newBlock(ws, type);
   b.setFieldValue(a.variable || '', 'LIST_VAR');
-  b.setFieldValue(a.mode || 'append', 'MODE');
   connectValue(b, 'VALUE', literalOrVariableBlock(ws, a.value, a.value_mode));
-  connectValue(b, 'INDEX', indexValueBlock(ws, a.index));
+  if (type === 'ab_list_insert_at') connectValue(b, 'INDEX', indexValueBlock(ws, a.index));
   return b;
 });
 
+// ab_list_remove no longer exists — split into ab_list_remove_first/
+// ab_list_remove_last/ab_list_remove_at/ab_list_clear (see blocks.js).
 reg('list_remove', (a, ws) => {
-  const b = newBlock(ws, 'ab_list_remove');
+  const type = a.mode === 'clear' ? 'ab_list_clear' : a.mode === 'first' ? 'ab_list_remove_first' : a.mode === 'at_index' ? 'ab_list_remove_at' : 'ab_list_remove_last';
+  const b = newBlock(ws, type);
   b.setFieldValue(a.variable || '', 'LIST_VAR');
-  b.setFieldValue(a.mode || 'last', 'MODE');
-  connectValue(b, 'INDEX', indexValueBlock(ws, a.index));
+  if (type === 'ab_list_remove_at') connectValue(b, 'INDEX', indexValueBlock(ws, a.index));
   return b;
 });
 
@@ -251,10 +316,11 @@ reg('get_elapsed_time', (a, ws) => {
   return set;
 });
 
+// ab_open_link no longer exists — split into ab_open_link_new_tab/
+// ab_open_link_same_tab (see blocks.js).
 reg('open_link', (a, ws) => {
-  const b = newBlock(ws, 'ab_open_link');
+  const b = newBlock(ws, a.new_tab === false ? 'ab_open_link_same_tab' : 'ab_open_link_new_tab');
   connectValue(b, 'URL', literalValueBlock(ws, a.url));
-  b.setFieldValue(a.new_tab === false ? 'FALSE' : 'TRUE', 'NEW_TAB');
   return b;
 });
 
