@@ -3,6 +3,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
+import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
+import { compileTriggerSource } from '../appBuilderBlock/generators';
 
 // Generates a real, standalone HTML/CSS/JS project from a Studio App —
 // no build step, no framework, just open index.html. Deliberately a
@@ -10,8 +12,16 @@ import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveT
 // (not a shared abstraction) since the two have very different constraints:
 // this one emits static markup + a small vanilla-JS runtime string, that
 // one is a live React tree. Keep the two in sync by hand when adding a new
-// component/action type — same tradeoff as the frontend/backend `tier`
-// duplication in constants/appBuilder.js vs studio_apps.py.
+// component type — same tradeoff as the frontend/backend `tier` duplication
+// in constants/appBuilder.js vs studio_apps.py.
+//
+// Actions are the one exception: both this file and AppRuntime.js run
+// literally the same compiled-Blockly action code (via
+// appBuilderBlock/generators.js's compileTriggerSource and
+// appBuilderBlock/runtime.js's createRuntimeHelpers, embedded here via
+// .toString() — see generateJS() below) instead of two hand-written
+// interpreters, which is exactly what this file used to be before the App
+// Builder block editor replaced the old flat action-list system.
 //
 // No fake phone bezel/status bar here — this is the real shipped output
 // (same as the APK build), so it's just the app's content, scaled to fill
@@ -29,8 +39,9 @@ function hexToRgba(hex, alpha) {
 
 // Escapes for a single-quoted HTML attribute holding JSON (JSON.stringify
 // already produces double quotes internally, so a double-quoted attribute
-// would break — this is used only for data-vis/data-action/-onchange/
-// -item-action, which all hold JSON).
+// would break — used only for data-vis (visible_if). Actions themselves are
+// no longer inlined as JSON attributes (see data-action-key/-onchange-key/
+// -item-action-key below, and generateJS()'s ACTIONS map).
 const escJsonAttr = (obj) => JSON.stringify(obj)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
 
@@ -58,7 +69,7 @@ async function renderComponentHTML(node, index = 0) {
     }
     case 'button': {
       const label = node.props?.label || 'Button';
-      const action = node.actions?.onClick ? ` data-action="${escJsonAttr(node.actions.onClick)}"` : '';
+      const action = node.actions?.onClick?.blockly ? ` data-action-key="${esc(node.id)}:onClick"` : '';
       const iconSvg = node.props?.icon
         ? renderToStaticMarkup(React.createElement(AppIcon, { id: node.props.icon, size: 16, color: 'currentColor' }))
         : '';
@@ -84,7 +95,7 @@ async function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}${inner}</div>`;
     }
     case 'toggle': {
-      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       return `${wrapperOpen}<div class="vk-toggle-row" style="width:100%;height:100%;"><span data-id="${esc(node.id)}" data-tpl="${esc(node.props?.label || 'Toggle')}"></span><button class="vk-toggle" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' disabled'}${changeAction}><span class="vk-toggle-knob"></span></button></div></div>`;
     }
     case 'icon': {
@@ -94,7 +105,7 @@ async function renderComponentHTML(node, index = 0) {
       return `${wrapperOpen}<div class="vk-icon" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:${node.props?.color || 'var(--vk-text)'}">${svg}</div></div>`;
     }
     case 'list': {
-      const itemActionAttr = node.props?.item_action ? ` data-item-action="${escJsonAttr(node.props.item_action)}"` : '';
+      const itemActionAttr = node.props?.item_action?.blockly ? ` data-item-action-key="${esc(node.id)}:item_action"` : '';
       const imgTplAttr = node.props?.item_image_template ? ` data-img-tpl="${esc(node.props.item_image_template)}"` : '';
       const isGrid = node.props?.layout_mode === 'grid';
       const gridClass = isGrid ? ' vk-list-grid' : '';
@@ -115,13 +126,13 @@ async function renderComponentHTML(node, index = 0) {
     case 'spacer':
       return `${wrapperOpen}</div>`;
     case 'checkbox': {
-      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       return `${wrapperOpen}<div class="vk-checkbox-row" data-variable="${esc(node.props?.variable || '')}"${node.props?.variable ? '' : ' data-unbound'}${changeAction} style="width:100%;height:100%;"><div class="vk-checkbox-box"></div><span>${esc(node.props?.label || 'Checkbox')}</span></div></div>`;
     }
     case 'rating': {
       const max = Math.max(1, Number(node.props?.max) || 5);
       const color = node.props?.color || 'var(--vk-primary)';
-      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       const stars = Array.from({ length: max }, (_, i) => i + 1)
         .map(n => `<button class="vk-rating-star" data-n="${n}" style="color:var(--vk-border)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.2l7.1-.6z"/></svg></button>`)
         .join('');
@@ -142,12 +153,12 @@ async function renderComponentHTML(node, index = 0) {
     case 'slider': {
       const bound = !!node.props?.variable;
       const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
-      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       return `${wrapperOpen}<input type="range" class="vk-slider" min="${min}" max="${max}" step="${step}" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' disabled'}${changeAction} style="width:100%;"></div>`;
     }
     case 'date': {
       const bound = !!node.props?.variable;
-      const changeAction = node.actions?.onChange ? ` data-onchange="${escJsonAttr(node.actions.onChange)}"` : '';
+      const changeAction = node.actions?.onChange?.blockly ? ` data-onchange-key="${esc(node.id)}:onChange"` : '';
       return bound
         ? `${wrapperOpen}<input type="date" class="vk-input" data-variable="${esc(node.props.variable)}"${changeAction} style="width:100%;height:100%;"></div>`
         : `${wrapperOpen}<input type="date" class="vk-input" disabled title="Not bound to a variable" style="width:100%;height:100%;"></div>`;
@@ -277,8 +288,61 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 `;
 }
 
+// Walks the component tree collecting every trigger that has a compiled
+// block workspace (node.actions.onClick/.onChange, a list's
+// props.item_action) — one level into containers, matching the editor's own
+// nesting limit (findComponent in AppBuilderEditor.js). Runs at export time
+// (client-side, in the admin's browser, same as the rest of this file), not
+// at app-runtime — the output is baked into the exported script.js as plain
+// JS text.
+function collectTriggers(app) {
+  const out = [];
+  const walk = (comp) => {
+    if (comp.actions) {
+      for (const trigger of Object.keys(comp.actions)) {
+        const val = comp.actions[trigger];
+        if (val?.blockly) out.push({ key: `${comp.id}:${trigger}`, json: val.blockly });
+      }
+    }
+    if (comp.type === 'list' && comp.props?.item_action?.blockly) {
+      out.push({ key: `${comp.id}:item_action`, json: comp.props.item_action.blockly });
+    }
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (app.screens || []).forEach(s => (s.components || []).forEach(walk));
+  return out;
+}
+
+// Compiles every collected trigger (via appBuilderBlock/generators.js's
+// compileTriggerSource — the same Blockly-to-JS codegen the live editor
+// uses to build a callable function) into a literal `ACTIONS['key'] = ...`
+// assignment, spliced into the exported script.js. A trigger that fails to
+// compile (should not happen for anything saved through the editor, but
+// defensive here since this is the export path) degrades to a no-op rather
+// than breaking the whole export.
+function compileTriggersSource(app) {
+  return collectTriggers(app).map(({ key, json }) => {
+    let body;
+    try {
+      body = compileTriggerSource(json);
+    } catch (err) {
+      body = `/* failed to compile: ${String(err?.message || err).replace(/\*\//g, '')} */`;
+    }
+    return `  ACTIONS[${JSON.stringify(key)}] = async function (vars, setVar, scope, helpers) {\n${body}\n  };`;
+  }).join('\n');
+}
+
 function generateJS(app) {
   const initialVars = Object.fromEntries((app.variables || []).map(v => [v.name, v.initial_value ?? '']));
+  const actionsSource = compileTriggersSource(app);
+  // createRuntimeHelpers (frontend/src/appBuilderBlock/runtime.js) is
+  // written as one fully self-contained function specifically so it can be
+  // embedded verbatim here via .toString() — the live editor preview,
+  // public runtime page, AND this exported static bundle all run the
+  // literal same action-helper code, instead of a third hand-reimplemented
+  // copy (which is exactly what this file used to be before the App
+  // Builder block editor rollout — see the file's own header comment).
+  const helpersSource = createRuntimeHelpers.toString();
   return `(function () {
   "use strict";
   var CANVAS_WIDTH = ${CANVAS_WIDTH};
@@ -298,6 +362,10 @@ function generateJS(app) {
   window.addEventListener('resize', fitCanvas);
   fitCanvas();
 
+  // Unrelated to actions (kept as-is) — still drives text/list-item
+  // template interpolation ({{var}}/{{item.field}}) and is also the
+  // legacy-migration compatibility bridge's own building block
+  // (helpers.interpolate, called from ab_legacy_text-compiled code).
   function interpolate(str, scope) {
     if (!str) return '';
     return String(str).replace(/\\{\\{\\s*([\\w.-]+)\\s*\\}\\}/g, function (_, path) {
@@ -313,24 +381,6 @@ function generateJS(app) {
       if (val === undefined || val === null) return '';
       return typeof val === 'object' ? JSON.stringify(val) : String(val);
     });
-  }
-
-  // Resolves an action's index field — supports {{index}} (the list
-  // item_action scope includes it) as well as a plain literal number.
-  function resolveIndex(raw, scope) {
-    var n = Number(interpolate(String(raw == null ? '0' : raw), scope));
-    return isFinite(n) ? Math.trunc(n) : 0;
-  }
-
-  // Mirrors resolveNumberOrVariable() in AppRuntime.js — 'calculate''s A/B
-  // fields accept a bare variable name or a literal number, no {{}} needed.
-  function resolveNumberOrVariable(raw, scope) {
-    if (raw === undefined || raw === null || raw === '') return 0;
-    var str = String(raw);
-    var scopeVal = scope && Object.prototype.hasOwnProperty.call(scope, str) ? scope[str] : undefined;
-    var varVal = scopeVal !== undefined ? scopeVal : vars[str];
-    if (varVal !== undefined) return Number(varVal) || 0;
-    return Number(interpolate(str, scope)) || 0;
   }
 
   // Mirrors resolveVisible()'s condition evaluation in AppRuntime.js.
@@ -375,9 +425,7 @@ function generateJS(app) {
     }
     var tpl = el.getAttribute('data-tpl');
     var imgTpl = el.getAttribute('data-img-tpl');
-    var itemActionAttr = el.getAttribute('data-item-action');
-    var itemAction = null;
-    if (itemActionAttr) { try { itemAction = JSON.parse(itemActionAttr); } catch (e) { /* ignore */ } }
+    var itemActionKey = el.getAttribute('data-item-action-key');
     el.innerHTML = '';
     if (items.length === 0) {
       var empty = document.createElement('p');
@@ -406,9 +454,9 @@ function generateJS(app) {
         textSpan.textContent = text;
         row.appendChild(textSpan);
       }
-      if (itemAction) {
+      if (itemActionKey) {
         row.style.cursor = 'pointer';
-        row.addEventListener('click', function () { runAction(itemAction, { item: item, index: idx }); });
+        row.addEventListener('click', function () { runAction(itemActionKey, { item: item, index: idx }); });
       }
       el.appendChild(row);
     });
@@ -468,177 +516,43 @@ function generateJS(app) {
     });
   }
 
-  // A button's onClick (or a toggle's onChange, or a list row's tap) is an
-  // ordered list of steps (e.g. "add 1 to coins" then "update text1 with
-  // coins") — pre-list saves are read as a one-step list, same
-  // normalizeActions() convention as the live editor. scope is only set
-  // for a list's item action, so its fields can interpolate item fields.
-  async function runOne(action, scope) {
-    if (!action || !action.type) return;
-    switch (action.type) {
-      case 'navigate':
-        if (action.screen_id) showScreen(action.screen_id);
-        break;
-      case 'calculate': {
-        if (!action.variable) break;
-        var a = resolveNumberOrVariable(action.a, scope);
-        var b = resolveNumberOrVariable(action.b, scope);
-        var result;
-        if (action.op === 'subtract') result = a - b;
-        else if (action.op === 'multiply') result = a * b;
-        else if (action.op === 'divide') result = b !== 0 ? a / b : 0;
-        else result = a + b;
-        vars[action.variable] = String(result);
-        break;
-      }
-      case 'reset_variables': {
-        Object.keys(INITIAL_VARS).forEach(function (k) { vars[k] = INITIAL_VARS[k]; });
-        break;
-      }
-      case 'random_pick': {
-        if (!action.options_variable) break;
-        var rawOptions = vars[action.options_variable];
-        var options = [];
-        try { var parsedOptions = rawOptions ? JSON.parse(rawOptions) : []; if (Array.isArray(parsedOptions)) options = parsedOptions; } catch (e) { /* empty */ }
-        if (options.length === 0) break;
-        var totalWeight = 0;
-        for (var wi = 0; wi < options.length; wi++) totalWeight += (Number(options[wi].weight) || 0);
-        var picked = options[options.length - 1];
-        if (totalWeight > 0) {
-          var roll = Math.random() * totalWeight;
-          for (var pi = 0; pi < options.length; pi++) {
-            roll -= (Number(options[pi].weight) || 0);
-            if (roll <= 0) { picked = options[pi]; break; }
-          }
-        } else {
-          picked = options[Math.floor(Math.random() * options.length)];
-        }
-        var pickedValue = picked ? picked.value : undefined;
-        if (action.target_variable) {
-          vars[action.target_variable] = typeof pickedValue === 'object' ? JSON.stringify(pickedValue) : String(pickedValue == null ? '' : pickedValue);
-        }
-        if (action.collection_variable) {
-          var rawColl = vars[action.collection_variable];
-          var arr = [];
-          try { var parsedColl = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsedColl)) arr = parsedColl; } catch (e) { /* start fresh */ }
-          var isDuplicate = false;
-          if (action.dedupe_field && pickedValue && typeof pickedValue === 'object') {
-            for (var di = 0; di < arr.length; di++) {
-              if (arr[di] && arr[di][action.dedupe_field] === pickedValue[action.dedupe_field]) { isDuplicate = true; break; }
-            }
-          }
-          if (isDuplicate && action.duplicate_variable) {
-            var dupAmt = Number(action.duplicate_amount) || 1;
-            var dupCur = Number(vars[action.duplicate_variable]) || 0;
-            vars[action.duplicate_variable] = String(dupCur + dupAmt);
-          } else {
-            arr.push(pickedValue);
-            vars[action.collection_variable] = JSON.stringify(arr);
-          }
-        }
-        break;
-      }
-      case 'list_contains': {
-        if (!action.variable || !action.target_variable) break;
-        var rawList = vars[action.variable];
-        var listArr = [];
-        try { var parsedList = rawList ? JSON.parse(rawList) : []; if (Array.isArray(parsedList)) listArr = parsedList; } catch (e) { /* empty */ }
-        var needle = action.value == null ? '' : action.value;
-        var found = false;
-        for (var li = 0; li < listArr.length; li++) {
-          var entry = listArr[li];
-          if (action.field ? (entry && String(entry[action.field]) === String(needle)) : String(entry) === String(needle)) { found = true; break; }
-        }
-        vars[action.target_variable] = found ? 'true' : 'false';
-        break;
-      }
-      case 'get_elapsed_time': {
-        if (!action.target_variable) break;
-        var nowMs = Date.now();
-        var sinceRaw = action.since_variable ? vars[action.since_variable] : '';
-        var sinceMs = Number(sinceRaw) || nowMs;
-        var elapsedSec = Math.max(0, Math.floor((nowMs - sinceMs) / 1000));
-        vars[action.target_variable] = String(elapsedSec);
-        if (action.since_variable && (action.update_since || !sinceRaw)) {
-          vars[action.since_variable] = String(nowMs);
-        }
-        break;
-      }
-      case 'copy_to_clipboard':
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(interpolate(action.text, scope)).catch(function () {});
-        }
-        break;
-      case 'vibrate':
-        if (navigator.vibrate) navigator.vibrate(Number(action.duration_ms) || 200);
-        break;
-      case 'wait':
-        await new Promise(function (resolve) { setTimeout(resolve, Math.max(0, Number(action.duration_ms) || 0)); });
-        break;
-      case 'set_variable': {
-        if (!action.variable) break;
-        var current = vars[action.variable];
-        if (action.value_mode === 'toggle_bool') vars[action.variable] = current === 'true' ? 'false' : 'true';
-        else if (action.value_mode === 'increment') vars[action.variable] = String((Number(current) || 0) + (Number(action.value) || 1));
-        else if (action.value_mode === 'decrement') vars[action.variable] = String((Number(current) || 0) - (Number(action.value) || 1));
-        else vars[action.variable] = interpolate(action.value, scope);
-        break;
-      }
-      case 'update_text': {
-        if (!action.target_id) break;
-        overrides[action.target_id] = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, scope);
-        break;
-      }
-      case 'set_visibility': {
-        if (!action.target_id) break;
-        var cur = visibilityOverrides[action.target_id];
-        visibilityOverrides[action.target_id] = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
-        break;
-      }
-      case 'list_add': {
-        if (!action.variable) break;
-        var raw = vars[action.variable];
-        var arr = [];
-        try { var parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch (e) { /* start fresh */ }
-        var value = action.value_mode === 'variable' ? (vars[action.value] || '') : interpolate(action.value, scope);
-        if (action.mode === 'prepend') arr.unshift(value);
-        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, resolveIndex(action.index, scope))), 0, value);
-        else arr.push(value);
-        vars[action.variable] = JSON.stringify(arr);
-        break;
-      }
-      case 'list_remove': {
-        if (!action.variable) break;
-        var raw2 = vars[action.variable];
-        var arr2 = [];
-        try { var parsed2 = raw2 ? JSON.parse(raw2) : []; if (Array.isArray(parsed2)) arr2 = parsed2; } catch (e) { /* nothing to remove */ }
-        if (action.mode === 'clear') arr2 = [];
-        else if (action.mode === 'first') arr2.shift();
-        else if (action.mode === 'at_index') { var idx = resolveIndex(action.index, scope); if (idx >= 0 && idx < arr2.length) arr2.splice(idx, 1); }
-        else arr2.pop();
-        vars[action.variable] = JSON.stringify(arr2);
-        break;
-      }
-      case 'show_message':
-        flash(interpolate(action.text, scope) || '…');
-        break;
-      case 'open_link':
-        if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
-        break;
-      default: break;
-    }
-  }
+  // ============================================================
+  // Compiled block actions — each trigger (a button's onClick, a toggle's
+  // onChange, a list row's tap) was authored as a Blockly workspace in the
+  // App Builder editor and compiled ahead of export time (see
+  // compileTriggersSource() above, which drives
+  // appBuilderBlock/generators.js's compileTriggerSource — the exact same
+  // Blockly-to-JS codegen the live editor's compileTrigger() uses) into the
+  // plain async functions below, keyed by "<componentId>:<trigger>".
+  // ============================================================
+  var ACTIONS = {};
+${actionsSource}
 
-  async function runAction(actionOrList, scope) {
-    var list = Array.isArray(actionOrList) ? actionOrList : (actionOrList ? [actionOrList] : []);
-    for (var i = 0; i < list.length; i++) { await runOne(list[i], scope); render(); }
+  var createRuntimeHelpers = ${helpersSource};
+  var helpers = createRuntimeHelpers({
+    screens: ${JSON.stringify((app.screens || []).map(s => ({ id: s.id })))},
+    setScreen: showScreen,
+    updateText: function (id, value) { overrides[id] = value; render(); },
+    setVisibility: function (id, mode) {
+      var cur = visibilityOverrides[id];
+      visibilityOverrides[id] = mode === 'toggle' ? (cur === undefined ? false : !cur) : mode === 'show';
+      render();
+    },
+    flash: flash,
+    now: function () { return Date.now(); },
+    initialVars: INITIAL_VARS,
+  });
+
+  function runAction(key, scope) {
+    var fn = ACTIONS[key];
+    if (!fn) return Promise.resolve();
+    var setVar = function (name, value) { vars[name] = value; };
+    return fn(vars, setVar, scope, helpers).then(function () { render(); });
   }
 
   document.addEventListener('click', function (e) {
-    var actionEl = e.target.closest('[data-action]');
-    if (actionEl) {
-      try { runAction(JSON.parse(actionEl.getAttribute('data-action'))); } catch (err) { /* ignore */ }
-    }
+    var actionEl = e.target.closest('[data-action-key]');
+    if (actionEl) runAction(actionEl.getAttribute('data-action-key'));
     var toggleEl = e.target.closest('.vk-toggle[data-variable]');
     if (toggleEl) {
       var v = toggleEl.getAttribute('data-variable');
@@ -660,15 +574,11 @@ function generateJS(app) {
   });
 
   // Shared by toggle/checkbox/rating/slider/date — runs the element's
-  // data-onchange action chain if it has one, otherwise just re-renders
-  // (same as every discrete state change already did before onChange existed).
+  // onChange trigger if it has one, otherwise just re-renders (same as
+  // every discrete state change already did before onChange existed).
   function fireOnChange(el) {
-    var attr = el.getAttribute('data-onchange');
-    if (attr) {
-      try { runAction(JSON.parse(attr)); } catch (err) { render(); }
-    } else {
-      render();
-    }
+    var key = el.getAttribute('data-onchange-key');
+    if (key) runAction(key); else render();
   }
 
   document.addEventListener('input', function (e) {
@@ -712,7 +622,7 @@ The app is designed at a fixed ${CANVAS_WIDTH}×${CANVAS_HEIGHT} reference size 
 
 Each component is a positioned \`<div>\` (\`left\`/\`top\`/\`width\`/\`height\` in its inline style) with a couple of data attributes on the element inside it:
 - \`data-tpl\` — text template, supports \`{{variableName}}\`
-- \`data-action\` — what a button does when clicked (JSON)
+- \`data-action-key\` — which compiled action (see the \`ACTIONS\` map in script.js) runs when a button is clicked
 - \`data-variable\` — which variable an input/toggle is bound to
 
 This is a real, standalone project — edit the markup, CSS and JS directly.

@@ -176,93 +176,12 @@ export function createComponent(type, layoutOverride) {
   };
 }
 
-// `category` groups the type picker into an <optgroup> (ActionEditor,
-// AppBuilderEditor.js) instead of one long flat list — thirteen raw
-// technical names read as overwhelming, six labeled sections don't.
-export const ACTION_TYPES = [
-  { type: 'navigate', label: 'Go to screen', category: 'Navigate' },
-  { type: 'set_variable', label: 'Set a variable', category: 'Variables & Math' },
-  { type: 'calculate', label: 'Calculate', category: 'Variables & Math' },
-  { type: 'random_pick', label: 'Random reward', category: 'Variables & Math' },
-  { type: 'reset_variables', label: 'Reset all variables', category: 'Variables & Math' },
-  { type: 'update_text', label: 'Update an element', category: 'Elements' },
-  { type: 'set_visibility', label: 'Show/hide an element', category: 'Elements' },
-  { type: 'list_add', label: 'Add to a list', category: 'Lists' },
-  { type: 'list_remove', label: 'Remove from a list', category: 'Lists' },
-  { type: 'list_contains', label: 'Check if a list contains something', category: 'Lists' },
-  { type: 'show_message', label: 'Show a message', category: 'Feedback & Device' },
-  { type: 'copy_to_clipboard', label: 'Copy to clipboard', category: 'Feedback & Device' },
-  { type: 'vibrate', label: 'Vibrate', category: 'Feedback & Device' },
-  { type: 'wait', label: 'Wait', category: 'Feedback & Device' },
-  { type: 'get_elapsed_time', label: 'Time since a variable was set', category: 'Feedback & Device' },
-  { type: 'open_link', label: 'Open a link', category: 'Links' },
-];
-
-// One plain-language line shown under the type picker once a step's type
-// is chosen — the "very advanced but very simple to use" balance: more
-// power in the dropdown, but nobody has to guess what a label means.
-export const ACTION_DESCRIPTIONS = {
-  navigate: 'Switches to a different screen.',
-  set_variable: 'Sets, toggles, or adjusts a variable by a fixed amount.',
-  calculate: 'Combines two numbers and stores the result in a variable.',
-  random_pick: 'Rolls a random reward from a weighted list (e.g. rarity odds) and stores it — perfect for chests, loot boxes, or gacha mechanics.',
-  reset_variables: 'Resets every variable back to its starting value — handy for a "Start over" button.',
-  update_text: "Replaces an element's visible text.",
-  set_visibility: 'Shows, hides, or toggles another element.',
-  list_add: 'Adds a value to a list, at the start, end, or a specific position.',
-  list_remove: 'Removes an item from a list.',
-  list_contains: 'Checks whether a list already has a matching entry — stores true or false in a variable.',
-  show_message: 'Flashes a short message on screen.',
-  copy_to_clipboard: 'Copies text so the visitor can paste it elsewhere.',
-  vibrate: 'Triggers a short haptic buzz (phones only — no effect in a browser).',
-  wait: 'Pauses before the next step runs — useful for pacing a sequence.',
-  get_elapsed_time: 'Measures how long it’s been since a variable was last set — perfect for daily rewards or idle earnings.',
-  open_link: 'Opens a URL, in this app or a new tab.',
-};
-
-export function createAction(type) {
-  switch (type) {
-    case 'navigate': return { type, screen_id: '' };
-    case 'set_variable': return { type, variable: '', value_mode: 'literal', value: '' };
-    case 'calculate': return { type, variable: '', op: 'add', a: '', b: '' };
-    // options_variable holds a JSON list like [{"value":"Common Sword","weight":70}, ...] —
-    // "value" can be plain text or a {..} object (e.g. {"name":"Phoenix","rarity":"legendary"})
-    // for rich card data. collection_variable is optional — when set, the
-    // picked reward is also appended there (bind a `list` component to it).
-    // dedupe_field/duplicate_variable/duplicate_amount are all optional —
-    // when set, a reward whose dedupe_field already exists in the
-    // collection increments duplicate_variable instead of adding a
-    // duplicate entry (e.g. a card you already own becomes "shards").
-    case 'random_pick': return { type, options_variable: '', target_variable: '', collection_variable: '', dedupe_field: '', duplicate_variable: '', duplicate_amount: 1 };
-    case 'reset_variables': return { type };
-    case 'update_text': return { type, target_id: '', value_mode: 'literal', value: '' };
-    case 'set_visibility': return { type, target_id: '', visible: 'toggle' };
-    // value_mode 'variable' copies another variable's current value (e.g. an
-    // input bound to `entryText`) — the same convenience update_text already
-    // offers, so "take what's in this input and add it to the list" doesn't
-    // require manually typing {{entryText}}.
-    case 'list_add': return { type, variable: '', mode: 'append', value_mode: 'literal', value: '', index: 0 };
-    case 'list_remove': return { type, variable: '', mode: 'last', index: 0 };
-    // field left empty checks for a plain scalar value directly in the list;
-    // set it to check one field of each object entry instead (e.g. "name").
-    case 'list_contains': return { type, variable: '', field: '', value: '', target_variable: '' };
-    case 'show_message': return { type, text: '' };
-    case 'copy_to_clipboard': return { type, text: '' };
-    case 'vibrate': return { type, duration_ms: 200 };
-    case 'wait': return { type, duration_ms: 500 };
-    // update_since true resets since_variable to now after reading it (use
-    // for "claim" actions); false just peeks without consuming the timer.
-    case 'get_elapsed_time': return { type, since_variable: '', target_variable: '', update_since: true };
-    case 'open_link': return { type, url: '', new_tab: true };
-    default: return null;
-  }
-}
-
-// Basic imperative show/hide (free) is a plain action, above. Declarative
-// visibility (a component auto-hides based on a live condition, no button
-// needed) is the Vakar+ perk — VISIBILITY_OPERATORS backs its condition
-// builder, gated server-side alongside custom text sizing (see
-// _check_component_tier in studio_apps.py).
+// Basic imperative show/hide (free) is the `ab_set_visibility` block
+// (frontend/src/appBuilderBlock/blocks.js). Declarative visibility (a
+// component auto-hides based on a live condition, no button needed) is the
+// Vakar+ perk — VISIBILITY_OPERATORS backs its condition builder, gated
+// server-side alongside custom text sizing (see _check_component_tier in
+// studio_apps.py).
 export const VISIBILITY_OPERATORS = [
   { id: 'eq', label: 'equals' },
   { id: 'neq', label: 'does not equal' },
@@ -286,6 +205,40 @@ export function normalizeActions(actions) {
 // own visible text.
 export const UPDATABLE_PROP = { text: 'content', button: 'label', toggle: 'label' };
 export const UPDATABLE_TYPES = Object.keys(UPDATABLE_PROP);
+
+// Target pickers for the "Update an element"/"Show or hide an element"
+// blocks (frontend/src/appBuilderBlock/, AppBuilderBlockPanel.js) — walks
+// one level into containers, matching the editor's own component-tree
+// nesting limit (findComponent in AppBuilderEditor.js). Shared (not
+// AppBuilderEditor.js-local) so the block panel's dynamic dropdown fields
+// (fields.js) can be fed the same lists without a second implementation.
+export function flattenUpdatableTargets(screen) {
+  const out = [];
+  const walk = (comp) => {
+    if (UPDATABLE_TYPES.includes(comp.type)) {
+      const prop = UPDATABLE_PROP[comp.type];
+      const preview = String(comp.props?.[prop] || '').slice(0, 24) || '(empty)';
+      out.push({ id: comp.id, label: `${COMPONENT_META[comp.type].label} — "${preview}"` });
+    }
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (screen?.components || []).forEach(walk);
+  return out;
+}
+
+// Every component on the screen (any type) — unlike flattenUpdatableTargets
+// above, not limited to text-bearing types.
+export function flattenAllTargets(screen) {
+  const out = [];
+  const walk = (comp) => {
+    const label = COMPONENT_META[comp.type]?.label || comp.type;
+    const preview = comp.props?.content || comp.props?.label || comp.props?.placeholder || '';
+    out.push({ id: comp.id, label: preview ? `${label} — "${String(preview).slice(0, 20)}"` : label });
+    if (comp.type === 'container') (comp.children || []).forEach(walk);
+  };
+  (screen?.components || []).forEach(walk);
+  return out;
+}
 
 export const TEXT_SIZES = ['sm', 'md', 'lg', 'xl'];
 export const TEXT_SIZE_PX = { sm: 13, md: 15, lg: 20, xl: 28 };

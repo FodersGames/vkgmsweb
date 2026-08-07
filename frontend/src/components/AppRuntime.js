@@ -1,19 +1,49 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, normalizeActions, UPDATABLE_PROP } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
+import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
+import { compileTrigger } from '../appBuilderBlock/generators';
+import { legacyActionsToBlockly, isLegacyShape } from '../appBuilderBlock/legacyMigration';
+import { setAbBlockContext } from '../appBuilderBlock/fields';
+
+// A trigger value is either the new `{v, blockly}` shape, or (for apps not
+// yet re-saved since the block-editor rollout — see legacyMigration.js's
+// header comment) the old flat action-list shape, migrated to Blockly JSON
+// on the fly here. Unlike the editor (AppBuilderEditor.js's load()), this
+// has nothing to persist the migration back to — it's re-derived on every
+// call, which is fine since it's a pure, cheap, in-memory transform.
+// `screen`/`screens` populate the same target/screen dropdown registry
+// AppBuilderBlockPanel does before authoring — a migrated target_id/
+// screen_id must be a real option in that registry or the field silently
+// drops it (see AppBuilderEditor.js's migrateLegacyActions for the same
+// requirement on the editor side).
+function resolveBlocklyJson(value, variableNames, screen, screens) {
+  if (!value) return null;
+  if (value.blockly) return value.blockly;
+  if (isLegacyShape(value)) {
+    setAbBlockContext({
+      components: flattenAllTargets(screen),
+      updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)),
+      screens,
+    });
+    const { value: migrated } = legacyActionsToBlockly(value, { variableNames });
+    return migrated?.blockly || null;
+  }
+  return null;
+}
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
 // Interprets a Studio App's {screens, variables, theme} into a live,
 // running mini-app: theming, local variable state, screen navigation, and
-// a small action interpreter (navigate / set_variable / update_text /
-// show_message / open_link) — a button's onClick runs an ordered list of
-// these (normalizeActions() reads pre-list saves as a one-step list). Used
-// both for the editor's live preview and the public /apps/:slug runtime
-// page — this is the one place "what does a published app actually do" is
-// implemented, so both surfaces stay identical. `ComponentVisual` (the
-// per-type content renderer) is also exported standalone so the editor's
-// design canvas can render true WYSIWYG previews without a second
+// running compiled Blockly action scripts (frontend/src/appBuilderBlock/) —
+// a button's onClick/toggle's onChange/list row tap runs its trigger's
+// compiled block workspace via runAction() below. Used both for the
+// editor's live preview and the public /apps/:slug runtime page — this is
+// the one place "what does a published app actually do" is implemented, so
+// both surfaces stay identical. `ComponentVisual` (the per-type content
+// renderer) is also exported standalone so the editor's design canvas can
+// render true WYSIWYG previews without a second
 // implementation.
 
 const FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -70,26 +100,6 @@ function QrVisual({ content, theme }) {
   }, [content]);
   if (!dataUrl) return <div style={{ width: '100%', height: '100%', background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />;
   return <img src={dataUrl} alt="QR code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
-}
-
-// Resolves an action's `index` field, which supports {{index}} interpolation
-// (the list item_action scope includes it) as well as a plain literal number.
-function resolveIndex(raw, currentVars, scope) {
-  const n = Number(interpolate(String(raw ?? '0'), currentVars, scope));
-  return Number.isFinite(n) ? Math.trunc(n) : 0;
-}
-
-// `calculate`'s A/B fields deliberately don't require {{}} syntax — type a
-// bare variable name (e.g. "price") or a literal number, whichever's there
-// wins, no punctuation to remember. {{}} interpolation still works too
-// (falls through below) for consistency with every other field.
-function resolveNumberOrVariable(raw, currentVars, scope) {
-  if (raw === undefined || raw === null || raw === '') return 0;
-  const str = String(raw);
-  const scopeVal = scope && Object.prototype.hasOwnProperty.call(scope, str) ? scope[str] : undefined;
-  const varVal = scopeVal !== undefined ? scopeVal : currentVars[str];
-  if (varVal !== undefined) return Number(varVal) || 0;
-  return Number(interpolate(str, currentVars, scope)) || 0;
 }
 
 function buttonStyle(theme, style) {
@@ -465,199 +475,44 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     setTimeout(() => setMessage(null), 3200);
   };
 
-  // vars is read fresh each step (not stale-closed) since set_variable/
-  // update_text steps commonly chain off one another in the same click
-  // (e.g. "add 1 to coins" then "update text1 with coins"). `scope` is only
-  // set for a list's item_action, so its fields can interpolate {{item...}}
-  // the same way the list's own item_template already does. async only
-  // because of 'wait' — every existing caller already fire-and-forgets the
-  // result, so this is a backward-compatible engine change.
-  const runOne = async (action, currentVars, scope) => {
-    if (!action?.type) return;
-    switch (action.type) {
-      case 'navigate':
-        if (action.screen_id && screens.some(s => s.id === action.screen_id)) setScreenId(action.screen_id);
-        break;
-      case 'calculate': {
-        if (!action.variable) break;
-        const a = resolveNumberOrVariable(action.a, currentVars, scope);
-        const b = resolveNumberOrVariable(action.b, currentVars, scope);
-        let result;
-        if (action.op === 'subtract') result = a - b;
-        else if (action.op === 'multiply') result = a * b;
-        else if (action.op === 'divide') result = b !== 0 ? a / b : 0;
-        else result = a + b;
-        const next = String(result);
-        currentVars[action.variable] = next;
-        setVars(v => ({ ...v, [action.variable]: next }));
-        break;
-      }
-      case 'reset_variables': {
-        const initial = Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? '']));
-        Object.assign(currentVars, initial);
-        setVars(initial);
-        break;
-      }
-      case 'random_pick': {
-        if (!action.options_variable) break;
-        const raw = currentVars[action.options_variable];
-        let options = [];
-        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) options = parsed; } catch { /* empty */ }
-        if (options.length === 0) break;
-        const totalWeight = options.reduce((sum, o) => sum + (Number(o.weight) || 0), 0);
-        let picked = options[options.length - 1];
-        if (totalWeight > 0) {
-          let roll = Math.random() * totalWeight;
-          for (const o of options) {
-            roll -= (Number(o.weight) || 0);
-            if (roll <= 0) { picked = o; break; }
-          }
-        } else {
-          picked = options[Math.floor(Math.random() * options.length)];
-        }
-        const pickedValue = picked?.value;
-        if (action.target_variable) {
-          const pickedStr = typeof pickedValue === 'object' ? JSON.stringify(pickedValue) : String(pickedValue ?? '');
-          currentVars[action.target_variable] = pickedStr;
-          setVars(v => ({ ...v, [action.target_variable]: pickedStr }));
-        }
-        if (action.collection_variable) {
-          const rawColl = currentVars[action.collection_variable];
-          let arr = [];
-          try { const parsed = rawColl ? JSON.parse(rawColl) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
-          // dedupe_field: if the collection already has an entry matching
-          // the picked value on this field, credit duplicate_variable
-          // instead of adding a duplicate (e.g. a card already owned turns
-          // into "shards"). Checked here, not via a separately-chained
-          // list_contains step, because only this action still has
-          // pickedValue as a real object — once stored in a flat variable
-          // it's just a JSON string with no dotted-path access outside a
-          // list's {item} scope.
-          const isDuplicate = action.dedupe_field && pickedValue && typeof pickedValue === 'object'
-            && arr.some(entry => entry && entry[action.dedupe_field] === pickedValue[action.dedupe_field]);
-          if (isDuplicate && action.duplicate_variable) {
-            const amt = Number(action.duplicate_amount) || 1;
-            const cur = Number(currentVars[action.duplicate_variable]) || 0;
-            const next = String(cur + amt);
-            currentVars[action.duplicate_variable] = next;
-            setVars(v => ({ ...v, [action.duplicate_variable]: next }));
-          } else {
-            arr.push(pickedValue);
-            const nextColl = JSON.stringify(arr);
-            currentVars[action.collection_variable] = nextColl;
-            setVars(v => ({ ...v, [action.collection_variable]: nextColl }));
-          }
-        }
-        break;
-      }
-      case 'list_contains': {
-        if (!action.variable || !action.target_variable) break;
-        const raw = currentVars[action.variable];
-        let arr = [];
-        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* empty */ }
-        const needle = action.value ?? '';
-        const found = action.field
-          ? arr.some(entry => entry && String(entry[action.field]) === String(needle))
-          : arr.some(entry => String(entry) === String(needle));
-        const next = found ? 'true' : 'false';
-        currentVars[action.target_variable] = next;
-        setVars(v => ({ ...v, [action.target_variable]: next }));
-        break;
-      }
-      case 'get_elapsed_time': {
-        if (!action.target_variable) break;
-        const now = Date.now();
-        const sinceRaw = action.since_variable ? currentVars[action.since_variable] : '';
-        const since = Number(sinceRaw) || now; // never set → 0 elapsed, bootstrapped below
-        const elapsedSeconds = Math.max(0, Math.floor((now - since) / 1000));
-        currentVars[action.target_variable] = String(elapsedSeconds);
-        setVars(v => ({ ...v, [action.target_variable]: String(elapsedSeconds) }));
-        if (action.since_variable && (action.update_since || !sinceRaw)) {
-          currentVars[action.since_variable] = String(now);
-          setVars(v => ({ ...v, [action.since_variable]: String(now) }));
-        }
-        break;
-      }
-      case 'copy_to_clipboard':
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(interpolate(action.text, currentVars, scope)).catch(() => {});
-        }
-        break;
-      case 'vibrate':
-        if (navigator.vibrate) navigator.vibrate(Number(action.duration_ms) || 200);
-        break;
-      case 'wait':
-        await new Promise(resolve => setTimeout(resolve, Math.max(0, Number(action.duration_ms) || 0)));
-        break;
-      case 'set_variable': {
-        if (!action.variable) break;
-        const current = currentVars[action.variable];
-        let next;
-        if (action.value_mode === 'toggle_bool') next = current === 'true' ? 'false' : 'true';
-        else if (action.value_mode === 'increment') next = String((Number(current) || 0) + (Number(action.value) || 1));
-        else if (action.value_mode === 'decrement') next = String((Number(current) || 0) - (Number(action.value) || 1));
-        else next = interpolate(action.value, currentVars, scope);
-        currentVars[action.variable] = next;
-        setVars(v => ({ ...v, [action.variable]: next }));
-        break;
-      }
-      case 'update_text': {
-        if (!action.target_id) break;
-        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars, scope);
-        setOverrides(o => ({ ...o, [action.target_id]: value }));
-        break;
-      }
-      case 'set_visibility': {
-        if (!action.target_id) break;
-        setVisibilityOverrides(o => {
-          const cur = o[action.target_id];
-          const next = action.visible === 'toggle' ? (cur === undefined ? false : !cur) : action.visible === 'show';
-          return { ...o, [action.target_id]: next };
-        });
-        break;
-      }
-      case 'list_add': {
-        if (!action.variable) break;
-        const raw = currentVars[action.variable];
-        let arr = [];
-        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* start fresh */ }
-        const value = action.value_mode === 'variable' ? (currentVars[action.value] ?? '') : interpolate(action.value, currentVars, scope);
-        if (action.mode === 'prepend') arr.unshift(value);
-        else if (action.mode === 'at_index') arr.splice(Math.max(0, Math.min(arr.length, resolveIndex(action.index, currentVars, scope))), 0, value);
-        else arr.push(value);
-        const next = JSON.stringify(arr);
-        currentVars[action.variable] = next;
-        setVars(v => ({ ...v, [action.variable]: next }));
-        break;
-      }
-      case 'list_remove': {
-        if (!action.variable) break;
-        const raw = currentVars[action.variable];
-        let arr = [];
-        try { const parsed = raw ? JSON.parse(raw) : []; if (Array.isArray(parsed)) arr = parsed; } catch { /* nothing to remove */ }
-        if (action.mode === 'clear') arr = [];
-        else if (action.mode === 'first') arr.shift();
-        else if (action.mode === 'at_index') { const i = resolveIndex(action.index, currentVars, scope); if (i >= 0 && i < arr.length) arr.splice(i, 1); }
-        else arr.pop();
-        const next = JSON.stringify(arr);
-        currentVars[action.variable] = next;
-        setVars(v => ({ ...v, [action.variable]: next }));
-        break;
-      }
-      case 'show_message':
-        flash(interpolate(action.text, currentVars, scope) || '…');
-        break;
-      case 'open_link':
-        if (action.url) window.open(action.url, action.new_tab === false ? '_self' : '_blank', 'noopener,noreferrer');
-        break;
-      default:
-        break;
-    }
-  };
+  // vars is read/written through a local snapshot (not React state directly)
+  // since blocks commonly chain off one another within the same click (e.g.
+  // "add 1 to coins" then "update text1 with coins") and must see each
+  // other's just-written value without waiting for a re-render — same
+  // reasoning the old flat-action interpreter used `currentVars` for.
+  // `scope` is only set for a list's item_action, read by the "This item"
+  // blocks (ab_item/ab_item_field/ab_item_index in appBuilderBlock/).
+  const variableNames = useMemo(() => (app?.variables || []).map(v => v.name), [app]);
+  const compileCacheRef = useRef(new WeakMap());
+  const host = useMemo(() => ({
+    screens,
+    setScreen: setScreenId,
+    updateText: (id, value) => setOverrides(o => ({ ...o, [id]: value })),
+    setVisibility: (id, mode) => setVisibilityOverrides(o => {
+      const cur = o[id];
+      const next = mode === 'toggle' ? (cur === undefined ? false : !cur) : mode === 'show';
+      return { ...o, [id]: next };
+    }),
+    flash,
+    now: () => Date.now(),
+    initialVars: Object.fromEntries((app?.variables || []).map(v => [v.name, v.initial_value ?? ''])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [screens, app]);
+  const helpers = useMemo(() => createRuntimeHelpers(host), [host]);
 
   const runAction = async (actionOrList, scope) => {
+    const blocklyJson = resolveBlocklyJson(actionOrList, variableNames, screen, screens);
+    if (!blocklyJson) return;
+    const cache = compileCacheRef.current;
+    if (!cache.has(blocklyJson)) cache.set(blocklyJson, compileTrigger(blocklyJson));
+    const fn = cache.get(blocklyJson);
+    if (!fn) return;
     const currentVars = { ...vars };
-    for (const action of normalizeActions(actionOrList)) await runOne(action, currentVars, scope);
+    const setVar = (name, value) => {
+      currentVars[name] = value;
+      setVars(v => ({ ...v, [name]: value }));
+    };
+    await fn(currentVars, setVar, scope, helpers);
   };
 
   if (!screen) {

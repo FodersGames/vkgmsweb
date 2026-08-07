@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
-  Check, X, ChevronRight, ChevronUp, ChevronDown, Palette, Download, Smartphone, Settings,
+  Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
   ShieldAlert, EyeOff, History,
 } from 'lucide-react';
@@ -10,16 +10,19 @@ import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { useAuth } from '../context/AuthContext';
 import {
-  COMPONENT_TYPES, COMPONENT_META, ACTION_TYPES, ACTION_DESCRIPTIONS, genId, createComponent, createAction,
+  COMPONENT_TYPES, COMPONENT_META, genId, createComponent,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
-  normalizeActions, UPDATABLE_TYPES, UPDATABLE_PROP, MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
+  MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
   PREMIUM_PREVIEW_SCENES, ANIMATION_TYPES, VISIBILITY_OPERATORS,
-  APP_TAGS, MIN_APP_TAGS, MAX_APP_TAGS,
+  APP_TAGS, MIN_APP_TAGS, MAX_APP_TAGS, flattenUpdatableTargets, flattenAllTargets,
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
 import { ConfirmDialog } from './ConfirmDialog';
 import { VersionHistoryModal } from './VersionHistoryModal';
+import AppBuilderBlockPanel from './AppBuilderBlockPanel';
+import { legacyActionsToBlockly, isLegacyShape } from '../appBuilderBlock/legacyMigration';
+import { setAbBlockContext } from '../appBuilderBlock/fields';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 const MIN_SIZE = 24;
@@ -93,6 +96,51 @@ function formatBytes(bytes) {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   return `${Math.round(bytes / 1024)} KB`;
+}
+
+// Auto-converts every trigger still in the old flat action-list shape to
+// Blockly JSON, in place, the moment an app is opened in the editor — see
+// legacyMigration.js's header comment. Mutates `app` directly (freshly
+// parsed JSON from load(), not shared/rendered yet) and returns any
+// per-trigger warnings for unmappable actions, surfaced via the banner
+// rendered near the top of this component.
+function migrateLegacyActions(app) {
+  const warnings = [];
+  const variableNames = (app.variables || []).map(v => v.name);
+  const migrateValue = (value, where) => {
+    if (!isLegacyShape(value)) return value;
+    const { value: migrated, warnings: w } = legacyActionsToBlockly(value, { variableNames });
+    w.forEach(msg => warnings.push(`${where}: ${msg}`));
+    return migrated;
+  };
+  for (const screen of app.screens || []) {
+    // Target/screen dropdown fields (ab_update_text/ab_set_visibility's
+    // TARGET, ab_navigate's SCREEN) validate against whatever
+    // setAbBlockContext registry is live when a block's field is set — a
+    // migrated action's target_id/screen_id must be a real option in that
+    // registry or the field silently drops it. Populate it with this
+    // screen's real component tree before migrating anything on it (same
+    // scoping AppBuilderBlockPanel uses once the app is past migration).
+    setAbBlockContext({
+      components: flattenAllTargets(screen),
+      updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)),
+      screens: app.screens || [],
+    });
+    const walk = (comp) => {
+      if (comp.actions) {
+        for (const trigger of Object.keys(comp.actions)) {
+          const next = migrateValue(comp.actions[trigger], `${screen.name || 'Screen'} → ${COMPONENT_META[comp.type]?.label || comp.type}`);
+          if (next) comp.actions[trigger] = next; else delete comp.actions[trigger];
+        }
+      }
+      if (comp.type === 'list' && comp.props?.item_action) {
+        comp.props.item_action = migrateValue(comp.props.item_action, `${screen.name || 'Screen'} → List`);
+      }
+      if (comp.type === 'container') (comp.children || []).forEach(walk);
+    };
+    (screen.components || []).forEach(walk);
+  }
+  return warnings;
 }
 
 function findComponent(screen, id) {
@@ -550,13 +598,15 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
           <div className="pt-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <ActionEditor
-              steps={node.props.item_action}
-              onStepsChange={(list) => onChange(n => { n.props.item_action = list; })}
-              screens={screens || []} screen={screen}
+            <AppBuilderBlockPanel
+              key={`${node.id}:item_action`}
+              value={node.props.item_action}
+              onChange={(next) => onChange(n => { n.props.item_action = next; })}
+              context={{ components: flattenAllTargets(screen), updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)), screens: screens || [] }}
+              itemScope
               label="When a row is tapped"
             />
-            <p className="mt-2 text-[10px] text-[#A1A1A6]">Steps above support {'{{item}}'} / {'{{item.field}}'} and {'{{index}}'} too.</p>
+            <p className="mt-2 text-[10px] text-[#A1A1A6]">Use the "This item" blocks for the tapped row's value, field, or position.</p>
           </div>
         </div>
       );
@@ -676,34 +726,6 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
 // Components a button click can push a value into — text content, or a
 // button/toggle's own label. Flattened one level deep (screen top level +
 // container children), matching the builder's max-one-nesting-level model.
-function flattenUpdatableTargets(screen) {
-  const out = [];
-  const walk = (comp) => {
-    if (UPDATABLE_TYPES.includes(comp.type)) {
-      const prop = UPDATABLE_PROP[comp.type];
-      const preview = String(comp.props?.[prop] || '').slice(0, 24) || '(empty)';
-      out.push({ id: comp.id, label: `${COMPONENT_META[comp.type].label} — "${preview}"` });
-    }
-    if (comp.type === 'container') (comp.children || []).forEach(walk);
-  };
-  (screen?.components || []).forEach(walk);
-  return out;
-}
-
-// Every component on the screen (any type), for "show/hide an element" —
-// unlike flattenUpdatableTargets above, not limited to text-bearing types.
-function flattenAllTargets(screen) {
-  const out = [];
-  const walk = (comp) => {
-    const label = COMPONENT_META[comp.type]?.label || comp.type;
-    const preview = comp.props?.content || comp.props?.label || comp.props?.placeholder || '';
-    out.push({ id: comp.id, label: preview ? `${label} — "${String(preview).slice(0, 20)}"` : label });
-    if (comp.type === 'container') (comp.children || []).forEach(walk);
-  };
-  (screen?.components || []).forEach(walk);
-  return out;
-}
-
 // Same label convention as flattenAllTargets above (so a row here reads
 // identically to how it'd show up in a set_visibility/update_text target
 // picker), plus indentation depth for the Layers panel — the only way to
@@ -744,379 +766,6 @@ function findVisibilityDependents(screen, variable) {
   };
   (screen?.components || []).forEach(walk);
   return out;
-}
-
-function ActionStepFields({ action, screens, targets, allTargets = [], setField }) {
-  switch (action.type) {
-    case 'navigate':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Screen</label>
-          <Select value={action.screen_id || ''} onChange={e => setField('screen_id', e.target.value)} size="sm">
-            <option value="">Choose a screen…</option>
-            {screens.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </Select>
-        </div>
-      );
-    case 'set_variable':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Variable</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. coins" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>How</label>
-            <Select value={action.value_mode || 'literal'} onChange={e => setField('value_mode', e.target.value)} size="sm">
-              <option value="literal">Set to a value</option>
-              <option value="toggle_bool">Toggle true/false</option>
-              <option value="increment">Increment by a number</option>
-              <option value="decrement">Decrement by a number</option>
-            </Select>
-          </div>
-          {action.value_mode !== 'toggle_bool' && (
-            <div>
-              <label className={FIELD_LABEL}>{(action.value_mode === 'increment' || action.value_mode === 'decrement') ? 'Amount' : 'Value'}</label>
-              <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder={(action.value_mode === 'increment' || action.value_mode === 'decrement') ? '1' : 'e.g. 10'} className={FIELD_INPUT} />
-              {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include another variable's value, e.g. {'{{coins}}'}.</p>}
-            </div>
-          )}
-        </>
-      );
-    case 'calculate':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Store result in</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. total" className={FIELD_INPUT} />
-          </div>
-          <div className="grid grid-cols-3 gap-2 items-end">
-            <div>
-              <label className={FIELD_LABEL}>A</label>
-              <input value={action.a || ''} onChange={e => setField('a', e.target.value)} placeholder="e.g. price" className={FIELD_INPUT} />
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>Operation</label>
-              <Select value={action.op || 'add'} onChange={e => setField('op', e.target.value)} size="sm">
-                <option value="add">+ Add</option>
-                <option value="subtract">− Subtract</option>
-                <option value="multiply">× Multiply</option>
-                <option value="divide">÷ Divide</option>
-              </Select>
-            </div>
-            <div>
-              <label className={FIELD_LABEL}>B</label>
-              <input value={action.b || ''} onChange={e => setField('b', e.target.value)} placeholder="e.g. quantity" className={FIELD_INPUT} />
-            </div>
-          </div>
-          <p className="text-[10px] text-[#A1A1A6]">A and B can each be a fixed number or another variable's name — both are read as numbers.</p>
-        </>
-      );
-    case 'random_pick':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Reward table (variable)</label>
-            <input value={action.options_variable || ''} onChange={e => setField('options_variable', e.target.value)} placeholder="e.g. chestRewards" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">A variable holding a list like {'[{"value":"Common Sword","weight":70},{"value":"Legendary Sword","weight":2}]'} — higher weight = more likely. "value" can be plain text or an object for rich cards.</p>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Store the result in</label>
-            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. lastReward" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Also add to a collection (optional)</label>
-            <input value={action.collection_variable || ''} onChange={e => setField('collection_variable', e.target.value)} placeholder="e.g. myCards" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">If set, the reward is appended here too — bind a list component to it to show a collection.</p>
-          </div>
-          {action.collection_variable && (
-            <div className="pt-2 border-t border-[#EDEDEF] dark:border-[#1c1c2e] space-y-2">
-              <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-widest">Avoid duplicates (optional)</p>
-              <div>
-                <label className={FIELD_LABEL}>Field to compare (e.g. "name")</label>
-                <input value={action.dedupe_field || ''} onChange={e => setField('dedupe_field', e.target.value)} placeholder="e.g. name" className={FIELD_INPUT} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={FIELD_LABEL}>If already owned, credit</label>
-                  <input value={action.duplicate_variable || ''} onChange={e => setField('duplicate_variable', e.target.value)} placeholder="e.g. shards" className={FIELD_INPUT} />
-                </div>
-                <div>
-                  <label className={FIELD_LABEL}>Amount</label>
-                  <input type="number" min="1" value={action.duplicate_amount ?? 1} onChange={e => setField('duplicate_amount', Math.max(1, Number(e.target.value) || 1))} className={FIELD_INPUT} />
-                </div>
-              </div>
-              <p className="text-[10px] text-[#A1A1A6]">If the collection already has an entry with a matching field, this credits the variable above instead of adding a duplicate.</p>
-            </div>
-          )}
-        </>
-      );
-    case 'list_contains':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>List (variable)</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. myCards" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Field to check (optional)</label>
-            <input value={action.field || ''} onChange={e => setField('field', e.target.value)} placeholder="e.g. name" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">Leave empty if the list holds plain values; set this if each entry is an object.</p>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Value to look for</label>
-            <input value={action.value || ''} onChange={e => setField('value', e.target.value)} placeholder="e.g. Sorcerer" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Store the result in (true/false)</label>
-            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. hasSorcerer" className={FIELD_INPUT} />
-          </div>
-        </>
-      );
-    case 'get_elapsed_time':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Since (variable holding a timestamp)</label>
-            <input value={action.since_variable || ''} onChange={e => setField('since_variable', e.target.value)} placeholder="e.g. lastDailyClaim" className={FIELD_INPUT} />
-            <p className="mt-1 text-[10px] text-[#A1A1A6]">If this variable was never set, elapsed time starts at 0 and the timer begins now.</p>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Store elapsed seconds in</label>
-            <input value={action.target_variable || ''} onChange={e => setField('target_variable', e.target.value)} placeholder="e.g. secondsSinceClaim" className={FIELD_INPUT} />
-          </div>
-          <label className="flex items-center gap-2 text-xs text-[#1D1D1F] dark:text-[#e4e4e7]">
-            <input type="checkbox" checked={action.update_since !== false} onChange={e => setField('update_since', e.target.checked)} />
-            Reset the timer now (use for "claim" buttons — turn off to just peek without resetting)
-          </label>
-        </>
-      );
-    case 'reset_variables':
-      return <p className="text-xs text-[#A1A1A6]">No settings — this resets every variable in the app back to its starting value.</p>;
-    case 'update_text':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Element</label>
-            <Select value={action.target_id || ''} onChange={e => setField('target_id', e.target.value)} size="sm">
-              <option value="">Choose an element…</option>
-              {targets.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </Select>
-            {targets.length === 0 && <p className="mt-1 text-[10px] text-[#A1A1A6]">Add a Text, Button or Toggle to this screen first.</p>}
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>How</label>
-            <Select value={action.value_mode || 'literal'} onChange={e => setField('value_mode', e.target.value)} size="sm">
-              <option value="literal">Set to a value</option>
-              <option value="variable">Copy a variable's value</option>
-            </Select>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
-            <input
-              value={action.value || ''} onChange={e => setField('value', e.target.value)}
-              placeholder={action.value_mode === 'variable' ? 'e.g. coins' : 'e.g. Well done!'}
-              className={FIELD_INPUT}
-            />
-            {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include another variable's value, e.g. {'{{coins}}'}.</p>}
-          </div>
-        </>
-      );
-    case 'set_visibility':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>Element</label>
-            <Select value={action.target_id || ''} onChange={e => setField('target_id', e.target.value)} size="sm">
-              <option value="">Choose an element…</option>
-              {allTargets.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </Select>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Action</label>
-            <Select value={action.visible || 'toggle'} onChange={e => setField('visible', e.target.value)} size="sm">
-              <option value="show">Show it</option>
-              <option value="hide">Hide it</option>
-              <option value="toggle">Toggle it</option>
-            </Select>
-          </div>
-        </>
-      );
-    case 'list_add':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>List variable</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. entries" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Where</label>
-            <Select value={action.mode || 'append'} onChange={e => setField('mode', e.target.value)} size="sm">
-              <option value="append">Add to the end</option>
-              <option value="prepend">Add to the start</option>
-              <option value="at_index">Insert at position</option>
-            </Select>
-          </div>
-          {action.mode === 'at_index' && (
-            <div>
-              <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0" className={FIELD_INPUT} />
-              <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
-            </div>
-          )}
-          <div>
-            <label className={FIELD_LABEL}>Value from</label>
-            <Select value={action.value_mode || 'literal'} onChange={e => setField('value_mode', e.target.value)} size="sm">
-              <option value="literal">A fixed value</option>
-              <option value="variable">Another variable (e.g. an input)</option>
-            </Select>
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>{action.value_mode === 'variable' ? 'Variable' : 'Value'}</label>
-            <input
-              value={action.value || ''} onChange={e => setField('value', e.target.value)}
-              placeholder={action.value_mode === 'variable' ? 'e.g. entryText' : 'e.g. New item'}
-              className={FIELD_INPUT}
-            />
-            {action.value_mode === 'literal' && <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{entryText}}'}.</p>}
-          </div>
-        </>
-      );
-    case 'list_remove':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>List variable</label>
-            <input value={action.variable || ''} onChange={e => setField('variable', e.target.value)} placeholder="e.g. entries" className={FIELD_INPUT} />
-          </div>
-          <div>
-            <label className={FIELD_LABEL}>Remove</label>
-            <Select value={action.mode || 'last'} onChange={e => setField('mode', e.target.value)} size="sm">
-              <option value="last">The last item</option>
-              <option value="first">The first item</option>
-              <option value="at_index">The item at a position</option>
-              <option value="clear">Everything (clear the list)</option>
-            </Select>
-          </div>
-          {action.mode === 'at_index' && (
-            <div>
-              <label className={FIELD_LABEL}>Position (0 = first)</label>
-              <input value={action.index ?? '0'} onChange={e => setField('index', e.target.value)} placeholder="0" className={FIELD_INPUT} />
-              <p className="mt-1 text-[10px] text-[#A1A1A6]">Use {'{{index}}'} here when this runs from a list row tap — it resolves to that row's position.</p>
-            </div>
-          )}
-        </>
-      );
-    case 'show_message':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Message</label>
-          <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="e.g. Saved!" className={FIELD_INPUT} />
-          <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{score}}'}.</p>
-        </div>
-      );
-    case 'copy_to_clipboard':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Text to copy</label>
-          <input value={action.text || ''} onChange={e => setField('text', e.target.value)} placeholder="e.g. Check out my app!" className={FIELD_INPUT} />
-          <p className="mt-1 text-[10px] text-[#A1A1A6]">Can include a variable's value, e.g. {'{{referralCode}}'}.</p>
-        </div>
-      );
-    case 'vibrate':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Duration ({action.duration_ms ?? 200}ms)</label>
-          <input type="range" min="50" max="1000" step="50" value={action.duration_ms ?? 200} onChange={e => setField('duration_ms', Number(e.target.value))} className="w-full" />
-          <p className="mt-1 text-[10px] text-[#A1A1A6]">Only felt on a real phone — no effect when previewing in a browser.</p>
-        </div>
-      );
-    case 'wait':
-      return (
-        <div>
-          <label className={FIELD_LABEL}>Pause for ({((action.duration_ms ?? 500) / 1000).toFixed(1)}s)</label>
-          <input type="range" min="100" max="5000" step="100" value={action.duration_ms ?? 500} onChange={e => setField('duration_ms', Number(e.target.value))} className="w-full" />
-        </div>
-      );
-    case 'open_link':
-      return (
-        <>
-          <div>
-            <label className={FIELD_LABEL}>URL</label>
-            <input value={action.url || ''} onChange={e => setField('url', e.target.value)} placeholder="https://…" className={FIELD_INPUT} />
-          </div>
-          <label className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
-            <input type="checkbox" checked={action.new_tab !== false} onChange={e => setField('new_tab', e.target.checked)} />
-            Open in a new tab
-          </label>
-        </>
-      );
-    default:
-      return null;
-  }
-}
-
-// A click runs an ordered list of steps (e.g. "add 1 to coins", then
-// "update text1 with coins") — normalizeActions() reads a pre-list save
-// (a single action object) as a one-step list, so no backend migration is
-// needed for apps saved before this shipped.
-// Generic multi-step action-chain editor — used both for a component's
-// trigger (button onClick, toggle/checkbox/rating/slider/date onChange)
-// and for a list's item_action (tap a row). Deliberately takes plain
-// steps/onStepsChange rather than a node+trigger pair so both storage
-// shapes (node.actions[trigger] vs node.props.item_action) can share one
-// implementation — runAction() already normalizes a single action object
-// or a list transparently (normalizeActions), so item_action being a list
-// instead of one action needed no runtime changes, only this editor UI.
-function ActionEditor({ steps: rawSteps, onStepsChange, screens, screen, label = 'When clicked' }) {
-  const steps = normalizeActions(rawSteps);
-  const targets = useMemo(() => flattenUpdatableTargets(screen), [screen]);
-  const allTargets = useMemo(() => flattenAllTargets(screen), [screen]);
-
-  const setSteps = (list) => onStepsChange(list.length ? list : null);
-  const addStep = () => setSteps([...steps, createAction('set_variable')]);
-  const removeStep = (idx) => setSteps(steps.filter((_, i) => i !== idx));
-  const moveStep = (idx, dir) => {
-    const next = idx + dir;
-    if (next < 0 || next >= steps.length) return;
-    const copy = [...steps];
-    [copy[idx], copy[next]] = [copy[next], copy[idx]];
-    setSteps(copy);
-  };
-  const setStepType = (idx, type) => setSteps(steps.map((s, i) => (i === idx ? createAction(type) : s)));
-  const setField = (idx, field, value) => setSteps(steps.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
-
-  return (
-    <div className="space-y-3">
-      <label className={FIELD_LABEL}>{label}</label>
-      {steps.length === 0 && <p className="text-xs text-[#A1A1A6]">No action yet — add a step below.</p>}
-      {steps.map((action, idx) => (
-        <div key={idx} className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] p-3 space-y-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] w-3.5 shrink-0">{idx + 1}</span>
-            <Select value={action.type} onChange={e => setStepType(idx, e.target.value)} size="sm" wrapperClassName="flex-1">
-              {/* ui/Select.js is a hand-rolled listbox that only reads direct
-                  <option> children — no native <optgroup> support (same
-                  reason it can't do disabled options either) — so grouping
-                  is done as a plain "Category · Label" prefix instead,
-                  relying on ACTION_TYPES already being ordered by category. */}
-              {ACTION_TYPES.map(a => <option key={a.type} value={a.type}>{a.category} · {a.label}</option>)}
-            </Select>
-            <button type="button" onClick={() => moveStep(idx, -1)} disabled={idx === 0} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronUp size={12} /></button>
-            <button type="button" onClick={() => moveStep(idx, 1)} disabled={idx === steps.length - 1} className="p-1 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white disabled:opacity-25 shrink-0"><ChevronDown size={12} /></button>
-            <button type="button" onClick={() => removeStep(idx)} className="p-1 text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={12} /></button>
-          </div>
-          {ACTION_DESCRIPTIONS[action.type] && (
-            <p className="text-[10px] text-[#A1A1A6] -mt-1">{ACTION_DESCRIPTIONS[action.type]}</p>
-          )}
-          <ActionStepFields action={action} screens={screens} targets={targets} allTargets={allTargets} setField={(field, value) => setField(idx, field, value)} />
-        </div>
-      ))}
-      <button onClick={addStep} className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors">
-        <Plus size={11} />Add a step
-      </button>
-    </div>
-  );
 }
 
 // Shared across every component type (not type-specific like PropsEditor) —
@@ -1193,6 +842,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   }, []);
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [migrationWarnings, setMigrationWarnings] = useState([]);
   const [activeScreenId, setActiveScreenId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [inspectorTab, setInspectorTab] = useState('props');
@@ -1242,6 +892,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     try {
       const r = await fetch(`${API}${apiBase}/${appId}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await r.json();
+      setMigrationWarnings(migrateLegacyActions(data));
       setApp(data);
       setActiveScreenId(data.screens?.[0]?.id || null);
     } finally {
@@ -1718,6 +1369,22 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
   return (
     <div className="flex flex-col h-full">
+      {/* Auto-migration notice — shown once, the moment an app with old-shape
+          actions (pre-Blockly editor) is opened; see migrateLegacyActions()
+          above. Purely informational: the migrated blocks are already in
+          `app` state, ready to review/save like any other change. */}
+      {migrationWarnings.length > 0 && (
+        <div className="flex items-start gap-2 px-5 py-2.5 border-b border-amber-500/20 bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-400 shrink-0">
+          <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold">This app's actions were upgraded to the new block editor. A few couldn't be converted automatically:</p>
+            <ul className="mt-1 list-disc list-inside space-y-0.5">
+              {migrationWarnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          </div>
+          <button onClick={() => setMigrationWarnings([])} className="p-1 shrink-0 hover:opacity-70"><X size={12} /></button>
+        </div>
+      )}
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0 flex-wrap">
         <button onClick={onBack} className="p-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]">
@@ -2116,13 +1783,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                       </div>
                     ) : null;
                   })()}
-                  <ActionEditor
-                    steps={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
-                    onStepsChange={(list) => updateSelected(n => {
+                  <AppBuilderBlockPanel
+                    key={`${selected.id}:${COMPONENT_META[selected.type]?.actionTrigger || 'onClick'}`}
+                    value={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
+                    onChange={(next) => updateSelected(n => {
                       const trigger = COMPONENT_META[n.type]?.actionTrigger || 'onClick';
-                      if (!list) delete n.actions[trigger]; else n.actions[trigger] = list;
+                      n.actions[trigger] = next;
                     })}
-                    screens={app.screens} screen={activeScreen}
+                    context={{ components: flattenAllTargets(activeScreen), updatableIds: new Set(flattenUpdatableTargets(activeScreen).map(t => t.id)), screens: app.screens }}
                     label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
                   />
                 </>
