@@ -308,7 +308,7 @@ function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onD
 const FIELD_LABEL = 'block text-[10px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5';
 const FIELD_INPUT = 'w-full rounded-lg px-3 py-2 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] text-sm focus:outline-none focus:border-[#4ECDC4]';
 
-function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlocked, screens, screen }) {
+function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlocked, screens, screen, onEditItemAction }) {
   const set = (key, value) => onChange(n => { n.props[key] = value; });
   const [imgUploading, setImgUploading] = useState(false);
   const imgInputRef = useRef(null);
@@ -598,15 +598,15 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
             <input value={node.props.empty_text || ''} onChange={e => set('empty_text', e.target.value)} className={FIELD_INPUT} />
           </div>
           <div className="pt-3 border-t border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <AppBuilderBlockPanel
-              key={`${node.id}:item_action`}
-              value={node.props.item_action}
-              onChange={(next) => onChange(n => { n.props.item_action = next; })}
-              context={{ components: flattenAllTargets(screen), updatableIds: new Set(flattenUpdatableTargets(screen).map(t => t.id)), screens: screens || [] }}
-              itemScope
-              label="When a row is tapped"
-            />
-            <p className="mt-2 text-[10px] text-[#A1A1A6]">Use the "This item" blocks for the tapped row's value, field, or position.</p>
+            <label className={FIELD_LABEL}>When a row is tapped</label>
+            <button
+              type="button" onClick={onEditItemAction}
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2.5 text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] hover:border-[#4ECDC4] hover:text-[#4ECDC4] transition-colors"
+            >
+              Edit tap action
+              <ChevronRight size={14} />
+            </button>
+            <p className="mt-2 text-[10px] text-[#A1A1A6]">Opens the full block editor — use the "This item" blocks for the tapped row's value, field, or position.</p>
           </div>
         </div>
       );
@@ -846,6 +846,12 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [activeScreenId, setActiveScreenId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [inspectorTab, setInspectorTab] = useState('props');
+  // { nodeId, trigger } when the full-screen block editor is open (trigger
+  // is 'onClick'/'onChange'/etc for a component's action, or the literal
+  // 'item_action' for a list's row-tap) — null means the normal Designer
+  // view (palette/canvas/inspector). Replaces the old cramped in-sidebar
+  // Blockly panel with a real MIT-App-Inventor-style full-page Blocks mode.
+  const [blocksTarget, setBlocksTarget] = useState(null);
   const [dirty, setDirty] = useState(false);
   // Undo/redo — a plain stack of whole-app snapshots, capped at 50. mutate()
   // already structuredClone()s the app on every change, so this just keeps
@@ -1367,6 +1373,29 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const selected = selectedId ? findComponent(activeScreen, selectedId)?.node : null;
   const theme = resolveTheme(app.theme);
 
+  // Resolved fresh from `blocksTarget` (not from `selected`) so the
+  // full-screen Blocks view keeps working correctly even for a list's
+  // item_action, which can belong to a different node than whatever's
+  // currently selected in the (hidden, while Blocks is open) inspector.
+  const blocksNode = blocksTarget ? findComponent(activeScreen, blocksTarget.nodeId)?.node : null;
+  const blocksIsItemAction = blocksTarget?.trigger === 'item_action';
+  const blocksValue = blocksNode
+    ? (blocksIsItemAction ? blocksNode.props.item_action : blocksNode.actions?.[blocksTarget.trigger])
+    : null;
+  const blocksLabel = blocksNode
+    ? (blocksIsItemAction ? 'When a row is tapped' : (COMPONENT_META[blocksNode.type]?.actionLabel || 'When clicked'))
+    : '';
+  const setBlocksValue = (next) => {
+    if (!blocksTarget) return;
+    mutate(a => {
+      const screen = a.screens.find(s => s.id === activeScreenId);
+      const found = findComponent(screen, blocksTarget.nodeId);
+      if (!found) return;
+      if (blocksIsItemAction) found.node.props.item_action = next;
+      else found.node.actions[blocksTarget.trigger] = next;
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Auto-migration notice — shown once, the moment an app with old-shape
@@ -1571,6 +1600,44 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       )}
 
       {/* Body */}
+      {blocksTarget && blocksNode ? (
+        /* Full-screen Blocks mode (MIT-App-Inventor-style Designer/Blocks
+           toggle) — replaces the palette/canvas/inspector entirely instead
+           of squeezing a Blockly canvas into the 288px inspector sidebar. */
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center gap-3 px-5 py-2.5 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+            <button
+              onClick={() => setBlocksTarget(null)}
+              className="flex items-center gap-1.5 rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] pl-2 pr-3 py-1.5 text-[11px] font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] hover:text-[#4ECDC4] transition-colors"
+            >
+              <ArrowLeft size={13} />Designer
+            </button>
+            <div className="w-px h-4 bg-[#D2D2D7] dark:bg-[#2a2a3c]" />
+            <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
+              {COMPONENT_META[blocksNode.type]?.label} — {blocksLabel}
+            </span>
+          </div>
+          {!blocksIsItemAction && (() => {
+            const dependents = findVisibilityDependents(activeScreen, blocksNode.props?.variable);
+            return dependents.length > 0 ? (
+              <div className="mx-5 mt-3 p-2.5 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7] shrink-0">
+                This value already controls whether these are shown: <strong>{dependents.join(', ')}</strong> — see each one's Visibility setting. No action needed here for that part.
+              </div>
+            ) : null;
+          })()}
+          <div className="flex-1 min-h-0 p-4">
+            <AppBuilderBlockPanel
+              key={`${blocksTarget.nodeId}:${blocksTarget.trigger}`}
+              value={blocksValue}
+              onChange={setBlocksValue}
+              context={{ components: flattenAllTargets(activeScreen), updatableIds: new Set(flattenUpdatableTargets(activeScreen).map(t => t.id)), screens: app.screens }}
+              itemScope={blocksIsItemAction}
+              label={blocksLabel}
+              fullScreen
+            />
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 flex min-h-0">
         {/* Left: screens + palette */}
         <div className="w-56 border-r border-[#D2D2D7] dark:border-[#2a2a3c] overflow-y-auto shrink-0 p-4 space-y-6">
@@ -1753,7 +1820,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 mb-4 w-full">
                   {[{ id: 'props', label: 'Content' }, { id: 'action', label: 'Action' }].map(t => (
                     <button
-                      key={t.id} onClick={() => setInspectorTab(t.id)}
+                      key={t.id}
+                      onClick={() => {
+                        if (t.id === 'action') {
+                          setBlocksTarget({ nodeId: selected.id, trigger: COMPONENT_META[selected.type]?.actionTrigger || 'onClick' });
+                        } else {
+                          setInspectorTab('props');
+                        }
+                      }}
                       className={`flex-1 py-1.5 rounded-full text-[11px] font-semibold transition-all ${inspectorTab === t.id ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}
                     >
                       {t.label}
@@ -1761,44 +1835,21 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   ))}
                 </div>
               )}
-              {(!COMPONENT_META[selected.type]?.supportsAction || inspectorTab === 'props') ? (
-                <>
-                  <PropsEditor
-                    node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset}
-                    onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })}
-                    screens={app.screens} screen={activeScreen}
-                  />
-                  <ComponentExtras
-                    node={selected} onChange={updateSelected} allowPremium={allowPremium}
-                    onPremiumBlocked={(msg) => setPreviewFeature({ kind: 'component', meta: { label: msg || 'This feature' } })}
-                  />
-                </>
-              ) : (
-                <>
-                  {(() => {
-                    const dependents = findVisibilityDependents(activeScreen, selected.props?.variable);
-                    return dependents.length > 0 ? (
-                      <div className="mb-3 p-2.5 rounded-lg bg-[#4ECDC4]/8 border border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7]">
-                        This value already controls whether these are shown: <strong>{dependents.join(', ')}</strong> — see each one's Visibility setting. No action needed here for that part.
-                      </div>
-                    ) : null;
-                  })()}
-                  <AppBuilderBlockPanel
-                    key={`${selected.id}:${COMPONENT_META[selected.type]?.actionTrigger || 'onClick'}`}
-                    value={selected.actions?.[COMPONENT_META[selected.type]?.actionTrigger || 'onClick']}
-                    onChange={(next) => updateSelected(n => {
-                      const trigger = COMPONENT_META[n.type]?.actionTrigger || 'onClick';
-                      n.actions[trigger] = next;
-                    })}
-                    context={{ components: flattenAllTargets(activeScreen), updatableIds: new Set(flattenUpdatableTargets(activeScreen).map(t => t.id)), screens: app.screens }}
-                    label={COMPONENT_META[selected.type]?.actionLabel || 'When clicked'}
-                  />
-                </>
-              )}
+              <PropsEditor
+                node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset}
+                onPremiumBlocked={() => setPreviewFeature({ kind: 'component', meta: { label: 'Custom text size' } })}
+                screens={app.screens} screen={activeScreen}
+                onEditItemAction={() => setBlocksTarget({ nodeId: selected.id, trigger: 'item_action' })}
+              />
+              <ComponentExtras
+                node={selected} onChange={updateSelected} allowPremium={allowPremium}
+                onPremiumBlocked={(msg) => setPreviewFeature({ kind: 'component', meta: { label: msg || 'This feature' } })}
+              />
             </>
           )}
         </div>
       </div>
+      )}
 
       {/* Preview modal — same clean device-frame simulation as the canvas, no fake status bar/bezel (that's reserved for the real published app / APK) */}
       {previewOpen && (

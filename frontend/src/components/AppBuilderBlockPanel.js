@@ -17,7 +17,7 @@ import { setAbBlockContext } from '../appBuilderBlock/fields';
 // any `value` it wants reloaded (this holds for every call site today: a
 // legacy-migration rewrite happens before the panel ever mounts for that
 // trigger, not while it's already open).
-export default function AppBuilderBlockPanel({ value, onChange, context, itemScope = false, label }) {
+export default function AppBuilderBlockPanel({ value, onChange, context, itemScope = false, label, fullScreen = false }) {
   const divRef = useRef(null);
   const wsRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -47,7 +47,14 @@ export default function AppBuilderBlockPanel({ value, onChange, context, itemSco
       const json = Blockly.serialization.workspaces.save(ws);
       onChangeRef.current({ v: 1, blockly: json });
     });
+    // The container can be resized by the surrounding layout (most notably
+    // fullScreen mode, whose content area tracks the window) — Blockly only
+    // recomputes its SVG viewport on demand, not automatically.
+    const onResize = () => Blockly.svgResize(ws);
+    window.addEventListener('resize', onResize);
+    onResize();
     return () => {
+      window.removeEventListener('resize', onResize);
       ws.dispose();
       wsRef.current = null;
     };
@@ -60,6 +67,17 @@ export default function AppBuilderBlockPanel({ value, onChange, context, itemSco
   useEffect(() => {
     setAbBlockContext(context);
   }, [context]);
+
+  // fullScreen: fills its parent (AppBuilderEditor.js's Blocks-mode content
+  // area) instead of a fixed 420px box — the surrounding page already shows
+  // `label` in its own header, so it's not repeated here.
+  if (fullScreen) {
+    return (
+      <div className="relative w-full h-full rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden bg-white dark:bg-[#151520]">
+        <div ref={divRef} className="absolute inset-0" />
+      </div>
+    );
+  }
 
   return (
     <div>
