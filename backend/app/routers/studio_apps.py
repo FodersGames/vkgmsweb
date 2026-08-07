@@ -997,6 +997,8 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
         raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
     if not doc.get("screens"):
         raise HTTPException(status_code=400, detail="Add at least one screen before submitting for review")
+    if not body.charter_accepted:
+        raise HTTPException(status_code=400, detail="You must accept the Studio Publisher Charter before submitting.")
     name = body.name.strip()[:80]
     description = body.description.strip()[:600]
     logo_url = body.logo_url.strip()
@@ -1043,6 +1045,7 @@ async def submit_my_studio_app_review(request: Request, app_id: str, body: Studi
         "pending_snapshot": pending_snapshot,
         "submitted_at": now,
         "updated_at": now,
+        "charter_accepted_at": now,
     }})
     return {"ok": True}
 

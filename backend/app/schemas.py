@@ -271,6 +271,7 @@ class StudioAppSubmitReviewRequest(BaseModel):
     banner_url: str = ""
     price_cents: int = 0
     changelog: str = ""
+    charter_accepted: bool = False
 
 class StudioAppReviewDecisionRequest(BaseModel):
     reason: str = ""

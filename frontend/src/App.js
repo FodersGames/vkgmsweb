@@ -12,6 +12,7 @@ import ApplicationsPage from './pages/Applications';
 import { BlogList, BlogPost } from './pages/Blog';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import StudioPublisherCharter from './pages/StudioPublisherCharter';
 import Shop from './pages/Shop';
 import ShopSuccess from './pages/ShopSuccess';
 import GameShop from './pages/GameShop';
@@ -59,6 +60,7 @@ const AppRoutes = () => {
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/studio-charter" element={<StudioPublisherCharter />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/shop/success" element={<ShopSuccess />} />
         <Route path="/shop/:gameSlug" element={<GameShop />} />

@@ -906,6 +906,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   // when a locked theme/component is clicked.
   const [previewFeature, setPreviewFeature] = useState(null);
   const [reviewForm, setReviewForm] = useState({ name: '', description: '', tags: [], logo_url: '', banner_url: '', price_cents: 0, changelog: '' });
+  const [charterAccepted, setCharterAccepted] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewLogoUploading, setReviewLogoUploading] = useState(false);
   const [reviewBannerUploading, setReviewBannerUploading] = useState(false);
@@ -1256,6 +1257,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       price_cents: app.price_cents || 0,
       changelog: '',
     });
+    setCharterAccepted(false);
     setReviewOpen(true);
   };
 
@@ -1284,7 +1286,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       const r = await fetch(`${API}${apiBase}/${appId}/submit-review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(reviewForm),
+        body: JSON.stringify({ ...reviewForm, charter_accepted: charterAccepted }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.detail || 'Could not submit for review.');
@@ -2297,7 +2299,18 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0 space-y-3">
+              <label className="flex items-start gap-2 text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
+                <input
+                  type="checkbox" checked={charterAccepted}
+                  onChange={e => setCharterAccepted(e.target.checked)}
+                  className="mt-0.5 shrink-0"
+                />
+                <span>
+                  I have read and accept the{' '}
+                  <a href="/studio-charter" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#4ECDC4] hover:underline">Studio Publisher Charter</a>.
+                </span>
+              </label>
               <Button
                 className="w-full" icon={Send} loading={reviewSubmitting}
                 disabled={
@@ -2305,6 +2318,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   || reviewForm.tags.length < MIN_APP_TAGS
                   || (reviewForm.price_cents > 0 && reviewForm.price_cents < 100)
                   || (app.ever_approved && !reviewForm.changelog.trim())
+                  || !charterAccepted
                 }
                 onClick={submitReview}
               >
