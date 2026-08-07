@@ -351,6 +351,24 @@ export const DEFAULT_THEME_ID = 'mint';
 export const resolveTheme = (id) => THEME_MAP[id] || THEME_MAP[DEFAULT_THEME_ID];
 
 // ============================================================
+// Device skins — purely cosmetic frame overlays for the design canvas and
+// preview (notch/punch-hole shape + corner radius), so the canvas can look
+// like a few well-known phone families instead of one neutral rectangle.
+// Never affects layout math, the live runtime, or the static export — those
+// intentionally render with no fake bezel (see the Preview modal comment in
+// AppBuilderEditor.js).
+// ============================================================
+export const DEVICE_SKINS = [
+  { id: 'neutral', label: 'Neutral', radius: 28, cutout: null },
+  { id: 'iphone', label: 'iPhone-style', radius: 44, cutout: { type: 'pill', w: 90, h: 24, top: 14 } },
+  { id: 'samsung', label: 'Samsung-style', radius: 30, cutout: { type: 'circle', d: 12, top: 12 } },
+  { id: 'pixel', label: 'Pixel-style', radius: 34, cutout: { type: 'circle', d: 10, top: 16 } },
+];
+export const DEVICE_SKIN_MAP = Object.fromEntries(DEVICE_SKINS.map(s => [s.id, s]));
+export const DEFAULT_DEVICE_SKIN_ID = 'neutral';
+export const resolveDeviceSkin = (id) => DEVICE_SKIN_MAP[id] || DEVICE_SKIN_MAP[DEFAULT_DEVICE_SKIN_ID];
+
+// ============================================================
 // Submission tags — a fixed taxonomy the submitter picks from (not free
 // text) so the showcase/storefront filter chips (Applications.js) stay
 // consistent instead of accumulating near-duplicate variants ("game" vs

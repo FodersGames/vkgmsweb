@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   COMPONENT_TYPES, COMPONENT_META, genId, createComponent,
   THEME_PRESETS, ICON_IDS, AppIcon, getLayout, resolveTheme, CANVAS_WIDTH, CANVAS_HEIGHT,
+  DEVICE_SKINS, resolveDeviceSkin,
   MIN_CUSTOM_TEXT_PX, MAX_CUSTOM_TEXT_PX,
   PREMIUM_PREVIEW_SCENES, ANIMATION_TYPES, VISIBILITY_OPERATORS,
   APP_TAGS, MIN_APP_TAGS, MAX_APP_TAGS, flattenUpdatableTargets, flattenAllTargets,
@@ -325,6 +326,34 @@ function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onD
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: theme.colors.textMuted, textAlign: 'center', padding: 24, pointerEvents: 'none' }}>
           Empty screen — drag a component from the palette, or click one to add it.
         </div>
+      )}
+    </div>
+  );
+}
+
+// Cosmetic phone-frame wrapper for the canvas/preview — swaps corner radius
+// and draws a notch/punch-hole cutout per DEVICE_SKINS. Purely visual: the
+// live runtime and static export never render a bezel (see the Preview
+// modal below), so this has no effect on the shipped app.
+function DeviceFrame({ skinId, className = '', children }) {
+  const skin = resolveDeviceSkin(skinId);
+  const cutout = skin.cutout;
+  return (
+    <div
+      className={`relative overflow-hidden ${className}`}
+      style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, borderRadius: skin.radius }}
+    >
+      {children}
+      {cutout && (
+        <div
+          className="absolute bg-black pointer-events-none z-20"
+          style={{
+            left: '50%', transform: 'translateX(-50%)', top: cutout.top,
+            width: cutout.type === 'pill' ? cutout.w : cutout.d,
+            height: cutout.type === 'pill' ? cutout.h : cutout.d,
+            borderRadius: 999,
+          }}
+        />
       )}
     </div>
   );
@@ -1805,6 +1834,28 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           </div>
 
           <div>
+            <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+              <Smartphone size={10} />Device
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {DEVICE_SKINS.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => mutate(a => { a.deviceSkin = s.id; })}
+                  title={s.label}
+                  className={`py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${
+                    (app.deviceSkin || 'neutral') === s.id
+                      ? 'border-[#4ECDC4] text-[#4ECDC4]'
+                      : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <p className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase tracking-widest mb-2">Variables</p>
             <div className="space-y-1.5">
               {app.variables.map((v, i) => (
@@ -1823,7 +1874,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
         {/* Center: canvas */}
         <div className="flex-1 overflow-auto p-8 bg-[#FAFAFA] dark:bg-[#0d0d14] flex items-start justify-center">
-          <div className="rounded-[28px] border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-sm overflow-hidden" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
+          <DeviceFrame skinId={app.deviceSkin} className="border border-[#D2D2D7] dark:border-[#2a2a3c] shadow-sm">
             <DesignCanvas
               screen={activeScreen}
               theme={theme}
@@ -1835,7 +1886,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               dragOver={canvasDragOver}
               onDragOverChange={setCanvasDragOver}
             />
-          </div>
+          </DeviceFrame>
         </div>
 
         {/* Right: inspector */}
