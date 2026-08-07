@@ -926,6 +926,11 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [apkBusy, setApkBusy] = useState(false);
   const [apkQrOpen, setApkQrOpen] = useState(false);
   const [apkQrDataUrl, setApkQrDataUrl] = useState('');
+  const [signingKey, setSigningKey] = useState(null);
+  const [signingKeyBusy, setSigningKeyBusy] = useState(false);
+  const [signingImportOpen, setSigningImportOpen] = useState(false);
+  const [signingImportForm, setSigningImportForm] = useState({ store_password: '', key_password: '', key_alias: '' });
+  const signingFileInputRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [iconUploading, setIconUploading] = useState(false);
   const iconInputRef = useRef(null);
@@ -1375,6 +1380,95 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
   useEffect(() => { loadApkStatus(); }, [loadApkStatus]);
 
+  const loadSigningKey = useCallback(async () => {
+    if (!enableApkBuild) return;
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/signing-key`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;
+      setSigningKey(await r.json());
+    } catch { /* left as-is — the Export hub just won't show key info until retried */ }
+  }, [enableApkBuild, apiBase, appId, token]);
+
+  useEffect(() => { loadSigningKey(); }, [loadSigningKey]);
+
+  const generateSigningKey = async () => {
+    setSigningKeyBusy(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/signing-key/generate`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Could not generate a signing key.');
+      await loadSigningKey();
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setSigningKeyBusy(false);
+    }
+  };
+
+  const importSigningKey = async (file) => {
+    setSigningKeyBusy(true);
+    setSaveError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('store_password', signingImportForm.store_password);
+      formData.append('key_password', signingImportForm.key_password);
+      formData.append('key_alias', signingImportForm.key_alias);
+      const r = await fetch(`${API}${apiBase}/${appId}/signing-key/import`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Could not import this keystore.');
+      setSigningImportOpen(false);
+      setSigningImportForm({ store_password: '', key_password: '', key_alias: '' });
+      await loadSigningKey();
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setSigningKeyBusy(false);
+    }
+  };
+
+  const downloadSigningKey = async () => {
+    setSigningKeyBusy(true);
+    setSaveError('');
+    try {
+      const r = await fetch(`${API}${apiBase}/${appId}/signing-key/download`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || 'Could not download this key.');
+      const bytes = Uint8Array.from(atob(data.keystore_b64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'application/x-pkcs12' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.alert(`Keystore downloaded. Keep it safe — you'll need it to update this app on Google Play.\n\nAlias: ${data.key_alias}\nStore password: ${data.store_password}\nKey password: ${data.key_password}`);
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setSigningKeyBusy(false);
+    }
+  };
+
+  const deleteSigningKey = async () => {
+    if (!window.confirm("Delete this app's signing key? If it's already been used for a Google Play submission, you will NEVER be able to publish another update to that listing unless you re-import this exact key from a backup.")) return;
+    setSigningKeyBusy(true);
+    setSaveError('');
+    try {
+      await fetch(`${API}${apiBase}/${appId}/signing-key`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await loadSigningKey();
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setSigningKeyBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (!enableApkBuild) return undefined;
     if (!apkBuild || (apkBuild.status !== 'queued' && apkBuild.status !== 'building')) return undefined;
@@ -1396,7 +1490,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     return () => { cancelled = true; };
   }, [apkQrOpen, apkBuild?.apk_url]);
 
-  const startApkBuild = async () => {
+  const startApkBuild = async (buildAab = false) => {
     setApkBusy(true);
     setSaveError('');
     try {
@@ -1412,7 +1506,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       const triggerRes = await fetch(`${API}${apiBase}/${appId}/build-apk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ bundle_url: uploadData.url }),
+        body: JSON.stringify({ bundle_url: uploadData.url, build_aab: buildAab }),
       });
       const triggerData = await triggerRes.json();
       if (!triggerRes.ok) throw new Error(triggerData.detail || 'Could not start the build.');
@@ -2022,13 +2116,27 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               )}
 
               {enableApkBuild && (
-                <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60">
-                  <Package size={16} className="text-[#A1A1A6] shrink-0" />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.aab</span>
-                    <span className="block text-[10px] text-[#A1A1A6]">For Google Play submission</span>
-                  </span>
-                  <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa] shrink-0">Coming soon</span>
+                <div className="w-full p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                  <button
+                    onClick={() => startApkBuild(true)}
+                    disabled={apkInProgress}
+                    className="w-full flex items-center gap-3 text-left disabled:opacity-60"
+                  >
+                    <Package size={16} className="text-[#4ECDC4] shrink-0" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.aab</span>
+                      <span className="block text-[10px] text-[#A1A1A6]">
+                        {apkInProgress ? 'Building…' : apkBuild?.aab_url ? 'Ready — download below, or rebuild' : 'Signed bundle for Google Play'}
+                      </span>
+                    </span>
+                    {apkInProgress && <div className="w-3.5 h-3.5 border-2 border-[#D2D2D7] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />}
+                  </button>
+                  {apkBuild?.aab_url && !apkInProgress && (
+                    <a href={`${API}${apkBuild.aab_url}`} download className="mt-2 inline-block text-[11px] font-semibold text-[#4ECDC4] hover:underline">Download .aab</a>
+                  )}
+                  <p className="mt-1 text-[9px] text-[#A1A1A6]">
+                    {signingKey?.exists ? `Signed with your ${signingKey.source === 'imported' ? 'imported' : 'auto-generated'} key.` : 'A signing key will be generated automatically on first build — see App Settings.'}
+                  </p>
                 </div>
               )}
 
@@ -2176,6 +2284,32 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 </div>
               </div>
 
+              {enableApkBuild && (
+                <div>
+                  <label className={FIELD_LABEL}>Signing key (Google Play)</label>
+                  {signingKey?.exists ? (
+                    <div className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] p-3 space-y-2">
+                      <p className="text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7]">
+                        {signingKey.source === 'imported' ? 'Your imported key' : 'Auto-generated key'} — fingerprint
+                      </p>
+                      <p className="text-[10px] font-mono text-[#A1A1A6] break-all">{signingKey.fingerprint}</p>
+                      <div className="flex items-center gap-3">
+                        <button onClick={downloadSigningKey} disabled={signingKeyBusy} className="text-[11px] font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">Download backup</button>
+                        <button onClick={deleteSigningKey} disabled={signingKeyBusy} className="text-[11px] font-semibold text-red-500 hover:underline disabled:opacity-50">Delete</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] p-3 space-y-2">
+                      <p className="text-[10px] text-[#A1A1A6]">No signing key yet — one is generated automatically the first time you build an .aab, or you can import your own now.</p>
+                      <div className="flex items-center gap-3">
+                        <button onClick={generateSigningKey} disabled={signingKeyBusy} className="text-[11px] font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">Generate now</button>
+                        <button onClick={() => setSigningImportOpen(true)} disabled={signingKeyBusy} className="text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:underline disabled:opacity-50">Import my own…</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {typeof app.storage_used_bytes === 'number' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -2197,6 +2331,46 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
             <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
               <Button className="w-full" onClick={() => setSettingsOpen(false)}>Done</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import an existing signing keystore (.p12/.pfx only — see the
+          backend's error message for a keytool conversion command if
+          someone has a legacy .jks). */}
+      {signingImportOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/50" onClick={() => !signingKeyBusy && setSigningImportOpen(false)}>
+          <div onClick={e => e.stopPropagation()} className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Import signing key</h3>
+              <button onClick={() => setSigningImportOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white"><X size={16} /></button>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-[11px] text-[#A1A1A6]">PKCS12 format only (.p12/.pfx).</p>
+              <div>
+                <label className={FIELD_LABEL}>Key alias</label>
+                <input value={signingImportForm.key_alias} onChange={e => setSigningImportForm(f => ({ ...f, key_alias: e.target.value }))} className={FIELD_INPUT} />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Store password</label>
+                <input type="password" value={signingImportForm.store_password} onChange={e => setSigningImportForm(f => ({ ...f, store_password: e.target.value }))} className={FIELD_INPUT} />
+              </div>
+              <div>
+                <label className={FIELD_LABEL}>Key password</label>
+                <input type="password" value={signingImportForm.key_password} onChange={e => setSigningImportForm(f => ({ ...f, key_password: e.target.value }))} className={FIELD_INPUT} />
+              </div>
+              <input
+                ref={signingFileInputRef} type="file" accept=".p12,.pfx" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) importSigningKey(f); }}
+              />
+              <Button
+                className="w-full" loading={signingKeyBusy}
+                disabled={!signingImportForm.key_alias || !signingImportForm.store_password || !signingImportForm.key_password}
+                onClick={() => signingFileInputRef.current?.click()}
+              >
+                Choose file & import
+              </Button>
             </div>
           </div>
         </div>

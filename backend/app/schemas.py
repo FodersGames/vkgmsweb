@@ -463,6 +463,7 @@ class VakarPlusCheckoutRequest(BaseModel):
 
 class ApkBuildTriggerRequest(BaseModel):
     bundle_url: str
+    build_aab: bool = False
 
 class CareerCreateRequest(BaseModel):
     title: str

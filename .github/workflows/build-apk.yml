@@ -10,6 +10,14 @@
 # customization steps below that are NEW and have not been verified live
 # yet — watch the first real run with a custom icon/SDK closely. See
 # MEMORY: studio_app_builder.md.
+#
+# NOTE 2: the signed-AAB steps (build_aab=true, for Google Play) are ALSO
+# new and unverified on a real dispatch — watch the first real run closely.
+# This repo is PUBLIC, so workflow_dispatch inputs are visible forever to
+# anyone in the Actions run history. The signing keystore + passwords are
+# therefore never passed as inputs — only a one-time, unguessable
+# signing_url is, which is fetched here and every value from it is masked
+# with ::add-mask:: the instant it's read, before it's used anywhere else.
 name: Build Studio App APK
 
 on:
@@ -45,6 +53,14 @@ on:
         default: "34"
       icon_url:
         description: "Public URL of a source app icon (square, 1024x1024+) — blank to keep Capacitor's default"
+        required: false
+        default: ""
+      build_aab:
+        description: "\"true\" to also produce a signed .aab (Google Play) alongside the debug APK"
+        required: false
+        default: "false"
+      signing_url:
+        description: "One-time URL to fetch {keystore_b64, store_password, key_password, key_alias} JSON from — required when build_aab is true"
         required: false
         default: ""
 
@@ -106,14 +122,46 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: Fetch signing key
+        if: inputs.build_aab == 'true'
+        working-directory: build-project/android
+        run: |
+          curl -sfL "${{ inputs.signing_url }}" -o /tmp/signing.json
+          STORE_PASS=$(python3 -c "import json;print(json.load(open('/tmp/signing.json'))['store_password'])")
+          KEY_PASS=$(python3 -c "import json;print(json.load(open('/tmp/signing.json'))['key_password'])")
+          KEY_ALIAS=$(python3 -c "import json;print(json.load(open('/tmp/signing.json'))['key_alias'])")
+          echo "::add-mask::$STORE_PASS"
+          echo "::add-mask::$KEY_PASS"
+          python3 -c "import json,base64;d=json.load(open('/tmp/signing.json'));open('app/upload-key.p12','wb').write(base64.b64decode(d['keystore_b64']))"
+          rm -f /tmp/signing.json
+          {
+            echo "STORE_PASS=$STORE_PASS"
+            echo "KEY_PASS=$KEY_PASS"
+            echo "KEY_ALIAS=$KEY_ALIAS"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed AAB
+        if: inputs.build_aab == 'true'
+        working-directory: build-project/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$(pwd)/app/upload-key.p12" \
+            -Pandroid.injected.signing.store.password="$STORE_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
+          rm -f app/upload-key.p12
+
       - name: Report success
         if: success()
         run: |
           APK_PATH="build-project/android/app/build/outputs/apk/debug/app-debug.apk"
-          curl -sf -X POST "${{ inputs.callback_url }}" \
-            -F "callback_token=${{ inputs.callback_token }}" \
-            -F "status=ready" \
-            -F "apk=@${APK_PATH};type=application/vnd.android.package-archive"
+          AAB_PATH="build-project/android/app/build/outputs/bundle/release/app-release.aab"
+          ARGS=(-F "callback_token=${{ inputs.callback_token }}" -F "status=ready" -F "apk=@${APK_PATH};type=application/vnd.android.package-archive")
+          if [ "${{ inputs.build_aab }}" = "true" ] && [ -f "$AAB_PATH" ]; then
+            ARGS+=(-F "aab=@${AAB_PATH};type=application/octet-stream")
+          fi
+          curl -sf -X POST "${{ inputs.callback_url }}" "${ARGS[@]}"
 
       - name: Report failure
         if: failure()

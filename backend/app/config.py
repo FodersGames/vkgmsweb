@@ -78,3 +78,11 @@ GITHUB_WORKFLOW_REF = os.environ.get('GITHUB_WORKFLOW_REF', 'version_006')
 # permanently undecryptable, which JWT ephemerality never risked (a logged-out
 # user just logs back in; a corrupted export file is unrecoverable data loss).
 VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-file-v1:{JWT_SECRET}".encode()).digest())
+
+# Android app-signing keystores (Studio App Builder .aab/Google Play export) —
+# same derivation pattern as VAKARSTUDIO_FILE_KEY above, distinct label so the
+# two never collide. This is materially more sensitive than a project export:
+# whoever holds the plaintext key can sign updates impersonating the
+# developer's app on Google Play, so it's encrypted at rest with this
+# server-only key and only ever decrypted transiently (see apk_builds.py).
+STUDIO_SIGNING_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"studio-signing-key-v1:{JWT_SECRET}".encode()).digest())
