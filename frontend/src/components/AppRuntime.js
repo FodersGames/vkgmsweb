@@ -557,6 +557,32 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
         body: fields !== undefined ? JSON.stringify({ fields }) : undefined,
       }).then(r => r.json());
     },
+    // In-app accounts — a Studio App's own end-user login/signup, separate
+    // from the logged-in Vakar Games session (`token` above is that site
+    // session, only ever sent to dataRequest above; accountRequest's token
+    // param is the app-specific session accountLogin/Signup returns).
+    accountRequest: (path, body, appSessionToken) => {
+      const appKey = app?.public_id || app?.slug || '';
+      const url = `${API}/api/apps/${encodeURIComponent(appKey)}/accounts/${path}`;
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(appSessionToken ? { Authorization: `Bearer ${appSessionToken}` } : {}) },
+        body: body != null ? JSON.stringify(body) : undefined,
+      }).then(r => r.json());
+    },
+    loadStoredSession: () => {
+      try {
+        const raw = localStorage.getItem(`vkuser:${app?.slug || app?.id || 'app'}:session`);
+        return raw ? JSON.parse(raw) : null;
+      } catch { return null; }
+    },
+    saveStoredSession: (nextSession) => {
+      try {
+        const key = `vkuser:${app?.slug || app?.id || 'app'}:session`;
+        if (nextSession) localStorage.setItem(key, JSON.stringify(nextSession));
+        else localStorage.removeItem(key);
+      } catch { /* storage unavailable */ }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [screens, app, token]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);

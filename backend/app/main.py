@@ -22,7 +22,7 @@ from .routers import (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
     play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block, studio_data,
+    vakar_block, studio_data, studio_accounts,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ for _router_module in (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
     play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block, studio_data,
+    vakar_block, studio_data, studio_accounts,
 ):
     app.include_router(_router_module.router, prefix="/api")
 
@@ -141,6 +141,11 @@ async def startup_event():
         await db.users.create_index("stripe_customer_id", sparse=True)
         await db.apk_builds.create_index([("app_id", 1), ("created_at", -1)])
         await db.studio_records.create_index([("app_id", 1), ("collection", 1), ("created_at", -1)])
+        await db.studio_app_users.create_index([("app_id", 1), ("username", 1)], unique=True)
+        await db.studio_app_sessions.create_index("token", unique=True)
+        # TTL — a session past 90 days is just cleaned up by Mongo itself,
+        # no manual expiry check needed anywhere that reads a session.
+        await db.studio_app_sessions.create_index("created_at", expireAfterSeconds=90 * 24 * 3600)
         await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
         await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)

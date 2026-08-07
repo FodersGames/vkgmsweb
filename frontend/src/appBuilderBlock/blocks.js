@@ -43,6 +43,7 @@ export const COLORS = {
   network: '#457B9D',
   secrets: '#6D597A',
   data: '#E07A5F',
+  accounts: '#3A5A40',
 };
 
 const jsonBlocks = [
@@ -1010,6 +1011,55 @@ const jsonBlocks = [
   },
 
   // ============================================================
+  // Accounts — a Studio App's own end-user login/signup (backend/app/
+  // routers/studio_accounts.py), completely separate from Vakar Games
+  // accounts. Stays logged in across visits (session saved to this
+  // device's storage) until "log out" runs.
+  // ============================================================
+  {
+    type: 'ab_account_signup',
+    message0: 'create account %1 password %2',
+    args0: [
+      { type: 'input_value', name: 'USERNAME' },
+      { type: 'input_value', name: 'PASSWORD' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.accounts,
+    tooltip: 'Creates a new account for this app and logs in as it. False if the username is taken or invalid, or the password is too short (8+ characters).',
+  },
+  {
+    type: 'ab_account_login',
+    message0: 'log in as %1 password %2',
+    args0: [
+      { type: 'input_value', name: 'USERNAME' },
+      { type: 'input_value', name: 'PASSWORD' },
+    ],
+    output: 'Boolean',
+    colour: COLORS.accounts,
+    tooltip: 'False if the username/password is wrong.',
+  },
+  {
+    type: 'ab_account_logout',
+    message0: 'log out',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.accounts,
+  },
+  {
+    type: 'ab_account_username',
+    message0: 'current account username',
+    output: null,
+    colour: COLORS.accounts,
+    tooltip: 'Empty text if nobody is logged in.',
+  },
+  {
+    type: 'ab_account_is_logged_in',
+    message0: 'is logged in?',
+    output: 'Boolean',
+    colour: COLORS.accounts,
+  },
+
+  // ============================================================
   // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
   // also reused inside "for each item in list" loop bodies)
   // ============================================================
@@ -1288,6 +1338,22 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_data_add', inputs: { FIELDS: { shadow: { type: 'text', fields: { TEXT: '{"name": "Alice"}' } } } } },
       { kind: 'block', type: 'ab_data_update', inputs: { FIELDS: { shadow: { type: 'text', fields: { TEXT: '{"name": "Alice"}' } } } } },
       { kind: 'block', type: 'ab_data_delete' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Accounts', colour: COLORS.accounts,
+    contents: [
+      { kind: 'block', type: 'ab_account_signup', inputs: {
+        USERNAME: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        PASSWORD: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+      { kind: 'block', type: 'ab_account_login', inputs: {
+        USERNAME: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        PASSWORD: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+      { kind: 'block', type: 'ab_account_logout' },
+      { kind: 'block', type: 'ab_account_username' },
+      { kind: 'block', type: 'ab_account_is_logged_in' },
     ],
   },
 ];

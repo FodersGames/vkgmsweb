@@ -24,7 +24,16 @@
 //   sandboxFetch(url, method, body) — Promise<{ok, status, text}>, see httpGet/httpPost below
 //   secrets                     — {name: value}, the app's Integrations tab entries (see getSecret below)
 //   dataRequest(method, collection, recordId, fields) — Promise<response JSON>, see the Data blocks below
+//   accountRequest(path, body, token) — Promise<response JSON>, see the Accounts blocks below
+//   loadStoredSession()          — {token, username} | null, read synchronously at startup
+//   saveStoredSession(session)   — persist {token, username}, or null to clear
 export function createRuntimeHelpers(host) {
+  // In-app account session — loaded once at construction (one runtime
+  // instance per app load) so accountCurrentUsername()/accountIsLoggedIn()
+  // never need a network round trip. Re-saved to host's storage on every
+  // signup/login/logout so a returning visitor stays logged in.
+  var session = (host.loadStoredSession && host.loadStoredSession()) || null;
+
   function parseArray(raw) {
     if (!raw) return [];
     try {
@@ -460,6 +469,42 @@ export function createRuntimeHelpers(host) {
     dataDelete: function (collection, recordId) {
       if (!recordId) return Promise.resolve();
       return host.dataRequest('DELETE', collection, recordId).catch(function () {});
+    },
+
+    // In-app accounts — a Studio App's own end-user login/signup, separate
+    // from Vakar Games accounts (backend/app/routers/studio_accounts.py).
+    // On success both signup and login remember the session (in-memory for
+    // this run, and via host.saveStoredSession for next time the app is
+    // opened) so accountCurrentUsername()/accountIsLoggedIn() work without
+    // another request.
+    accountSignup: function (username, password) {
+      return host.accountRequest('signup', { username: username, password: password }).then(function (r) {
+        if (!r || !r.token) return false;
+        session = { token: r.token, username: r.username };
+        if (host.saveStoredSession) host.saveStoredSession(session);
+        return true;
+      }).catch(function () { return false; });
+    },
+    accountLogin: function (username, password) {
+      return host.accountRequest('login', { username: username, password: password }).then(function (r) {
+        if (!r || !r.token) return false;
+        session = { token: r.token, username: r.username };
+        if (host.saveStoredSession) host.saveStoredSession(session);
+        return true;
+      }).catch(function () { return false; });
+    },
+    accountLogout: function () {
+      var tok = session && session.token;
+      session = null;
+      if (host.saveStoredSession) host.saveStoredSession(null);
+      if (!tok) return Promise.resolve();
+      return host.accountRequest('logout', null, tok).catch(function () {});
+    },
+    accountCurrentUsername: function () {
+      return (session && session.username) || '';
+    },
+    accountIsLoggedIn: function () {
+      return !!(session && session.token);
     },
   };
 }

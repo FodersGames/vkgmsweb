@@ -582,6 +582,31 @@ ${actionsSource}
         body: fields !== undefined ? JSON.stringify({ fields: fields }) : undefined,
       }).then(function (r) { return r.json(); });
     },
+    // In-app accounts — separate from any Vakar Games session (this
+    // standalone export never has one).
+    accountRequest: function (path, body, appSessionToken) {
+      var url = ${JSON.stringify(EXPORT_API_BASE)} + '/api/apps/' + encodeURIComponent(${JSON.stringify(app.public_id || app.slug || '')}) + '/accounts/' + path;
+      var headers = { 'Content-Type': 'application/json' };
+      if (appSessionToken) headers['Authorization'] = 'Bearer ' + appSessionToken;
+      return fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: body != null ? JSON.stringify(body) : undefined,
+      }).then(function (r) { return r.json(); });
+    },
+    loadStoredSession: function () {
+      try {
+        var raw = localStorage.getItem(${JSON.stringify(`vkuser:${app.slug || app.id || 'app'}:session`)});
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    },
+    saveStoredSession: function (nextSession) {
+      try {
+        var key = ${JSON.stringify(`vkuser:${app.slug || app.id || 'app'}:session`)};
+        if (nextSession) localStorage.setItem(key, JSON.stringify(nextSession));
+        else localStorage.removeItem(key);
+      } catch (e) { /* storage unavailable */ }
+    },
   });
 
   function runAction(key, scope) {

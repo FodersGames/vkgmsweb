@@ -434,6 +434,27 @@ forBlock['ab_data_delete'] = function (block, generator) {
   return `await helpers.dataDelete(${collection}, ${recordId});\n`;
 };
 
+// ---------- Accounts ----------
+forBlock['ab_account_signup'] = function (block, generator) {
+  const username = generator.valueToCode(block, 'USERNAME', Order.NONE) || "''";
+  const password = generator.valueToCode(block, 'PASSWORD', Order.NONE) || "''";
+  return [`(await helpers.accountSignup(${username}, ${password}))`, Order.NONE];
+};
+forBlock['ab_account_login'] = function (block, generator) {
+  const username = generator.valueToCode(block, 'USERNAME', Order.NONE) || "''";
+  const password = generator.valueToCode(block, 'PASSWORD', Order.NONE) || "''";
+  return [`(await helpers.accountLogin(${username}, ${password}))`, Order.NONE];
+};
+forBlock['ab_account_logout'] = function () {
+  return `await helpers.accountLogout();\n`;
+};
+forBlock['ab_account_username'] = function () {
+  return ['helpers.accountCurrentUsername()', Order.FUNCTION_CALL];
+};
+forBlock['ab_account_is_logged_in'] = function () {
+  return ['helpers.accountIsLoggedIn()', Order.FUNCTION_CALL];
+};
+
 // ---------- Navigate ----------
 forBlock['ab_navigate'] = function (block) {
   return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;
