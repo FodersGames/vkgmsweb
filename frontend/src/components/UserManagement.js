@@ -116,7 +116,7 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
 export const UserManagement = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
 
   // ── List state ────────────────────────────────────────────────────────
   const [users, setUsers] = useState([]);
@@ -338,6 +338,10 @@ export const UserManagement = () => {
     try {
       await api.patch(`/api/admin/users/${activeUser.id}/vakar-plus`, { grant });
       setActiveUser(u => ({ ...u, vakar_plus_status: grant ? 'active' : 'none', vakar_plus_plan: grant ? 'manual' : null }));
+      // Toggling your OWN Vakar+ status needs to reach AuthContext too — it's
+      // what actually gates premium features (allowPremium) everywhere else
+      // in the app, not this admin panel's local state.
+      if (currentUser?.id === activeUser.id) refreshUser();
       toast.success(grant ? 'Vakar+ granted' : 'Vakar+ revoked');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update Vakar+ status');
@@ -627,8 +631,10 @@ export const UserManagement = () => {
             )}
           </div>
 
-          {/* Vakar+ — manual comp/revoke, independent of Stripe */}
-          {!isSuperAdmin && (
+          {/* Vakar+ — manual comp/revoke, independent of Stripe. Shown on a
+              super admin's OWN profile too (e.g. to test premium features)
+              even though it's hidden when viewing another super admin. */}
+          {(!isSuperAdmin || isSelf) && (
             <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4 flex items-center gap-1.5">
                 <Crown size={14} className="text-[#4ECDC4]" /> Vakar+
