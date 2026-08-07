@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, COMPONENT_META, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
+import { sandboxFetch } from '../appBuilderBlock/sandboxFetch';
 import { compileNodeBlocks } from '../appBuilderBlock/generators';
 import { migrateToHatWorkspace, isV2Shape } from '../appBuilderBlock/legacyMigration';
 import { setAbBlockContext } from '../appBuilderBlock/fields';
@@ -529,6 +530,12 @@ export default function AppRuntime({ app, className = '', showWatermark = false 
     // their own real domain in production, where this matters less but is
     // harmless to keep for consistency.
     storagePrefix: `vkstore:${app?.slug || app?.id || 'app'}:`,
+    // Network (fetch) blocks run inside a sandboxed, opaque-origin iframe —
+    // see appBuilderBlock/sandboxFetch.js — so they can never read this
+    // page's cookies/localStorage (this preview shares vakargames.com's own
+    // origin with the logged-in user's session), regardless of what URL a
+    // block is told to call.
+    sandboxFetch,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [screens, app]);
   const helpers = useMemo(() => createRuntimeHelpers(host), [host]);

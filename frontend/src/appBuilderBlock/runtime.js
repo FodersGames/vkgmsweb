@@ -21,6 +21,7 @@
 //   now()                       — current time in ms (Date.now, injectable)
 //   initialVars                 — {name: initial_value}, for resetVariables()
 //   storagePrefix               — string, namespaces localStorage keys per app
+//   sandboxFetch(url, method, body) — Promise<{ok, status, text}>, see httpGet/httpPost below
 export function createRuntimeHelpers(host) {
   function parseArray(raw) {
     if (!raw) return [];
@@ -371,6 +372,29 @@ export function createRuntimeHelpers(host) {
       // same graceful-no-op convention as vibrate()/clipboard() on
       // unsupported devices.
       if (typeof window !== 'undefined' && window.close) window.close();
+    },
+
+    // Network requests — routed through host.sandboxFetch(url, method, body)
+    // rather than calling fetch() directly here, so each caller controls
+    // WHERE the request actually runs. In the live editor/public preview
+    // (same browser origin as the logged-in Vakar Games site) that's a
+    // sandboxed, opaque-origin iframe with no access to this page's cookies
+    // or localStorage — a broken or malicious block can send a request
+    // (that part is inherent to "letting an app talk to the internet"), but
+    // it can never piggyback on this site's session to do it. In the
+    // standalone static export there's no such shared session to protect,
+    // so host.sandboxFetch there is just a direct fetch(). Never throws —
+    // network/CORS failures resolve to an empty string, same fail-quiet
+    // convention as every other helper here.
+    httpGet: function (url) {
+      return host.sandboxFetch(String(url == null ? '' : url), 'GET', null).then(function (r) {
+        return r && r.ok ? r.text : '';
+      }).catch(function () { return ''; });
+    },
+    httpPost: function (url, body) {
+      return host.sandboxFetch(String(url == null ? '' : url), 'POST', String(body == null ? '' : body)).then(function (r) {
+        return r && r.ok ? r.text : '';
+      }).catch(function () { return ''; });
     },
   };
 }

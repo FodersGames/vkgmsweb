@@ -392,6 +392,17 @@ forBlock['ab_storage_remove'] = function (block) {
   return `helpers.storageRemove(${fieldStr(block, 'KEY')});\n`;
 };
 
+// ---------- Web Requests ----------
+forBlock['ab_http_get'] = function (block, generator) {
+  const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
+  return [`(await helpers.httpGet(${url}))`, Order.NONE];
+};
+forBlock['ab_http_post'] = function (block, generator) {
+  const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
+  const body = generator.valueToCode(block, 'BODY', Order.NONE) || "''";
+  return [`(await helpers.httpPost(${url}, ${body}))`, Order.NONE];
+};
+
 // ---------- Navigate ----------
 forBlock['ab_navigate'] = function (block) {
   return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;

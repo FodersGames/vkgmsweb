@@ -40,6 +40,7 @@ export const COLORS = {
   control: '#FFAB19',
   storage: '#8395A7',
   item: '#2F9E44',
+  network: '#457B9D',
 };
 
 const jsonBlocks = [
@@ -900,6 +901,34 @@ const jsonBlocks = [
   },
 
   // ============================================================
+  // Web Requests — run inside a security sandbox in the live editor/public
+  // preview (see appBuilderBlock/sandboxFetch.js): the request itself can
+  // still succeed or fail normally, but it can never read this site's
+  // session. Only ever reaches servers that allow cross-origin requests
+  // (the browser's normal CORS rules still apply) — returns empty text on
+  // any failure, same fail-quiet convention as every other block here.
+  // ============================================================
+  {
+    type: 'ab_http_get',
+    message0: 'web request GET %1',
+    args0: [{ type: 'input_value', name: 'URL' }],
+    output: null,
+    colour: COLORS.network,
+    tooltip: 'Fetches a URL and returns the response text (parse JSON with the "field of" block above). Empty text if the request fails.',
+  },
+  {
+    type: 'ab_http_post',
+    message0: 'web request POST %1 body %2',
+    args0: [
+      { type: 'input_value', name: 'URL' },
+      { type: 'input_value', name: 'BODY' },
+    ],
+    output: null,
+    colour: COLORS.network,
+    tooltip: 'Sends a POST request and returns the response text. Empty text if the request fails.',
+  },
+
+  // ============================================================
   // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
   // also reused inside "for each item in list" loop bodies)
   // ============================================================
@@ -1147,6 +1176,17 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_storage_set', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
       { kind: 'block', type: 'ab_storage_get' },
       { kind: 'block', type: 'ab_storage_remove' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Web Requests', colour: COLORS.network,
+    contents: [
+      { kind: 'block', type: 'ab_http_get', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } } } },
+      { kind: 'block', type: 'ab_http_post', inputs: {
+        URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } },
+        BODY: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
+      { kind: 'block', type: 'ab_json_field' },
     ],
   },
 ];

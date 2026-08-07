@@ -550,6 +550,16 @@ ${actionsSource}
     now: function () { return Date.now(); },
     initialVars: INITIAL_VARS,
     storagePrefix: ${JSON.stringify(`vkstore:${app.slug || app.id || 'app'}:`)},
+    // Unlike the editor's live preview (which sandboxes this in an
+    // opaque-origin iframe — see appBuilderBlock/sandboxFetch.js — because
+    // it shares vakargames.com's own origin with a logged-in session), this
+    // exported app already runs standalone in its own origin with no
+    // ambient session to protect, so a direct fetch() is enough here.
+    sandboxFetch: function (url, method, body) {
+      return fetch(url, { method: method || 'GET', body: body == null ? undefined : body, referrerPolicy: 'no-referrer' })
+        .then(function (res) { return res.text().then(function (text) { return { ok: res.ok, status: res.status, text: text }; }); })
+        .catch(function (err) { return { ok: false, status: 0, text: '', error: String((err && err.message) || err) }; });
+    },
   });
 
   function runAction(key, scope) {
