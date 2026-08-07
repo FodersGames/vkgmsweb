@@ -44,7 +44,7 @@ const SDK_LEVELS = [
   { v: 25, label: '25 — Android 7.1' }, { v: 26, label: '26 — Android 8.0' }, { v: 27, label: '27 — Android 8.1' },
   { v: 28, label: '28 — Android 9' }, { v: 29, label: '29 — Android 10' }, { v: 30, label: '30 — Android 11' },
   { v: 31, label: '31 — Android 12' }, { v: 32, label: '32 — Android 12L' }, { v: 33, label: '33 — Android 13' },
-  { v: 34, label: '34 — Android 14' }, { v: 35, label: '35 — Android 15' },
+  { v: 34, label: '34 — Android 14' }, { v: 35, label: '35 — Android 15' }, { v: 36, label: '36 — Android 16' },
 ];
 
 // Plays a PREMIUM_PREVIEW_SCENES entry on a loop inside the locked-feature
@@ -294,18 +294,36 @@ function EditableBox({ node, index = 0, theme, selectedId, onSelect, onChangeLay
   );
 }
 
-function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onDelete }) {
+function DesignCanvas({ screen, theme, selectedId, onSelect, onChangeLayout, onDelete, onDropComponent, dragOver, onDragOverChange }) {
   return (
     <div
       onMouseDown={() => onSelect(null)}
-      style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, background: theme.colors.background, overflow: 'hidden' }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('application/x-vakar-component')) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!dragOver) onDragOverChange?.(true);
+      }}
+      onDragLeave={() => onDragOverChange?.(false)}
+      onDrop={(e) => {
+        const type = e.dataTransfer.getData('application/x-vakar-component');
+        onDragOverChange?.(false);
+        if (!type) return;
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        onDropComponent?.(type, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+      }}
+      style={{
+        position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, background: theme.colors.background, overflow: 'hidden',
+        outline: dragOver ? '2px dashed #4ECDC4' : 'none', outlineOffset: -2,
+      }}
     >
       {(screen.components || []).map((node, i) => (
         <EditableBox key={node.id} node={node} index={i} theme={theme} selectedId={selectedId} onSelect={onSelect} onChangeLayout={onChangeLayout} onDelete={onDelete} bounds={{ w: CANVAS_WIDTH, h: CANVAS_HEIGHT }} />
       ))}
       {(screen.components || []).length === 0 && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: theme.colors.textMuted, textAlign: 'center', padding: 24 }}>
-          Empty screen — add a component from the palette, then drag it into place.
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: theme.colors.textMuted, textAlign: 'center', padding: 24, pointerEvents: 'none' }}>
+          Empty screen — drag a component from the palette, or click one to add it.
         </div>
       )}
     </div>
@@ -857,7 +875,6 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [migrationWarnings, setMigrationWarnings] = useState([]);
   const [activeScreenId, setActiveScreenId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
-  const [inspectorTab, setInspectorTab] = useState('props');
   // { nodeId, isScreen? } when the full-screen block editor is open for that
   // element's or screen's single `.blocks` workspace — null means the
   // normal Designer view (palette/canvas/inspector). Replaces the old
@@ -903,6 +920,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [republishConfirmOpen, setRepublishConfirmOpen] = useState(false);
   const [republishSubmitting, setRepublishSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [quotaBannerDismissed, setQuotaBannerDismissed] = useState(false);
+  const [canvasDragOver, setCanvasDragOver] = useState(false);
   const reviewBannerInputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -1006,22 +1025,32 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     a.screens.splice(newIdx, 0, item);
   });
 
-  const addComponent = (type) => {
+  const addComponent = (type, dropPos) => {
     // Adds inside the currently selected group, if any — otherwise at the top level.
     const selectedNode = selectedId ? findComponent(activeScreen, selectedId)?.node : null;
     const containerId = selectedNode?.type === 'container' ? selectedNode.id : null;
     const siblingCount = containerId
       ? (activeScreen.components.find(c => c.id === containerId)?.children.length || 0)
       : activeScreen.components.length;
-    const cascade = (siblingCount % 6) * 14;
-    const comp = createComponent(type, { x: 20 + cascade, y: 20 + cascade });
+    const comp = createComponent(type);
+    if (dropPos) {
+      // Dropped from the palette — center the new component on the cursor,
+      // clamped to stay fully inside the canvas.
+      const maxX = Math.max(0, CANVAS_WIDTH - comp.layout.w);
+      const maxY = Math.max(0, CANVAS_HEIGHT - comp.layout.h);
+      comp.layout.x = Math.min(maxX, Math.max(0, dropPos.x - comp.layout.w / 2));
+      comp.layout.y = Math.min(maxY, Math.max(0, dropPos.y - comp.layout.h / 2));
+    } else {
+      const cascade = (siblingCount % 6) * 14;
+      comp.layout.x = 20 + cascade;
+      comp.layout.y = 20 + cascade;
+    }
     mutate(a => {
       const screen = a.screens.find(s => s.id === activeScreenId);
       if (containerId) screen.components.find(c => c.id === containerId).children.push(comp);
       else screen.components.push(comp);
     });
     setSelectedId(comp.id);
-    setInspectorTab('props');
   };
 
   const updateSelected = (updater) => {
@@ -1568,10 +1597,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
       )}
 
-      {quota && !allowPremium && (
+      {quota && !allowPremium && !quotaBannerDismissed && (
         <div className="flex items-center justify-between gap-3 px-5 py-2 bg-[#4ECDC4]/8 border-b border-[#4ECDC4]/20 text-[11px] text-[#1D1D1F] dark:text-[#e4e4e7] shrink-0">
           <span>{quota.used}/{quota.max} apps used on your plan.</span>
-          <a href="/vakar-plus" className="font-semibold text-[#4ECDC4] hover:underline shrink-0">Upgrade to Vakar+ for more</a>
+          <div className="flex items-center gap-3 shrink-0">
+            <a href="/vakar-plus" className="font-semibold text-[#4ECDC4] hover:underline shrink-0">Upgrade to Vakar+ for more</a>
+            <button onClick={() => setQuotaBannerDismissed(true)} className="shrink-0" title="Dismiss"><X size={12} /></button>
+          </div>
         </div>
       )}
 
@@ -1615,24 +1647,43 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
       )}
 
+      {/* Designer / Builder switch — persistent above the canvas (and the
+          Blocks view), MIT-App-Inventor style. Replaces the old per-component
+          "Action" button that used to live buried in the inspector. Builder
+          opens whatever is selected on the canvas, or the active screen's own
+          workspace if nothing is selected. */}
+      <div className="flex items-center gap-3 px-5 py-2 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+        <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1">
+          <button
+            onClick={() => setBlocksTarget(null)}
+            className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${!blocksTarget ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#4ECDC4]'}`}
+          >
+            Designer
+          </button>
+          <button
+            onClick={() => {
+              if (blocksTarget) return;
+              if (selectedId && selected && HAT_TYPES_BY_COMPONENT[selected.type]) setBlocksTarget({ nodeId: selectedId });
+              else if (activeScreenId) setBlocksTarget({ nodeId: activeScreenId, isScreen: true });
+            }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${blocksTarget ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#4ECDC4]'}`}
+          >
+            <Zap size={11} />Builder
+          </button>
+        </div>
+        {blocksTarget && (blocksNode || blocksScreen) && (
+          <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
+            {blocksTarget.isScreen ? `Screen: ${blocksScreen?.name || 'Untitled'}` : COMPONENT_META[blocksNode?.type]?.label}
+          </span>
+        )}
+      </div>
+
       {/* Body */}
       {blocksTarget && (blocksNode || blocksScreen) ? (
         /* Full-screen Blocks mode (MIT-App-Inventor-style Designer/Blocks
            toggle) — replaces the palette/canvas/inspector entirely instead
            of squeezing a Blockly canvas into the 288px inspector sidebar. */
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center gap-3 px-5 py-2.5 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
-            <button
-              onClick={() => setBlocksTarget(null)}
-              className="flex items-center gap-1.5 rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] pl-2 pr-3 py-1.5 text-[11px] font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] hover:text-[#4ECDC4] transition-colors"
-            >
-              <ArrowLeft size={13} />Designer
-            </button>
-            <div className="w-px h-4 bg-[#D2D2D7] dark:bg-[#2a2a3c]" />
-            <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
-              {blocksTarget.isScreen ? `Screen: ${blocksScreen?.name || 'Untitled'} — Blocks` : `${COMPONENT_META[blocksNode.type]?.label} — Blocks`}
-            </span>
-          </div>
           {!blocksTarget.isScreen && (() => {
             const dependents = findVisibilityDependents(activeScreen, blocksNode.props?.variable);
             return dependents.length > 0 ? (
@@ -1733,11 +1784,17 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 return (
                   <button
                     key={c.type}
+                    draggable={!locked}
+                    onDragStart={(e) => {
+                      if (locked) { e.preventDefault(); return; }
+                      e.dataTransfer.setData('application/x-vakar-component', c.type);
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
                     onClick={() => locked ? setPreviewFeature({ kind: 'component', meta: c }) : addComponent(c.type)}
                     className={`relative flex flex-col items-center gap-1 py-2.5 rounded-lg border transition-colors ${
                       locked
-                        ? 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] opacity-60'
-                        : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4]'
+                        ? 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#BFBFC4] dark:text-[#52525b] opacity-60 cursor-not-allowed'
+                        : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#4ECDC4] hover:text-[#4ECDC4] cursor-grab active:cursor-grabbing'
                     }`}
                   >
                     {c.tier === 'premium' && (
@@ -1802,6 +1859,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               onSelect={setSelectedId}
               onChangeLayout={updateLayout}
               onDelete={deleteComponent}
+              onDropComponent={addComponent}
+              dragOver={canvasDragOver}
+              onDragOverChange={setCanvasDragOver}
             />
           </div>
         </div>
@@ -1843,20 +1903,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 })}
               </div>
               {HAT_TYPES_BY_COMPONENT[selected.type] && (
-                <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 mb-4 w-full">
-                  {[{ id: 'props', label: 'Content' }, { id: 'action', label: 'Blocks' }].map(t => (
-                    <button
-                      key={t.id}
-                      onClick={() => {
-                        if (t.id === 'action') setBlocksTarget({ nodeId: selected.id });
-                        else setInspectorTab('props');
-                      }}
-                      className={`flex-1 py-1.5 rounded-full text-[11px] font-semibold transition-all ${inspectorTab === t.id ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
+                <p className="flex items-center gap-1.5 mb-4 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">
+                  <Zap size={10} className="shrink-0" />This component has blocks — switch to <strong className="font-semibold text-[#6E6E73] dark:text-[#a1a1aa]">Builder</strong> above to edit them.
+                </p>
               )}
               <PropsEditor
                 node={selected} onChange={updateSelected} allowPremium={allowPremium} onUploadImage={uploadImageAsset}
