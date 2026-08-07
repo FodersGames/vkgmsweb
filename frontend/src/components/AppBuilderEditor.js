@@ -922,6 +922,8 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [historyOpen, setHistoryOpen] = useState(false);
   const [quotaBannerDismissed, setQuotaBannerDismissed] = useState(false);
   const [canvasDragOver, setCanvasDragOver] = useState(false);
+  const [exportHubOpen, setExportHubOpen] = useState(false);
+  const [publishHubOpen, setPublishHubOpen] = useState(false);
   const reviewBannerInputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -1518,21 +1520,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           App Settings
         </Button>
         {enableApkBuild ? (
-          <>
-            <Button size="sm" variant="accent" icon={Send} onClick={openReviewModal} title="Send this version for admin review — approval is what publishes it">
-              Submit Version
-            </Button>
-            {app.visibility === 'public' && app.ever_approved && !app.admin_takedown && (
-              <Button size="sm" variant="danger" icon={ShieldAlert} onClick={() => setWithdrawOpen(true)} title="Pull this app down yourself">
-                Remove from Applications
-              </Button>
-            )}
-            {app.visibility === 'private' && app.owner_withdrawal_reason && !app.admin_takedown && (
-              <Button size="sm" variant="secondary" icon={Eye} onClick={() => setRepublishConfirmOpen(true)}>
-                Republish to Applications
-              </Button>
-            )}
-          </>
+          <Button size="sm" variant="accent" icon={Send} onClick={() => setPublishHubOpen(true)} title="Submit, withdraw or republish this app">
+            Publish
+          </Button>
         ) : (
           <>
             <Button size="sm" variant="secondary" onClick={toggleVisibility}>
@@ -1544,29 +1534,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           </>
         )}
         <Button size="sm" variant="secondary" icon={Eye} onClick={() => setPreviewOpen(true)}>Preview</Button>
-        <Button
-          size="sm" variant="secondary" icon={allowPremium ? Download : Lock}
-          onClick={handleExport} loading={exporting}
-          title={allowPremium ? 'Export as a VS Code project' : 'Requires Vakar+'}
-        >
+        <Button size="sm" variant="secondary" icon={Download} onClick={() => setExportHubOpen(true)} title="Export or build this app">
           Export
         </Button>
-        <Button
-          size="sm" variant="secondary" icon={Package}
-          onClick={handleExportFile} loading={exportingFile}
-          title="Download an encrypted .vakarstudio project file — importable back into Vakar Studio"
-        >
-          .vakarstudio
-        </Button>
-        {enableApkBuild && (
-          <Button
-            size="sm" variant="secondary" icon={Smartphone}
-            onClick={startApkBuild} loading={apkInProgress} disabled={apkInProgress}
-            title="Build an installable Android APK"
-          >
-            {apkInProgress ? 'Building…' : 'Build APK'}
-          </Button>
-        )}
         <Button size="sm" variant="secondary" icon={Undo2} onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)" />
         <Button size="sm" variant="secondary" icon={Redo2} onClick={redo} disabled={future.length === 0} title="Redo (Ctrl+Shift+Z)" />
         <Button size="sm" icon={justSaved ? Check : Save} onClick={save} loading={saving} disabled={!dirty && !saving}>
@@ -1935,6 +1905,145 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               <X size={14} />
             </button>
             <AppRuntime app={app} token={token} className="w-full h-full" showWatermark={!allowPremium} />
+          </div>
+        </div>
+      )}
+
+      {/* Export hub — every download/build format in one place instead of a
+          row of top-bar buttons. .aab and .ipa are placeholders (Google
+          Play / iOS build pipelines don't exist yet). */}
+      {exportHubOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setExportHubOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Export</h3>
+              <button onClick={() => setExportHubOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-2 overflow-y-auto">
+              <button
+                onClick={handleExportFile}
+                disabled={exportingFile}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left disabled:opacity-60"
+              >
+                <Package size={16} className="text-[#4ECDC4] shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.vakarstudio</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">Encrypted project file — importable back into Vakar Studio</span>
+                </span>
+                {exportingFile && <div className="w-3.5 h-3.5 border-2 border-[#D2D2D7] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />}
+              </button>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left disabled:opacity-60"
+              >
+                {allowPremium ? <Download size={16} className="text-[#4ECDC4] shrink-0" /> : <Lock size={16} className="text-[#A1A1A6] shrink-0" />}
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.zip</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">{allowPremium ? 'Full VS Code project source' : 'Requires Vakar+'}</span>
+                </span>
+                {exporting && <div className="w-3.5 h-3.5 border-2 border-[#D2D2D7] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />}
+              </button>
+
+              {enableApkBuild && (
+                <button
+                  onClick={apkBuild?.status === 'ready' ? undefined : startApkBuild}
+                  disabled={apkInProgress}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left disabled:opacity-60"
+                >
+                  <Smartphone size={16} className="text-[#4ECDC4] shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.apk</span>
+                    <span className="block text-[10px] text-[#A1A1A6]">
+                      {apkInProgress ? 'Building…' : apkBuild?.status === 'ready' ? 'Ready — see the download banner above' : 'Installable Android package'}
+                    </span>
+                  </span>
+                  {apkInProgress && <div className="w-3.5 h-3.5 border-2 border-[#D2D2D7] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />}
+                </button>
+              )}
+
+              {enableApkBuild && (
+                <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60">
+                  <Package size={16} className="text-[#A1A1A6] shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.aab</span>
+                    <span className="block text-[10px] text-[#A1A1A6]">For Google Play submission</span>
+                  </span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa] shrink-0">Coming soon</span>
+                </div>
+              )}
+
+              <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60">
+                <Smartphone size={16} className="text-[#A1A1A6] shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.ipa</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">iOS</span>
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa] shrink-0">Coming soon</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish hub — Submit Version / Remove from Applications / Republish,
+          gathered behind one top-bar button instead of three. */}
+      {publishHubOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setPublishHubOpen(false)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-sm overflow-hidden max-h-[85vh] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Publish</h3>
+              <button onClick={() => setPublishHubOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-2 overflow-y-auto">
+              <button
+                onClick={() => { setPublishHubOpen(false); openReviewModal(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left"
+              >
+                <Send size={16} className="text-[#4ECDC4] shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Submit Version</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">Send this version for admin review — approval is what publishes it</span>
+                </span>
+              </button>
+
+              {app.visibility === 'public' && app.ever_approved && !app.admin_takedown && (
+                <button
+                  onClick={() => { setPublishHubOpen(false); setWithdrawOpen(true); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-red-400 transition-colors text-left"
+                >
+                  <ShieldAlert size={16} className="text-red-500 shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Remove from Applications</span>
+                    <span className="block text-[10px] text-[#A1A1A6]">Pull this app down yourself</span>
+                  </span>
+                </button>
+              )}
+
+              {app.visibility === 'private' && app.owner_withdrawal_reason && !app.admin_takedown && (
+                <button
+                  onClick={() => { setPublishHubOpen(false); setRepublishConfirmOpen(true); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left"
+                >
+                  <Eye size={16} className="text-[#4ECDC4] shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Republish to Applications</span>
+                    <span className="block text-[10px] text-[#A1A1A6]">Undo your own withdrawal and go back live</span>
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
