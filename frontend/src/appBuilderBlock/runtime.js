@@ -45,6 +45,14 @@ export function createRuntimeHelpers(host) {
     }
   }
 
+  // Last Web Request's HTTP status (0 = never made one, or a network/CORS
+  // failure with no response at all) — see httpGet/httpPost and
+  // ab_http_last_status below. One shared slot, not per-request, since
+  // blocks execute one statement at a time within a single script; a
+  // second script triggered concurrently (e.g. two buttons tapped fast)
+  // could in principle race and clobber it — acceptable for v1.
+  var lastHttpStatus = 0;
+
   function stringifyPicked(picked) {
     return typeof picked === 'object' && picked !== null ? JSON.stringify(picked) : String(picked == null ? '' : picked);
   }
@@ -398,15 +406,20 @@ export function createRuntimeHelpers(host) {
     // so host.sandboxFetch there is just a direct fetch(). Never throws —
     // network/CORS failures resolve to an empty string, same fail-quiet
     // convention as every other helper here.
-    httpGet: function (url) {
-      return host.sandboxFetch(String(url == null ? '' : url), 'GET', null).then(function (r) {
+    httpGet: function (url, headersJsonText) {
+      return host.sandboxFetch(String(url == null ? '' : url), 'GET', null, parseObject(headersJsonText)).then(function (r) {
+        lastHttpStatus = (r && r.status) || 0;
         return r && r.ok ? r.text : '';
-      }).catch(function () { return ''; });
+      }).catch(function () { lastHttpStatus = 0; return ''; });
     },
-    httpPost: function (url, body) {
-      return host.sandboxFetch(String(url == null ? '' : url), 'POST', String(body == null ? '' : body)).then(function (r) {
+    httpPost: function (url, body, headersJsonText) {
+      return host.sandboxFetch(String(url == null ? '' : url), 'POST', String(body == null ? '' : body), parseObject(headersJsonText)).then(function (r) {
+        lastHttpStatus = (r && r.status) || 0;
         return r && r.ok ? r.text : '';
-      }).catch(function () { return ''; });
+      }).catch(function () { lastHttpStatus = 0; return ''; });
+    },
+    getLastRequestStatus: function () {
+      return lastHttpStatus;
     },
 
     // Integrations tab — named tokens, NOT a real secret vault (see

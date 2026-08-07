@@ -561,8 +561,8 @@ ${actionsSource}
     // it shares vakargames.com's own origin with a logged-in session), this
     // exported app already runs standalone in its own origin with no
     // ambient session to protect, so a direct fetch() is enough here.
-    sandboxFetch: function (url, method, body) {
-      return fetch(url, { method: method || 'GET', body: body == null ? undefined : body, referrerPolicy: 'no-referrer' })
+    sandboxFetch: function (url, method, body, headers) {
+      return fetch(url, { method: method || 'GET', body: body == null ? undefined : body, headers: headers || undefined, referrerPolicy: 'no-referrer' })
         .then(function (res) { return res.text().then(function (text) { return { ok: res.ok, status: res.status, text: text }; }); })
         .catch(function (err) { return { ok: false, status: 0, text: '', error: String((err && err.message) || err) }; });
     },

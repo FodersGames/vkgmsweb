@@ -30,6 +30,7 @@ window.addEventListener('message', function (e) {
   fetch(d.url, {
     method: d.method || 'GET',
     body: d.body == null ? undefined : d.body,
+    headers: d.headers || undefined,
     referrerPolicy: 'no-referrer',
   }).then(function (res) {
     return res.text().then(function (text) {
@@ -71,7 +72,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export async function sandboxFetch(url, method, body) {
+export async function sandboxFetch(url, method, body, headers) {
   const frame = await getFrame();
   const id = nextId++;
   return new Promise((resolve) => {
@@ -82,6 +83,6 @@ export async function sandboxFetch(url, method, body) {
       }
     }, FETCH_TIMEOUT_MS);
     pending.set(id, { resolve: (r) => { clearTimeout(timer); resolve(r); } });
-    frame.contentWindow.postMessage({ __vkFetchId: id, url, method, body }, '*');
+    frame.contentWindow.postMessage({ __vkFetchId: id, url, method, body, headers }, '*');
   });
 }

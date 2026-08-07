@@ -395,12 +395,17 @@ forBlock['ab_storage_remove'] = function (block) {
 // ---------- Web Requests ----------
 forBlock['ab_http_get'] = function (block, generator) {
   const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
-  return [`(await helpers.httpGet(${url}))`, Order.NONE];
+  const headers = generator.valueToCode(block, 'HEADERS', Order.NONE) || "''";
+  return [`(await helpers.httpGet(${url}, ${headers}))`, Order.NONE];
 };
 forBlock['ab_http_post'] = function (block, generator) {
   const url = generator.valueToCode(block, 'URL', Order.NONE) || "''";
   const body = generator.valueToCode(block, 'BODY', Order.NONE) || "''";
-  return [`(await helpers.httpPost(${url}, ${body}))`, Order.NONE];
+  const headers = generator.valueToCode(block, 'HEADERS', Order.NONE) || "''";
+  return [`(await helpers.httpPost(${url}, ${body}, ${headers}))`, Order.NONE];
+};
+forBlock['ab_http_last_status'] = function () {
+  return ['helpers.getLastRequestStatus()', Order.FUNCTION_CALL];
 };
 
 // ---------- Secrets ----------

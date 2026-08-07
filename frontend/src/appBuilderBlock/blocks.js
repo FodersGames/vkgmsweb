@@ -912,22 +912,33 @@ const jsonBlocks = [
   // ============================================================
   {
     type: 'ab_http_get',
-    message0: 'web request GET %1',
-    args0: [{ type: 'input_value', name: 'URL' }],
-    output: null,
-    colour: COLORS.network,
-    tooltip: 'Fetches a URL and returns the response text (parse JSON with the "field of" block above). Empty text if the request fails.',
-  },
-  {
-    type: 'ab_http_post',
-    message0: 'web request POST %1 body %2',
+    message0: 'web request GET %1 headers %2',
     args0: [
       { type: 'input_value', name: 'URL' },
-      { type: 'input_value', name: 'BODY' },
+      { type: 'input_value', name: 'HEADERS' },
     ],
     output: null,
     colour: COLORS.network,
-    tooltip: 'Sends a POST request and returns the response text. Empty text if the request fails.',
+    tooltip: 'Fetches a URL and returns the response text (parse JSON with the "field of" block above). Headers is a JSON object, e.g. {"Authorization": "Bearer …"} — leave empty for none. Empty text if the request fails; check "status of last web request" for why.',
+  },
+  {
+    type: 'ab_http_post',
+    message0: 'web request POST %1 body %2 headers %3',
+    args0: [
+      { type: 'input_value', name: 'URL' },
+      { type: 'input_value', name: 'BODY' },
+      { type: 'input_value', name: 'HEADERS' },
+    ],
+    output: null,
+    colour: COLORS.network,
+    tooltip: 'Sends a POST request and returns the response text. Headers is a JSON object, e.g. {"Authorization": "Bearer …"} — leave empty for none. Empty text if the request fails; check "status of last web request" for why.',
+  },
+  {
+    type: 'ab_http_last_status',
+    message0: 'status of last web request',
+    output: 'Number',
+    colour: COLORS.network,
+    tooltip: '200-299 means it succeeded. 0 means it never ran, or failed before getting a response at all (network/CORS error).',
   },
 
   // ============================================================
@@ -1251,11 +1262,16 @@ const BASE_CATEGORIES = [
   {
     kind: 'category', name: 'Web Requests', colour: COLORS.network,
     contents: [
-      { kind: 'block', type: 'ab_http_get', inputs: { URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } } } },
+      { kind: 'block', type: 'ab_http_get', inputs: {
+        URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } },
+        HEADERS: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
       { kind: 'block', type: 'ab_http_post', inputs: {
         URL: { shadow: { type: 'text', fields: { TEXT: 'https://' } } },
         BODY: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        HEADERS: { shadow: { type: 'text', fields: { TEXT: '' } } },
       } },
+      { kind: 'block', type: 'ab_http_last_status' },
       { kind: 'block', type: 'ab_json_field' },
     ],
   },
