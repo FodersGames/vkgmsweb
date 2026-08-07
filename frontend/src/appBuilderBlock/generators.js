@@ -455,6 +455,17 @@ forBlock['ab_account_is_logged_in'] = function () {
   return ['helpers.accountIsLoggedIn()', Order.FUNCTION_CALL];
 };
 
+// ---------- Push Notifications ----------
+forBlock['ab_push_subscribe'] = function () {
+  return ['(await helpers.pushSubscribe())', Order.NONE];
+};
+forBlock['ab_push_send'] = function (block, generator) {
+  const username = generator.valueToCode(block, 'USERNAME', Order.NONE) || "''";
+  const title = generator.valueToCode(block, 'TITLE', Order.NONE) || "''";
+  const message = generator.valueToCode(block, 'MESSAGE', Order.NONE) || "''";
+  return `await helpers.pushSend(${username}, ${title}, ${message});\n`;
+};
+
 // ---------- Navigate ----------
 forBlock['ab_navigate'] = function (block) {
   return `helpers.navigate(${fieldStr(block, 'SCREEN')});\n`;

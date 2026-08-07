@@ -51,6 +51,18 @@ function resolveNodeWorkspace(node, isScreen, variableNames, screen, screens) {
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
+// Standard boilerplate for the Push API's applicationServerKey — it wants
+// the VAPID public key as raw bytes, not the base64url text the backend
+// hands back.
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
 // Interprets a Studio App's {screens, variables, theme} into a live,
 // running mini-app: theming, local variable state, screen navigation, and
 // running compiled Blockly action scripts (frontend/src/appBuilderBlock/) —
@@ -582,6 +594,39 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
         if (nextSession) localStorage.setItem(key, JSON.stringify(nextSession));
         else localStorage.removeItem(key);
       } catch { /* storage unavailable */ }
+    },
+    // Web Push — NOT Firebase/APNs, standard browser Push API (VAPID). Works
+    // in real browsers and here on the public app-play page; support inside
+    // an exported/APK app's WebView is real but not universal on Android and
+    // absent entirely on iOS (WKWebView has no Push API) — pushSubscribe()
+    // resolves false wherever it isn't available, same fail-quiet
+    // convention as every other capability check in this runtime.
+    pushSubscribe: async (sessionToken) => {
+      try {
+        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+        const appKey = app?.public_id || app?.slug || '';
+        const reg = await navigator.serviceWorker.register('/vk-push-sw.js');
+        const keyRes = await fetch(`${API}/api/apps/${encodeURIComponent(appKey)}/push/vapid-public-key`);
+        const { key } = await keyRes.json();
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
+        await fetch(`${API}/api/apps/${encodeURIComponent(appKey)}/push/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}) },
+          body: JSON.stringify(sub.toJSON()),
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    pushSend: (username, title, pushBody) => {
+      const appKey = app?.public_id || app?.slug || '';
+      return fetch(`${API}/api/apps/${encodeURIComponent(appKey)}/push/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, title, body: pushBody }),
+      }).then(() => {});
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [screens, app, token]);

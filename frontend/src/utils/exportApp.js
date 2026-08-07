@@ -607,6 +607,50 @@ ${actionsSource}
         else localStorage.removeItem(key);
       } catch (e) { /* storage unavailable */ }
     },
+    // Push notifications — standard Web Push (VAPID), registers sw.js
+    // (bundled alongside this file, see generateAppZipBlob). Whether it
+    // actually works depends on this WebView supporting the Push API —
+    // real but not universal on Android, absent on iOS — pushSubscribe
+    // resolves false wherever it isn't available.
+    pushSubscribe: function (sessionToken) {
+      function urlBase64ToUint8Array(base64String) {
+        var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var rawData = window.atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+        for (var i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+      }
+      var appKey = ${JSON.stringify(app.public_id || app.slug || '')};
+      var apiBase = ${JSON.stringify(EXPORT_API_BASE)};
+      if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve(false);
+      return navigator.serviceWorker.register('sw.js').then(function (reg) {
+        return fetch(apiBase + '/api/apps/' + encodeURIComponent(appKey) + '/push/vapid-public-key')
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            return reg.pushManager.getSubscription().then(function (existing) {
+              if (existing) return existing;
+              return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(data.key) });
+            });
+          })
+          .then(function (sub) {
+            var headers = { 'Content-Type': 'application/json' };
+            if (sessionToken) headers['Authorization'] = 'Bearer ' + sessionToken;
+            return fetch(apiBase + '/api/apps/' + encodeURIComponent(appKey) + '/push/subscribe', {
+              method: 'POST', headers: headers, body: JSON.stringify(sub.toJSON()),
+            });
+          })
+          .then(function () { return true; });
+      }).catch(function () { return false; });
+    },
+    pushSend: function (username, title, pushBody) {
+      var appKey = ${JSON.stringify(app.public_id || app.slug || '')};
+      return fetch(${JSON.stringify(EXPORT_API_BASE)} + '/api/apps/' + encodeURIComponent(appKey) + '/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, title: title, body: pushBody }),
+      }).then(function () {});
+    },
   });
 
   function runAction(key, scope) {
@@ -727,12 +771,38 @@ This is a real, standalone project — edit the markup, CSS and JS directly.
 // Shared by the "Export" download button and the "Build APK" bundle
 // upload (frontend/src/components/AppBuilderEditor.js) — one codegen, two
 // destinations, so they never drift apart from each other.
+// Same content as frontend/public/vk-push-sw.js — kept as its own literal
+// here rather than fetched/shared, since this runs client-side in the
+// browser at export time, not a build step with filesystem access, and
+// each exported app needs its own copy anyway (bundled at its own root,
+// not vakargames.com's).
+function generateServiceWorker() {
+  return `self.addEventListener('push', function (event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Notification', body: event.data ? event.data.text() : '' };
+  }
+  var title = data.title || 'Notification';
+  var options = { body: data.body || '', icon: data.icon || undefined };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  event.waitUntil(clients.openWindow('/'));
+});
+`;
+}
+
 export async function generateAppZipBlob(app, { showWatermark = false } = {}) {
   const theme = resolveTheme(app.theme);
   const zip = new JSZip();
   zip.file('index.html', await generateHTML(app, showWatermark));
   zip.file('style.css', generateCSS(theme));
   zip.file('script.js', generateJS(app));
+  zip.file('sw.js', generateServiceWorker());
   zip.file('README.md', generateReadme(app));
   return zip.generateAsync({ type: 'blob' });
 }

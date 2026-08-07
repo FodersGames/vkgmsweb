@@ -87,6 +87,26 @@ VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-fil
 # server-only key and only ever decrypted transiently (see apk_builds.py).
 STUDIO_SIGNING_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"studio-signing-key-v1:{JWT_SECRET}".encode()).digest())
 
+# Web Push (Studio App Builder push notifications) — one VAPID identity for
+# this whole backend (correct scope for VAPID: it identifies the SERVER
+# sending pushes to browser push services, not any individual app), derived
+# deterministically from JWT_SECRET like the two keys above rather than
+# needing a separate generation step/env var. A SHA-256 digest is a valid
+# P-256 private scalar for all practical purposes (the odds of a random
+# 32-byte value landing outside the curve's valid range are astronomically
+# small; cryptography would raise immediately at import if it ever did).
+from cryptography.hazmat.primitives.asymmetric import ec as _ec  # noqa: E402
+
+_VAPID_SEED = hashlib.sha256(f"vapid-key-v1:{JWT_SECRET}".encode()).digest()
+_VAPID_PRIVATE_INT = int.from_bytes(_VAPID_SEED, "big")
+_vapid_private_key = _ec.derive_private_key(_VAPID_PRIVATE_INT, _ec.SECP256R1())
+VAPID_PRIVATE_KEY_B64 = base64.urlsafe_b64encode(_VAPID_PRIVATE_INT.to_bytes(32, "big")).rstrip(b"=").decode()
+_vapid_pub_numbers = _vapid_private_key.public_key().public_numbers()
+VAPID_PUBLIC_KEY_B64 = base64.urlsafe_b64encode(
+    b"\x04" + _vapid_pub_numbers.x.to_bytes(32, "big") + _vapid_pub_numbers.y.to_bytes(32, "big")
+).rstrip(b"=").decode()
+VAPID_CONTACT_EMAIL = os.environ.get("VAPID_CONTACT_EMAIL", "support@vakargames.com")
+
 # Studio App Builder "Integrations" tab — named API keys/tokens (e.g. a
 # Firebase project config) an app's blocks can reference by name instead of
 # being pasted raw into a block field. Encrypted at rest with the same

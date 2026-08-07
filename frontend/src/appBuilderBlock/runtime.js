@@ -27,6 +27,8 @@
 //   accountRequest(path, body, token) — Promise<response JSON>, see the Accounts blocks below
 //   loadStoredSession()          — {token, username} | null, read synchronously at startup
 //   saveStoredSession(session)   — persist {token, username}, or null to clear
+//   pushSubscribe(sessionToken)  — Promise<boolean>, see the Push blocks below
+//   pushSend(username, title, body) — Promise<void>
 export function createRuntimeHelpers(host) {
   // In-app account session — loaded once at construction (one runtime
   // instance per app load) so accountCurrentUsername()/accountIsLoggedIn()
@@ -505,6 +507,19 @@ export function createRuntimeHelpers(host) {
     },
     accountIsLoggedIn: function () {
       return !!(session && session.token);
+    },
+
+    // Push notifications — see backend/app/routers/studio_push.py and
+    // host.pushSubscribe/pushSend for what's actually happening. Tied to
+    // whichever in-app account (see Accounts above) is currently logged in,
+    // if any, so ab_push_send can target this device by username later.
+    pushSubscribe: function () {
+      if (!host.pushSubscribe) return Promise.resolve(false);
+      return host.pushSubscribe(session && session.token).then(function (ok) { return !!ok; }).catch(function () { return false; });
+    },
+    pushSend: function (username, title, message) {
+      if (!host.pushSend) return Promise.resolve();
+      return host.pushSend(username, title, message).catch(function () {});
     },
   };
 }

@@ -44,6 +44,7 @@ export const COLORS = {
   secrets: '#6D597A',
   data: '#E07A5F',
   accounts: '#3A5A40',
+  push: '#B5838D',
 };
 
 const jsonBlocks = [
@@ -1060,6 +1061,32 @@ const jsonBlocks = [
   },
 
   // ============================================================
+  // Push notifications — standard Web Push, not Firebase/APNs. Works in
+  // real browsers; support inside an exported/APK app depends on that
+  // device's WebView (real but not universal on Android, absent on iOS).
+  // ============================================================
+  {
+    type: 'ab_push_subscribe',
+    message0: 'enable push notifications for this device',
+    output: 'Boolean',
+    colour: COLORS.push,
+    tooltip: 'Asks for notification permission and registers this device — call it after logging in (see Accounts) so it can be found by username later. False if declined or unsupported on this device.',
+  },
+  {
+    type: 'ab_push_send',
+    message0: 'notify %1 title %2 message %3',
+    args0: [
+      { type: 'input_value', name: 'USERNAME' },
+      { type: 'input_value', name: 'TITLE' },
+      { type: 'input_value', name: 'MESSAGE' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.push,
+    tooltip: 'Sends a push notification to one specific account\'s subscribed device(s), by their Accounts username. No effect if they\'re not subscribed.',
+  },
+
+  // ============================================================
   // This item (list row tap only — see ITEM_CATEGORY/buildToolbox below;
   // also reused inside "for each item in list" loop bodies)
   // ============================================================
@@ -1354,6 +1381,16 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_account_logout' },
       { kind: 'block', type: 'ab_account_username' },
       { kind: 'block', type: 'ab_account_is_logged_in' },
+    ],
+  },
+  {
+    kind: 'category', name: 'Push Notifications', colour: COLORS.push,
+    contents: [
+      { kind: 'block', type: 'ab_push_subscribe' },
+      { kind: 'block', type: 'ab_push_send', inputs: {
+        TITLE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+        MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } },
+      } },
     ],
   },
 ];
