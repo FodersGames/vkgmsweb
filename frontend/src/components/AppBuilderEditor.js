@@ -19,7 +19,6 @@ import {
 } from '../constants/appBuilder';
 import AppRuntime, { ComponentVisual, PositionedNode } from './AppRuntime';
 import { exportAppAsZip, generateAppZipBlob } from '../utils/exportApp';
-import { ConfirmDialog } from './ConfirmDialog';
 import { VersionHistoryModal } from './VersionHistoryModal';
 import AppBuilderBlockPanel from './AppBuilderBlockPanel';
 import { migrateToHatWorkspace, isV2Shape } from '../appBuilderBlock/legacyMigration';
@@ -952,8 +951,6 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [withdrawReason, setWithdrawReason] = useState('');
   const [withdrawConfirmName, setWithdrawConfirmName] = useState('');
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
-  const [republishConfirmOpen, setRepublishConfirmOpen] = useState(false);
-  const [republishSubmitting, setRepublishSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [quotaBannerDismissed, setQuotaBannerDismissed] = useState(false);
   const [canvasDragOver, setCanvasDragOver] = useState(false);
@@ -1274,12 +1271,6 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
     }
   };
 
-  const republishApp = async () => {
-    const r = await fetch(`${API}${apiBase}/${appId}/republish`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { setSaveError(data.detail || 'Could not republish this app.'); return; }
-    setApp(a => ({ ...a, visibility: 'public', owner_withdrawal_reason: '' }));
-  };
 
   const openReviewModal = () => {
     setReviewForm({
@@ -2144,7 +2135,16 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 <Smartphone size={16} className="text-[#A1A1A6] shrink-0" />
                 <span className="flex-1 min-w-0">
                   <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.ipa</span>
-                  <span className="block text-[10px] text-[#A1A1A6]">iOS</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">iOS package, for sideloading/testing</span>
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa] shrink-0">Coming soon</span>
+              </div>
+
+              <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] opacity-60">
+                <Package size={16} className="text-[#A1A1A6] shrink-0" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.xcarchive</span>
+                  <span className="block text-[10px] text-[#A1A1A6]">Xcode Archive — ready to submit via App Store Connect</span>
                 </span>
                 <span className="text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500 dark:text-[#a1a1aa] shrink-0">Coming soon</span>
               </div>
@@ -2194,13 +2194,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
               {app.visibility === 'private' && app.owner_withdrawal_reason && !app.admin_takedown && (
                 <button
-                  onClick={() => { setPublishHubOpen(false); setRepublishConfirmOpen(true); }}
+                  onClick={() => { setPublishHubOpen(false); openReviewModal(); }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left"
                 >
                   <Eye size={16} className="text-[#4ECDC4] shrink-0" />
                   <span className="flex-1 min-w-0">
                     <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Republish to Applications</span>
-                    <span className="block text-[10px] text-[#A1A1A6]">Undo your own withdrawal and go back live</span>
+                    <span className="block text-[10px] text-[#A1A1A6]">Submits this version for review again — it only goes back live once approved</span>
                   </span>
                 </button>
               )}
@@ -2556,20 +2556,6 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
       <VersionHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} history={app.version_history} />
 
-      <ConfirmDialog
-        isOpen={republishConfirmOpen}
-        onClose={() => !republishSubmitting && setRepublishConfirmOpen(false)}
-        onConfirm={async () => {
-          setRepublishSubmitting(true);
-          try { await republishApp(); setRepublishConfirmOpen(false); } finally { setRepublishSubmitting(false); }
-        }}
-        title="Republish this app?"
-        description="It goes back to public immediately, using the same last-approved version — no new review needed."
-        confirmLabel="Republish"
-        variant="accent"
-        loading={republishSubmitting}
-      />
-
       {/* "Remove from Applications" — a genuinely consequential self-service
           action (may have installs/sales), so it needs a reason AND a
           type-to-confirm input, not the single-click ConfirmDialog used for
@@ -2590,7 +2576,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
-                Your app is pulled from Applications immediately — strangers can no longer reach it. You can republish it yourself at any time, unless it's later suspended by moderation.
+                Your app is pulled from Applications immediately — strangers can no longer reach it. Bringing it back requires submitting it for review again, unless it's later suspended by moderation.
               </p>
               <div>
                 <label className={FIELD_LABEL}>Why are you removing it?</label>

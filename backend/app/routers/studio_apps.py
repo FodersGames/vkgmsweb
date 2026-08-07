@@ -447,6 +447,10 @@ async def approve_studio_app_review(app_id: str, user=Depends(require_permission
         "$set": {
             "review_status": "approved", "status": "published", "visibility": "public",
             "ever_approved": True, "reviewed_at": now, "reviewed_by": user["username"], "updated_at": now,
+            # Clears any earlier self-withdrawal — an approval republishes
+            # the app, so a stale withdrawal reason/timestamp shouldn't
+            # linger on an app that's live again.
+            "owner_withdrawal_reason": "", "owner_withdrawn_at": None,
             # Freezes exactly the version that was reviewed as the new live
             # version — any draft edits made after this submission was sent
             # stay invisible to the public until they're submitted and approved
@@ -949,10 +953,13 @@ async def withdraw_my_studio_app(app_id: str, body: StudioAppReviewDecisionReque
     from admin takedown/delist above. Reuses `visibility` as the actual
     reachability lever (already fully enforced everywhere, see
     get_public_studio_app) rather than a third independent flag; the
-    reason/timestamp are just recorded for context. Reversible by the
-    owner themselves via republish_my_studio_app below, unlike an admin
-    suspension — the required reason + the frontend's own double-confirmation
-    step (typing the app's name) is the safety net here, not irreversibility."""
+    reason/timestamp are just recorded for context. Coming back live is
+    NOT a self-service instant toggle (that used to be a separate
+    /republish endpoint) — it now goes through submit_my_studio_app_review
+    below like any other version, so moderation gets a chance to look at
+    the app again before it's reachable — the required reason + the
+    frontend's own double-confirmation step (typing the app's name) is the
+    safety net for the withdrawal itself, not a promise it reverses freely."""
     oid, doc = await _get_owned_app(app_id, user)
     if doc.get("admin_takedown"):
         raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
@@ -964,19 +971,6 @@ async def withdraw_my_studio_app(app_id: str, body: StudioAppReviewDecisionReque
     await db.studio_apps.update_one({"_id": oid}, {"$set": {
         "visibility": "private", "owner_withdrawal_reason": reason,
         "owner_withdrawn_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc),
-    }})
-    return {"ok": True}
-
-@router.post("/my/studio-apps/{app_id}/republish")
-async def republish_my_studio_app(app_id: str, user=Depends(get_current_user)):
-    oid, doc = await _get_owned_app(app_id, user)
-    if doc.get("admin_takedown"):
-        raise HTTPException(status_code=403, detail="This app has been suspended by moderation. Contact support to appeal.")
-    if not doc.get("ever_approved"):
-        raise HTTPException(status_code=402, detail="Submit this app for review before making it public.")
-    await db.studio_apps.update_one({"_id": oid}, {"$set": {
-        "visibility": "public", "owner_withdrawal_reason": "", "owner_withdrawn_at": None,
-        "updated_at": datetime.now(timezone.utc),
     }})
     return {"ok": True}
 
