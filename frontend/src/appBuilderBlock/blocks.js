@@ -926,6 +926,18 @@ const jsonBlocks = [
     nextStatement: null,
     colour: COLORS.storage,
   },
+  {
+    type: 'ab_storage_load_default',
+    message0: 'load %1 into %2 (if it was saved before)',
+    args0: [
+      { type: 'field_input', name: 'KEY', text: 'myKey' },
+      { type: 'field_input', name: 'VAR', text: 'variable' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.storage,
+    tooltip: 'Restores a variable to whatever was last saved under this key — leaves it at its normal starting value if nothing was ever saved yet (e.g. the very first time the app is opened). Typically used under "when screen opens", paired with "save [variable] under [key]" wherever that variable changes.',
+  },
 
   // ============================================================
   // Web Requests — run inside a security sandbox in the live editor/public
@@ -1361,6 +1373,7 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_storage_set', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
       { kind: 'block', type: 'ab_storage_get' },
       { kind: 'block', type: 'ab_storage_remove' },
+      { kind: 'block', type: 'ab_storage_load_default' },
     ],
   },
   {

@@ -246,6 +246,22 @@ reg('pedometer_start', (a, ws) => {
 
 reg('pedometer_stop', (a, ws) => newBlock(ws, 'ab_pedometer_stop'));
 
+reg('load_from_storage', (a, ws) => {
+  const b = newBlock(ws, 'ab_storage_load_default');
+  b.setFieldValue(a.key || a.variable || '', 'KEY');
+  b.setFieldValue(a.variable || '', 'VAR');
+  return b;
+});
+
+reg('save_to_storage', (a, ws) => {
+  const b = newBlock(ws, 'ab_storage_set');
+  b.setFieldValue(a.key || a.variable || '', 'KEY');
+  const getVar = newBlock(ws, 'ab_get_variable');
+  getVar.setFieldValue(a.variable || '', 'VAR');
+  connectValue(b, 'VALUE', getVar);
+  return b;
+});
+
 reg('update_text', (a, ws) => {
   const b = newBlock(ws, 'ab_update_text');
   b.setFieldValue(a.target_id || '', 'TARGET');

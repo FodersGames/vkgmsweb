@@ -271,6 +271,19 @@ export function createRuntimeHelpers(host) {
       if (!key || typeof localStorage === 'undefined') return;
       try { localStorage.removeItem((host.storagePrefix || '') + key); } catch (e) { /* ignore */ }
     },
+    // Unlike storageGet (which returns '' both when nothing was ever saved
+    // AND when the saved value happens to be empty), this only touches the
+    // variable when something was genuinely saved before — so a template's
+    // nice starting value (e.g. a habit list pre-filled with examples)
+    // survives the very first run instead of being wiped to '' by a
+    // "restore from storage" step that found nothing yet.
+    storageLoadDefault: function (setVar, key, varName) {
+      if (!key || !varName || typeof localStorage === 'undefined') return;
+      try {
+        var raw = localStorage.getItem((host.storagePrefix || '') + key);
+        if (raw !== null) setVar(varName, raw);
+      } catch (e) { /* storage unavailable */ }
+    },
 
     // ---------- Device & feedback ----------
     playSound: function (url) {

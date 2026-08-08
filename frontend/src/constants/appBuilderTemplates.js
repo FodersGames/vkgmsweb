@@ -43,6 +43,23 @@
 // that native plugin — it safely reports 0 rather than erroring, which is
 // exactly what the app's own explanatory text below says.
 
+// Persistent storage (see appBuilderBlock/{blocks,runtime,legacyMigration}.js's
+// "load [key] into [variable] (if it was saved before)"/"save [variable]
+// under [key]" — localStorage under the hood, survives closing the app,
+// unlike variables which reset to their initial_value every session).
+// Every template loads its real user data back in on `screen.actions.onOpen`
+// and saves it again right after every action that changes it — a typed-in
+// habit/shopping item/workout/agenda entry, a toggle flipped, a rating
+// given, all survive closing and reopening the app now, not just for the
+// lifetime of one session. Transient fields (the "type a new item" input
+// variables) are deliberately NOT persisted — there's nothing worth saving
+// mid-type. Fitness's `steps`/`calories`/`distanceKm`/`distanceMiles`/
+// `stepsGoalPct`/`_calTemp` aren't persisted either — they're re-derived
+// fresh each session from the live pedometer + the persisted weight/goal,
+// and saving a stale step count would fight that.
+const persistVars = (names) => names.map(name => ({ type: 'save_to_storage', variable: name, key: name }));
+const loadVars = (names) => names.map(name => ({ type: 'load_from_storage', variable: name, key: name }));
+
 // Shared by the Fitness template's "recalculate" flow (onOpen, the Refresh
 // button, after logging a workout, and Settings' Save & Back) — distance
 // and calories are a real computed estimate from live step count and the
@@ -72,6 +89,7 @@ export const APP_TEMPLATES = [
     screens: [
       {
         id: 'home', name: 'Home',
+        actions: { onOpen: loadVars(['count']) },
         components: [
           { id: 'appbar', type: 'appbar', actions: {}, layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } },
             props: { title: 'Tap Counter', show_back: false } },
@@ -79,12 +97,18 @@ export const APP_TEMPLATES = [
             layout: { x: 284, y: 524, w: 56, h: 56, anchors: { right: 20, bottom: 20 } }, props: { icon: 'settings', color: '' } },
           { id: 'value', type: 'text', actions: {}, layout: { x: 24, y: 240, w: 312, h: 64 },
             props: { content: '{{count}}', size: 'xl', weight: 'bold', align: 'center', color: '#4ECDC4', animation: 'pop' } },
-          { id: 'minus', type: 'button', actions: { onClick: [{ type: 'set_variable', variable: 'count', value_mode: 'increment', value: '-1' }] },
-            layout: { x: 24, y: 360, w: 150, h: 48 }, props: { label: '−1', style: 'outline', animation: 'slide-up' } },
-          { id: 'plus', type: 'button', actions: { onClick: [{ type: 'set_variable', variable: 'count', value_mode: 'increment', value: '1' }] },
-            layout: { x: 186, y: 360, w: 150, h: 48 }, props: { label: '+1', style: 'primary', animation: 'slide-up' } },
-          { id: 'reset', type: 'button', actions: { onClick: [{ type: 'set_variable', variable: 'count', value_mode: 'literal', value: '0' }] },
-            layout: { x: 24, y: 420, w: 312, h: 44 }, props: { label: 'Reset', style: 'secondary' } },
+          { id: 'minus', type: 'button', actions: { onClick: [
+            { type: 'set_variable', variable: 'count', value_mode: 'increment', value: '-1' },
+            ...persistVars(['count']),
+          ] }, layout: { x: 24, y: 360, w: 150, h: 48 }, props: { label: '−1', style: 'outline', animation: 'slide-up' } },
+          { id: 'plus', type: 'button', actions: { onClick: [
+            { type: 'set_variable', variable: 'count', value_mode: 'increment', value: '1' },
+            ...persistVars(['count']),
+          ] }, layout: { x: 186, y: 360, w: 150, h: 48 }, props: { label: '+1', style: 'primary', animation: 'slide-up' } },
+          { id: 'reset', type: 'button', actions: { onClick: [
+            { type: 'set_variable', variable: 'count', value_mode: 'literal', value: '0' },
+            ...persistVars(['count']),
+          ] }, layout: { x: 24, y: 420, w: 312, h: 44 }, props: { label: 'Reset', style: 'secondary' } },
         ],
       },
       {
@@ -159,6 +183,7 @@ export const APP_TEMPLATES = [
     screens: [
       {
         id: 'home', name: 'Today',
+        actions: { onOpen: loadVars(['reminders', 'habits', 'doneHabits']) },
         components: [
           { id: 'title', type: 'text', actions: {}, layout: { x: 24, y: 40, w: 260, h: 44 },
             props: { content: 'Today', size: 'custom', size_px: 32, weight: 'bold', align: 'left', color: '', animation: 'fade' } },
@@ -173,6 +198,7 @@ export const APP_TEMPLATES = [
               item_action: [
                 { type: 'list_remove', variable: 'habits', mode: 'at_index', index: '{{index}}' },
                 { type: 'list_add', variable: 'doneHabits', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+                ...persistVars(['habits', 'doneHabits']),
               ],
             } },
           { id: 'done-label', type: 'text', actions: {}, layout: { x: 24, y: 308, w: 260, h: 20 },
@@ -183,6 +209,7 @@ export const APP_TEMPLATES = [
               item_action: [
                 { type: 'list_remove', variable: 'doneHabits', mode: 'at_index', index: '{{index}}' },
                 { type: 'list_add', variable: 'habits', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+                ...persistVars(['doneHabits', 'habits']),
               ],
             } },
           { id: 'new-habit', type: 'input', actions: {}, layout: { x: 24, y: 436, w: 220, h: 44 },
@@ -190,6 +217,7 @@ export const APP_TEMPLATES = [
           { id: 'add-habit', type: 'button', actions: { onClick: [
             { type: 'list_add', variable: 'habits', mode: 'append', value_mode: 'variable', value: 'newHabit' },
             { type: 'set_variable', variable: 'newHabit', value_mode: 'literal', value: '' },
+            ...persistVars(['habits']),
           ] }, layout: { x: 252, y: 436, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
         ],
       },
@@ -199,7 +227,7 @@ export const APP_TEMPLATES = [
           { id: 'appbar', type: 'appbar', actions: { onClick: [{ type: 'navigate', screen_id: 'home' }] },
             layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } }, props: { title: 'Settings', show_back: true } },
           { id: 'reminders-toggle', type: 'toggle',
-            actions: { onChange: [{ type: 'show_message', text: 'Daily reminders updated.' }] },
+            actions: { onChange: [{ type: 'show_message', text: 'Daily reminders updated.' }, ...persistVars(['reminders'])] },
             layout: { x: 24, y: 92, w: 312, h: 32 }, props: { label: 'Daily reminders', variable: 'reminders' } },
           { id: 'note', type: 'text', actions: {}, layout: { x: 24, y: 140, w: 312, h: 60 },
             props: { content: 'A daily reminder nudges you to check in on your habits.', size: 'sm', weight: 'normal', align: 'left', color: '' } },
@@ -222,6 +250,7 @@ export const APP_TEMPLATES = [
     screens: [
       {
         id: 'home', name: 'List',
+        actions: { onOpen: loadVars(['hideDone', 'items', 'doneItems']) },
         components: [
           { id: 'cart-icon', type: 'icon', actions: {}, layout: { x: 24, y: 44, w: 36, h: 36 }, props: { icon: 'cart', color: '' } },
           { id: 'title', type: 'text', actions: {}, layout: { x: 70, y: 40, w: 220, h: 44 },
@@ -237,6 +266,7 @@ export const APP_TEMPLATES = [
               item_action: [
                 { type: 'list_remove', variable: 'items', mode: 'at_index', index: '{{index}}' },
                 { type: 'list_add', variable: 'doneItems', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+                ...persistVars(['items', 'doneItems']),
               ],
             } },
           // Both hidden together by the "Hide completed items" toggle on the
@@ -253,6 +283,7 @@ export const APP_TEMPLATES = [
               item_action: [
                 { type: 'list_remove', variable: 'doneItems', mode: 'at_index', index: '{{index}}' },
                 { type: 'list_add', variable: 'items', mode: 'append', value_mode: 'literal', value: '{{item}}' },
+                ...persistVars(['doneItems', 'items']),
               ],
             } },
           { id: 'new-item', type: 'input', actions: {}, layout: { x: 24, y: 416, w: 220, h: 44 },
@@ -260,6 +291,7 @@ export const APP_TEMPLATES = [
           { id: 'add-item', type: 'button', actions: { onClick: [
             { type: 'list_add', variable: 'items', mode: 'append', value_mode: 'variable', value: 'newItem' },
             { type: 'set_variable', variable: 'newItem', value_mode: 'literal', value: '' },
+            ...persistVars(['items']),
           ] }, layout: { x: 252, y: 416, w: 84, h: 44 }, props: { label: 'Add', style: 'primary' } },
         ],
       },
@@ -268,7 +300,7 @@ export const APP_TEMPLATES = [
         components: [
           { id: 'appbar', type: 'appbar', actions: { onClick: [{ type: 'navigate', screen_id: 'home' }] },
             layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } }, props: { title: 'Settings', show_back: true } },
-          { id: 'hide-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 92, w: 312, h: 30 },
+          { id: 'hide-toggle', type: 'toggle', actions: { onChange: persistVars(['hideDone']) }, layout: { x: 24, y: 92, w: 312, h: 30 },
             props: { label: 'Hide completed items', variable: 'hideDone' } },
           { id: 'note', type: 'text', actions: {}, layout: { x: 24, y: 140, w: 312, h: 60 },
             props: { content: 'Hides the Completed section on the main list so you can focus on what’s left to buy.', size: 'sm', weight: 'normal', align: 'left', color: '' } },
@@ -300,12 +332,14 @@ export const APP_TEMPLATES = [
     screens: [
       {
         id: 'home', name: 'Dashboard',
-        // Starts real step tracking the moment the dashboard opens (see
-        // ab_pedometer_start's own runtime — safely does nothing outside a
-        // built Android app), then gives the sensor a couple seconds to
-        // report a first reading before computing distance/calories/goal%
-        // from it.
+        // Restores the persisted settings first (weight/goal/units/workout
+        // log — see persistVars' own comment), THEN starts real step
+        // tracking (see ab_pedometer_start's own runtime — safely does
+        // nothing outside a built Android app), then gives the sensor a
+        // couple seconds to report a first reading before computing
+        // distance/calories/goal% from it using the just-restored weight.
         actions: { onOpen: [
+          ...loadVars(['stepsGoal', 'metric', 'weightKg', 'workouts']),
           { type: 'pedometer_start', variable: 'steps' },
           { type: 'wait', duration_ms: 2000 },
           ...RECALC_FITNESS_STATS,
@@ -349,16 +383,20 @@ export const APP_TEMPLATES = [
           { id: 'log-button', type: 'button', actions: { onClick: [
             { type: 'list_add', variable: 'workouts', mode: 'prepend', value_mode: 'variable', value: 'newWorkout' },
             { type: 'set_variable', variable: 'newWorkout', value_mode: 'literal', value: '' },
+            ...persistVars(['workouts']),
           ] }, layout: { x: 252, y: 486, w: 84, h: 44 }, props: { label: 'Log', style: 'primary' } },
         ],
       },
       {
         id: 'settings', name: 'Settings',
-        // Recomputes with the (possibly just-changed) weight before heading
-        // back, so the dashboard reflects it immediately.
+        // Both exits (the appbar's back arrow AND the explicit Save & Back
+        // button) persist the settings and recompute with the (possibly
+        // just-changed) weight before heading back, so a visitor who taps
+        // the back arrow out of habit doesn't lose their change.
         components: [
-          { id: 'appbar', type: 'appbar', actions: { onClick: [...RECALC_FITNESS_STATS, { type: 'navigate', screen_id: 'home' }] },
-            layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } }, props: { title: 'Settings', show_back: true } },
+          { id: 'appbar', type: 'appbar', actions: { onClick: [
+            ...persistVars(['stepsGoal', 'metric', 'weightKg']), ...RECALC_FITNESS_STATS, { type: 'navigate', screen_id: 'home' },
+          ] }, layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } }, props: { title: 'Settings', show_back: true } },
           { id: 'weight-label', type: 'text', actions: {}, layout: { x: 24, y: 88, w: 312, h: 40 },
             props: { content: 'Your weight (kg) — used to estimate calories burned', size: 'sm', weight: 'normal', align: 'left', color: '' } },
           { id: 'weight-input', type: 'input', actions: {}, layout: { x: 24, y: 132, w: 150, h: 44 },
@@ -369,8 +407,9 @@ export const APP_TEMPLATES = [
             props: { placeholder: '8000', variable: 'stepsGoal', input_type: 'number' } },
           { id: 'metric-toggle', type: 'toggle', actions: {}, layout: { x: 24, y: 304, w: 312, h: 30 },
             props: { label: 'Use metric units', variable: 'metric' } },
-          { id: 'save-button', type: 'button', actions: { onClick: [...RECALC_FITNESS_STATS, { type: 'navigate', screen_id: 'home' }] },
-            layout: { x: 24, y: 360, w: 312, h: 48 }, props: { label: 'Save & Back', style: 'primary' } },
+          { id: 'save-button', type: 'button', actions: { onClick: [
+            ...persistVars(['stepsGoal', 'metric', 'weightKg']), ...RECALC_FITNESS_STATS, { type: 'navigate', screen_id: 'home' },
+          ] }, layout: { x: 24, y: 360, w: 312, h: 48 }, props: { label: 'Save & Back', style: 'primary' } },
         ],
       },
     ],
@@ -390,6 +429,7 @@ export const APP_TEMPLATES = [
     screens: [
       {
         id: 'home', name: 'Event',
+        actions: { onOpen: loadVars(['notify', 'agenda', 'lastRating']) },
         components: [
           { id: 'cal-icon', type: 'icon', actions: {}, layout: { x: 24, y: 40, w: 32, h: 32 }, props: { icon: 'calendar', color: '' } },
           { id: 'title', type: 'text', actions: {}, layout: { x: 66, y: 36, w: 220, h: 40 },
@@ -404,18 +444,22 @@ export const APP_TEMPLATES = [
             props: {
               source_variable: 'agenda', item_template: '{{item}}', empty_text: 'Agenda coming soon.',
               animation: 'slide-up',
-              item_action: { type: 'list_remove', variable: 'agenda', mode: 'at_index', index: '{{index}}' },
+              item_action: [
+                { type: 'list_remove', variable: 'agenda', mode: 'at_index', index: '{{index}}' },
+                ...persistVars(['agenda']),
+              ],
             } },
           { id: 'new-agenda', type: 'input', actions: {}, layout: { x: 24, y: 348, w: 220, h: 40 },
             props: { placeholder: 'Add an agenda item…', variable: 'newAgendaItem' } },
           { id: 'add-agenda', type: 'button', actions: { onClick: [
             { type: 'list_add', variable: 'agenda', mode: 'append', value_mode: 'variable', value: 'newAgendaItem' },
             { type: 'set_variable', variable: 'newAgendaItem', value_mode: 'literal', value: '' },
+            ...persistVars(['agenda']),
           ] }, layout: { x: 252, y: 348, w: 84, h: 40 }, props: { label: 'Add', style: 'secondary' } },
           { id: 'rating-label', type: 'text', actions: {}, layout: { x: 24, y: 402, w: 260, h: 20 },
             props: { content: 'Rate the last event', size: 'sm', weight: 'normal', align: 'left', color: '' } },
           { id: 'rating', type: 'rating',
-            actions: { onChange: [{ type: 'show_message', text: 'Thanks for your rating!' }] },
+            actions: { onChange: [{ type: 'show_message', text: 'Thanks for your rating!' }, ...persistVars(['lastRating'])] },
             layout: { x: 24, y: 426, w: 160, h: 28 }, props: { variable: 'lastRating', max: 5, color: '' } },
           { id: 'share', type: 'button', actions: { onClick: [{ type: 'show_message', text: 'Link copied to clipboard!' }] },
             layout: { x: 24, y: 468, w: 312, h: 48 }, props: { label: 'Share Event', style: 'primary' } },
@@ -427,7 +471,7 @@ export const APP_TEMPLATES = [
           { id: 'appbar', type: 'appbar', actions: { onClick: [{ type: 'navigate', screen_id: 'home' }] },
             layout: { x: 0, y: 0, w: 360, h: 56, anchors: { left: 0, right: 0, top: 0 } }, props: { title: 'Settings', show_back: true } },
           { id: 'notify-toggle', type: 'toggle',
-            actions: { onChange: [{ type: 'show_message', text: 'Preference saved.' }] },
+            actions: { onChange: [{ type: 'show_message', text: 'Preference saved.' }, ...persistVars(['notify'])] },
             layout: { x: 24, y: 92, w: 312, h: 30 }, props: { label: 'Notify me about updates', variable: 'notify' } },
           { id: 'note', type: 'text', actions: {}, layout: { x: 24, y: 140, w: 312, h: 60 },
             props: { content: 'Get a heads-up if the schedule or venue changes.', size: 'sm', weight: 'normal', align: 'left', color: '' } },

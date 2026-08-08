@@ -400,6 +400,9 @@ forBlock['ab_storage_get'] = function (block) {
 forBlock['ab_storage_remove'] = function (block) {
   return `helpers.storageRemove(${fieldStr(block, 'KEY')});\n`;
 };
+forBlock['ab_storage_load_default'] = function (block) {
+  return `helpers.storageLoadDefault(setVar, ${fieldStr(block, 'KEY')}, ${fieldStr(block, 'VAR')});\n`;
+};
 
 // ---------- Web Requests ----------
 forBlock['ab_http_get'] = function (block, generator) {
