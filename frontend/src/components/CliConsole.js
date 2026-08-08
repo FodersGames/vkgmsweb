@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Terminal, ShieldAlert, Maximize2, Minimize2 } from 'lucide-react';
+import { Terminal, ShieldAlert, Maximize2, Minimize2, AlertTriangle, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 import { CliCommandPopup } from './CliCommandPopup';
+import CriticalActionModal from './CriticalActionModal';
 
 const WELCOME = [
   'Vakar Games — Super Admin CLI',
@@ -21,6 +22,14 @@ export const CliConsole = () => {
   const [dropdownIdx, setDropdownIdx] = useState(0);
   const [popup, setPopup] = useState(null); // { command, prefill } | null
 
+  // Critical actions (admin_system.py's CRITICAL_ACTIONS) never run through
+  // the normal y/n confirm above — they open CriticalActionModal instead,
+  // which schedules a 30s cancellable countdown any super admin can abort
+  // (see CriticalActionBanner.js, rendered site-wide in Dashboard.js).
+  const [criticalActions, setCriticalActions] = useState([]);
+  const [criticalMenuOpen, setCriticalMenuOpen] = useState(false);
+  const [criticalTarget, setCriticalTarget] = useState(null); // { action_type, label } | null
+
   const historyRef = useRef([]);
   const historyIdxRef = useRef(-1);
   const scrollRef = useRef(null);
@@ -28,6 +37,7 @@ export const CliConsole = () => {
 
   useEffect(() => {
     api.get('/api/admin/cli/commands').then(r => setCommands(r.data.commands || [])).catch(() => {});
+    api.get('/api/admin/critical-actions/catalog').then(r => setCriticalActions(r.data.actions || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -198,10 +208,37 @@ export const CliConsole = () => {
         <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
           <Terminal size={20} className="text-[#4ECDC4]" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className={`text-lg font-bold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>CLI</h1>
           <p className={`text-xs ${fullscreen ? 'text-[#8a8a92]' : 'text-[#A1A1A6]'}`}>Super admin only — whitelisted commands, every action is confirmed and logged.</p>
         </div>
+        {criticalActions.length > 0 && (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setCriticalMenuOpen(v => !v)}
+              className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/15 transition-all"
+            >
+              <AlertTriangle size={13} />
+              Critical Actions
+              <ChevronDown size={13} className={`transition-transform ${criticalMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {criticalMenuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-72 rounded-lg overflow-hidden border border-red-500/30 bg-white dark:bg-[#1a1a24] shadow-xl z-20">
+                {criticalActions.map(a => (
+                  <button
+                    key={a.action_type}
+                    type="button"
+                    onClick={() => { setCriticalMenuOpen(false); setCriticalTarget(a); }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-[#1D1D1F] dark:text-[#e4e4e7] hover:bg-red-500/10 transition-colors"
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Warning banner */}
@@ -305,6 +342,20 @@ export const CliConsole = () => {
             historyRef.current.push(commandString);
             historyIdxRef.current = -1;
             runCommand(commandString, false);
+          }}
+        />
+      )}
+
+      {criticalTarget && (
+        <CriticalActionModal
+          actionType={criticalTarget.action_type}
+          label={criticalTarget.label}
+          onClose={() => setCriticalTarget(null)}
+          onScheduled={() => {
+            appendLines('system', [
+              `⚠ CRITICAL: '${criticalTarget.label}' scheduled — see the countdown banner to cancel.`,
+            ]);
+            setCriticalTarget(null);
           }}
         />
       )}

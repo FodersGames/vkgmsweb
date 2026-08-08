@@ -38,6 +38,7 @@ import VakarBlockList         from '../components/VakarBlockList';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
+import CriticalActionBanner   from '../components/CriticalActionBanner';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 // Each top-level item is either a single view, or a workspace that owns its
@@ -726,6 +727,8 @@ const DashboardContent = () => {
             </div>
           </div>
         </header>
+
+        {isSuperAdmin && <CriticalActionBanner />}
 
         {/* Content — keyed by the active section so switching tabs replays the appear animation */}
         <main>

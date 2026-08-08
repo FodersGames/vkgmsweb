@@ -3,6 +3,7 @@ import re
 import time
 import shlex
 import secrets
+import asyncio
 import psutil
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
@@ -462,6 +463,12 @@ _CLI_CATALOG = [
         {"name": "slug", "label": "Slug", "type": _T, "required": True},
         {"name": "reason", "label": "Reason", "type": _TA, "required": True},
     ], "confirm": False},
+    # CRITICAL — routed through the dedicated confirmation modal
+    # (CriticalActionBanner.js/CriticalActionModal.js), never executed
+    # directly from typed CLI text — see the CRITICAL ACTIONS section
+    # above _cli_dispatch. Listed here purely so it's discoverable via
+    # 'help'/the command catalog popup.
+    {"path": ["app", "delete-all"], "category": "Studio", "description": "⚠ CRITICAL — permanently delete every Studio App on the platform, from every user.", "args": [], "confirm": True},
     {"path": ["vakarplus", "show"], "category": "Studio", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
     {"path": ["vakarplus", "grant"], "category": "Studio", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
     {"path": ["vakarplus", "revoke"], "category": "Studio", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
@@ -545,6 +552,75 @@ def _cli_user_summary(u) -> List[str]:
 
 class _CliError(Exception):
     pass
+
+# ============================================================
+# CRITICAL ACTIONS — a small, deliberately generic framework for the rare
+# handful of operations that are one accidental confirmation away from
+# being catastrophic and irreversible (first and currently only member:
+# wiping every Studio App on the platform). Meant to be reused for any
+# future action of the same severity — just register a new entry in
+# CRITICAL_ACTIONS below.
+#
+# Unlike the CLI's ordinary y/n confirm (_cli_dispatch's `needs_confirm`),
+# confirming a critical action doesn't run it immediately: it schedules it
+# CRITICAL_ACTION_COUNTDOWN_SECONDS in the future and every super admin
+# (not just whoever triggered it) sees a live countdown they can cancel —
+# see /admin/critical-actions/pending, polled by every admin session's
+# outer shell (frontend/src/components/CriticalActionBanner.js). The
+# "type this code back" friction in the frontend's confirmation modal is
+# an anti-fat-finger measure, not a security boundary — the real boundary
+# is require_super_admin below; nothing here needs to round-trip a code
+# to the server.
+# ============================================================
+CRITICAL_ACTION_COUNTDOWN_SECONDS = 30
+
+async def _execute_delete_all_studio_apps(payload: dict) -> str:
+    # Every collection that stores data belonging to a studio_apps doc —
+    # deleted in this order so nothing is left dangling if the process
+    # were somehow interrupted partway through (studio_apps itself last).
+    counts = {}
+    for coll in [
+        "studio_records", "studio_app_users", "studio_app_sessions",
+        "studio_push_subscriptions", "apk_builds", "studio_signing_keys",
+        "studio_app_purchases", "studio_apps",
+    ]:
+        result = await db[coll].delete_many({})
+        counts[coll] = result.deleted_count
+    return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
+
+CRITICAL_ACTIONS = {
+    "delete_all_studio_apps": {
+        "label": "Delete ALL Studio Apps — every app, every user, platform-wide",
+        "handler": _execute_delete_all_studio_apps,
+    },
+}
+
+async def _run_critical_action_after_delay(hold_id):
+    hold = await db.critical_action_holds.find_one({"_id": hold_id})
+    if not hold:
+        return
+    delay = (hold["execute_at"] - datetime.now(timezone.utc)).total_seconds()
+    if delay > 0:
+        await asyncio.sleep(delay)
+    # Re-read AFTER sleeping — it may have been cancelled while we waited.
+    hold = await db.critical_action_holds.find_one({"_id": hold_id})
+    if not hold or hold["status"] != "pending":
+        return
+    action = CRITICAL_ACTIONS.get(hold["action_type"])
+    if not action:
+        await db.critical_action_holds.update_one({"_id": hold_id}, {"$set": {"status": "failed", "result": "Unknown action type"}})
+        return
+    try:
+        result = await action["handler"](hold.get("payload") or {})
+        await db.critical_action_holds.update_one({"_id": hold_id}, {"$set": {
+            "status": "executed", "executed_at": datetime.now(timezone.utc), "result": result,
+        }})
+        await log_action("critical_action", f"[CRITICAL] '{hold['action_type']}' executed (requested by {hold['requested_by']}): {result}", user=hold["requested_by"])
+    except Exception as e:
+        await db.critical_action_holds.update_one({"_id": hold_id}, {"$set": {
+            "status": "failed", "executed_at": datetime.now(timezone.utc), "result": str(e),
+        }})
+        await log_action("critical_action", f"[CRITICAL] '{hold['action_type']}' FAILED (requested by {hold['requested_by']}): {e}", user=hold["requested_by"])
 
 # ── CLI anomaly detection / lockout ──────────────────────────────────────────
 # A destructive action is any command that actually mutated data (recorded only
@@ -1035,6 +1111,17 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
                 notif_type="studio_app_rejected", link="/my-apps",
             )
         return [f"OK — '{slug}' rejected."], False, True
+
+    if verb == "app" and len(tokens) >= 2 and tokens[1].lower() == "delete-all":
+        # Never executes anything here, on purpose — this specific command
+        # only exists in _CLI_CATALOG for discoverability. Typing it (or
+        # clicking it in the popup) just points the admin at the real,
+        # dedicated confirmation flow (POST /admin/critical-actions/
+        # delete_all_studio_apps/schedule) — see CriticalActionModal.js.
+        return [
+            "This is a CRITICAL action and can't be run from typed CLI text.",
+            "Use the \"⚠ Critical Actions\" button in the CLI panel to go through the full confirmation flow.",
+        ], False, False
 
     if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() == "show":
         email = tokens[2].lower().strip()
@@ -1572,3 +1659,84 @@ async def cli_execute(request: Request, body: CliExecuteRequest, admin=Depends(r
         return {"output": lines, "needs_confirm": needs_confirm, "error": False}
     except _CliError as e:
         return {"output": [str(e)], "needs_confirm": False, "error": True}
+
+# ── Critical actions — see the CRITICAL ACTIONS section above _cli_dispatch
+# for the full model (30s cancellable countdown, visible to every super
+# admin). All three routes require nothing beyond require_super_admin —
+# the frontend's warning/type-the-code/confirm popup is UX friction, not a
+# second security boundary. ──────────────────────────────────────────────
+
+@router.get("/admin/critical-actions/catalog")
+async def critical_actions_catalog(admin=Depends(require_super_admin)):
+    return {"actions": [{"action_type": k, "label": v["label"]} for k, v in CRITICAL_ACTIONS.items()]}
+
+@router.get("/admin/critical-actions/pending")
+async def list_pending_critical_actions(admin=Depends(require_super_admin)):
+    docs = await db.critical_action_holds.find({"status": "pending"}).sort("requested_at", -1).to_list(20)
+    return {"actions": [{
+        "id": str(d["_id"]), "action_type": d["action_type"], "label": d.get("label", d["action_type"]),
+        "requested_by": d["requested_by"], "requested_at": d["requested_at"].isoformat(),
+        "execute_at": d["execute_at"].isoformat(),
+    } for d in docs]}
+
+@router.post("/admin/critical-actions/{action_type}/schedule")
+@limiter.limit("5/minute")
+async def schedule_critical_action(request: Request, action_type: str, admin=Depends(require_super_admin)):
+    if action_type not in CRITICAL_ACTIONS:
+        raise HTTPException(404, "Unknown critical action")
+    existing = await db.critical_action_holds.find_one({"action_type": action_type, "status": "pending"})
+    if existing:
+        raise HTTPException(409, "This action is already pending — cancel it first if you want to restart the countdown.")
+    now = datetime.now(timezone.utc)
+    execute_at = now + timedelta(seconds=CRITICAL_ACTION_COUNTDOWN_SECONDS)
+    result = await db.critical_action_holds.insert_one({
+        "action_type": action_type, "label": CRITICAL_ACTIONS[action_type]["label"],
+        "requested_by": admin["username"], "requested_at": now, "execute_at": execute_at,
+        "status": "pending", "payload": {}, "cancelled_by": None, "cancelled_at": None,
+        "executed_at": None, "result": None,
+    })
+    hold_id = result.inserted_id
+    asyncio.create_task(_run_critical_action_after_delay(hold_id))
+    await log_action(
+        "critical_action",
+        f"[CRITICAL] '{action_type}' SCHEDULED by '{admin['username']}' — executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s unless cancelled.",
+        user=admin["username"],
+    )
+    others = await db.users.find({"role": "super_admin", "username": {"$ne": admin["username"]}}).to_list(50)
+    for o in others:
+        await _create_notification(
+            user_id=str(o["_id"]),
+            message=f"🚨 '{admin['username']}' triggered a CRITICAL action: {CRITICAL_ACTIONS[action_type]['label']}. "
+                    f"It executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s — cancel it now if this wasn't expected.",
+            notif_type="critical_action",
+        )
+    return {"id": str(hold_id), "execute_at": execute_at.isoformat()}
+
+@router.post("/admin/critical-actions/{hold_id}/cancel")
+async def cancel_critical_action(hold_id: str, admin=Depends(require_super_admin)):
+    try:
+        oid = ObjectId(hold_id)
+    except Exception:
+        raise HTTPException(400, "Invalid ID")
+    hold = await db.critical_action_holds.find_one({"_id": oid})
+    if not hold:
+        raise HTTPException(404, "Not found")
+    if hold["status"] != "pending":
+        raise HTTPException(400, f"This action is already {hold['status']}, nothing to cancel.")
+    await db.critical_action_holds.update_one({"_id": oid}, {"$set": {
+        "status": "cancelled", "cancelled_by": admin["username"], "cancelled_at": datetime.now(timezone.utc),
+    }})
+    await log_action(
+        "critical_action",
+        f"[CRITICAL] '{hold['action_type']}' CANCELLED by '{admin['username']}' (requested by {hold['requested_by']}).",
+        user=admin["username"],
+    )
+    others = await db.users.find({"role": "super_admin", "username": {"$ne": admin["username"]}}).to_list(50)
+    for o in others:
+        await _create_notification(
+            user_id=str(o["_id"]),
+            message=f"✅ '{admin['username']}' cancelled the critical action requested by "
+                    f"'{hold['requested_by']}' ({hold.get('label', hold['action_type'])}).",
+            notif_type="critical_action",
+        )
+    return {"ok": True}
