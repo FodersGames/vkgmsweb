@@ -2181,7 +2181,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       {enableApkBuild && apkBuild?.status === 'failed' && !apkInProgress && (
         <div className="flex items-center justify-between gap-3 px-5 py-2 bg-red-50 dark:bg-red-500/10 border-b border-red-100 dark:border-red-500/20 text-[11px] text-red-600 dark:text-red-400 shrink-0">
           <span>APK build failed{apkBuild.error ? `: ${apkBuild.error}` : '.'}</span>
-          <button onClick={startApkBuild} className="font-semibold underline shrink-0">Try again</button>
+          <button onClick={() => startApkBuild(false)} className="font-semibold underline shrink-0">Try again</button>
         </div>
       )}
 
@@ -2619,7 +2619,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
               {enableApkBuild && (
                 <button
-                  onClick={apkBuild?.status === 'ready' ? undefined : startApkBuild}
+                  onClick={() => startApkBuild(false)}
                   disabled={apkInProgress}
                   className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] transition-colors text-left disabled:opacity-60"
                 >
@@ -2627,7 +2627,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   <span className="flex-1 min-w-0">
                     <span className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">.apk</span>
                     <span className="block text-[10px] text-[#A1A1A6]">
-                      {apkInProgress ? 'Building…' : apkBuild?.status === 'ready' ? 'Ready — see the download banner above' : 'Installable Android package'}
+                      {apkInProgress ? 'Building…' : apkBuild?.apk_url ? 'Ready — download above, or rebuild' : 'Installable Android package'}
                     </span>
                   </span>
                   {apkInProgress && <div className="w-3.5 h-3.5 border-2 border-[#D2D2D7] border-t-[#4ECDC4] rounded-full animate-spin shrink-0" />}
