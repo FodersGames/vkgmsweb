@@ -573,12 +573,14 @@ ${actionsSource}
     // Data blocks — talks directly to Vakar Games' own API (this app's own
     // shared data collections), not sandboxed like sandboxFetch since it's
     // scoped by this app's own id, not an arbitrary external URL.
-    dataRequest: function (method, collection, recordId, fields) {
+    dataRequest: function (method, collection, recordId, fields, appSessionToken) {
       var base = ${JSON.stringify(EXPORT_API_BASE)} + '/api/apps/' + encodeURIComponent(${JSON.stringify(app.public_id || app.slug || '')}) + '/data/' + encodeURIComponent(collection);
       var url = recordId ? (base + '/' + encodeURIComponent(recordId)) : base;
+      var headers = { 'Content-Type': 'application/json' };
+      if (appSessionToken) headers['X-App-Session'] = appSessionToken;
       return fetch(url, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: fields !== undefined ? JSON.stringify({ fields: fields }) : undefined,
       }).then(function (r) { return r.json(); });
     },

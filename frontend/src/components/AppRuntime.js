@@ -559,13 +559,23 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     // there's no ambient-session risk in calling it directly, and sending
     // the owner's token (when present) is what lets the editor's own
     // Preview reach a private/unpublished app's data.
-    dataRequest: (method, collection, recordId, fields) => {
+    dataRequest: (method, collection, recordId, fields, appSessionToken) => {
       const appKey = app?.public_id || app?.slug || '';
       const base = `${API}/api/apps/${encodeURIComponent(appKey)}/data/${encodeURIComponent(collection)}`;
       const url = recordId ? `${base}/${encodeURIComponent(recordId)}` : base;
       return fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: {
+          'Content-Type': 'application/json',
+          // Two different, unrelated tokens can both be present on a write:
+          // Authorization carries the logged-in Vakar Games site session
+          // (only used so the owner's own editor Preview can reach a
+          // private/unpublished app's data), X-App-Session carries the
+          // Studio App's own in-app account session (required to write —
+          // see studio_data.py) — never conflated into the same header.
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(appSessionToken ? { 'X-App-Session': appSessionToken } : {}),
+        },
         body: fields !== undefined ? JSON.stringify({ fields }) : undefined,
       }).then(r => r.json());
     },

@@ -23,7 +23,7 @@
 //   storagePrefix               — string, namespaces localStorage keys per app
 //   sandboxFetch(url, method, body) — Promise<{ok, status, text}>, see httpGet/httpPost below
 //   secrets                     — {name: value}, the app's Integrations tab entries (see getSecret below)
-//   dataRequest(method, collection, recordId, fields) — Promise<response JSON>, see the Data blocks below
+//   dataRequest(method, collection, recordId, fields, appSessionToken) — Promise<response JSON>, see the Data blocks below
 //   accountRequest(path, body, token) — Promise<response JSON>, see the Accounts blocks below
 //   loadStoredSession()          — {token, username} | null, read synchronously at startup
 //   saveStoredSession(session)   — persist {token, username}, or null to clear
@@ -459,18 +459,21 @@ export function createRuntimeHelpers(host) {
         });
       }).catch(function () { return []; });
     },
+    // Writing (add/update/delete) requires being logged into an in-app
+    // account (see Accounts below) — sent as this session's token, same
+    // one accountRequest uses. Reading (dataList above) doesn't.
     dataAdd: function (collection, fieldsJsonText) {
-      return host.dataRequest('POST', collection, null, parseObject(fieldsJsonText)).then(function (r) {
+      return host.dataRequest('POST', collection, null, parseObject(fieldsJsonText), session && session.token).then(function (r) {
         return (r && r.id) || '';
       }).catch(function () { return ''; });
     },
     dataUpdate: function (collection, recordId, fieldsJsonText) {
       if (!recordId) return Promise.resolve();
-      return host.dataRequest('PATCH', collection, recordId, parseObject(fieldsJsonText)).catch(function () {});
+      return host.dataRequest('PATCH', collection, recordId, parseObject(fieldsJsonText), session && session.token).catch(function () {});
     },
     dataDelete: function (collection, recordId) {
       if (!recordId) return Promise.resolve();
-      return host.dataRequest('DELETE', collection, recordId).catch(function () {});
+      return host.dataRequest('DELETE', collection, recordId, undefined, session && session.token).catch(function () {});
     },
 
     // In-app accounts — a Studio App's own end-user login/signup, separate

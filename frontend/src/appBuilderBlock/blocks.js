@@ -984,7 +984,7 @@ const jsonBlocks = [
     ],
     output: null,
     colour: COLORS.data,
-    tooltip: 'Creates a new record from a JSON object of fields, e.g. {"name": "Alice", "score": 10}. Returns the new record\'s id — store it if you\'ll need to update/delete this record later.',
+    tooltip: 'Creates a new record from a JSON object of fields, e.g. {"name": "Alice", "score": 10}. Returns the new record\'s id — store it if you\'ll need to update/delete this record later. Requires being logged in (see Accounts) — empty text if nobody is.',
   },
   {
     type: 'ab_data_update',
@@ -997,7 +997,7 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.data,
-    tooltip: 'Merges the given fields into an existing record — get its id from a loaded list\'s "id" field.',
+    tooltip: 'Merges the given fields into an existing record — get its id from a loaded list\'s "id" field. Requires being logged in (see Accounts); no effect otherwise.',
   },
   {
     type: 'ab_data_delete',
@@ -1009,6 +1009,7 @@ const jsonBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: COLORS.data,
+    tooltip: 'Requires being logged in (see Accounts); no effect otherwise.',
   },
 
   // ============================================================

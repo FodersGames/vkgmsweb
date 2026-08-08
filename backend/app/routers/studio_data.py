@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from pydantic import BaseModel
+from typing import Optional
 
 from ..database import db
 from ..deps import get_optional_user, get_current_user
@@ -21,16 +22,22 @@ router = APIRouter()
 # Mongo collection (studio_records) holds every app's records, scoped by
 # app_id + collection name.
 #
-# Deliberately public/shared, not per-visitor-private — there is no
-# in-app end-user account system yet (a real per-user private-records
-# story needs that first). Until then this is closer to a shared bulletin
-# board than a real backend: any visitor of a live app can read/add/edit/
-# delete individual records in any of that app's collections. Guardrails
-# below (rate limits, size/count caps) exist to bound abuse cost, not to
-# provide real access control. Bulk-clearing a whole collection is
-# deliberately owner-only and NOT exposed as a runtime block — see
-# clear_data_collection — since it's the one genuinely destructive action
-# here and a random visitor must never be able to wipe shared data outright.
+# Records are shared/public (any account can read every record in a
+# collection) but writing one (add/update/delete) requires being logged
+# into an in-app account (studio_accounts.py) — sent via the X-App-Session
+# header, deliberately NOT the Authorization header, which is already used
+# on these same endpoints for the Vakar Games site session (only relevant
+# for the owner's own editor Preview, to reach a private/unpublished app's
+# data — a completely different authorization question from "is this
+# visitor allowed to write"). This closes most anonymous spam/abuse while
+# still allowing genuinely collaborative use cases (shared leaderboards,
+# comments, etc.) — it does NOT restrict editing/deleting to the record's
+# own creator, only requires SOME logged-in account. Guardrails below
+# (rate limits, size/count caps) exist to bound abuse cost further.
+# Bulk-clearing a whole collection is deliberately owner-only and NOT
+# exposed as a runtime block — see clear_data_collection — since it's the
+# one genuinely destructive action here and no logged-in visitor should be
+# able to wipe shared data outright.
 # ============================================================
 
 MAX_COLLECTIONS_PER_APP = 20
@@ -51,6 +58,7 @@ def _serialize_record(doc) -> dict:
     return {
         "id": str(doc["_id"]),
         "fields": doc.get("fields", {}),
+        "created_by": doc.get("created_by") or "",
         "created_at": doc["created_at"].isoformat(),
         "updated_at": doc["updated_at"].isoformat(),
     }
@@ -73,6 +81,21 @@ async def _resolve_app_for_data(app_id: str, user) -> dict:
     return doc
 
 
+async def _require_app_account(app_doc: dict, x_app_session: Optional[str]) -> dict:
+    """Resolves the in-app account (studio_accounts.py) writing this
+    record — raises 401 if there isn't a valid, currently logged-in one."""
+    token = (x_app_session or "").strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Log in first (see the Accounts blocks) before writing data.")
+    session = await db.studio_app_sessions.find_one({"token": token, "app_id": app_doc["_id"]})
+    if not session:
+        raise HTTPException(status_code=401, detail="Your session has expired — log in again.")
+    app_user = await db.studio_app_users.find_one({"_id": session["app_user_id"]})
+    if not app_user:
+        raise HTTPException(status_code=401, detail="Account not found.")
+    return app_user
+
+
 class DataRecordRequest(BaseModel):
     fields: Dict[str, Any] = {}
 
@@ -91,10 +114,14 @@ async def list_data_records(request: Request, app_id: str, collection: str, user
 
 @router.post("/apps/{app_id}/data/{collection}")
 @limiter.limit("20/minute")
-async def add_data_record(request: Request, app_id: str, collection: str, body: DataRecordRequest, user=Depends(get_optional_user)):
+async def add_data_record(
+    request: Request, app_id: str, collection: str, body: DataRecordRequest,
+    user=Depends(get_optional_user), x_app_session: Optional[str] = Header(None),
+):
     if not _valid_collection_name(collection):
         raise HTTPException(status_code=400, detail="Invalid collection name")
     doc = await _resolve_app_for_data(app_id, user)
+    app_user = await _require_app_account(doc, x_app_session)
     if _record_bytes(body.fields) > MAX_RECORD_BYTES:
         raise HTTPException(status_code=413, detail="Record too large")
     existing_collections = await db.studio_records.distinct("collection", {"app_id": doc["_id"]})
@@ -106,7 +133,7 @@ async def add_data_record(request: Request, app_id: str, collection: str, body: 
     now = datetime.now(timezone.utc)
     result = await db.studio_records.insert_one({
         "app_id": doc["_id"], "collection": collection, "fields": body.fields,
-        "created_at": now, "updated_at": now,
+        "created_by": app_user["username"], "created_at": now, "updated_at": now,
     })
     rec = await db.studio_records.find_one({"_id": result.inserted_id})
     return _serialize_record(rec)
@@ -114,10 +141,14 @@ async def add_data_record(request: Request, app_id: str, collection: str, body: 
 
 @router.patch("/apps/{app_id}/data/{collection}/{record_id}")
 @limiter.limit("30/minute")
-async def update_data_record(request: Request, app_id: str, collection: str, record_id: str, body: DataRecordRequest, user=Depends(get_optional_user)):
+async def update_data_record(
+    request: Request, app_id: str, collection: str, record_id: str, body: DataRecordRequest,
+    user=Depends(get_optional_user), x_app_session: Optional[str] = Header(None),
+):
     if not _valid_collection_name(collection):
         raise HTTPException(status_code=400, detail="Invalid collection name")
     doc = await _resolve_app_for_data(app_id, user)
+    await _require_app_account(doc, x_app_session)
     try:
         rid = ObjectId(record_id)
     except Exception:
@@ -135,10 +166,14 @@ async def update_data_record(request: Request, app_id: str, collection: str, rec
 
 @router.delete("/apps/{app_id}/data/{collection}/{record_id}")
 @limiter.limit("30/minute")
-async def delete_data_record(request: Request, app_id: str, collection: str, record_id: str, user=Depends(get_optional_user)):
+async def delete_data_record(
+    request: Request, app_id: str, collection: str, record_id: str,
+    user=Depends(get_optional_user), x_app_session: Optional[str] = Header(None),
+):
     if not _valid_collection_name(collection):
         raise HTTPException(status_code=400, detail="Invalid collection name")
     doc = await _resolve_app_for_data(app_id, user)
+    await _require_app_account(doc, x_app_session)
     try:
         rid = ObjectId(record_id)
     except Exception:
