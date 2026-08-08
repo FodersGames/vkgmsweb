@@ -234,11 +234,9 @@ _CLI_HELP_TEXT = [
     "  player mute <project_slug> <username|nickname|email|id> <minutes> [reason]",
     "  player wipe-saves <project_slug> <username|nickname|email|id>",
     "",
-    "  Projects & missions",
+    "  Projects",
     "  project status <project_slug> <open|closed|maintenance>",
     "  project stats <project_slug>",
-    "  mission list <project_slug> [status]",
-    "  mission cancel <project_slug> <mission_id>",
     "",
     "  Support",
     "  ticket show <ticket_number>",
@@ -269,12 +267,6 @@ _CLI_HELP_TEXT = [
     "  chat wordlist add|remove <word>",
     "  chat purge <project_slug> [n]",
     "  chat recent <project_slug> [n]",
-    "",
-    "  Guilds",
-    "  guild list <project_slug>",
-    "  guild show <guild_id>",
-    "  guild disband <guild_id>",
-    "  guild kick <guild_id> <query>",
     "",
     "  Blog & careers",
     "  blog list [published|draft]",
@@ -397,14 +389,10 @@ _CLI_CATALOG = [
     ], "confirm": False},
     {"path": ["project", "files"], "category": "Projects", "description": "Latest uploaded build files.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
     {"path": ["project", "keys"], "category": "Projects", "description": "Show a project's chat/files API keys.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    {"path": ["mission", "list"], "category": "Projects", "description": "List missions for a project.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "status", "label": "Status", **_sel(["open", "in_progress", "completed", "cancelled"]), "required": False},
-    ], "confirm": False},
-    {"path": ["mission", "cancel"], "category": "Projects", "description": "Cancel a mission.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "mission_id", "label": "Mission ID", "type": _T, "required": True},
-    ], "confirm": True},
+    # CRITICAL — routed through the dedicated confirmation modal, same as
+    # app delete-all (see CRITICAL ACTIONS above _cli_dispatch). Listed
+    # here purely for discoverability via 'help'/the command catalog popup.
+    {"path": ["project", "delete-all"], "category": "Projects", "description": "⚠ CRITICAL — permanently delete every hosted game project on the platform.", "args": [], "confirm": True},
     {"path": ["var", "get"], "category": "Projects", "description": "Read a project variable.", "args": [
         {"name": "slug", "label": "Project", "type": _T, "required": True},
         {"name": "name", "label": "Variable name", "type": _T, "required": True},
@@ -446,14 +434,6 @@ _CLI_CATALOG = [
         {"name": "slug", "label": "Project", "type": _T, "required": True},
         {"name": "n", "label": "Count", "type": _N, "required": False},
     ], "confirm": False},
-    {"path": ["guild", "list"], "category": "Chat", "description": "List guilds in a project.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    {"path": ["guild", "show"], "category": "Chat", "description": "Guild detail and member list.", "args": [{"name": "guild_id", "label": "Guild ID", "type": _T, "required": True}], "confirm": False},
-    {"path": ["guild", "disband"], "category": "Chat", "description": "Permanently disband a guild.", "args": [{"name": "guild_id", "label": "Guild ID", "type": _T, "required": True}], "confirm": True},
-    {"path": ["guild", "kick"], "category": "Chat", "description": "Remove a member from a guild.", "args": [
-        {"name": "guild_id", "label": "Guild ID", "type": _T, "required": True},
-        {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
-    ], "confirm": True},
-
     # Studio apps & Vakar+
     {"path": ["app", "list"], "category": "Studio", "description": "List studio apps, optionally by status.", "args": [{"name": "status", "label": "Status", **_sel(["draft", "published"]), "required": False}], "confirm": False},
     {"path": ["app", "show"], "category": "Studio", "description": "Studio app detail: owner, status, price, earnings.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
@@ -588,10 +568,29 @@ async def _execute_delete_all_studio_apps(payload: dict) -> str:
         counts[coll] = result.deleted_count
     return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
 
+async def _execute_delete_all_projects(payload: dict) -> str:
+    # Mirrors DELETE /api/projects/{slug} (projects.py) exactly, just
+    # without the per-slug filter — same collection list, so "delete all"
+    # cascades exactly as far as deleting one project already does today
+    # (notably: does NOT touch missions/guilds/chat/players — that's a
+    # pre-existing scope of the single-project delete too, not something
+    # introduced here).
+    counts = {}
+    result = await db.projects.delete_many({})
+    counts["projects"] = result.deleted_count
+    for coll in ["items", "server_status", "variables", "logs"]:
+        result = await db[coll].delete_many({})
+        counts[coll] = result.deleted_count
+    return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
+
 CRITICAL_ACTIONS = {
     "delete_all_studio_apps": {
         "label": "Delete ALL Studio Apps — every app, every user, platform-wide",
         "handler": _execute_delete_all_studio_apps,
+    },
+    "delete_all_projects": {
+        "label": "Delete ALL Projects — every hosted game project, platform-wide",
+        "handler": _execute_delete_all_projects,
     },
 }
 
@@ -948,39 +947,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             f"  chat mutes:    {mutes}",
         ], False, False
 
-    if verb == "mission" and len(tokens) >= 3 and tokens[1].lower() == "list":
-        slug = tokens[2]
-        status_filter = tokens[3].lower() if len(tokens) > 3 else None
-        if status_filter and status_filter not in ("open", "in_progress", "completed", "cancelled"):
-            raise _CliError("Status must be one of: open, in_progress, completed, cancelled")
-        q = {"project_slug": slug}
-        if status_filter: q["status"] = status_filter
-        docs = await db.missions.find(q).sort("created_at", -1).to_list(30)
-        if not docs:
-            return [f"No missions found for '{slug}'" + (f" with status '{status_filter}'" if status_filter else "") + "."], False, False
-        lines = [f"Missions for '{slug}'" + (f" ({status_filter})" if status_filter else "") + f" — {len(docs)} shown:"]
-        for m in docs:
-            lines.append(f"  [{str(m['_id'])}] {m.get('title','')} — {m.get('status','open')} ({m.get('priority','medium')})")
-        return lines, False, False
-
-    if verb == "mission" and len(tokens) >= 4 and tokens[1].lower() == "cancel":
-        slug, mission_id = tokens[2], tokens[3]
-        try:
-            oid = ObjectId(mission_id)
-        except Exception:
-            raise _CliError(f"'{mission_id}' is not a valid mission ID.")
-        mission = await db.missions.find_one({"_id": oid, "project_slug": slug})
-        if not mission:
-            raise _CliError(f"No mission '{mission_id}' found in project '{slug}'.")
-        if mission.get("status") == "cancelled":
-            raise _CliError("This mission is already cancelled.")
-        if not confirm:
-            return [f"Cancel mission '{mission.get('title')}' in '{slug}'?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.missions.update_one({"_id": oid}, {"$set": {"status": "cancelled"}})
-        await log_action("missions", f"[CLI] Mission '{mission.get('title')}' cancelled", project_slug=slug, user=admin["username"])
-        return [f"OK — mission '{mission.get('title')}' cancelled."], False, True
-
     if verb == "ticket" and len(tokens) >= 3 and tokens[1].lower() == "show":
         tn = tokens[2].upper()
         t = await db.support_tickets.find_one({"ticket_number": tn})
@@ -1253,68 +1219,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             lines.append(f"  [{ts}] {m.get('username','?')}: {m.get('message', m.get('content',''))}")
         return lines, False, False
 
-    # ── Guilds ───────────────────────────────────────────────────────────────
-    if verb == "guild" and len(tokens) >= 3 and tokens[1].lower() == "list":
-        slug = tokens[2]
-        docs = await db.guilds.find({"project_slug": slug}).sort("name", 1).to_list(50)
-        if not docs:
-            return [f"No guilds found for '{slug}'."], False, False
-        lines = [f"{len(docs)} guild(s) in '{slug}':"]
-        for g in docs:
-            count = await db.guild_members.count_documents({"guild_id": g["_id"]})
-            lines.append(f"  [{str(g['_id'])}] {g.get('name','?')} — {count} member(s)")
-        return lines, False, False
-
-    if verb == "guild" and len(tokens) >= 3 and tokens[1].lower() == "show":
-        try:
-            oid = ObjectId(tokens[2])
-        except Exception:
-            raise _CliError(f"'{tokens[2]}' is not a valid guild ID.")
-        g = await db.guilds.find_one({"_id": oid})
-        if not g:
-            raise _CliError(f"No guild '{tokens[2]}'.")
-        members = await db.guild_members.find({"guild_id": oid}).to_list(200)
-        lines = [f"name:    {g.get('name','')}", f"project: {g.get('project_slug','')}", f"members: {len(members)}"]
-        for m in members:
-            u = await db.users.find_one({"_id": m["user_id"]})
-            lines.append(f"  - {u.get('username','?') if u else '?'} ({m.get('role','member')})")
-        return lines, False, False
-
-    if verb == "guild" and len(tokens) >= 3 and tokens[1].lower() == "disband":
-        try:
-            oid = ObjectId(tokens[2])
-        except Exception:
-            raise _CliError(f"'{tokens[2]}' is not a valid guild ID.")
-        g = await db.guilds.find_one({"_id": oid})
-        if not g:
-            raise _CliError(f"No guild '{tokens[2]}'.")
-        if not confirm:
-            return [f"PERMANENTLY disband guild '{g.get('name')}'? This cannot be undone.", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.guild_members.delete_many({"guild_id": oid})
-        await db.guilds.delete_one({"_id": oid})
-        await log_action("chat", f"[CLI] Guild '{g.get('name')}' disbanded", project_slug=g.get("project_slug"), user=admin["username"])
-        return [f"OK — guild '{g.get('name')}' disbanded."], False, True
-
-    if verb == "guild" and len(tokens) >= 4 and tokens[1].lower() == "kick":
-        try:
-            oid = ObjectId(tokens[2])
-        except Exception:
-            raise _CliError(f"'{tokens[2]}' is not a valid guild ID.")
-        g = await db.guilds.find_one({"_id": oid})
-        if not g:
-            raise _CliError(f"No guild '{tokens[2]}'.")
-        target = await _cli_find_user_doc(tokens[3])
-        if not target:
-            raise _CliError(f"No user found matching '{tokens[3]}'.")
-        member = await db.guild_members.find_one({"guild_id": oid, "user_id": target["_id"]})
-        if not member:
-            raise _CliError(f"'{target.get('username')}' is not a member of '{g.get('name')}'.")
-        if not confirm:
-            return [f"Kick '{target.get('username')}' from '{g.get('name')}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.guild_members.delete_one({"_id": member["_id"]})
-        await log_action("chat", f"[CLI] '{target.get('username')}' kicked from guild '{g.get('name')}'", project_slug=g.get("project_slug"), user=admin["username"])
-        return [f"OK — '{target.get('username')}' kicked from '{g.get('name')}'."], False, True
-
     # ── Blog ─────────────────────────────────────────────────────────────────
     if verb == "blog" and len(tokens) >= 2 and tokens[1].lower() == "list":
         status_filter = tokens[2].lower() if len(tokens) > 2 else None
@@ -1464,6 +1368,16 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         return [
             f"chat_api_key:  {project.get('chat_api_key') or '(not set)'}",
             f"files_api_key: {project.get('files_api_key') or '(not set)'}",
+        ], False, False
+
+    if verb == "project" and len(tokens) >= 2 and tokens[1].lower() == "delete-all":
+        # Same pattern as app delete-all — never executes here, only
+        # discoverable via 'help'/the catalog popup; the real flow is the
+        # dedicated confirmation modal (POST /admin/critical-actions/
+        # delete_all_projects/schedule).
+        return [
+            "This is a CRITICAL action and can't be run from typed CLI text.",
+            "Use the \"⚠ Critical Actions\" button in the CLI panel to go through the full confirmation flow.",
         ], False, False
 
     # ── Tickets: list / reply (show / close already above) ─────────────────
