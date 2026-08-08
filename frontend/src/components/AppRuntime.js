@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, getEffectiveAnchors, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, COMPONENT_META, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
 import { sandboxFetch } from '../appBuilderBlock/sandboxFetch';
-import { compileNodeBlocks } from '../appBuilderBlock/generators';
+import { compileNodeBlocks, extractHatFieldNumber } from '../appBuilderBlock/generators';
 import { migrateToHatWorkspace, isV2Shape } from '../appBuilderBlock/legacyMigration';
 import { setAbBlockContext } from '../appBuilderBlock/fields';
 import { LEGACY_TRIGGER_TO_HAT } from '../appBuilderBlock/blocks';
@@ -1075,6 +1075,21 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
   // mount, matching the natural "just opened" meaning.
   useEffect(() => {
     if (screen) runAction(screen, 'ab_when_screen_opens');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen?.id]);
+
+  // "every N ms while this screen is open" (ab_when_timer) — a game loop/
+  // animation tick. The hat's own INTERVAL field is discarded by normal
+  // compilation (compileNodeBlocks groups purely by hat type), so it's read
+  // straight off the raw workspace via extractHatFieldNumber instead; a
+  // screen with no ab_when_timer hat just gets no interval, no timer set up.
+  useEffect(() => {
+    if (!screen) return undefined;
+    const blocklyJson = resolveNodeWorkspace(screen, true, variableNames, screen, screens);
+    const interval = extractHatFieldNumber(blocklyJson, 'ab_when_timer', 'INTERVAL', null);
+    if (interval == null) return undefined;
+    const id = setInterval(() => { runAction(screen, 'ab_when_timer'); }, Math.max(50, interval));
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen?.id]);
 

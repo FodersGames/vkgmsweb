@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
 import { resolveTheme, AppIcon, getLayout, getEffectiveAnchors, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
-import { compileNodeBlocksSource } from '../appBuilderBlock/generators';
+import { compileNodeBlocksSource, extractHatFieldNumber } from '../appBuilderBlock/generators';
 
 // Baked into the generated script.js's Data-block requests (see host.dataRequest
 // below) — this build-time value, not a runtime one, since the exported app
@@ -540,6 +540,16 @@ function compileActionsSource(app) {
 function generateJS(app) {
   const initialVars = Object.fromEntries((app.variables || []).map(v => [v.name, v.initial_value ?? '']));
   const actionsSource = compileActionsSource(app);
+  // ab_when_timer's own INTERVAL field is discarded by normal compilation
+  // (compileActionsSource groups purely by hat type), so each screen's
+  // value — if it even has that hat — is read straight off its raw
+  // workspace here, at export/build time, and baked in as a plain lookup
+  // table showScreen() (below) uses to start/stop the game-loop timer.
+  const timerIntervals = {};
+  (app.screens || []).forEach(s => {
+    const interval = extractHatFieldNumber(s.blocks?.blockly, 'ab_when_timer', 'INTERVAL', null);
+    if (interval != null) timerIntervals[s.id] = Math.max(50, interval);
+  });
   // createRuntimeHelpers (frontend/src/appBuilderBlock/runtime.js) is
   // written as one fully self-contained function specifically so it can be
   // embedded verbatim here via .toString() — the live editor preview,
@@ -556,6 +566,8 @@ function generateJS(app) {
   var INITIAL_VARS = ${JSON.stringify(initialVars, null, 2)};
   var overrides = {};
   var visibilityOverrides = {};
+  var TIMER_INTERVALS = ${JSON.stringify(timerIntervals)};
+  var timerHandle = null;
 
   // Every top-level component is positioned via plain CSS (percentage or
   // pinned-edge, baked in at build time — see renderComponentHTML), so no
@@ -657,6 +669,11 @@ function generateJS(app) {
     var list = document.querySelectorAll('.screen');
     for (var i = 0; i < list.length; i++) {
       list[i].style.display = list[i].getAttribute('data-screen-id') === id ? 'block' : 'none';
+    }
+    if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+    var interval = TIMER_INTERVALS[id];
+    if (interval) {
+      timerHandle = setInterval(function () { runAction('screen:' + id + ':ab_when_timer'); }, interval);
     }
     runAction('screen:' + id + ':ab_when_screen_opens');
   }
@@ -1155,9 +1172,15 @@ ${actionsSource}
   setInterval(tickCountdowns, 1000);
   // The first screen's visibility comes from the static HTML (display:block
   // baked in by generateHTML()), not a showScreen() call — so its "when
-  // this screen opens" trigger needs one explicit run here; every
-  // subsequent screen change already fires it from inside showScreen().
-  runAction(${JSON.stringify(`screen:${app.screens?.[0]?.id || ''}:ab_when_screen_opens`)});
+  // this screen opens" trigger (and any game-loop timer) need starting
+  // here explicitly; every subsequent screen change already does both from
+  // inside showScreen().
+  var firstScreenId = ${JSON.stringify(app.screens?.[0]?.id || '')};
+  var firstInterval = TIMER_INTERVALS[firstScreenId];
+  if (firstInterval) {
+    timerHandle = setInterval(function () { runAction('screen:' + firstScreenId + ':ab_when_timer'); }, firstInterval);
+  }
+  runAction('screen:' + firstScreenId + ':ab_when_screen_opens');
 })();
 `;
 }

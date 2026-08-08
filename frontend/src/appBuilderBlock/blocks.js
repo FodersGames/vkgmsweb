@@ -101,6 +101,14 @@ const jsonBlocks = [
     colour: COLORS.events,
     tooltip: 'Runs once, every time this screen becomes visible (including when the app first opens on it).',
   },
+  {
+    type: 'ab_when_timer',
+    message0: '⏱️ every %1 ms while this screen is open',
+    args0: [{ type: 'field_number', name: 'INTERVAL', value: 500, min: 50, precision: 1 }],
+    nextStatement: null,
+    colour: COLORS.events,
+    tooltip: 'Repeats the attached blocks on a timer for as long as this screen stays open — a game loop or animation tick. Starts automatically when the screen opens and stops automatically when leaving it; only one per screen is used.',
+  },
 
   // ============================================================
   // Navigate
@@ -1466,7 +1474,7 @@ export const HAT_TYPES_BY_COMPONENT = {
   carousel: ['ab_when_row_tapped'],
   filepicker: ['ab_when_changed'],
 };
-export const SCREEN_HAT_TYPES = ['ab_when_screen_opens'];
+export const SCREEN_HAT_TYPES = ['ab_when_screen_opens', 'ab_when_timer'];
 // Which hat an element's single old (pre-hat) trigger becomes when migrated
 // — see legacyMigration.js's migrateToHatWorkspace(). A button's old
 // COMPONENT_META actionTrigger is 'onClick', everything else that had one
@@ -1476,7 +1484,7 @@ export const SCREEN_HAT_TYPES = ['ab_when_screen_opens'];
 export const LEGACY_TRIGGER_TO_HAT = { onClick: 'ab_when_clicked', onChange: 'ab_when_changed' };
 export const ALL_HAT_TYPES = [
   'ab_when_clicked', 'ab_when_pressed', 'ab_when_released',
-  'ab_when_changed', 'ab_when_row_tapped', 'ab_when_screen_opens',
+  'ab_when_changed', 'ab_when_row_tapped', 'ab_when_screen_opens', 'ab_when_timer',
 ];
 
 // Builds a toolbox scoped to one element's own possible hats — an "Events"

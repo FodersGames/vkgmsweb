@@ -41,6 +41,7 @@ forBlock['ab_when_released'] = () => '';
 forBlock['ab_when_changed'] = () => '';
 forBlock['ab_when_row_tapped'] = () => '';
 forBlock['ab_when_screen_opens'] = () => '';
+forBlock['ab_when_timer'] = () => '';
 
 // ---------- Variables ----------
 forBlock['ab_get_variable'] = function (block) {
@@ -571,6 +572,30 @@ export function compileNodeBlocks(workspaceJson) {
 // instead of going through `new Function` at export-open time.
 export function compileNodeBlocksSource(workspaceJson) {
   return generateByHat(workspaceJson);
+}
+
+// A hat block's own field values (e.g. ab_when_timer's INTERVAL) are
+// discarded by generateByHat above — it only keeps the compiled body,
+// grouped purely by hat TYPE. Callers that need a hat's own configuration
+// (AppRuntime.js/exportApp.js, to know how often to fire ab_when_timer)
+// read it directly off the saved workspace with this instead, completely
+// independent of compilation. Returns `fallback` if that hat type isn't
+// present at all — same "missing = not used" convention as a missing
+// compiled entry.
+export function extractHatFieldNumber(workspaceJson, hatType, fieldName, fallback) {
+  if (!workspaceJson) return fallback;
+  const ws = new Blockly.Workspace();
+  try {
+    Blockly.serialization.workspaces.load(workspaceJson, ws);
+    for (const block of ws.getTopBlocks(true)) {
+      if (block.type !== hatType) continue;
+      const v = Number(block.getFieldValue(fieldName));
+      return Number.isFinite(v) ? v : fallback;
+    }
+    return fallback;
+  } finally {
+    ws.dispose();
+  }
 }
 
 export { javascriptGenerator, Order };
