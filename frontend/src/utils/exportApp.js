@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'qrcode';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, getEffectiveAnchors, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
 import { compileNodeBlocksSource } from '../appBuilderBlock/generators';
 
@@ -66,8 +66,8 @@ async function renderComponentHTML(node, index = 0) {
   // JS/resize math involved. Both edges set on an axis means "stretch"
   // (the browser computes that dimension itself); a single edge keeps the
   // component's own designed width/height.
-  const anchors = node.layout?.anchors;
-  let pos;
+  const anchors = getEffectiveAnchors(node);
+  let pos, autoAttr = '';
   if (anchors) {
     const l = getLayout(node, index);
     const parts = ['position:absolute;'];
@@ -77,6 +77,14 @@ async function renderComponentHTML(node, index = 0) {
     if (anchors.bottom != null) parts.push(`bottom:${anchors.bottom}px;`);
     if (!(anchors.left != null && anchors.right != null)) parts.push(`width:${l.w}px;`);
     if (!(anchors.top != null && anchors.bottom != null)) parts.push(`height:${l.h}px;`);
+    // A node anchored on only one axis (e.g. auto-anchored to the bottom
+    // edge but nowhere near left/right) has no CSS left/right at all —
+    // that falls back to static-flow placement, not the designed spot.
+    // fitCanvas() (see generateJS below) fills these in at runtime using
+    // the same canvas-centering math the scaled canvas itself uses, so it
+    // lines up with where a free/positioned component would have drawn it.
+    if (anchors.left == null && anchors.right == null) { autoAttr += ` data-auto-x="${l.x}"`; parts.push('left:0px;'); }
+    if (anchors.top == null && anchors.bottom == null) { autoAttr += ` data-auto-y="${l.y}"`; parts.push('top:0px;'); }
     pos = parts.join('');
   } else {
     const l = getLayout(node, index);
@@ -90,7 +98,7 @@ async function renderComponentHTML(node, index = 0) {
   const animClass = animation && animation !== 'none' ? `vk-anim-${animation}` : '';
   const classAttr = animClass ? ` class="${animClass}"` : '';
   const visAttr = node.visible_if?.variable ? ` data-vis='${escJsonAttr(node.visible_if)}'` : '';
-  const wrapperOpen = `<div${classAttr} data-comp-id="${esc(node.id)}"${visAttr} style="${pos}">`;
+  const wrapperOpen = `<div${classAttr} data-comp-id="${esc(node.id)}"${visAttr}${autoAttr} style="${pos}">`;
 
   switch (node.type) {
     case 'text': {
@@ -297,8 +305,8 @@ async function generateHTML(app, showWatermark) {
   // no extra JS needed.
   const perScreen = (app.screens || []).map((s, i) => ({
     screen: s, index: i,
-    free: (s.components || []).filter(n => !n.layout?.anchors),
-    anchored: (s.components || []).filter(n => n.layout?.anchors),
+    free: (s.components || []).filter(n => !getEffectiveAnchors(n)),
+    anchored: (s.components || []).filter(n => getEffectiveAnchors(n)),
   }));
 
   const screensHTML = (await Promise.all(perScreen.map(async ({ screen: s, index: i, free }) => {
@@ -547,7 +555,24 @@ function generateJS(app) {
     var canvas = document.querySelector('.canvas');
     if (!wrap || !canvas) return;
     var scale = Math.min(wrap.clientWidth / CANVAS_WIDTH, wrap.clientHeight / CANVAS_HEIGHT);
-    canvas.style.transform = 'scale(' + (scale > 0 ? scale : 1) + ')';
+    if (!(scale > 0)) scale = 1;
+    canvas.style.transform = 'scale(' + scale + ')';
+    // Anchored-layer elements pinned on only one axis (data-auto-x/-y, set
+    // by renderComponentHTML for a node with no left/right or no top/bottom
+    // anchor) have no CSS offset on the other axis — position them using
+    // the same canvas-centering math the scaled .canvas itself is centered
+    // with, so they line up with where the free/positioned layer would
+    // have drawn them.
+    var offsetX = (wrap.clientWidth - CANVAS_WIDTH * scale) / 2;
+    var offsetY = (wrap.clientHeight - CANVAS_HEIGHT * scale) / 2;
+    var autoXEls = document.querySelectorAll('[data-auto-x]');
+    for (var i = 0; i < autoXEls.length; i++) {
+      autoXEls[i].style.left = (offsetX + parseFloat(autoXEls[i].getAttribute('data-auto-x')) * scale) + 'px';
+    }
+    var autoYEls = document.querySelectorAll('[data-auto-y]');
+    for (var j = 0; j < autoYEls.length; j++) {
+      autoYEls[j].style.top = (offsetY + parseFloat(autoYEls[j].getAttribute('data-auto-y')) * scale) + 'px';
+    }
   }
   window.addEventListener('resize', fitCanvas);
   fitCanvas();

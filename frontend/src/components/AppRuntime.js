@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import { resolveTheme, AppIcon, getLayout, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, COMPONENT_META, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
+import { resolveTheme, AppIcon, getLayout, getEffectiveAnchors, CANVAS_WIDTH, CANVAS_HEIGHT, resolveTextSizePx, UPDATABLE_PROP, COMPONENT_META, flattenAllTargets, flattenUpdatableTargets } from '../constants/appBuilder';
 import { createRuntimeHelpers } from '../appBuilderBlock/runtime';
 import { sandboxFetch } from '../appBuilderBlock/sandboxFetch';
 import { compileNodeBlocks } from '../appBuilderBlock/generators';
@@ -845,15 +845,24 @@ export function PositionedNode({ node, index = 0, vars, setVars, runAction, them
 // size — both edges set on an axis makes the browser compute that
 // dimension itself, so width/height is only set explicitly when just one
 // edge on that axis is pinned (keeping the component's own designed size).
-function AnchoredNode({ node, vars, setVars, runAction, theme, overrides, visibilityOverrides }) {
+function AnchoredNode({ node, vars, setVars, runAction, theme, overrides, visibilityOverrides, scale, canvasOffset }) {
   if (!resolveVisible(node, vars, visibilityOverrides)) return null;
-  const a = node.layout?.anchors || {};
+  const a = getEffectiveAnchors(node) || {};
   const l = getLayout(node);
   const style = { position: 'absolute', pointerEvents: 'auto' };
   if (a.left != null) style.left = a.left;
   if (a.right != null) style.right = a.right;
   if (a.top != null) style.top = a.top;
   if (a.bottom != null) style.bottom = a.bottom;
+  // A node auto- or manually-anchored on only one axis (e.g. pinned to the
+  // bottom edge but not to a left/right one) still needs an explicit
+  // position on the OTHER axis — CSS position:absolute with neither left
+  // nor right set falls back to static-flow placement, not the designed
+  // spot. Reuse the same canvas-centering math the scaled/letterboxed
+  // canvas itself is positioned with (see AppRuntime's ResizeObserver) so
+  // it lines up with where PositionedNode would have drawn it.
+  if (a.left == null && a.right == null) style.left = canvasOffset.x + l.x * scale;
+  if (a.top == null && a.bottom == null) style.top = canvasOffset.y + l.y * scale;
   if (!(a.left != null && a.right != null)) style.width = l.w;
   if (!(a.top != null && a.bottom != null)) style.height = l.h;
   const animation = node.props?.animation;
@@ -875,6 +884,7 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
   const [message, setMessage] = useState(null);
   const wrapRef = useRef(null);
   const [scale, setScale] = useState(1);
+  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
   const screen = useMemo(() => screens.find(s => s.id === screenId) || screens[0], [screens, screenId]);
 
@@ -883,7 +893,11 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
     const compute = () => {
       const w = el.clientWidth, h = el.clientHeight;
-      if (w > 0 && h > 0) setScale(Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT));
+      if (w > 0 && h > 0) {
+        const s = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
+        setScale(s);
+        setCanvasOffset({ x: (w - CANVAS_WIDTH * s) / 2, y: (h - CANVAS_HEIGHT * s) / 2 });
+      }
     };
     compute();
     const ro = new ResizeObserver(compute);
@@ -1074,8 +1088,8 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
   // (not the filtered one) so an old, layout-less legacy component's
   // cascade-fallback position (getLayout's index parameter) is unaffected.
   const indexed = (screen.components || []).map((node, i) => ({ node, i }));
-  const freeComponents = indexed.filter(({ node }) => !node.layout?.anchors);
-  const anchoredComponents = indexed.filter(({ node }) => node.layout?.anchors);
+  const freeComponents = indexed.filter(({ node }) => !getEffectiveAnchors(node));
+  const anchoredComponents = indexed.filter(({ node }) => getEffectiveAnchors(node));
 
   return (
     <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box' }}>
@@ -1099,7 +1113,7 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
       {anchoredComponents.length > 0 && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', fontFamily: FONT_STACK }}>
           {anchoredComponents.map(({ node }) => (
-            <AnchoredNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
+            <AnchoredNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} scale={scale} canvasOffset={canvasOffset} />
           ))}
         </div>
       )}

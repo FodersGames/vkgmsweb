@@ -123,6 +123,31 @@ export const getLayout = (node, index = 0) => {
   return { x, y, w, h };
 };
 
+// A component whose author never touched the Anchors inspector but placed
+// it flush against a canvas edge anyway (e.g. a footer text dragged to the
+// very bottom) still suffers the same letterboxing gap manual anchors were
+// built to fix — the fixed 360x640 reference frame doesn't reach the real
+// screen edge on a different aspect ratio, leaving dead space beyond it.
+// This infers the same {top,bottom,left,right} shape automatically from
+// raw proximity to an edge, so unanchored-but-edge-flush components get
+// the same true-viewport-relative treatment as bottomnav/appbar/fab for
+// free — explicit `layout.anchors` (if the author did set one, even a
+// partial one) always wins as-is, this is purely a fallback for nodes that
+// have none at all.
+const AUTO_ANCHOR_EDGE_EPS = 6;
+
+export const getEffectiveAnchors = (node) => {
+  const manual = node?.layout?.anchors;
+  if (manual) return manual;
+  const l = getLayout(node);
+  const anchors = {};
+  if (l.x <= AUTO_ANCHOR_EDGE_EPS) anchors.left = Math.max(0, l.x);
+  if (CANVAS_WIDTH - (l.x + l.w) <= AUTO_ANCHOR_EDGE_EPS) anchors.right = Math.max(0, CANVAS_WIDTH - (l.x + l.w));
+  if (l.y <= AUTO_ANCHOR_EDGE_EPS) anchors.top = Math.max(0, l.y);
+  if (CANVAS_HEIGHT - (l.y + l.h) <= AUTO_ANCHOR_EDGE_EPS) anchors.bottom = Math.max(0, CANVAS_HEIGHT - (l.y + l.h));
+  return Object.keys(anchors).length ? anchors : null;
+};
+
 export const COMPONENT_TYPES = [
   {
     type: 'text', label: 'Text', icon: Type, isContainer: false, tier: 'free',
