@@ -2,6 +2,9 @@ import {
   Type, MousePointerClick, Image, TextCursorInput, LayoutGrid, Minus, MoveVertical,
   Sparkles, List as ListIcon, ToggleLeft, CheckSquare, Star, Activity, QrCode,
   SlidersHorizontal, Calendar, Video, Globe,
+  ChevronDown, Search, CircleDot, Plus, ChartBar, CircleUserRound, MapPin,
+  PanelBottom, PanelTop, CirclePlus, Pilcrow, Images, ChevronsUpDown, Volume2,
+  Paperclip, Timer, Tag,
 } from 'lucide-react';
 
 // Single source of truth for the Studio App Builder — used by the admin
@@ -50,6 +53,26 @@ export const DEFAULT_LAYOUT = {
   date: { x: 20, y: 20, w: 200, h: 44 },
   video: { x: 20, y: 20, w: 320, h: 180 },
   webview: { x: 20, y: 20, w: 320, h: 400 },
+  select: { x: 20, y: 20, w: 240, h: 44 },
+  search: { x: 20, y: 20, w: 280, h: 44 },
+  radio: { x: 20, y: 20, w: 240, h: 108 },
+  stepper: { x: 20, y: 20, w: 160, h: 44 },
+  chart: { x: 20, y: 20, w: 320, h: 200 },
+  avatar: { x: 20, y: 20, w: 64, h: 64 },
+  map: { x: 20, y: 20, w: 320, h: 200 },
+  // Anchored to the screen's bottom/left/right edges by default (see
+  // getLayout's anchor resolution) — stretches full-width and stays
+  // pinned to the bottom regardless of what else is on the screen.
+  bottomnav: { x: 0, y: CANVAS_HEIGHT - 64, w: CANVAS_WIDTH, h: 64, anchors: { left: 0, right: 0, bottom: 0 } },
+  appbar: { x: 0, y: 0, w: CANVAS_WIDTH, h: 56, anchors: { left: 0, right: 0, top: 0 } },
+  fab: { x: CANVAS_WIDTH - 76, y: CANVAS_HEIGHT - 116, w: 56, h: 56, anchors: { right: 20, bottom: 20 } },
+  richtext: { x: 20, y: 20, w: 280, h: 90 },
+  carousel: { x: 20, y: 20, w: 320, h: 180 },
+  accordion: { x: 20, y: 20, w: 320, h: 60 },
+  audio: { x: 20, y: 20, w: 280, h: 44 },
+  filepicker: { x: 20, y: 20, w: 200, h: 44 },
+  countdown: { x: 20, y: 20, w: 240, h: 60 },
+  badge: { x: 20, y: 20, w: 80, h: 28 },
 };
 
 // `index` is only used as a fallback for components saved before free
@@ -195,6 +218,107 @@ export const COMPONENT_TYPES = [
   {
     type: 'webview', label: 'Web view', icon: Globe, isContainer: false, tier: 'premium',
     defaultProps: { url: '' },
+  },
+  {
+    type: 'select', label: 'Dropdown', icon: ChevronDown, isContainer: false,
+    actionTrigger: 'onChange', tier: 'free',
+    defaultProps: { placeholder: 'Choose…', options: 'Option 1, Option 2, Option 3', variable: '' },
+  },
+  {
+    type: 'search', label: 'Search bar', icon: Search, isContainer: false,
+    actionTrigger: 'onChange', tier: 'free',
+    defaultProps: { placeholder: 'Search…', variable: '' },
+  },
+  {
+    type: 'radio', label: 'Radio group', icon: CircleDot, isContainer: false,
+    actionTrigger: 'onChange', tier: 'premium',
+    defaultProps: { options: 'Option 1, Option 2, Option 3', variable: '' },
+  },
+  {
+    type: 'stepper', label: 'Stepper', icon: Plus, isContainer: false,
+    actionTrigger: 'onChange', tier: 'free',
+    defaultProps: { variable: '', min: 0, max: 100, step: 1 },
+  },
+  {
+    // Reads a JSON array from a variable — the exact same shape the "Data"
+    // blocks' "load all records into list" already produces (each item an
+    // object with named fields), so a Data collection plots straight in.
+    type: 'chart', label: 'Chart', icon: ChartBar, isContainer: false, tier: 'premium',
+    defaultProps: { source_variable: '', label_field: 'label', value_field: 'value', color: '' },
+  },
+  {
+    // `initials`/`url` both go through the same {{variable}} interpolation
+    // as a Text's content — e.g. bind `initials` to a variable a block sets
+    // from "current account username" (Accounts blocks) after login.
+    type: 'avatar', label: 'Avatar', icon: CircleUserRound, isContainer: false,
+    actionTrigger: 'onClick', tier: 'free',
+    defaultProps: { url: '', initials: '', color: '' },
+  },
+  {
+    // A plain OpenStreetMap embed (no API key, no new dependency) — lat/lon
+    // support {{variable}} interpolation, so a block can drop a pin from a
+    // Data record or the device's own location (see the "get latitude/
+    // longitude" blocks).
+    type: 'map', label: 'Map', icon: MapPin, isContainer: false, tier: 'premium',
+    defaultProps: { latitude: '48.8566', longitude: '2.3522', zoom: 14 },
+  },
+  {
+    // items: [{label, icon}] — what each tap actually does is authored as
+    // blocks under this component's own "when a row is tapped" hat (same
+    // mechanism as List), using the "This item" blocks to read which one
+    // was tapped and navigate accordingly — not a fixed per-item screen
+    // link, so the same block logic can e.g. also update a "selected tab"
+    // variable to restyle the bar.
+    type: 'bottomnav', label: 'Bottom nav bar', icon: PanelBottom, isContainer: false, tier: 'premium',
+    defaultProps: { items: [{ label: 'Home', icon: 'home' }, { label: 'Profile', icon: 'user' }] },
+  },
+  {
+    type: 'appbar', label: 'App bar', icon: PanelTop, isContainer: false,
+    actionTrigger: 'onClick', tier: 'free',
+    defaultProps: { title: 'Title', show_back: false },
+  },
+  {
+    type: 'fab', label: 'Floating button', icon: CirclePlus, isContainer: false,
+    actionTrigger: 'onClick', tier: 'premium',
+    defaultProps: { icon: 'plus', color: '' },
+  },
+  {
+    // Minimal, dependency-free formatting: **bold** and [text](url) links
+    // only — not full Markdown. Parsed the same way in the live runtime and
+    // the static export (see resolveRichText in both).
+    type: 'richtext', label: 'Rich text', icon: Pilcrow, isContainer: false, tier: 'free',
+    defaultProps: { content: 'Some **bold** text with a [link](https://vakargames.com).', align: 'left' },
+  },
+  {
+    // Same source_variable/JSON-array convention as chart/list — pairs
+    // naturally with a Data collection of {image, ...} records.
+    type: 'carousel', label: 'Carousel', icon: Images, isContainer: false, tier: 'premium',
+    defaultProps: { source_variable: '', image_field: 'image' },
+  },
+  {
+    type: 'accordion', label: 'Accordion', icon: ChevronsUpDown, isContainer: false, tier: 'free',
+    defaultProps: { title: 'Section title', content: 'Details go here.' },
+  },
+  {
+    type: 'audio', label: 'Audio player', icon: Volume2, isContainer: false, tier: 'free',
+    defaultProps: { url: '' },
+  },
+  {
+    // Like Input's variable binding, but the value is a data: URL of
+    // whatever file was picked (any type — Choose Photo, an existing
+    // block, is the image-only equivalent of this as a block instead of a
+    // draggable element).
+    type: 'filepicker', label: 'File picker', icon: Paperclip, isContainer: false,
+    actionTrigger: 'onChange', tier: 'premium',
+    defaultProps: { label: 'Choose file', variable: '' },
+  },
+  {
+    type: 'countdown', label: 'Countdown', icon: Timer, isContainer: false, tier: 'premium',
+    defaultProps: { target_date: '', label: '' },
+  },
+  {
+    type: 'badge', label: 'Badge', icon: Tag, isContainer: false, tier: 'free',
+    defaultProps: { text: 'NEW', color: '' },
   },
 ];
 
@@ -429,6 +553,7 @@ export const MAX_APP_TAGS = 3;
 export const ICON_IDS = [
   'home', 'star', 'heart', 'check', 'bell', 'settings', 'user', 'cart',
   'search', 'mail', 'calendar', 'camera', 'chat', 'warning', 'arrowRight', 'lock',
+  'chevronDown', 'plus', 'minus',
 ];
 
 export const ICON_PATHS = {
@@ -448,6 +573,9 @@ export const ICON_PATHS = {
   warning: <><path d="M12 3l10 18H2z" strokeLinejoin="round" /><line x1="12" y1="9" x2="12" y2="14" /><circle cx="12" cy="17.3" r="0.6" fill="currentColor" stroke="none" /></>,
   arrowRight: <><line x1="4" y1="12" x2="20" y2="12" /><path d="M14 6l6 6-6 6" /></>,
   lock: <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 018 0v4" /></>,
+  chevronDown: <polyline points="6 9 12 15 18 9" />,
+  plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
+  minus: <line x1="5" y1="12" x2="19" y2="12" />,
 };
 
 export function AppIcon({ id, size = 24, color = 'currentColor', strokeWidth = 1.8 }) {

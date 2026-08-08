@@ -131,6 +131,90 @@ function QrVisual({ content, theme }) {
   return <img src={dataUrl} alt="QR code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
 }
 
+// Minimal, dependency-free formatting for the Rich Text component: **bold**
+// and [label](url) links only, in that priority order — not full Markdown.
+// Mirrored as plain-string HTML in exportApp.js's resolveRichText for the
+// static export (React elements can't cross that boundary, only the same
+// parsing logic can).
+function renderRichText(text) {
+  const nodes = [];
+  let rest = text || '';
+  let key = 0;
+  const pattern = /\*\*(.+?)\*\*|\[(.+?)\]\((.+?)\)/;
+  while (rest) {
+    const m = pattern.exec(rest);
+    if (!m) { nodes.push(rest); break; }
+    if (m.index > 0) nodes.push(rest.slice(0, m.index));
+    if (m[1] !== undefined) {
+      nodes.push(<strong key={key++}>{m[1]}</strong>);
+    } else {
+      // Content can come from a Data record another visitor typed (via
+      // blocks) — reject non-http(s) schemes so a "link" can't smuggle a
+      // javascript: URI that runs on click.
+      const safeHref = /^https?:\/\//i.test(m[3]) ? m[3] : '#';
+      nodes.push(<a key={key++} href={safeHref} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{m[2]}</a>);
+    }
+    rest = rest.slice(m.index + m[0].length);
+  }
+  return nodes;
+}
+
+// Own local expand/collapse state — same reason QrVisual below is its own
+// component instead of an inline case (ComponentVisual itself stays
+// hook-free so a switch-case can never violate the rules of hooks).
+// Collapsed shows just the header; expanded fills the rest of this
+// component's own box (its layout.h) with a scrollable content area —
+// there's no "grow past your assigned box" in this absolute-positioned
+// canvas, so size the box tall enough for the open state.
+function AccordionVisual({ node, vars, theme }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ width: '100%', height: '100%', border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius * 0.6, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: theme.colors.text, fontFamily: FONT_STACK }}
+      >
+        <span>{interpolate(node.props?.title, vars) || 'Section title'}</span>
+        <span style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', display: 'flex', flexShrink: 0 }}>
+          <AppIcon id="chevronDown" size={14} color={theme.colors.textMuted} />
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 12px 12px', fontSize: 13, color: theme.colors.textMuted, lineHeight: 1.5, overflowY: 'auto', flex: 1 }}>
+          {interpolate(node.props?.content, vars)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Ticks every second while mounted — same isolation reasoning as
+// AccordionVisual above.
+function CountdownVisual({ node, vars, theme }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const targetStr = interpolate(node.props?.target_date, vars);
+  const target = targetStr ? new Date(targetStr).getTime() : NaN;
+  const reached = !Number.isFinite(target);
+  const diff = reached ? 0 : Math.max(0, target - now);
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  const label = node.props?.label ? interpolate(node.props.label, vars) : '';
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+      {label && <span style={{ fontSize: 11, color: theme.colors.textMuted }}>{label}</span>}
+      <span style={{ fontSize: 20, fontWeight: 700, color: theme.colors.text, fontVariantNumeric: 'tabular-nums', fontFamily: FONT_STACK }}>
+        {reached ? '—' : `${days}d ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
+      </span>
+    </div>
+  );
+}
+
 function buttonStyle(theme, style) {
   switch (style) {
     case 'secondary':
@@ -459,6 +543,276 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
       );
     case 'spacer':
       return <div style={{ width: '100%', height: '100%' }} />;
+    case 'select': {
+      const bound = !!node.props?.variable;
+      const options = (node.props?.options || '').split(',').map(s => s.trim()).filter(Boolean);
+      const style = {
+        width: '100%', height: '100%', padding: '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
+        fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
+        color: theme.colors.text,
+      };
+      if (!bound || !interactive) {
+        return <select style={style} disabled title="This dropdown isn't bound to a variable yet"><option>{node.props?.placeholder || 'Choose…'}</option></select>;
+      }
+      return (
+        <select
+          value={vars[node.props.variable] ?? ''}
+          onChange={e => { setVars(v => ({ ...v, [node.props.variable]: e.target.value })); runAction && runAction(node, 'ab_when_changed'); }}
+          style={style}
+        >
+          <option value="" disabled>{node.props?.placeholder || 'Choose…'}</option>
+          {options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+    }
+    case 'search': {
+      const bound = !!node.props?.variable;
+      const style = {
+        width: '100%', height: '100%', padding: '0 12px 0 34px', borderRadius: 999, border: `1px solid ${theme.colors.border}`,
+        fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
+        color: theme.colors.text,
+      };
+      return (
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex' }}>
+            <AppIcon id="search" size={15} color={theme.colors.textMuted} />
+          </div>
+          {(!bound || !interactive) ? (
+            <input type="search" placeholder={node.props?.placeholder} style={style} disabled title="This search bar isn't bound to a variable yet" />
+          ) : (
+            <input
+              type="search" placeholder={node.props?.placeholder}
+              value={vars[node.props.variable] ?? ''}
+              onChange={e => { setVars(v => ({ ...v, [node.props.variable]: e.target.value })); runAction && runAction(node, 'ab_when_changed'); }}
+              style={style}
+            />
+          )}
+        </div>
+      );
+    }
+    case 'radio': {
+      const bound = !!node.props?.variable;
+      const options = (node.props?.options || '').split(',').map(s => s.trim()).filter(Boolean);
+      const selected = vars[node.props?.variable];
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', height: '100%', overflowY: 'auto' }}>
+          {options.map(o => (
+            <div
+              key={o}
+              onClick={() => {
+                if (!bound || !interactive) return;
+                setVars(v => ({ ...v, [node.props.variable]: o }));
+                runAction && runAction(node, 'ab_when_changed');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: (bound && interactive) ? 'pointer' : 'default', opacity: bound ? 1 : 0.5 }}
+            >
+              <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `1.5px solid ${selected === o ? theme.colors.primary : theme.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {selected === o && <div style={{ width: 10, height: 10, borderRadius: '50%', background: theme.colors.primary }} />}
+              </div>
+              <span style={{ fontSize: 14, color: theme.colors.text }}>{o}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'stepper': {
+      const bound = !!node.props?.variable;
+      const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
+      const value = Number(vars[node.props?.variable]) || min;
+      const change = (delta) => {
+        if (!bound || !interactive) return;
+        const next = Math.max(min, Math.min(max, value + delta));
+        setVars(v => ({ ...v, [node.props.variable]: String(next) }));
+        runAction && runAction(node, 'ab_when_changed');
+      };
+      const btnStyle = { width: 36, height: '100%', border: 'none', background: 'none', cursor: (bound && interactive) ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.colors.text };
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius * 0.6, opacity: bound ? 1 : 0.5, boxSizing: 'border-box' }}>
+          <button disabled={!bound || !interactive} onClick={() => change(-step)} style={btnStyle}><AppIcon id="minus" size={14} color="currentColor" /></button>
+          <span style={{ fontSize: 14, color: theme.colors.text, fontWeight: 600 }}>{value}</span>
+          <button disabled={!bound || !interactive} onClick={() => change(step)} style={btnStyle}><AppIcon id="plus" size={14} color="currentColor" /></button>
+        </div>
+      );
+    }
+    case 'chart': {
+      const raw = vars[node.props?.source_variable];
+      let items = [];
+      if (raw) {
+        try { const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; if (Array.isArray(parsed)) items = parsed; } catch { /* not valid JSON */ }
+      }
+      if (items.length === 0) {
+        return <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 13, color: theme.colors.textMuted }}>No data yet.</p>;
+      }
+      const labelField = node.props?.label_field || 'label';
+      const valueField = node.props?.value_field || 'value';
+      const values = items.map(it => Number(it?.[valueField]) || 0);
+      const maxVal = Math.max(1, ...values);
+      const color = node.props?.color || theme.colors.primary;
+      return (
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, width: '100%', height: '100%' }}>
+          {items.slice(0, 12).map((it, i) => (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ width: '100%', maxWidth: 28, height: `${Math.max(2, (values[i] / maxVal) * 100)}%`, background: color, borderRadius: '4px 4px 0 0' }} />
+              <span style={{ fontSize: 9, color: theme.colors.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{String(it?.[labelField] ?? '')}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'avatar': {
+      const url = interpolate(node.props?.url, vars);
+      const initials = interpolate(node.props?.initials, vars);
+      const bg = node.props?.color || theme.colors.primary;
+      return (
+        <div
+          onClick={() => runAction && runAction(node, 'ab_when_clicked')}
+          style={{
+            width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: url ? 'transparent' : bg, cursor: interactive ? 'pointer' : 'default', flexShrink: 0,
+          }}
+        >
+          {url ? (
+            <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span style={{ color: theme.colors.primaryText, fontSize: 16, fontWeight: 700 }}>{(initials || '?').slice(0, 2).toUpperCase()}</span>
+          )}
+        </div>
+      );
+    }
+    case 'map': {
+      const lat = Number(interpolate(node.props?.latitude, vars)) || 48.8566;
+      const lon = Number(interpolate(node.props?.longitude, vars)) || 2.3522;
+      const delta = 0.01 * (21 - Math.max(1, Math.min(19, Number(node.props?.zoom) || 14)));
+      const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+      const src = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+      return <iframe src={src} title="Map" style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }} />;
+    }
+    case 'bottomnav': {
+      const items = Array.isArray(node.props?.items) ? node.props.items : [];
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', width: '100%', height: '100%', background: theme.colors.surface, borderTop: `1px solid ${theme.colors.border}`, boxSizing: 'border-box' }}>
+          {items.map((it, i) => (
+            <div
+              key={i}
+              onClick={() => runAction && runAction(node, 'ab_when_row_tapped', { item: it, index: i })}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: interactive ? 'pointer' : 'default', color: theme.colors.text, flex: 1 }}
+            >
+              <AppIcon id={it?.icon || 'star'} size={18} color={theme.colors.text} />
+              <span style={{ fontSize: 10 }}>{it?.label}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'appbar':
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', height: '100%', background: theme.colors.surface, borderBottom: `1px solid ${theme.colors.border}`, padding: '0 12px', boxSizing: 'border-box' }}>
+          {node.props?.show_back && (
+            <button
+              onClick={() => runAction && runAction(node, 'ab_when_clicked')}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: interactive ? 'pointer' : 'default', display: 'flex', color: theme.colors.text, transform: 'rotate(180deg)' }}
+            >
+              <AppIcon id="arrowRight" size={18} color="currentColor" />
+            </button>
+          )}
+          <span style={{ fontSize: 16, fontWeight: 700, color: theme.colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {interpolate(node.props?.title, vars) || 'Title'}
+          </span>
+        </div>
+      );
+    case 'fab':
+      return (
+        <button
+          onClick={() => runAction && runAction(node, 'ab_when_clicked')}
+          style={{
+            width: '100%', height: '100%', borderRadius: '50%', border: 'none', cursor: interactive ? 'pointer' : 'default',
+            background: node.props?.color || theme.colors.primary, color: theme.colors.primaryText,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 20px -6px ${theme.colors.primary}80`,
+          }}
+        >
+          <AppIcon id={node.props?.icon || 'plus'} size={22} color="currentColor" />
+        </button>
+      );
+    case 'richtext':
+      return (
+        <p style={{ margin: 0, width: '100%', height: '100%', fontSize: 14, lineHeight: 1.5, color: theme.colors.text, textAlign: node.props?.align || 'left', whiteSpace: 'pre-wrap', overflow: 'auto' }}>
+          {renderRichText(interpolate(node.props?.content, vars))}
+        </p>
+      );
+    case 'carousel': {
+      const raw = vars[node.props?.source_variable];
+      let items = [];
+      if (raw) {
+        try { const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; if (Array.isArray(parsed)) items = parsed; } catch { /* not valid JSON */ }
+      }
+      if (items.length === 0) {
+        return <div style={{ width: '100%', height: '100%', borderRadius: 8, background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />;
+      }
+      const imageField = node.props?.image_field || 'image';
+      return (
+        <div style={{ display: 'flex', gap: 8, width: '100%', height: '100%', overflowX: 'auto' }}>
+          {items.slice(0, 30).map((it, i) => (
+            <img
+              key={i} src={it?.[imageField]} alt=""
+              onClick={() => runAction && runAction(node, 'ab_when_row_tapped', { item: it, index: i })}
+              style={{ height: '100%', flexShrink: 0, borderRadius: 8, objectFit: 'cover', cursor: interactive ? 'pointer' : 'default' }}
+            />
+          ))}
+        </div>
+      );
+    }
+    case 'accordion':
+      return <AccordionVisual node={node} vars={vars} theme={theme} />;
+    case 'audio':
+      return node.props?.url ? (
+        <audio src={node.props.url} controls style={{ width: '100%' }} />
+      ) : (
+        <div style={{ width: '100%', height: '100%', borderRadius: 8, background: theme.colors.surface, border: `1px dashed ${theme.colors.border}` }} />
+      );
+    case 'filepicker': {
+      const bound = !!node.props?.variable;
+      const inputId = `vk-filepicker-${node.id}`;
+      return (
+        <div style={{ width: '100%', height: '100%' }}>
+          <label
+            htmlFor={(bound && interactive) ? inputId : undefined}
+            style={{
+              width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: theme.radius * 0.6, border: `1px dashed ${theme.colors.border}`, fontSize: 13, color: theme.colors.text,
+              cursor: (bound && interactive) ? 'pointer' : 'default', opacity: bound ? 1 : 0.5, boxSizing: 'border-box',
+            }}
+          >
+            {node.props?.label || 'Choose file'}
+          </label>
+          {bound && interactive && (
+            <input
+              id={inputId} type="file" style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                  setVars(v => ({ ...v, [node.props.variable]: String(reader.result || '') }));
+                  runAction && runAction(node, 'ab_when_changed');
+                };
+                reader.readAsDataURL(file);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+    case 'countdown':
+      return <CountdownVisual node={node} vars={vars} theme={theme} />;
+    case 'badge':
+      return (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ padding: '4px 10px', borderRadius: 999, background: node.props?.color || theme.colors.primary, color: theme.colors.primaryText, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {interpolate(node.props?.text, vars) || 'NEW'}
+          </span>
+        </div>
+      );
     default:
       return null;
   }

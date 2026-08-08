@@ -783,6 +783,301 @@ function PropsEditor({ node, onChange, allowPremium, onUploadImage, onPremiumBlo
           <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://…" className={FIELD_INPUT} />
         </div>
       );
+    case 'select':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Placeholder</label>
+            <input value={node.props.placeholder || ''} onChange={e => set('placeholder', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Options</label>
+            <input value={node.props.options || ''} onChange={e => set('options', e.target.value)} placeholder="Option 1, Option 2, Option 3" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Comma-separated.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. selectedPlan" className={FIELD_INPUT} />
+          </div>
+        </div>
+      );
+    case 'search':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Placeholder</label>
+            <input value={node.props.placeholder || ''} onChange={e => set('placeholder', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. searchQuery" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Updates on every keystroke — fires "when changed" too, e.g. to filter a list.</p>
+          </div>
+        </div>
+      );
+    case 'radio':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Options</label>
+            <input value={node.props.options || ''} onChange={e => set('options', e.target.value)} placeholder="Option 1, Option 2, Option 3" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Comma-separated.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. chosenOption" className={FIELD_INPUT} />
+          </div>
+        </div>
+      );
+    case 'stepper':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. quantity" className={FIELD_INPUT} />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className={FIELD_LABEL}>Min</label>
+              <input type="number" value={node.props.min ?? 0} onChange={e => set('min', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Max</label>
+              <input type="number" value={node.props.max ?? 100} onChange={e => set('max', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Step</label>
+              <input type="number" value={node.props.step ?? 1} onChange={e => set('step', Number(e.target.value))} className={FIELD_INPUT} />
+            </div>
+          </div>
+        </div>
+      );
+    case 'chart':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Source variable</label>
+            <input value={node.props.source_variable || ''} onChange={e => set('source_variable', e.target.value)} placeholder="e.g. salesData" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Expects a JSON array of objects — e.g. from "load all records into list" (Data blocks).</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Label field</label>
+              <input value={node.props.label_field || ''} onChange={e => set('label_field', e.target.value)} placeholder="label" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Value field</label>
+              <input value={node.props.value_field || ''} onChange={e => set('value_field', e.target.value)} placeholder="value" className={FIELD_INPUT} />
+            </div>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bar color</label>
+            <input type="color" value={node.props.color || '#4ECDC4'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+          </div>
+        </div>
+      );
+    case 'avatar':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Image URL</label>
+            <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://… or {{variable}}" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Initials (shown if no image)</label>
+            <input value={node.props.initials || ''} onChange={e => set('initials', e.target.value)} placeholder="e.g. {{username}} or AB" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Background color</label>
+            <input type="color" value={node.props.color || '#4ECDC4'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+          </div>
+        </div>
+      );
+    case 'map':
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FIELD_LABEL}>Latitude</label>
+              <input value={node.props.latitude || ''} onChange={e => set('latitude', e.target.value)} placeholder="48.8566" className={FIELD_INPUT} />
+            </div>
+            <div>
+              <label className={FIELD_LABEL}>Longitude</label>
+              <input value={node.props.longitude || ''} onChange={e => set('longitude', e.target.value)} placeholder="2.3522" className={FIELD_INPUT} />
+            </div>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Zoom (1-19)</label>
+            <input type="number" min="1" max="19" value={node.props.zoom ?? 14} onChange={e => set('zoom', Math.max(1, Math.min(19, Number(e.target.value) || 14)))} className={FIELD_INPUT} />
+          </div>
+          <p className="text-[10px] text-[#A1A1A6]">Free OpenStreetMap embed — no API key needed. In the live preview, both fields support {'{{variable}}'}; in an exported/APK app they're used as-is.</p>
+        </div>
+      );
+    case 'bottomnav': {
+      const items = Array.isArray(node.props.items) ? node.props.items : [];
+      const updateItem = (i, patch) => onChange(n => { n.props.items = n.props.items.map((it, j) => j === i ? { ...it, ...patch } : it); });
+      return (
+        <div className="space-y-3">
+          <p className="text-[10px] text-[#A1A1A6]">What happens when an item is tapped is set in Blocks (This item's field, then Navigate) — switch to Builder above.</p>
+          <div className="space-y-2">
+            {items.map((it, i) => (
+              <div key={i} className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] p-2 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <input value={it.label || ''} onChange={e => updateItem(i, { label: e.target.value })} placeholder="Label" className="flex-1 min-w-0 rounded-md px-2 py-1 text-xs bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none" />
+                  <button onClick={() => onChange(n => { n.props.items = n.props.items.filter((_, j) => j !== i); })} className="text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={12} /></button>
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  {ICON_IDS.map(id => (
+                    <button
+                      key={id} onClick={() => updateItem(i, { icon: id })}
+                      className={`flex items-center justify-center py-1.5 rounded-md border transition-colors ${it.icon === id ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa]'}`}
+                    >
+                      <AppIcon id={id} size={12} color="currentColor" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onChange(n => { n.props.items = [...(n.props.items || []), { label: 'Item', icon: 'star' }]; })}
+            className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors"
+          >
+            <Plus size={11} />Add item
+          </button>
+        </div>
+      );
+    }
+    case 'appbar':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Title</label>
+            <input value={node.props.title || ''} onChange={e => set('title', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-[#6E6E73] dark:text-[#a1a1aa] cursor-pointer">
+            <input type="checkbox" checked={!!node.props.show_back} onChange={e => set('show_back', e.target.checked)} />Show back button
+          </label>
+          {node.props.show_back && (
+            <p className="text-[10px] text-[#A1A1A6]">The back button fires "when clicked" — switch to Builder above to wire it (e.g. Navigate to the previous screen).</p>
+          )}
+        </div>
+      );
+    case 'fab':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Icon</label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {ICON_IDS.map(id => (
+                <button
+                  key={id} onClick={() => set('icon', id)}
+                  className={`flex items-center justify-center py-2 rounded-lg border transition-colors ${node.props.icon === id ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4]'}`}
+                >
+                  <AppIcon id={id} size={14} color="currentColor" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Background color</label>
+            <input type="color" value={node.props.color || '#4ECDC4'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+          </div>
+        </div>
+      );
+    case 'richtext':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Content</label>
+            <textarea rows={4} value={node.props.content || ''} onChange={e => set('content', e.target.value)} className={`${FIELD_INPUT} resize-none`} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">**bold** and [link text](https://…) — that's it, not full Markdown.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Align</label>
+            <Select value={node.props.align || 'left'} onChange={e => set('align', e.target.value)} size="sm">
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </Select>
+          </div>
+        </div>
+      );
+    case 'carousel':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Source variable</label>
+            <input value={node.props.source_variable || ''} onChange={e => set('source_variable', e.target.value)} placeholder="e.g. photos" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Expects a JSON array of objects, each with an image URL field.</p>
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Image field</label>
+            <input value={node.props.image_field || ''} onChange={e => set('image_field', e.target.value)} placeholder="image" className={FIELD_INPUT} />
+          </div>
+        </div>
+      );
+    case 'accordion':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Title</label>
+            <input value={node.props.title || ''} onChange={e => set('title', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Content</label>
+            <textarea rows={3} value={node.props.content || ''} onChange={e => set('content', e.target.value)} className={`${FIELD_INPUT} resize-none`} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">Make the box tall enough on the canvas to fit this when it's open — it won't grow past its own size.</p>
+          </div>
+        </div>
+      );
+    case 'audio':
+      return (
+        <div>
+          <label className={FIELD_LABEL}>Audio URL</label>
+          <input value={node.props.url || ''} onChange={e => set('url', e.target.value)} placeholder="https://…mp3" className={FIELD_INPUT} />
+        </div>
+      );
+    case 'filepicker':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Button label</label>
+            <input value={node.props.label || ''} onChange={e => set('label', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Bound variable</label>
+            <input value={node.props.variable || ''} onChange={e => set('variable', e.target.value)} placeholder="e.g. attachedFile" className={FIELD_INPUT} />
+            <p className="mt-1 text-[10px] text-[#A1A1A6]">The picked file is stored as a data URL — usable directly as an Image's URL, for example.</p>
+          </div>
+        </div>
+      );
+    case 'countdown':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Target date/time</label>
+            <input value={node.props.target_date || ''} onChange={e => set('target_date', e.target.value)} placeholder="2026-12-31T00:00:00 or {{variable}}" className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Label (optional)</label>
+            <input value={node.props.label || ''} onChange={e => set('label', e.target.value)} placeholder="e.g. Sale ends in" className={FIELD_INPUT} />
+          </div>
+        </div>
+      );
+    case 'badge':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className={FIELD_LABEL}>Text</label>
+            <input value={node.props.text || ''} onChange={e => set('text', e.target.value)} className={FIELD_INPUT} />
+          </div>
+          <div>
+            <label className={FIELD_LABEL}>Color</label>
+            <input type="color" value={node.props.color || '#4ECDC4'} onChange={e => set('color', e.target.value)} className="w-full h-9 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#151520]" />
+          </div>
+        </div>
+      );
     default:
       return null;
   }

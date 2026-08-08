@@ -172,6 +172,93 @@ async function renderComponentHTML(node, index = 0) {
       return node.props?.url
         ? `${wrapperOpen}<iframe class="vk-webview" src="${esc(node.props.url)}" title="Embedded content" sandbox="allow-scripts allow-forms allow-same-origin allow-popups" style="width:100%;height:100%;"></iframe></div>`
         : `${wrapperOpen}<div class="vk-image-placeholder" style="width:100%;height:100%;"></div></div>`;
+    case 'select': {
+      const bound = !!node.props?.variable;
+      const options = (node.props?.options || '').split(',').map(s => s.trim()).filter(Boolean);
+      const optsHtml = `<option value="" disabled selected>${esc(node.props?.placeholder || 'Choose…')}</option>`
+        + options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+      return bound
+        ? `${wrapperOpen}<select class="vk-input vk-select" data-variable="${esc(node.props.variable)}" style="width:100%;height:100%;">${optsHtml}</select></div>`
+        : `${wrapperOpen}<select class="vk-input vk-select" disabled title="Not bound to a variable" style="width:100%;height:100%;">${optsHtml}</select></div>`;
+    }
+    case 'search': {
+      const bound = !!node.props?.variable;
+      const iconSvg = renderToStaticMarkup(React.createElement(AppIcon, { id: 'search', size: 15, color: 'currentColor' }));
+      const inner = bound
+        ? `<input type="search" class="vk-input vk-search-input" data-variable="${esc(node.props.variable)}" placeholder="${esc(node.props?.placeholder || '')}" style="width:100%;height:100%;">`
+        : `<input type="search" class="vk-input vk-search-input" placeholder="${esc(node.props?.placeholder || '')}" disabled title="Not bound to a variable" style="width:100%;height:100%;">`;
+      return `${wrapperOpen}<div class="vk-search" style="position:relative;width:100%;height:100%;"><span class="vk-search-icon">${iconSvg}</span>${inner}</div></div>`;
+    }
+    case 'radio': {
+      const bound = !!node.props?.variable;
+      const options = (node.props?.options || '').split(',').map(s => s.trim()).filter(Boolean);
+      const optsHtml = options.map(o => `<div class="vk-radio-option" data-value="${esc(o)}"><div class="vk-radio-dot"></div><span>${esc(o)}</span></div>`).join('');
+      return `${wrapperOpen}<div class="vk-radio-group" data-variable="${esc(node.props?.variable || '')}"${bound ? '' : ' data-unbound'} style="width:100%;height:100%;">${optsHtml}</div></div>`;
+    }
+    case 'stepper': {
+      const bound = !!node.props?.variable;
+      const min = Number(node.props?.min) || 0, max = Number(node.props?.max) || 100, step = Number(node.props?.step) || 1;
+      const minusSvg = renderToStaticMarkup(React.createElement(AppIcon, { id: 'minus', size: 14, color: 'currentColor' }));
+      const plusSvg = renderToStaticMarkup(React.createElement(AppIcon, { id: 'plus', size: 14, color: 'currentColor' }));
+      return `${wrapperOpen}<div class="vk-stepper" data-variable="${esc(node.props?.variable || '')}" data-min="${min}" data-max="${max}" data-step="${step}"${bound ? '' : ' data-unbound'} style="width:100%;height:100%;"><button class="vk-stepper-btn vk-stepper-minus" type="button">${minusSvg}</button><span class="vk-stepper-value"></span><button class="vk-stepper-btn vk-stepper-plus" type="button">${plusSvg}</button></div></div>`;
+    }
+    case 'chart':
+      return `${wrapperOpen}<div class="vk-chart" data-source="${esc(node.props?.source_variable || '')}" data-label-field="${esc(node.props?.label_field || 'label')}" data-value-field="${esc(node.props?.value_field || 'value')}" data-color="${esc(node.props?.color || '')}" style="width:100%;height:100%;"></div></div>`;
+    case 'avatar':
+      return `${wrapperOpen}<div class="vk-avatar" data-url-tpl="${esc(node.props?.url || '')}" data-initials-tpl="${esc(node.props?.initials || '')}" style="width:100%;height:100%;background:${esc(node.props?.color || 'var(--vk-primary)')};"><span class="vk-avatar-initials"></span></div></div>`;
+    case 'map': {
+      // Baked once here at export time (same "no live re-generation"
+      // precedent as the qr case above) — lat/lon are used as-is, not
+      // {{variable}}-interpolated, unlike the live editor/preview's map
+      // (AppRuntime.js), which re-resolves them on every render since
+      // React only reloads the iframe if the computed src actually changes.
+      const lat = Number(node.props?.latitude) || 48.8566;
+      const lon = Number(node.props?.longitude) || 2.3522;
+      const delta = 0.01 * (21 - Math.max(1, Math.min(19, Number(node.props?.zoom) || 14)));
+      const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+      const src = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+      return `${wrapperOpen}<iframe class="vk-map" src="${esc(src)}" title="Map" style="width:100%;height:100%;border:none;"></iframe></div>`;
+    }
+    case 'bottomnav': {
+      const items = Array.isArray(node.props?.items) ? node.props.items : [];
+      const itemsHtml = items.map((it, i) => {
+        const iconSvg = renderToStaticMarkup(React.createElement(AppIcon, { id: it?.icon || 'star', size: 18, color: 'currentColor' }));
+        return `<div class="vk-bottomnav-item" data-index="${i}" data-item='${escJsonAttr(it)}'>${iconSvg}<span>${esc(it?.label || '')}</span></div>`;
+      }).join('');
+      return `${wrapperOpen}<div class="vk-bottomnav" style="width:100%;height:100%;">${itemsHtml}</div></div>`;
+    }
+    case 'appbar': {
+      const backSvg = node.props?.show_back ? renderToStaticMarkup(React.createElement(AppIcon, { id: 'arrowRight', size: 18, color: 'currentColor' })) : '';
+      const backHtml = node.props?.show_back ? `<button class="vk-appbar-back" type="button" style="transform:rotate(180deg);">${backSvg}</button>` : '';
+      return `${wrapperOpen}<div class="vk-appbar" style="width:100%;height:100%;">${backHtml}<span class="vk-appbar-title" data-tpl="${esc(node.props?.title || 'Title')}"></span></div></div>`;
+    }
+    case 'fab': {
+      const svg = renderToStaticMarkup(React.createElement(AppIcon, { id: node.props?.icon || 'plus', size: 22, color: 'currentColor' }));
+      return `${wrapperOpen}<button class="vk-fab" type="button" style="width:100%;height:100%;background:${esc(node.props?.color || 'var(--vk-primary)')};">${svg}</button></div>`;
+    }
+    case 'richtext':
+      return `${wrapperOpen}<p class="vk-richtext" data-tpl="${esc(node.props?.content || '')}" style="margin:0;width:100%;height:100%;text-align:${node.props?.align || 'left'};box-sizing:border-box;"></p></div>`;
+    case 'carousel':
+      return `${wrapperOpen}<div class="vk-carousel" data-source="${esc(node.props?.source_variable || '')}" data-image-field="${esc(node.props?.image_field || 'image')}" style="width:100%;height:100%;"></div></div>`;
+    case 'accordion': {
+      const chevronSvg = renderToStaticMarkup(React.createElement(AppIcon, { id: 'chevronDown', size: 14, color: 'currentColor' }));
+      return `${wrapperOpen}<div class="vk-accordion" style="width:100%;height:100%;"><button class="vk-accordion-header" type="button"><span data-tpl="${esc(node.props?.title || 'Section title')}"></span>${chevronSvg}</button><div class="vk-accordion-body"><span data-tpl="${esc(node.props?.content || '')}"></span></div></div></div>`;
+    }
+    case 'audio':
+      return node.props?.url
+        ? `${wrapperOpen}<audio class="vk-audio" src="${esc(node.props.url)}" controls style="width:100%;"></audio></div>`
+        : `${wrapperOpen}<div class="vk-image-placeholder" style="width:100%;height:100%;"></div></div>`;
+    case 'filepicker': {
+      const bound = !!node.props?.variable;
+      const inputId = `vk-fp-${esc(node.id)}`;
+      const labelHtml = `<label class="vk-filepicker-label"${bound ? ` for="${inputId}"` : ''} style="width:100%;height:100%;">${esc(node.props?.label || 'Choose file')}</label>`;
+      const inputHtml = bound ? `<input id="${inputId}" class="vk-filepicker-input" type="file" data-variable="${esc(node.props.variable)}" style="display:none;">` : '';
+      return `${wrapperOpen}<div class="vk-filepicker"${bound ? '' : ' data-unbound'} style="width:100%;height:100%;">${labelHtml}${inputHtml}</div></div>`;
+    }
+    case 'countdown':
+      return `${wrapperOpen}<div class="vk-countdown" data-target-tpl="${esc(node.props?.target_date || '')}" data-label-tpl="${esc(node.props?.label || '')}" style="width:100%;height:100%;"><span class="vk-countdown-label"></span><span class="vk-countdown-value">—</span></div></div>`;
+    case 'badge':
+      return `${wrapperOpen}<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span class="vk-badge" data-tpl="${esc(node.props?.text || 'NEW')}" style="background:${esc(node.props?.color || 'var(--vk-primary)')};"></span></div></div>`;
     default:
       return '';
   }
@@ -271,6 +358,57 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-slider:disabled { opacity: 0.5; }
 .vk-video { border-radius: 8px; background: #000; object-fit: contain; }
 .vk-webview { border: none; border-radius: 8px; }
+.vk-select { appearance: none; }
+.vk-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); display: flex; pointer-events: none; color: var(--vk-text-muted); }
+.vk-search-icon svg { display: block; width: 15px; height: 15px; }
+.vk-search-input { border-radius: 999px; padding-left: 34px; }
+.vk-radio-group { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.vk-radio-option { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--vk-text); cursor: pointer; }
+.vk-radio-group[data-unbound] .vk-radio-option { opacity: 0.5; cursor: default; }
+.vk-radio-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--vk-border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.vk-radio-option.selected .vk-radio-dot { border-color: var(--vk-primary); }
+.vk-radio-option.selected .vk-radio-dot::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--vk-primary); }
+.vk-stepper { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--vk-border); border-radius: calc(var(--vk-radius) * 0.6); box-sizing: border-box; }
+.vk-stepper[data-unbound] { opacity: 0.5; }
+.vk-stepper-btn { width: 36px; height: 100%; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--vk-text); padding: 0; }
+.vk-stepper-btn svg { display: block; }
+.vk-stepper-value { font-size: 14px; font-weight: 600; color: var(--vk-text); }
+.vk-chart { display: flex; align-items: flex-end; gap: 8px; }
+.vk-chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.vk-chart-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: var(--vk-primary); }
+.vk-chart-label { font-size: 9px; color: var(--vk-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.vk-chart-empty { margin: 0; font-size: 13px; color: var(--vk-text-muted); }
+.vk-avatar { border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.vk-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vk-avatar-initials { color: var(--vk-primary-text); font-size: 16px; font-weight: 700; }
+.vk-map { border-radius: 8px; }
+.vk-bottomnav { display: flex; align-items: center; justify-content: space-around; background: var(--vk-surface); border-top: 1px solid var(--vk-border); box-sizing: border-box; }
+.vk-bottomnav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--vk-text); flex: 1; font-size: 10px; }
+.vk-bottomnav-item svg { display: block; width: 18px; height: 18px; }
+.vk-appbar { display: flex; align-items: center; gap: 10px; background: var(--vk-surface); border-bottom: 1px solid var(--vk-border); padding: 0 12px; box-sizing: border-box; }
+.vk-appbar-back { background: none; border: none; padding: 0; cursor: pointer; display: flex; color: var(--vk-text); }
+.vk-appbar-back svg { display: block; }
+.vk-appbar-title { font-size: 16px; font-weight: 700; color: var(--vk-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vk-fab { border-radius: 50%; border: none; cursor: pointer; color: var(--vk-primary-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px -6px ${hexToRgba(theme.colors.primary, 0.5)}; }
+.vk-fab svg { display: block; }
+.vk-richtext { font-size: 14px; line-height: 1.5; color: var(--vk-text); white-space: pre-wrap; word-break: break-word; overflow: auto; }
+.vk-richtext a { color: inherit; text-decoration: underline; }
+.vk-carousel { display: flex; gap: 8px; overflow-x: auto; }
+.vk-carousel img { height: 100%; flex-shrink: 0; border-radius: 8px; object-fit: cover; cursor: pointer; }
+.vk-accordion { border: 1px solid var(--vk-border); border-radius: calc(var(--vk-radius) * 0.6); overflow: hidden; display: flex; flex-direction: column; box-sizing: border-box; }
+.vk-accordion-header { width: 100%; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--vk-text); font-family: inherit; }
+.vk-accordion-header svg { display: block; transition: transform 0.15s; }
+.vk-accordion.open .vk-accordion-header svg { transform: rotate(180deg); }
+.vk-accordion-body { display: none; padding: 0 12px 12px; font-size: 13px; color: var(--vk-text-muted); line-height: 1.5; overflow-y: auto; flex: 1; }
+.vk-accordion.open .vk-accordion-body { display: block; }
+.vk-audio { display: block; }
+.vk-filepicker-label { display: flex; align-items: center; justify-content: center; border-radius: calc(var(--vk-radius) * 0.6); border: 1px dashed var(--vk-border); font-size: 13px; color: var(--vk-text); cursor: pointer; box-sizing: border-box; }
+.vk-filepicker[data-unbound] .vk-filepicker-label { opacity: 0.5; cursor: default; }
+.vk-countdown { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.vk-countdown-label { font-size: 11px; color: var(--vk-text-muted); }
+.vk-countdown-label:empty { display: none; }
+.vk-countdown-value { font-size: 20px; font-weight: 700; color: var(--vk-text); font-variant-numeric: tabular-nums; }
+.vk-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; color: var(--vk-primary-text); font-size: 11px; font-weight: 700; white-space: nowrap; }
 
 /* Entrance animations — mirrors frontend/src/index.css's .vk-anim-* classes
    verbatim as plain CSS text (this static export has no Tailwind/React to
@@ -386,6 +524,26 @@ function generateJS(app) {
     });
   }
 
+  // Rich Text — minimal, dependency-free **bold**/[label](url) parsing,
+  // mirrors renderRichText in AppRuntime.js. Escaping happens FIRST and is
+  // never undone by the substitutions after it (they only ever ADD safe
+  // <strong>/<a> tags around already-escaped text) — content can come from
+  // a Data record another visitor typed, so this is the one place in this
+  // whole runtime that turns interpolated text into real HTML instead of
+  // .textContent, and it has to stay XSS-safe doing it.
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function parseRichText(text) {
+    var out = escapeHtml(text);
+    out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\[(.+?)\]\((.+?)\)/g, function (m, label, url) {
+      var safeUrl = /^https?:\/\//i.test(url) ? url : '#';
+      return '<a href="' + escapeHtml(safeUrl) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+    });
+    return out;
+  }
+
   // Mirrors resolveVisible()'s condition evaluation in AppRuntime.js.
   function evalVisible(cond) {
     if (!cond || !cond.variable) return true;
@@ -472,13 +630,130 @@ function generateJS(app) {
     });
   }
 
+  function renderChart(el) {
+    var raw = vars[el.getAttribute('data-source')];
+    var items = [];
+    if (raw) {
+      try { var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; if (Array.isArray(parsed)) items = parsed; } catch (e) { /* not valid JSON */ }
+    }
+    el.innerHTML = '';
+    if (items.length === 0) {
+      var empty = document.createElement('p');
+      empty.className = 'vk-chart-empty';
+      empty.textContent = 'No data yet.';
+      el.appendChild(empty);
+      return;
+    }
+    var labelField = el.getAttribute('data-label-field') || 'label';
+    var valueField = el.getAttribute('data-value-field') || 'value';
+    var color = el.getAttribute('data-color') || '';
+    var values = items.map(function (it) { return Number(it && it[valueField]) || 0; });
+    var maxVal = Math.max.apply(null, [1].concat(values));
+    items.slice(0, 12).forEach(function (it, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'vk-chart-bar-wrap';
+      var bar = document.createElement('div');
+      bar.className = 'vk-chart-bar';
+      bar.style.height = Math.max(2, (values[i] / maxVal) * 100) + '%';
+      if (color) bar.style.background = color;
+      var label = document.createElement('span');
+      label.className = 'vk-chart-label';
+      label.textContent = String((it && it[labelField]) != null ? it[labelField] : '');
+      wrap.appendChild(bar);
+      wrap.appendChild(label);
+      el.appendChild(wrap);
+    });
+  }
+
+  function renderCarousel(el) {
+    var raw = vars[el.getAttribute('data-source')];
+    var items = [];
+    if (raw) {
+      try { var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; if (Array.isArray(parsed)) items = parsed; } catch (e) { /* not valid JSON */ }
+    }
+    var imageField = el.getAttribute('data-image-field') || 'image';
+    var wrap = el.closest('[data-comp-id]');
+    var rowActionKey = wrap ? wrap.getAttribute('data-comp-id') + ':ab_when_row_tapped' : null;
+    el.innerHTML = '';
+    items.slice(0, 30).forEach(function (it, idx) {
+      var img = document.createElement('img');
+      img.src = (it && it[imageField]) || '';
+      img.alt = '';
+      if (rowActionKey) {
+        img.addEventListener('click', function () { runAction(rowActionKey, { item: it, index: idx }); });
+      }
+      el.appendChild(img);
+    });
+  }
+
+  function tickCountdowns() {
+    document.querySelectorAll('.vk-countdown').forEach(function (el) {
+      var msAttr = el.getAttribute('data-target-ms');
+      var valueEl = el.querySelector('.vk-countdown-value');
+      if (!valueEl) return;
+      if (!msAttr) { valueEl.textContent = '—'; return; }
+      var diff = Math.max(0, Number(msAttr) - Date.now());
+      var days = Math.floor(diff / 86400000);
+      var hours = Math.floor((diff % 86400000) / 3600000);
+      var minutes = Math.floor((diff % 3600000) / 60000);
+      var seconds = Math.floor((diff % 60000) / 1000);
+      var pad2 = function (n) { return (n < 10 ? '0' : '') + n; };
+      valueEl.textContent = days + 'd ' + pad2(hours) + ':' + pad2(minutes) + ':' + pad2(seconds);
+    });
+  }
+
   function render() {
-    document.querySelectorAll('[data-tpl]').forEach(function (el) {
+    // .vk-richtext is excluded here and handled separately below via
+    // innerHTML + parseRichText — everything else stays the safe plain-text
+    // .textContent path.
+    document.querySelectorAll('[data-tpl]:not(.vk-richtext)').forEach(function (el) {
       var id = el.getAttribute('data-id');
       el.textContent = (id && Object.prototype.hasOwnProperty.call(overrides, id)) ? overrides[id] : interpolate(el.getAttribute('data-tpl'), null);
     });
+    document.querySelectorAll('.vk-richtext[data-tpl]').forEach(function (el) {
+      el.innerHTML = parseRichText(interpolate(el.getAttribute('data-tpl'), null));
+    });
     document.querySelectorAll('.vk-input[data-variable]').forEach(function (el) {
       if (document.activeElement !== el) el.value = vars[el.getAttribute('data-variable')] || '';
+    });
+    document.querySelectorAll('.vk-select[data-variable]').forEach(function (el) {
+      if (document.activeElement !== el) el.value = vars[el.getAttribute('data-variable')] || '';
+    });
+    document.querySelectorAll('.vk-radio-group[data-variable]').forEach(function (el) {
+      var v = vars[el.getAttribute('data-variable')];
+      el.querySelectorAll('.vk-radio-option').forEach(function (opt) {
+        opt.classList.toggle('selected', opt.getAttribute('data-value') === v);
+      });
+    });
+    document.querySelectorAll('.vk-stepper[data-variable]').forEach(function (el) {
+      var v = el.getAttribute('data-variable');
+      var min = Number(el.getAttribute('data-min')) || 0;
+      var value = v ? (Number(vars[v]) || min) : min;
+      var valEl = el.querySelector('.vk-stepper-value');
+      if (valEl) valEl.textContent = String(value);
+    });
+    document.querySelectorAll('.vk-chart[data-source]').forEach(renderChart);
+    document.querySelectorAll('.vk-carousel[data-source]').forEach(renderCarousel);
+    document.querySelectorAll('.vk-avatar').forEach(function (el) {
+      var url = interpolate(el.getAttribute('data-url-tpl'), null);
+      var initials = interpolate(el.getAttribute('data-initials-tpl'), null);
+      var span = el.querySelector('.vk-avatar-initials');
+      var img = el.querySelector('img');
+      if (url) {
+        if (!img) { img = document.createElement('img'); el.insertBefore(img, el.firstChild); }
+        img.src = url;
+        if (span) span.style.display = 'none';
+      } else {
+        if (img) img.remove();
+        if (span) { span.style.display = ''; span.textContent = (initials || '?').slice(0, 2).toUpperCase(); }
+      }
+    });
+    document.querySelectorAll('.vk-countdown').forEach(function (el) {
+      var targetStr = interpolate(el.getAttribute('data-target-tpl'), null);
+      var t = targetStr ? new Date(targetStr).getTime() : NaN;
+      el.setAttribute('data-target-ms', isNaN(t) ? '' : String(t));
+      var labelEl = el.querySelector('.vk-countdown-label');
+      if (labelEl) labelEl.textContent = interpolate(el.getAttribute('data-label-tpl'), null);
     });
     document.querySelectorAll('.vk-toggle[data-variable]').forEach(function (el) {
       el.classList.toggle('on', vars[el.getAttribute('data-variable')] === 'true');
@@ -696,6 +971,46 @@ ${actionsSource}
       var rv = ratingEl && ratingEl.getAttribute('data-variable');
       if (rv) { vars[rv] = starEl.getAttribute('data-n'); fireChanged(ratingEl); }
     }
+    var radioEl = e.target.closest('.vk-radio-group[data-variable]:not([data-unbound]) .vk-radio-option');
+    if (radioEl) {
+      var groupEl = radioEl.closest('.vk-radio-group');
+      var groupVar = groupEl.getAttribute('data-variable');
+      vars[groupVar] = radioEl.getAttribute('data-value');
+      fireChanged(groupEl);
+    }
+    var avatarEl = e.target.closest('.vk-avatar');
+    if (avatarEl) { var avatarKey = hatKey(avatarEl, 'ab_when_clicked'); if (avatarKey) runAction(avatarKey); }
+    var backEl = e.target.closest('.vk-appbar-back');
+    if (backEl) { var backKey = hatKey(backEl, 'ab_when_clicked'); if (backKey) runAction(backKey); }
+    var fabEl = e.target.closest('.vk-fab');
+    if (fabEl) { var fabKey = hatKey(fabEl, 'ab_when_clicked'); if (fabKey) runAction(fabKey); }
+    var navItemEl = e.target.closest('.vk-bottomnav-item');
+    if (navItemEl) {
+      var navWrap = navItemEl.closest('[data-comp-id]');
+      var navKey = navWrap ? navWrap.getAttribute('data-comp-id') + ':ab_when_row_tapped' : null;
+      if (navKey) {
+        var navItem = {};
+        try { navItem = JSON.parse(navItemEl.getAttribute('data-item') || '{}'); } catch (err) { /* ignore */ }
+        runAction(navKey, { item: navItem, index: Number(navItemEl.getAttribute('data-index')) || 0 });
+      }
+    }
+    var accHeaderEl = e.target.closest('.vk-accordion-header');
+    if (accHeaderEl) {
+      var accEl = accHeaderEl.closest('.vk-accordion');
+      if (accEl) accEl.classList.toggle('open');
+    }
+    var stepBtnEl = e.target.closest('.vk-stepper:not([data-unbound]) .vk-stepper-btn');
+    if (stepBtnEl) {
+      var stepEl = stepBtnEl.closest('.vk-stepper');
+      var stepVar = stepEl.getAttribute('data-variable');
+      var stepMin = Number(stepEl.getAttribute('data-min')) || 0;
+      var stepMax = Number(stepEl.getAttribute('data-max')) || 100;
+      var stepStep = Number(stepEl.getAttribute('data-step')) || 1;
+      var stepCur = Number(vars[stepVar]) || stepMin;
+      var delta = stepBtnEl.classList.contains('vk-stepper-plus') ? stepStep : -stepStep;
+      vars[stepVar] = String(Math.max(stepMin, Math.min(stepMax, stepCur + delta)));
+      fireChanged(stepEl);
+    }
   });
 
   // "when pressed down" / "when released" — buttons only, mirrors
@@ -719,16 +1034,40 @@ ${actionsSource}
 
   document.addEventListener('input', function (e) {
     var el = e.target;
-    if (el.classList && (el.classList.contains('vk-input') || el.classList.contains('vk-slider'))) {
+    if (el.classList && (el.classList.contains('vk-input') || el.classList.contains('vk-slider') || el.classList.contains('vk-search-input'))) {
       var v = el.getAttribute('data-variable');
       if (v) vars[v] = el.value;
       // Text/multiline inputs don't have a "when changed" hat (only bind a
-      // variable) — sliders and dates (class vk-input, type=date) do.
-      if (el.classList.contains('vk-slider') || el.type === 'date') fireChanged(el);
+      // variable) — sliders, dates (class vk-input, type=date) and the
+      // search bar do, firing on every keystroke same as a slider drag.
+      if (el.classList.contains('vk-slider') || el.classList.contains('vk-search-input') || el.type === 'date') fireChanged(el);
+    }
+  });
+
+  document.addEventListener('change', function (e) {
+    var el = e.target;
+    if (el.classList && el.classList.contains('vk-select') && el.getAttribute('data-variable')) {
+      vars[el.getAttribute('data-variable')] = el.value;
+      fireChanged(el);
+      return;
+    }
+    if (el.classList && el.classList.contains('vk-filepicker-input') && el.getAttribute('data-variable')) {
+      var file = el.files && el.files[0];
+      el.value = '';
+      if (!file) return;
+      var pickerVar = el.getAttribute('data-variable');
+      var reader = new FileReader();
+      reader.onload = function () {
+        vars[pickerVar] = String(reader.result || '');
+        fireChanged(el);
+      };
+      reader.readAsDataURL(file);
     }
   });
 
   render();
+  tickCountdowns();
+  setInterval(tickCountdowns, 1000);
   // The first screen's visibility comes from the static HTML (display:block
   // baked in by generateHTML()), not a showScreen() call — so its "when
   // this screen opens" trigger needs one explicit run here; every

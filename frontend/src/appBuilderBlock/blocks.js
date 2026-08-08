@@ -1416,6 +1416,16 @@ export const HAT_TYPES_BY_COMPONENT = {
   slider: ['ab_when_changed'],
   date: ['ab_when_changed'],
   list: ['ab_when_row_tapped'],
+  select: ['ab_when_changed'],
+  search: ['ab_when_changed'],
+  radio: ['ab_when_changed'],
+  stepper: ['ab_when_changed'],
+  avatar: ['ab_when_clicked'],
+  bottomnav: ['ab_when_row_tapped'],
+  appbar: ['ab_when_clicked'],
+  fab: ['ab_when_clicked'],
+  carousel: ['ab_when_row_tapped'],
+  filepicker: ['ab_when_changed'],
 };
 export const SCREEN_HAT_TYPES = ['ab_when_screen_opens'];
 // Which hat an element's single old (pre-hat) trigger becomes when migrated
