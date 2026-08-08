@@ -435,6 +435,8 @@ class StudioAppUpdateRequest(BaseModel):
     package_id: Optional[str] = None
     min_sdk: Optional[int] = None
     target_sdk: Optional[int] = None
+    version_code: Optional[int] = None
+    version_name: Optional[str] = None
     app_display_name: Optional[str] = None
     app_icon_url: Optional[str] = None
 

@@ -102,7 +102,8 @@ VAKARSTUDIO_FORMAT = "vakarstudio"
 VAKARSTUDIO_VERSION = 1
 VAKARSTUDIO_EXPORT_FIELDS = (
     "name", "description", "accent_color", "theme", "screens", "variables",
-    "package_id", "min_sdk", "target_sdk", "app_display_name", "app_icon_url",
+    "package_id", "min_sdk", "target_sdk", "version_code", "version_name",
+    "app_display_name", "app_icon_url",
 )
 
 # ============================================================
@@ -122,7 +123,8 @@ VAKARSTUDIO_EXPORT_FIELDS = (
 # ============================================================
 STUDIO_APP_SNAPSHOT_FIELDS = (
     "name", "description", "accent_color", "theme", "screens", "variables",
-    "package_id", "min_sdk", "target_sdk", "app_display_name", "app_icon_url",
+    "package_id", "min_sdk", "target_sdk", "version_code", "version_name",
+    "app_display_name", "app_icon_url",
     "price_cents", "review_name", "review_description", "review_tags",
     "review_logo_url", "review_banner_url",
 )
@@ -149,6 +151,14 @@ def _apply_snapshot(doc, snapshot):
 PACKAGE_ID_RE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$')
 MIN_SDK_FLOOR = 22   # Capacitor 6's own minimum
 MAX_SDK_CEIL = 35
+# versionCode: Android's internal build number, must strictly increase
+# between Play Store uploads — Google's own hard ceiling is 2100000000.
+# versionName: free-form, user-facing (e.g. "1.0a") — restricted to a safe
+# charset since it's substituted into build.gradle's `versionName "..."`
+# via sed in build-apk.yml, where a stray quote would break the build.
+MIN_VERSION_CODE = 1
+MAX_VERSION_CODE = 2100000000
+VERSION_NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._-]{0,49}$')
 
 
 def _default_package_id(doc):
@@ -172,6 +182,14 @@ def _validate_build_config(update):
         raise HTTPException(status_code=400, detail=f"Target SDK must be between {MIN_SDK_FLOOR} and {MAX_SDK_CEIL}.")
     if min_sdk is not None and target_sdk is not None and target_sdk < min_sdk:
         raise HTTPException(status_code=400, detail="Target SDK must be greater than or equal to Min SDK.")
+    version_code = update.get("version_code")
+    if version_code is not None and not (MIN_VERSION_CODE <= version_code <= MAX_VERSION_CODE):
+        raise HTTPException(status_code=400, detail=f"Build number must be between {MIN_VERSION_CODE} and {MAX_VERSION_CODE}.")
+    if update.get("version_name") and not VERSION_NAME_RE.match(update["version_name"]):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid version — use letters, numbers, spaces, dots, dashes or underscores only, e.g. 1.0a (max 50 characters).",
+        )
 
 
 async def _unique_slug(base_slug: str, exclude_id=None) -> str:
@@ -321,6 +339,11 @@ def _serialize(doc, full=False, include_owner=False, is_vakar_plus=None):
         "package_id": doc.get("package_id") or _default_package_id(doc),
         "min_sdk": doc.get("min_sdk", MIN_SDK_FLOOR),
         "target_sdk": doc.get("target_sdk", 34),
+        # Android's two separate version concepts: versionCode (int, must
+        # strictly increase between Play Store uploads — the "build number")
+        # and versionName (free-form string shown to users, e.g. "1.0a").
+        "version_code": doc.get("version_code") or 1,
+        "version_name": doc.get("version_name") or "1.0",
         "app_display_name": doc.get("app_display_name") or "",
         "app_icon_url": doc.get("app_icon_url") or "",
         # Review/showcase submission — separate from the builder's own
@@ -842,6 +865,8 @@ async def import_studio_app_file(file: UploadFile = File(...), user=Depends(requ
         "package_id": payload.get("package_id"),
         "min_sdk": payload.get("min_sdk"),
         "target_sdk": payload.get("target_sdk"),
+        "version_code": payload.get("version_code"),
+        "version_name": payload.get("version_name"),
         "app_display_name": payload.get("app_display_name") or "",
         "app_icon_url": payload.get("app_icon_url") or "",
         "created_at": now,
@@ -1166,6 +1191,8 @@ async def import_my_studio_app_file(request: Request, file: UploadFile = File(..
         "package_id": payload.get("package_id"),
         "min_sdk": payload.get("min_sdk"),
         "target_sdk": payload.get("target_sdk"),
+        "version_code": payload.get("version_code"),
+        "version_name": payload.get("version_name"),
         "app_display_name": payload.get("app_display_name") or "",
         "app_icon_url": payload.get("app_icon_url") or "",
         "created_at": now,

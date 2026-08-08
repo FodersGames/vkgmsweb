@@ -51,6 +51,14 @@ on:
         description: "targetSdkVersion (also used as compileSdkVersion)"
         required: false
         default: "34"
+      version_code:
+        description: "versionCode — Android's internal build number, must strictly increase between Play Store uploads"
+        required: false
+        default: "1"
+      version_name:
+        description: "versionName — free-form, user-facing app version, e.g. 1.0a"
+        required: false
+        default: "1.0"
       icon_url:
         description: "Public URL of a source app icon (square, 1024x1024+) — blank to keep Capacitor's default"
         required: false
@@ -106,6 +114,13 @@ jobs:
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = ${{ inputs.target_sdk }}/" variables.gradle
           sed -i "s/compileSdkVersion = .*/compileSdkVersion = ${{ inputs.target_sdk }}/" variables.gradle
           cat variables.gradle
+
+      - name: Apply version code/name
+        working-directory: build-project/android/app
+        run: |
+          sed -i "s/versionCode .*/versionCode ${{ inputs.version_code }}/" build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ inputs.version_name }}\"/" build.gradle
+          grep -E "versionCode|versionName" build.gradle
 
       - name: Apply custom app icon
         if: inputs.icon_url != ''

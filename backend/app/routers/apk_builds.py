@@ -287,6 +287,8 @@ async def trigger_apk_build(app_id: str, body: ApkBuildTriggerRequest, user=Depe
         "package_id": doc.get("package_id") or _default_package_id(doc),
         "min_sdk": str(doc.get("min_sdk") or 22),
         "target_sdk": str(doc.get("target_sdk") or 34),
+        "version_code": str(doc.get("version_code") or 1),
+        "version_name": doc.get("version_name") or "1.0",
         "icon_url": icon_url if icon_url.startswith("http") else (f"{BACKEND_PUBLIC_URL}{icon_url}" if icon_url else ""),
         "build_aab": "false",
     }

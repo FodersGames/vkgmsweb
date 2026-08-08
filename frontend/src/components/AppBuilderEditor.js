@@ -39,6 +39,11 @@ const FREE_MAX_SCREENS = 15;
 // creator) — used only for the "you keep X%" copy in the pricing field.
 const PLATFORM_SHARE_PCT = 40;
 const PACKAGE_ID_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/;
+// Mirrors backend/app/routers/studio_apps.py's VERSION_NAME_RE — kept
+// restrictive since it's substituted into build.gradle via sed at build
+// time (see .github/workflows/build-apk.yml), where a stray quote would
+// break the build.
+const VERSION_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,49}$/;
 const SDK_LEVELS = [
   { v: 22, label: '22 — Android 5.1' }, { v: 23, label: '23 — Android 6.0' }, { v: 24, label: '24 — Android 7.0' },
   { v: 25, label: '25 — Android 7.1' }, { v: 26, label: '26 — Android 8.0' }, { v: 27, label: '27 — Android 8.1' },
@@ -1554,6 +1559,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           name: app.name, description: app.description, accent_color: app.accent_color, theme: app.theme,
           screens: app.screens, variables: app.variables,
           package_id: app.package_id, min_sdk: app.min_sdk, target_sdk: app.target_sdk,
+          version_code: app.version_code, version_name: app.version_name,
           app_display_name: app.app_display_name, app_icon_url: app.app_icon_url,
         }),
       });
@@ -2922,6 +2928,32 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                   <Select value={String(app.target_sdk ?? 34)} onChange={e => mutate(a => { a.target_sdk = Number(e.target.value); })} size="sm">
                     {SDK_LEVELS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={FIELD_LABEL}>Build number</label>
+                  <input
+                    type="number" min={1} step={1}
+                    value={app.version_code ?? 1}
+                    onChange={e => mutate(a => { a.version_code = Math.max(1, Math.round(Number(e.target.value)) || 1); })}
+                    className={FIELD_INPUT}
+                  />
+                  <p className="mt-1 text-[10px] text-[#A1A1A6]">versionCode — must go up on every Play Store upload.</p>
+                </div>
+                <div>
+                  <label className={FIELD_LABEL}>Version</label>
+                  <input
+                    value={app.version_name ?? '1.0'}
+                    onChange={e => mutate(a => { a.version_name = e.target.value; })}
+                    placeholder="1.0a"
+                    className={FIELD_INPUT}
+                  />
+                  {app.version_name && !VERSION_NAME_RE.test(app.version_name) && (
+                    <p className="mt-1 text-[10px] text-red-500">Letters, numbers, spaces, dots, dashes or underscores only.</p>
+                  )}
+                  <p className="mt-1 text-[10px] text-[#A1A1A6]">versionName — shown to users, e.g. 1.0a.</p>
                 </div>
               </div>
 
