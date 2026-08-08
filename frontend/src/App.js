@@ -23,7 +23,7 @@ import StudioAppView from './pages/StudioAppView';
 import VakarPlus from './pages/VakarPlus';
 import MyApps from './pages/MyApps';
 import ChoosePseudo from './pages/ChoosePseudo';
-import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
+import MaintenancePage, { useMaintenanceCheck, MaintenanceCountdownBanner } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
 import './App.css';
@@ -42,16 +42,17 @@ const NotFound = () => (
 );
 
 const AppRoutes = () => {
-  const { maintenance, checked } = useMaintenanceCheck();
+  const { maintenance, scheduledAt, announcement, checked } = useMaintenanceCheck();
 
   if (!checked) return null;
 
   if (maintenance) {
-    return <MaintenancePage />;
+    return <MaintenancePage announcement={announcement} />;
   }
 
   return (
     <>
+      <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/applications" element={<ApplicationsPage />} />

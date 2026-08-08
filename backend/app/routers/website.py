@@ -128,8 +128,20 @@ DEFAULT_SUPPORT_EMAIL = "support@vakargames.com"
 def _serialize_settings(doc: dict) -> dict:
     doc = doc or {}
     updated_at = doc.get("updated_at")
+    scheduled_at = doc.get("maintenance_scheduled_at")
+    # Effective mode is computed on every read, not written by a background
+    # job — a scheduled window can span far longer than a single process's
+    # lifetime, so this stays correct across a manual VPS restart with zero
+    # extra infrastructure. Once the scheduled time is reached the schedule
+    # itself is left in place (not cleared here) so the response still says
+    # WHY maintenance is on; an explicit manual toggle is what clears it.
+    effective_mode = bool(doc.get("maintenance_mode", False))
+    if not effective_mode and isinstance(scheduled_at, datetime) and datetime.now(timezone.utc) >= scheduled_at:
+        effective_mode = True
     return {
-        "maintenance_mode": doc.get("maintenance_mode", False),
+        "maintenance_mode": effective_mode,
+        "maintenance_scheduled_at": scheduled_at.isoformat() if isinstance(scheduled_at, datetime) else scheduled_at,
+        "maintenance_announcement": doc.get("maintenance_announcement", ""),
         "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
         "announcement_banner": doc.get("announcement_banner", ""),
         "announcement_active": doc.get("announcement_active", False),
@@ -150,7 +162,33 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
     log_parts = []
     if req.maintenance_mode is not None:
         updates["maintenance_mode"] = req.maintenance_mode
+        # An explicit manual on/off always wins over a pending/past schedule —
+        # otherwise a stale schedule could silently re-trigger maintenance
+        # (or fight an admin who just turned it back off) on a later read.
+        updates["maintenance_scheduled_at"] = None
+        updates["maintenance_announcement"] = ""
         log_parts.append(f"maintenance {'enabled' if req.maintenance_mode else 'disabled'}")
+    if req.maintenance_scheduled_at is not None:
+        if req.maintenance_scheduled_at == "":
+            # Empty string is the explicit "clear the schedule" signal — a
+            # bare `null`/omitted field is indistinguishable from "not
+            # provided" once it round-trips through JSON, so it can't carry
+            # that meaning instead.
+            updates["maintenance_scheduled_at"] = None
+            updates["maintenance_announcement"] = ""
+            log_parts.append("scheduled maintenance cancelled")
+        else:
+            try:
+                parsed = datetime.fromisoformat(req.maintenance_scheduled_at.replace("Z", "+00:00"))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid maintenance_scheduled_at datetime")
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            updates["maintenance_scheduled_at"] = parsed
+            log_parts.append(f"maintenance scheduled for {parsed.isoformat()}")
+    if req.maintenance_announcement is not None:
+        updates["maintenance_announcement"] = req.maintenance_announcement.strip()[:280]
+        log_parts.append("maintenance announcement updated")
     if req.support_email is not None:
         email = req.support_email.strip()
         if email and not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):

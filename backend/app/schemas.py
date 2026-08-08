@@ -108,6 +108,8 @@ class BlogUpdateRequest(BaseModel):
 
 class WebsiteSettingsRequest(BaseModel):
     maintenance_mode: Optional[bool] = None
+    maintenance_scheduled_at: Optional[str] = None
+    maintenance_announcement: Optional[str] = None
     support_email: Optional[str] = None
     announcement_banner: Optional[str] = None
     announcement_active: Optional[bool] = None

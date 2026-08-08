@@ -226,14 +226,6 @@ _CLI_HELP_TEXT = [
     "  user reset-password <email|username>",
     "  user delete <email|username>",
     "",
-    "  Players",
-    "  player find <project_slug> <username|nickname|email|id>",
-    "  player ban <project_slug> <username|nickname|email|id>",
-    "  player unban <project_slug> <username|nickname|email|id>",
-    "  player revoke <project_slug> <username|nickname|email|id>",
-    "  player mute <project_slug> <username|nickname|email|id> <minutes> [reason]",
-    "  player wipe-saves <project_slug> <username|nickname|email|id>",
-    "",
     "  Projects",
     "  project status <project_slug> <open|closed|maintenance>",
     "  project stats <project_slug>",
@@ -244,6 +236,8 @@ _CLI_HELP_TEXT = [
     "",
     "  System",
     "  maintenance on|off",
+    "  maintenance schedule <minutes> [message]",
+    "  maintenance cancel-schedule",
     "  broadcast <message>",
     "  stats",
     "  history [n]",
@@ -259,14 +253,6 @@ _CLI_HELP_TEXT = [
     "  vakarplus show <email>",
     "  vakarplus grant <email>",
     "  vakarplus revoke <email>",
-    "",
-    "  Chat & moderation",
-    "  chat ban <project_slug> <query> [reason]",
-    "  chat unban <project_slug> <query>",
-    "  chat unmute <project_slug> <query>",
-    "  chat wordlist add|remove <word>",
-    "  chat purge <project_slug> [n]",
-    "  chat recent <project_slug> [n]",
     "",
     "  Blog & careers",
     "  blog list [published|draft]",
@@ -341,43 +327,7 @@ _CLI_CATALOG = [
         {"name": "field", "label": "Field", **_sel(["firstname", "pseudo"]), "required": True},
     ], "confirm": True},
 
-    # Players
-    {"path": ["player", "find"], "category": "Players", "description": "Look up a player in a project.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": False},
-    {"path": ["player", "ban"], "category": "Players", "description": "Ban a player from a project.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["player", "unban"], "category": "Players", "description": "Unban a player from a project.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["player", "revoke"], "category": "Players", "description": "Revoke all sessions for a player.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["player", "mute"], "category": "Players", "description": "Mute a player in project chat.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-        {"name": "minutes", "label": "Duration (minutes)", "type": _N, "required": True},
-        {"name": "reason", "label": "Reason", "type": _TA, "required": False},
-    ], "confirm": True},
-    {"path": ["player", "wipe-saves"], "category": "Players", "description": "Permanently wipe a player's save data.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["player", "nickname"], "category": "Players", "description": "Show a player's in-game nickname.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": False},
-    {"path": ["player", "firstseen"], "category": "Players", "description": "Show when a player was first seen.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": False},
-
-    # Projects & missions
+    # Projects
     {"path": ["project", "status"], "category": "Projects", "description": "Set a project's server status.", "args": [
         {"name": "slug", "label": "Project", "type": _T, "required": True},
         {"name": "status", "label": "Status", **_sel(["open", "closed", "maintenance"]), "required": True},
@@ -410,30 +360,6 @@ _CLI_CATALOG = [
         {"name": "amount", "label": "Amount", "type": _N, "required": True},
     ], "confirm": True},
 
-    # Chat & guilds
-    {"path": ["chat", "ban"], "category": "Chat", "description": "Ban a player from project chat.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-        {"name": "reason", "label": "Reason", "type": _TA, "required": False},
-    ], "confirm": True},
-    {"path": ["chat", "unban"], "category": "Chat", "description": "Remove a chat ban.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["chat", "unmute"], "category": "Chat", "description": "Unmute a player.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Nickname, pseudo or email", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["chat", "wordlist", "add"], "category": "Chat", "description": "Add a word to the banned-words list.", "args": [{"name": "word", "label": "Word", "type": _T, "required": True}], "confirm": True},
-    {"path": ["chat", "wordlist", "remove"], "category": "Chat", "description": "Remove a word from the banned-words list.", "args": [{"name": "word", "label": "Word", "type": _T, "required": True}], "confirm": True},
-    {"path": ["chat", "purge"], "category": "Chat", "description": "Delete recent chat messages.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "n", "label": "Count", "type": _N, "required": False},
-    ], "confirm": True},
-    {"path": ["chat", "recent"], "category": "Chat", "description": "View recent chat messages.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "n", "label": "Count", "type": _N, "required": False},
-    ], "confirm": False},
     # Studio apps & Vakar+
     {"path": ["app", "list"], "category": "Studio", "description": "List studio apps, optionally by status.", "args": [{"name": "status", "label": "Status", **_sel(["draft", "published"]), "required": False}], "confirm": False},
     {"path": ["app", "show"], "category": "Studio", "description": "Studio app detail: owner, status, price, earnings.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
@@ -478,6 +404,11 @@ _CLI_CATALOG = [
 
     # System
     {"path": ["maintenance"], "category": "System", "description": "Toggle site-wide maintenance mode.", "args": [{"name": "state", "label": "State", **_sel(["on", "off"]), "required": True}], "confirm": True},
+    {"path": ["maintenance", "schedule"], "category": "System", "description": "Schedule maintenance to start in N minutes, with an optional visitor-facing message.", "args": [
+        {"name": "minutes", "label": "Minutes from now", "type": _N, "required": True},
+        {"name": "message", "label": "Message shown to visitors (optional)", "type": _TA, "required": False},
+    ], "confirm": True},
+    {"path": ["maintenance", "cancel-schedule"], "category": "System", "description": "Cancel a pending scheduled maintenance.", "args": [], "confirm": True},
     {"path": ["broadcast"], "category": "System", "description": "Notify every user.", "args": [{"name": "message", "label": "Message", "type": _TA, "required": True}], "confirm": True},
     {"path": ["logs", "recent"], "category": "System", "description": "Tail the general activity log.", "args": [
         {"name": "type", "label": "Type filter", "type": _T, "required": False},
@@ -505,19 +436,6 @@ async def _cli_find_user_doc(query: str):
         return await db.users.find_one({"_id": ObjectId(q)})
     except Exception:
         return None
-
-async def _cli_find_player_doc(project_slug: str, query: str):
-    q = query.strip()
-    if not q:
-        return None
-    nick = await db.play_nicknames.find_one(
-        {"project_slug": project_slug, "nickname": {"$regex": f"^{re.escape(q)}$", "$options": "i"}}
-    )
-    if nick:
-        user = await db.users.find_one({"_id": nick["user_id"]})
-        if user:
-            return user
-    return await _cli_find_user_doc(q)
 
 def _cli_user_summary(u) -> List[str]:
     return [
@@ -722,9 +640,43 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         if not confirm:
             return [f"{'Enable' if want_on else 'Disable'} site-wide maintenance mode?",
                     "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.website_settings.update_one({}, {"$set": {"maintenance_mode": want_on}}, upsert=True)
+        # A manual toggle always wins over any pending/past schedule.
+        await db.website_settings.update_one({}, {"$set": {
+            "maintenance_mode": want_on, "maintenance_scheduled_at": None, "maintenance_announcement": "",
+        }}, upsert=True)
         await log_action("website", f"[CLI] Maintenance mode {'enabled' if want_on else 'disabled'}", user=admin["username"])
         return [f"OK — maintenance mode {'enabled' if want_on else 'disabled'}."], False, True
+
+    if verb == "maintenance" and len(tokens) >= 3 and tokens[1].lower() == "schedule":
+        try:
+            minutes = float(tokens[2])
+        except ValueError:
+            raise _CliError("Minutes must be a number.")
+        if minutes <= 0:
+            raise _CliError("Minutes must be greater than 0.")
+        message = " ".join(tokens[3:]).strip()[:280]
+        scheduled_at = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+        if not confirm:
+            return [
+                f"Schedule maintenance to start in {minutes:g} minute(s) (at {scheduled_at.strftime('%H:%M UTC')})?",
+                f"Message shown to visitors: {message or '(default message)'}",
+                "Type 'y' to confirm, or anything else to cancel.",
+            ], True, False
+        await db.website_settings.update_one({}, {"$set": {
+            "maintenance_scheduled_at": scheduled_at, "maintenance_announcement": message,
+        }}, upsert=True)
+        await log_action("website", f"[CLI] Maintenance scheduled for {scheduled_at.isoformat()} ({minutes:g} min from now)", user=admin["username"])
+        return [f"OK — maintenance scheduled to start in {minutes:g} minute(s)."], False, True
+
+    if verb == "maintenance" and len(tokens) == 2 and tokens[1].lower() == "cancel-schedule":
+        existing = await db.website_settings.find_one({})
+        if not existing or not existing.get("maintenance_scheduled_at"):
+            raise _CliError("No maintenance is currently scheduled.")
+        if not confirm:
+            return ["Cancel the pending scheduled maintenance?", "Type 'y' to confirm, or anything else to cancel."], True, False
+        await db.website_settings.update_one({}, {"$set": {"maintenance_scheduled_at": None, "maintenance_announcement": ""}})
+        await log_action("website", "[CLI] Scheduled maintenance cancelled", user=admin["username"])
+        return ["OK — scheduled maintenance cancelled."], False, True
 
     if verb == "broadcast" and len(tokens) >= 2:
         message = " ".join(tokens[1:])
@@ -826,87 +778,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             await db.users.delete_one({"_id": target["_id"]})
             await log_action("user_action", f"[CLI] User '{target.get('username')}' ({target.get('email')}) permanently deleted", user=admin["username"])
             return [f"OK — account '{target.get('username')}' permanently deleted."], False, True
-
-    if verb == "player" and len(tokens) >= 4:
-        sub, project_slug, query = tokens[1].lower(), tokens[2], tokens[3]
-        project = await db.projects.find_one({"slug": project_slug})
-        if not project:
-            raise _CliError(f"No project with slug '{project_slug}'.")
-        target = await _cli_find_player_doc(project_slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{project_slug}'.")
-        oid = target["_id"]
-
-        if sub == "find":
-            saves = await db.play_saves.find({"user_id": oid, "project_slug": project_slug}).to_list(None)
-            ban = await db.play_bans.find_one({"user_id": oid, "project_slug": project_slug})
-            nick = await db.play_nicknames.find_one({"user_id": oid, "project_slug": project_slug})
-            lines = _cli_user_summary(target) + [
-                f"nickname:  {nick['nickname'] if nick else '(none)'}",
-                f"banned:    {ban is not None}",
-                f"saves:     {', '.join(s['category'] for s in saves) if saves else '(none)'}",
-            ]
-            return lines, False, False
-
-        if sub in ("ban", "unban"):
-            want_banned = sub == "ban"
-            if not confirm:
-                action = "Ban" if want_banned else "Unban"
-                return [f"{action} '{target.get('username')}' from project '{project_slug}'?",
-                        "Type 'y' to confirm, or anything else to cancel."], True, False
-            if want_banned:
-                await db.play_bans.update_one(
-                    {"user_id": oid, "project_slug": project_slug},
-                    {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": admin["username"]}},
-                    upsert=True,
-                )
-            else:
-                await db.play_bans.delete_one({"user_id": oid, "project_slug": project_slug})
-            action = "banned" if want_banned else "unbanned"
-            await log_action("player", f"[CLI] Player '{target.get('username')}' {action}",
-                              project_slug=project_slug, user=admin["username"])
-            return [f"OK — player '{target.get('username')}' {action} from '{project_slug}'."], False, True
-
-        if sub == "revoke":
-            if not confirm:
-                return [f"Revoke all sessions for '{target.get('username')}' in project '{project_slug}'?",
-                        "Type 'y' to confirm, or anything else to cancel."], True, False
-            await db.play_refresh_tokens.update_many({"user_id": oid}, {"$set": {"is_revoked": True}})
-            await log_action("player", f"[CLI] Sessions revoked for player '{target.get('username')}'",
-                              project_slug=project_slug, user=admin["username"])
-            return [f"OK — all sessions revoked for '{target.get('username')}'."], False, True
-
-        if sub == "mute":
-            if len(tokens) < 5:
-                raise _CliError("Usage: player mute <project_slug> <query> <minutes> [reason]")
-            try:
-                minutes = int(tokens[4])
-            except ValueError:
-                raise _CliError(f"'{tokens[4]}' is not a valid number of minutes.")
-            if minutes <= 0:
-                raise _CliError("Duration must be positive.")
-            reason = " ".join(tokens[5:])
-            if not confirm:
-                return [f"Mute '{target.get('username')}' in '{project_slug}' for {minutes} minute(s)?",
-                        "Type 'y' to confirm, or anything else to cancel."], True, False
-            muted_until = datetime.now(timezone.utc) + timedelta(minutes=minutes)
-            await db.chat_mutes.update_one(
-                {"user_id": oid, "project_slug": project_slug},
-                {"$set": {"muted_until": muted_until, "muted_by": admin["username"], "reason": reason}},
-                upsert=True,
-            )
-            await log_action("chat", f"[CLI] Player '{target.get('username')}' muted for {minutes} minutes",
-                              project_slug=project_slug, user=admin["username"])
-            return [f"OK — '{target.get('username')}' muted in '{project_slug}' until {muted_until.isoformat()}."], False, True
-
-        if sub == "wipe-saves":
-            if not confirm:
-                return [f"PERMANENTLY wipe all save data for '{target.get('username')}' in '{project_slug}'? This cannot be undone.",
-                        "Type 'y' to confirm, or anything else to cancel."], True, False
-            result = await db.play_saves.delete_many({"user_id": oid, "project_slug": project_slug})
-            await log_action("player", f"[CLI] Save data wiped for '{target.get('username')}' ({result.deleted_count} record(s))",
-                              project_slug=project_slug, user=admin["username"])
-            return [f"OK — {result.deleted_count} save record(s) wiped for '{target.get('username')}' in '{project_slug}'."], False, True
 
     if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "status":
         if len(tokens) < 4:
@@ -1124,100 +995,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await log_action("user_action", f"[CLI] Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', email)}'", user=admin["username"])
         await _create_notification(user_id=str(target["_id"]), message=message, notif_type=notif_type)
         return [f"OK — Vakar+ {action} for '{email}'."], False, True
-
-    # ── Chat & moderation ────────────────────────────────────────────────────
-    if verb == "chat" and len(tokens) >= 4 and tokens[1].lower() == "ban":
-        slug, query = tokens[2], tokens[3]
-        project = await db.projects.find_one({"slug": slug})
-        if not project:
-            raise _CliError(f"No project with slug '{slug}'.")
-        target = await _cli_find_player_doc(slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{slug}'.")
-        reason = " ".join(tokens[4:])
-        if not confirm:
-            return [f"Chat-ban '{target.get('username')}' in '{slug}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.chat_bans.update_one(
-            {"user_id": target["_id"], "project_slug": slug},
-            {"$set": {"banned_at": datetime.now(timezone.utc), "banned_by": admin["username"], "reason": reason}},
-            upsert=True,
-        )
-        await log_action("chat", f"[CLI] Player '{target.get('username')}' chat-banned", project_slug=slug, user=admin["username"])
-        return [f"OK — '{target.get('username')}' chat-banned in '{slug}'."], False, True
-
-    if verb == "chat" and len(tokens) >= 4 and tokens[1].lower() == "unban":
-        slug, query = tokens[2], tokens[3]
-        target = await _cli_find_player_doc(slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{slug}'.")
-        if not confirm:
-            return [f"Remove chat ban for '{target.get('username')}' in '{slug}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.chat_bans.delete_one({"user_id": target["_id"], "project_slug": slug})
-        await log_action("chat", f"[CLI] Chat ban removed for '{target.get('username')}'", project_slug=slug, user=admin["username"])
-        return [f"OK — chat ban removed for '{target.get('username')}' in '{slug}'."], False, True
-
-    if verb == "chat" and len(tokens) >= 4 and tokens[1].lower() == "unmute":
-        slug, query = tokens[2], tokens[3]
-        target = await _cli_find_player_doc(slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{slug}'.")
-        if not confirm:
-            return [f"Unmute '{target.get('username')}' in '{slug}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.chat_mutes.delete_one({"user_id": target["_id"], "project_slug": slug})
-        await log_action("chat", f"[CLI] Player '{target.get('username')}' unmuted", project_slug=slug, user=admin["username"])
-        return [f"OK — '{target.get('username')}' unmuted in '{slug}'."], False, True
-
-    if verb == "chat" and len(tokens) >= 3 and tokens[1].lower() == "wordlist" and tokens[2].lower() in ("add", "remove"):
-        if len(tokens) < 4:
-            raise _CliError("Usage: chat wordlist add|remove <word>")
-        action = tokens[2].lower()
-        word = tokens[3].strip().lower()
-        doc = await db.chat_settings.find_one({"key": "banned_words"})
-        words = doc.get("words", []) if doc else []
-        lowered = [w.lower() for w in words]
-        if action == "add" and word in lowered:
-            raise _CliError(f"'{word}' is already in the banned-words list.")
-        if action == "remove" and word not in lowered:
-            raise _CliError(f"'{word}' is not in the banned-words list.")
-        if not confirm:
-            return [f"{'Add' if action == 'add' else 'Remove'} '{word}' {'to' if action == 'add' else 'from'} the banned-words list?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-        if action == "add":
-            words.append(word)
-        else:
-            words = [w for w in words if w.lower() != word]
-        await db.chat_settings.update_one({"key": "banned_words"}, {"$set": {"words": words}}, upsert=True)
-        await log_action("chat", f"[CLI] Banned word '{word}' {'added' if action == 'add' else 'removed'}", user=admin["username"])
-        return [f"OK — '{word}' {'added to' if action == 'add' else 'removed from'} the banned-words list."], False, True
-
-    if verb == "chat" and len(tokens) >= 3 and tokens[1].lower() == "purge":
-        slug = tokens[2]
-        n = 50
-        if len(tokens) > 3:
-            try: n = max(1, min(500, int(tokens[3])))
-            except ValueError: raise _CliError(f"'{tokens[3]}' is not a valid number.")
-        if not confirm:
-            return [f"Delete the last {n} chat message(s) in '{slug}'? This cannot be undone.", "Type 'y' to confirm, or anything else to cancel."], True, False
-        recent = await db.chat_messages.find({"project_slug": slug}).sort("timestamp", -1).limit(n).to_list(n)
-        if recent:
-            await db.chat_messages.delete_many({"_id": {"$in": [m["_id"] for m in recent]}})
-        await log_action("chat", f"[CLI] Purged {len(recent)} chat message(s)", project_slug=slug, user=admin["username"])
-        return [f"OK — {len(recent)} message(s) purged from '{slug}'."], False, True
-
-    if verb == "chat" and len(tokens) >= 3 and tokens[1].lower() == "recent":
-        slug = tokens[2]
-        n = 20
-        if len(tokens) > 3:
-            try: n = max(1, min(100, int(tokens[3])))
-            except ValueError: raise _CliError(f"'{tokens[3]}' is not a valid number.")
-        docs = await db.chat_messages.find({"project_slug": slug}).sort("timestamp", -1).to_list(n)
-        if not docs:
-            return [f"No chat messages found for '{slug}'."], False, False
-        lines = [f"Last {len(docs)} message(s) in '{slug}':"]
-        for m in reversed(docs):
-            ts = m["timestamp"].strftime("%H:%M:%S") if isinstance(m.get("timestamp"), datetime) else ""
-            lines.append(f"  [{ts}] {m.get('username','?')}: {m.get('message', m.get('content',''))}")
-        return lines, False, False
 
     # ── Blog ─────────────────────────────────────────────────────────────────
     if verb == "blog" and len(tokens) >= 2 and tokens[1].lower() == "list":
@@ -1519,26 +1296,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await db.users.update_one({"_id": target["_id"]}, {"$set": {field_key: None}})
         await log_action("user_action", f"[CLI] {field} cooldown reset for '{target.get('username')}'", user=admin["username"])
         return [f"OK — {field} cooldown reset for '{target.get('username')}'."], False, True
-
-    # ── Players: extra lookups ───────────────────────────────────────────────
-    if verb == "player" and len(tokens) >= 4 and tokens[1].lower() == "nickname":
-        slug, query = tokens[2], tokens[3]
-        target = await _cli_find_player_doc(slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{slug}'.")
-        nick = await db.play_nicknames.find_one({"user_id": target["_id"], "project_slug": slug})
-        return [f"nickname: {nick['nickname'] if nick else '(none set)'}"], False, False
-
-    if verb == "player" and len(tokens) >= 4 and tokens[1].lower() == "firstseen":
-        slug, query = tokens[2], tokens[3]
-        target = await _cli_find_player_doc(slug, query)
-        if not target:
-            raise _CliError(f"No player found matching '{query}' in project '{slug}'.")
-        doc = await db.play_first_seen.find_one({"user_id": target["_id"], "project_slug": slug})
-        if not doc:
-            return ["No first-seen record found."], False, False
-        ts = doc.get("first_seen_at") or doc.get("created_at")
-        return [f"first seen: {ts.isoformat() if isinstance(ts, datetime) else ts}"], False, False
 
     raise _CliError(f"Unknown command '{' '.join(tokens)}'. Type 'help' for the command list.")
 

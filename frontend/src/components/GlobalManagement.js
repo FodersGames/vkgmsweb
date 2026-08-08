@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Settings, AlertTriangle, Mail, Megaphone, Save, Link2 } from 'lucide-react';
+import { Settings, AlertTriangle, Mail, Megaphone, Save, Link2, Clock, X } from 'lucide-react';
 import api from '../utils/api';
 import { Button, Input, SavedFlash, useSavedFlash } from '../ui';
 
@@ -33,6 +33,13 @@ export const GlobalManagement = () => {
   const [savingEmail,  setSavingEmail]  = useState(false);
   const [emailSaved, flashEmailSaved] = useSavedFlash();
 
+  const [scheduledAt, setScheduledAt] = useState(null);
+  const [scheduledMessage, setScheduledMessage] = useState('');
+  const [scheduleMinutes, setScheduleMinutes] = useState('10');
+  const [scheduleMessageInput, setScheduleMessageInput] = useState('');
+  const [schedulingLoading, setSchedulingLoading] = useState(false);
+  const [cancelingSchedule, setCancelingSchedule] = useState(false);
+
   const [bannerInput, setBannerInput] = useState('');
   const [bannerActive, setBannerActive] = useState(false);
   const [savedBanner, setSavedBanner] = useState({ text: '', active: false });
@@ -53,6 +60,8 @@ export const GlobalManagement = () => {
     try {
       const r = await api.get('/api/website/settings');
       setMaintenance(r.data.maintenance_mode);
+      setScheduledAt(r.data.maintenance_scheduled_at || null);
+      setScheduledMessage(r.data.maintenance_announcement || '');
       setSupportEmail(r.data.support_email);
       setEmailInput(r.data.support_email);
       setUpdatedAt(r.data.updated_at || null);
@@ -74,10 +83,43 @@ export const GlobalManagement = () => {
     try {
       const r = await api.put('/api/website/settings', { maintenance_mode: !maintenance });
       setMaintenance(r.data.maintenance_mode);
+      setScheduledAt(r.data.maintenance_scheduled_at || null);
+      setScheduledMessage(r.data.maintenance_announcement || '');
       setUpdatedAt(new Date().toISOString());
       toast.success(`Maintenance mode ${r.data.maintenance_mode ? 'enabled' : 'disabled'}`);
     } catch (e) { toast.error(e.response?.data?.detail || 'Failed to update'); }
     finally { setLoadingMaintenance(false); }
+  };
+
+  const scheduleMaintenance = async (e) => {
+    e.preventDefault();
+    const minutes = parseFloat(scheduleMinutes);
+    if (!(minutes > 0)) { toast.error('Enter a number of minutes greater than 0'); return; }
+    setSchedulingLoading(true);
+    try {
+      const at = new Date(Date.now() + minutes * 60000).toISOString();
+      const r = await api.put('/api/website/settings', {
+        maintenance_scheduled_at: at,
+        maintenance_announcement: scheduleMessageInput.trim(),
+      });
+      setScheduledAt(r.data.maintenance_scheduled_at || null);
+      setScheduledMessage(r.data.maintenance_announcement || '');
+      setUpdatedAt(new Date().toISOString());
+      toast.success(`Maintenance scheduled in ${minutes} minute(s)`);
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to schedule maintenance'); }
+    finally { setSchedulingLoading(false); }
+  };
+
+  const cancelSchedule = async () => {
+    setCancelingSchedule(true);
+    try {
+      const r = await api.put('/api/website/settings', { maintenance_scheduled_at: '' });
+      setScheduledAt(r.data.maintenance_scheduled_at || null);
+      setScheduledMessage(r.data.maintenance_announcement || '');
+      setUpdatedAt(new Date().toISOString());
+      toast.success('Scheduled maintenance cancelled');
+    } catch (e) { toast.error(e.response?.data?.detail || 'Failed to cancel schedule'); }
+    finally { setCancelingSchedule(false); }
   };
 
   const saveEmail = async (e) => {
@@ -173,6 +215,61 @@ export const GlobalManagement = () => {
           <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-3">
             Last changed {timeAgo(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''}
           </p>
+        )}
+      </div>
+
+      {/* Scheduled maintenance */}
+      <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
+        <div className="flex items-center gap-3 mb-4">
+          <Clock size={18} className="text-[#F2994A]" />
+          <div>
+            <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Scheduled Maintenance</h4>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
+              Plan a maintenance window ahead of time — a countdown banner shows on the public site, and everyone is automatically switched to the maintenance page the moment it's due, wherever they are on the site.
+            </p>
+          </div>
+        </div>
+
+        {scheduledAt ? (
+          <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-lg bg-[#F2994A]/10 border border-[#F2994A]/20">
+            <div>
+              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
+                Starts {new Date(scheduledAt).toLocaleString()}
+              </p>
+              {scheduledMessage && (
+                <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1">"{scheduledMessage}"</p>
+              )}
+            </div>
+            <Button variant="danger" icon={X} loading={cancelingSchedule} onClick={cancelSchedule}>
+              Cancel schedule
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={scheduleMaintenance} className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] shrink-0">Start in</label>
+              <Input
+                type="number"
+                min="1"
+                value={scheduleMinutes}
+                onChange={e => setScheduleMinutes(e.target.value)}
+                className="w-24"
+              />
+              <span className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">minutes</span>
+            </div>
+            <Input
+              value={scheduleMessageInput}
+              onChange={e => setScheduleMessageInput(e.target.value)}
+              placeholder="Message shown to visitors (optional)"
+              maxLength={280}
+            />
+            <Button type="submit" icon={Clock} loading={schedulingLoading} disabled={maintenance}>
+              Schedule maintenance
+            </Button>
+            {maintenance && (
+              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">Maintenance is already enabled — disable it first to schedule a future window.</p>
+            )}
+          </form>
         )}
       </div>
 
