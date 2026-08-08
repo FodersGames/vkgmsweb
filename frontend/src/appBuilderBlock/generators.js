@@ -249,6 +249,17 @@ forBlock['ab_list_duplicate'] = function (block) {
 forBlock['ab_list_create_empty'] = function () {
   return ["'[]'", Order.ATOMIC];
 };
+forBlock['ab_render_grid'] = function (block, generator) {
+  const width = generator.valueToCode(block, 'WIDTH', Order.NONE) || '0';
+  const height = generator.valueToCode(block, 'HEIGHT', Order.NONE) || '0';
+  const charA = generator.valueToCode(block, 'CHAR_A', Order.NONE) || "''";
+  const charB = generator.valueToCode(block, 'CHAR_B', Order.NONE) || "''";
+  const emptyChar = generator.valueToCode(block, 'EMPTY_CHAR', Order.NONE) || "''";
+  return [
+    `helpers.renderGrid(vars, ${width}, ${height}, ${fieldStr(block, 'XS_A')}, ${fieldStr(block, 'YS_A')}, ${charA}, ${fieldStr(block, 'XS_B')}, ${fieldStr(block, 'YS_B')}, ${charB}, ${emptyChar})`,
+    Order.FUNCTION_CALL,
+  ];
+};
 forBlock['ab_pick_random'] = function (block) {
   return [`helpers.pickRandom(vars, ${fieldStr(block, 'LIST_VAR')})`, Order.FUNCTION_CALL];
 };

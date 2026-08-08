@@ -612,6 +612,24 @@ const jsonBlocks = [
     tooltip: 'Plug into "set [variable] to", then add items with the "add to list" blocks.',
   },
   {
+    type: 'ab_render_grid',
+    message0: 'draw %1 × %2 grid — mark %3 / %4 as %5, %6 / %7 as %8, else %9',
+    args0: [
+      { type: 'input_value', name: 'WIDTH', check: 'Number' },
+      { type: 'input_value', name: 'HEIGHT', check: 'Number' },
+      { type: 'field_input', name: 'XS_A', text: 'xsA' },
+      { type: 'field_input', name: 'YS_A', text: 'ysA' },
+      { type: 'input_value', name: 'CHAR_A' },
+      { type: 'field_input', name: 'XS_B', text: 'xsB' },
+      { type: 'field_input', name: 'YS_B', text: 'ysB' },
+      { type: 'input_value', name: 'CHAR_B' },
+      { type: 'input_value', name: 'EMPTY_CHAR' },
+    ],
+    output: null,
+    colour: COLORS.lists,
+    tooltip: 'Renders a text grid (one line per row) from two sets of (x,y) coordinate lists — e.g. a snake’s body and a food cell — perfect for a simple tile-based game board shown in a Text element.',
+  },
+  {
     type: 'ab_pick_random',
     message0: 'random item from list %1',
     args0: [{ type: 'field_input', name: 'LIST_VAR', text: 'myList' }],
@@ -1276,6 +1294,13 @@ const BASE_CATEGORIES = [
     kind: 'category', name: 'Lists', colour: COLORS.lists,
     contents: [
       { kind: 'block', type: 'ab_list_create_empty' },
+      { kind: 'block', type: 'ab_render_grid', inputs: {
+        WIDTH: { shadow: { type: 'math_number', fields: { NUM: 8 } } },
+        HEIGHT: { shadow: { type: 'math_number', fields: { NUM: 8 } } },
+        CHAR_A: { shadow: { type: 'text', fields: { TEXT: '🟩' } } },
+        CHAR_B: { shadow: { type: 'text', fields: { TEXT: '🔴' } } },
+        EMPTY_CHAR: { shadow: { type: 'text', fields: { TEXT: '⬛' } } },
+      } },
       { kind: 'block', type: 'ab_list_add_last', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
       { kind: 'block', type: 'ab_list_add_first', inputs: { VALUE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
       { kind: 'block', type: 'ab_list_insert_at', inputs: {

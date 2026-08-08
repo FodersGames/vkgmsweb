@@ -121,6 +121,42 @@ export function createRuntimeHelpers(host) {
       return parseArray(vars[name]);
     },
 
+    // Renders a WIDTH×HEIGHT text grid (one line per row, no separator
+    // between cells) from two independent sets of (x,y) coordinates —
+    // e.g. a snake's body segments and a food cell — checking layer A
+    // before B so an overlap always resolves the same way. Built as one
+    // plain-JS helper instead of nested Blockly loops specifically so a
+    // simple tile-based game board (Snake, Lights Out, etc.) can be
+    // authored as a single block plugged into one Text element, no manual
+    // per-cell wiring needed.
+    renderGrid: function (vars, width, height, xsAName, ysAName, charA, xsBName, ysBName, charB, emptyChar) {
+      var xsA = parseArray(vars[xsAName]), ysA = parseArray(vars[ysAName]);
+      var xsB = parseArray(vars[xsBName]), ysB = parseArray(vars[ysBName]);
+      var w = Math.max(0, Math.trunc(Number(width)) || 0);
+      var h = Math.max(0, Math.trunc(Number(height)) || 0);
+      var rows = [];
+      for (var y = 0; y < h; y++) {
+        var row = '';
+        for (var x = 0; x < w; x++) {
+          var ch = emptyChar;
+          var inA = false;
+          for (var i = 0; i < xsA.length; i++) {
+            if (Number(xsA[i]) === x && Number(ysA[i]) === y) { inA = true; break; }
+          }
+          if (inA) {
+            ch = charA;
+          } else {
+            for (var j = 0; j < xsB.length; j++) {
+              if (Number(xsB[j]) === x && Number(ysB[j]) === y) { ch = charB; break; }
+            }
+          }
+          row += ch;
+        }
+        rows.push(row);
+      }
+      return rows.join('\n');
+    },
+
     listAdd: function (vars, setVar, name, value, mode, index) {
       if (!name) return;
       var arr = parseArray(vars[name]);
