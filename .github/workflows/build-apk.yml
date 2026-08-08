@@ -73,6 +73,10 @@ on:
       signing_url:
         description: "One-time URL to fetch {keystore_b64, store_password, key_password, key_alias} JSON from — used to sign the APK (and the AAB, when build_aab is true)"
         required: true
+      needs_pedometer:
+        description: "\"true\" to inject the native Pedometer plugin (step counter) — only for apps that use one of the pedometer blocks"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -132,6 +136,175 @@ jobs:
           curl -sfL "${{ inputs.icon_url }}" -o assets/icon.png
           npm install --no-audit --no-fund @capacitor/assets
           npx capacitor-assets generate --android --iconBackgroundColor "#ffffff" --iconBackgroundColorDark "#1D1D1F"
+
+      - name: Add native Pedometer plugin
+        if: inputs.needs_pedometer == 'true'
+        working-directory: build-project/android
+        run: |
+          PKG_PATH=$(echo "${{ inputs.package_id }}" | tr '.' '/')
+          JAVA_DIR="app/src/main/java/$PKG_PATH"
+          mkdir -p "$JAVA_DIR"
+          cat > "$JAVA_DIR/PedometerPlugin.java" << 'JAVAEOF'
+          package ${{ inputs.package_id }};
+
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import android.hardware.Sensor;
+          import android.hardware.SensorEvent;
+          import android.hardware.SensorEventListener;
+          import android.hardware.SensorManager;
+          import android.os.Build;
+          import android.Manifest;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.PermissionState;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          import com.getcapacitor.annotation.Permission;
+          import com.getcapacitor.annotation.PermissionCallback;
+          import java.text.SimpleDateFormat;
+          import java.util.Date;
+          import java.util.Locale;
+
+          // Real device step counting for the App Builder's "start counting
+          // steps" block (see frontend/src/appBuilderBlock/{blocks,runtime}.js)
+          // — wraps Android's own Sensor.TYPE_STEP_COUNTER, a cumulative count
+          // since the device's last reboot, into a "steps since tracking
+          // started today" number via a SharedPreferences baseline reset once
+          // per calendar day. Only injected for apps that actually use a
+          // pedometer block (see apk_builds.py's needs_pedometer check).
+          @CapacitorPlugin(
+              name = "Pedometer",
+              permissions = { @Permission(strings = { Manifest.permission.ACTIVITY_RECOGNITION }, alias = "activity") }
+          )
+          public class PedometerPlugin extends Plugin implements SensorEventListener {
+              private static final String PREFS = "vk_pedometer";
+              private SensorManager sensorManager;
+              private Sensor stepSensor;
+              private float rawTotal = -1f;
+              private float baseline = -1f;
+
+              @Override
+              public void load() {
+                  sensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
+                  stepSensor = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) : null;
+              }
+
+              @PluginMethod
+              public void isAvailable(PluginCall call) {
+                  JSObject ret = new JSObject();
+                  ret.put("available", stepSensor != null);
+                  call.resolve(ret);
+              }
+
+              @PluginMethod
+              public void requestPermission(PluginCall call) {
+                  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || getPermissionState("activity") == PermissionState.GRANTED) {
+                      JSObject ret = new JSObject();
+                      ret.put("granted", true);
+                      call.resolve(ret);
+                      return;
+                  }
+                  requestPermissionForAlias("activity", call, "permissionCallback");
+              }
+
+              @PermissionCallback
+              private void permissionCallback(PluginCall call) {
+                  JSObject ret = new JSObject();
+                  ret.put("granted", getPermissionState("activity") == PermissionState.GRANTED);
+                  call.resolve(ret);
+              }
+
+              @PluginMethod
+              public void start(PluginCall call) {
+                  if (stepSensor == null) {
+                      call.reject("No step counter sensor on this device.");
+                      return;
+                  }
+                  SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                  String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+                  String savedDay = prefs.getString("day", "");
+                  if (today.equals(savedDay)) {
+                      baseline = prefs.getFloat("baseline", -1f);
+                  } else {
+                      prefs.edit().putString("day", today).putFloat("baseline", -1f).apply();
+                      baseline = -1f;
+                  }
+                  sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void stop(PluginCall call) {
+                  if (sensorManager != null) sensorManager.unregisterListener(this);
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void getSteps(PluginCall call) {
+                  JSObject ret = new JSObject();
+                  ret.put("steps", currentSteps());
+                  call.resolve(ret);
+              }
+
+              private int currentSteps() {
+                  if (rawTotal < 0 || baseline < 0) return 0;
+                  int steps = (int) (rawTotal - baseline);
+                  return Math.max(0, steps);
+              }
+
+              @Override
+              public void onSensorChanged(SensorEvent event) {
+                  if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
+                  rawTotal = event.values[0];
+                  if (baseline < 0) {
+                      baseline = rawTotal;
+                      SharedPreferences prefs = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                      prefs.edit().putFloat("baseline", baseline).apply();
+                  }
+                  JSObject data = new JSObject();
+                  data.put("steps", currentSteps());
+                  notifyListeners("stepsUpdate", data);
+              }
+
+              @Override
+              public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+
+              @Override
+              protected void handleOnDestroy() {
+                  if (sensorManager != null) sensorManager.unregisterListener(this);
+                  super.handleOnDestroy();
+              }
+          }
+          JAVAEOF
+
+          cat > "$JAVA_DIR/MainActivity.java" << 'MAINEOF'
+          package ${{ inputs.package_id }};
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(PedometerPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          MAINEOF
+
+          python3 -c "
+          import re
+          path = 'app/src/main/AndroidManifest.xml'
+          with open(path) as f:
+              xml = f.read()
+          xml = xml.replace('<application', '<uses-permission android:name=\"android.permission.ACTIVITY_RECOGNITION\" />\n    <application', 1)
+          with open(path, 'w') as f:
+              f.write(xml)
+          "
+          cat "$JAVA_DIR/MainActivity.java"
+          grep ACTIVITY_RECOGNITION app/src/main/AndroidManifest.xml
 
       - name: Fetch signing key
         working-directory: build-project/android

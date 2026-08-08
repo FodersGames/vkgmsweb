@@ -315,6 +315,15 @@ forBlock['ab_is_online'] = function () {
 forBlock['ab_request_notification_permission'] = function () {
   return ['(await helpers.requestNotificationPermission())', Order.NONE];
 };
+forBlock['ab_pedometer_available'] = function () {
+  return ['(await helpers.pedometerAvailable())', Order.NONE];
+};
+forBlock['ab_pedometer_start'] = function (block) {
+  return `await helpers.pedometerStart(setVar, ${fieldStr(block, 'VAR')});\n`;
+};
+forBlock['ab_pedometer_stop'] = function () {
+  return 'await helpers.pedometerStop();\n';
+};
 
 // ---------- Links & Communication ----------
 forBlock['ab_open_link_new_tab'] = function (block, generator) {

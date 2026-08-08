@@ -238,6 +238,14 @@ reg('random_pick', (a, ws) => {
 
 reg('reset_variables', (a, ws) => newBlock(ws, 'ab_reset_variables'));
 
+reg('pedometer_start', (a, ws) => {
+  const b = newBlock(ws, 'ab_pedometer_start');
+  b.setFieldValue(a.variable || 'steps', 'VAR');
+  return b;
+});
+
+reg('pedometer_stop', (a, ws) => newBlock(ws, 'ab_pedometer_stop'));
+
 reg('update_text', (a, ws) => {
   const b = newBlock(ws, 'ab_update_text');
   b.setFieldValue(a.target_id || '', 'TARGET');

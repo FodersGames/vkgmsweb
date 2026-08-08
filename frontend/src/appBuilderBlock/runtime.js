@@ -64,6 +64,16 @@ export function createRuntimeHelpers(host) {
   // could in principle race and clobber it — acceptable for v1.
   var lastHttpStatus = 0;
 
+  // Real step counting — only exists inside a built Android app (see the
+  // native "Pedometer" Capacitor plugin injected by build-apk.yml, only for
+  // apps that actually use one of the pedometer blocks below). In the
+  // live/public web preview (no Capacitor bridge) this is just null, so the
+  // pedometer* helpers safely no-op/return false and authors can still
+  // design and test everything else around them.
+  function pedometerPlugin() {
+    return (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Pedometer) || null;
+  }
+
   function stringifyPicked(picked) {
     return typeof picked === 'object' && picked !== null ? JSON.stringify(picked) : String(picked == null ? '' : picked);
   }
@@ -362,6 +372,34 @@ export function createRuntimeHelpers(host) {
       if (Notification.permission === 'granted') return Promise.resolve(true);
       if (Notification.permission === 'denied') return Promise.resolve(false);
       return Notification.requestPermission().then(function (perm) { return perm === 'granted'; });
+    },
+
+    pedometerAvailable: function () {
+      var p = pedometerPlugin();
+      if (!p) return Promise.resolve(false);
+      return p.isAvailable().then(function (r) { return !!(r && r.available); }).catch(function () { return false; });
+    },
+    // Starts live tracking and keeps `varName` updated with the step count
+    // since tracking started today (see the plugin's own daily-baseline
+    // logic) — resolves true once tracking has actually started, false if
+    // there's no sensor, permission was denied, or this isn't a built app.
+    pedometerStart: function (setVar, varName) {
+      var p = pedometerPlugin();
+      if (!p) { if (varName) setVar(varName, '0'); return Promise.resolve(false); }
+      return p.requestPermission().then(function (perm) {
+        if (!perm || !perm.granted) { if (varName) setVar(varName, '0'); return false; }
+        if (varName) {
+          p.addListener('stepsUpdate', function (data) {
+            setVar(varName, String((data && data.steps) || 0));
+          });
+        }
+        return p.start().then(function () { return true; }).catch(function () { return false; });
+      }).catch(function () { return false; });
+    },
+    pedometerStop: function () {
+      var p = pedometerPlugin();
+      if (!p) return Promise.resolve();
+      return p.stop().catch(function () {});
     },
 
     // ---------- Links & communication (all plain URI-scheme navigations,

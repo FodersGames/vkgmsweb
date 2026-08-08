@@ -292,6 +292,23 @@ async def trigger_apk_build(app_id: str, body: ApkBuildTriggerRequest, user=Depe
         "icon_url": icon_url if icon_url.startswith("http") else (f"{BACKEND_PUBLIC_URL}{icon_url}" if icon_url else ""),
         "build_aab": "false",
     }
+    # The native Pedometer plugin (build-apk.yml) is new, hand-written Java
+    # that's never been exercised on a real device build — only inject it
+    # (extra source file + AndroidManifest permission + MainActivity
+    # registration) for apps that actually reference one of the pedometer
+    # blocks, so a mistake in it can't affect every OTHER app's build.
+    # Deliberately matching the bare "pedometer_start" substring (not
+    # "ab_pedometer_start") — it needs to catch BOTH the real Blockly block
+    # type once an app has been opened/saved in the editor (which migrates
+    # to it) AND the old flat `{"type": "pedometer_start", ...}` shape a
+    # template still holds until then (see appBuilderTemplates.js/
+    # legacyMigration.js) — "ab_pedometer_start" already contains
+    # "pedometer_start" as a substring, so one check covers both.
+    try:
+        needs_pedometer = "pedometer_start" in json.dumps(doc.get("screens") or [])
+    except Exception:
+        needs_pedometer = False
+    inputs["needs_pedometer"] = "true" if needs_pedometer else "false"
 
     # The APK is always signed with this app's own persistent key too, not
     # just the AAB — otherwise a fresh GitHub Actions runner mints a new

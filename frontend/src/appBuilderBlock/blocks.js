@@ -756,6 +756,29 @@ const jsonBlocks = [
     colour: COLORS.device,
     tooltip: 'True if the visitor allowed notifications.',
   },
+  {
+    type: 'ab_pedometer_available',
+    message0: 'step counter available?',
+    output: 'Boolean',
+    colour: COLORS.device,
+    tooltip: 'True on a built Android app on a phone with a step sensor. Always false in the live preview and on the public web page.',
+  },
+  {
+    type: 'ab_pedometer_start',
+    message0: 'start counting steps into %1',
+    args0: [{ type: 'field_input', name: 'VAR', text: 'steps' }],
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.device,
+    tooltip: 'Asks for permission (first time only) and keeps this variable updated live with today’s step count. Phones only — a built Android app.',
+  },
+  {
+    type: 'ab_pedometer_stop',
+    message0: 'stop counting steps',
+    previousStatement: null,
+    nextStatement: null,
+    colour: COLORS.device,
+  },
 
   // ============================================================
   // Links & Communication
@@ -1282,6 +1305,9 @@ const BASE_CATEGORIES = [
       { kind: 'block', type: 'ab_get_longitude' },
       { kind: 'block', type: 'ab_is_online' },
       { kind: 'block', type: 'ab_request_notification_permission' },
+      { kind: 'block', type: 'ab_pedometer_available' },
+      { kind: 'block', type: 'ab_pedometer_start' },
+      { kind: 'block', type: 'ab_pedometer_stop' },
     ],
   },
   {
