@@ -42,6 +42,18 @@ export default function AppBuilderBlockPanel({ value, onChange, context, toolbox
     if (value?.blockly) {
       try {
         Blockly.serialization.workspaces.load(value.blockly, ws);
+        // Migrated/legacy blocks never carry an explicit x/y (the migration
+        // handlers just build a chain, they don't position it) — without
+        // this, the loaded hat+chain can end up rendered outside whatever
+        // the workspace's default pan/zoom happens to be, especially right
+        // after mount when the container's real size may not be settled
+        // yet. Blocks then genuinely exist (and run fine — AppRuntime.js
+        // migrates and executes the same data independently) but look
+        // completely empty until the visitor manually scrolls/zooms to
+        // find them. svgResize first so scrollCenter measures the
+        // container at its real, final size.
+        Blockly.svgResize(ws);
+        ws.scrollCenter();
       } catch (err) {
         console.error('App Builder Blocks: failed to load workspace', err);
       }

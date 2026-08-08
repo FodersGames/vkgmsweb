@@ -232,6 +232,11 @@ jobs:
                       baseline = -1f;
                   }
                   sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI);
+                  // Arms (or re-arms) the midnight snapshot alarm — see
+                  // PedometerMidnightReceiver — so today's baseline is still
+                  // captured close to midnight even on a day the app never
+                  // gets reopened after this.
+                  PedometerMidnightReceiver.schedule(getContext().getApplicationContext());
                   call.resolve();
               }
 
@@ -279,6 +284,119 @@ jobs:
           }
           JAVAEOF
 
+          cat > "$JAVA_DIR/PedometerMidnightReceiver.java" << 'MIDNIGHTEOF'
+          package ${{ inputs.package_id }};
+
+          import android.app.AlarmManager;
+          import android.app.PendingIntent;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.hardware.Sensor;
+          import android.hardware.SensorEvent;
+          import android.hardware.SensorEventListener;
+          import android.hardware.SensorManager;
+          import android.os.Handler;
+          import android.os.Looper;
+          import java.text.SimpleDateFormat;
+          import java.util.Calendar;
+          import java.util.Date;
+          import java.util.Locale;
+
+          // Keeps the Fitness dashboard's "steps today" accurate even on a day
+          // the app is never opened at all: PedometerPlugin's own daily
+          // baseline only resets the moment someone actually opens the app, so
+          // steps taken earlier that day would otherwise be missing from the
+          // count until the NEXT reset. This receiver runs independently of
+          // the app's process — scheduled once via AlarmManager for the next
+          // midnight, re-scheduling itself every time it fires, and re-armed
+          // on every device boot (alarms don't survive a reboot on their own).
+          //
+          // Deliberately NOT a persistent foreground service — no ongoing
+          // notification, negligible battery impact: this wakes up for at
+          // most a few seconds once a day, reads the step sensor's current
+          // cumulative value once, saves it as the new day's baseline, and
+          // goes back to sleep.
+          public class PedometerMidnightReceiver extends BroadcastReceiver {
+              private static final String PREFS = "vk_pedometer";
+              private static final String ACTION_MIDNIGHT = "${{ inputs.package_id }}.PEDOMETER_MIDNIGHT";
+              private static final int REQUEST_CODE = 4821;
+
+              public static void schedule(Context context) {
+                  AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                  if (am == null) return;
+                  Intent intent = new Intent(context, PedometerMidnightReceiver.class);
+                  intent.setAction(ACTION_MIDNIGHT);
+                  int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+                  PendingIntent pending = PendingIntent.getBroadcast(context, REQUEST_CODE, intent, flags);
+                  Calendar cal = Calendar.getInstance();
+                  cal.add(Calendar.DAY_OF_YEAR, 1);
+                  cal.set(Calendar.HOUR_OF_DAY, 0);
+                  cal.set(Calendar.MINUTE, 0);
+                  cal.set(Calendar.SECOND, 5);
+                  cal.set(Calendar.MILLISECOND, 0);
+                  try {
+                      am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pending);
+                  } catch (Exception e) {
+                      // Some OEMs restrict background alarm scheduling — the
+                      // plugin's own open-the-app baseline reset still works
+                      // either way, this is a best-effort improvement on top.
+                  }
+              }
+
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  String action = intent != null ? intent.getAction() : null;
+                  boolean isBoot = Intent.ACTION_BOOT_COMPLETED.equals(action);
+                  boolean isMidnight = ACTION_MIDNIGHT.equals(action);
+                  if (isBoot || isMidnight) {
+                      schedule(context.getApplicationContext());
+                  }
+                  if (!isMidnight) return;
+
+                  final Context appContext = context.getApplicationContext();
+                  final SensorManager sensorManager = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
+                  final Sensor stepSensor = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) : null;
+                  if (sensorManager == null || stepSensor == null) return;
+
+                  final PendingResult pendingResult = goAsync();
+                  final SensorEventListener[] listenerHolder = new SensorEventListener[1];
+                  final Handler timeoutHandler = new Handler(Looper.getMainLooper());
+                  final boolean[] finished = { false };
+
+                  final Runnable finishOnce = new Runnable() {
+                      @Override
+                      public void run() {
+                          if (finished[0]) return;
+                          finished[0] = true;
+                          if (listenerHolder[0] != null) sensorManager.unregisterListener(listenerHolder[0]);
+                          pendingResult.finish();
+                      }
+                  };
+
+                  listenerHolder[0] = new SensorEventListener() {
+                      @Override
+                      public void onSensorChanged(SensorEvent event) {
+                          if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
+                          SharedPreferences prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                          String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+                          prefs.edit().putString("day", today).putFloat("baseline", event.values[0]).apply();
+                          timeoutHandler.removeCallbacksAndMessages(null);
+                          finishOnce.run();
+                      }
+                      @Override
+                      public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+                  };
+                  sensorManager.registerListener(listenerHolder[0], stepSensor, SensorManager.SENSOR_DELAY_UI);
+                  // The sensor should report almost immediately upon
+                  // registering, but never hold the broadcast open forever if
+                  // it somehow doesn't.
+                  timeoutHandler.postDelayed(finishOnce, 8000);
+              }
+          }
+          MIDNIGHTEOF
+
           cat > "$JAVA_DIR/MainActivity.java" << 'MAINEOF'
           package ${{ inputs.package_id }};
 
@@ -290,6 +408,7 @@ jobs:
               public void onCreate(Bundle savedInstanceState) {
                   registerPlugin(PedometerPlugin.class);
                   super.onCreate(savedInstanceState);
+                  PedometerMidnightReceiver.schedule(getApplicationContext());
               }
           }
           MAINEOF
@@ -299,12 +418,20 @@ jobs:
           path = 'app/src/main/AndroidManifest.xml'
           with open(path) as f:
               xml = f.read()
-          xml = xml.replace('<application', '<uses-permission android:name=\"android.permission.ACTIVITY_RECOGNITION\" />\n    <application', 1)
+          xml = xml.replace('<application', '<uses-permission android:name=\"android.permission.ACTIVITY_RECOGNITION\" />\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\" />\n    <application', 1)
+          receiver_xml = '''    <receiver android:name=\".PedometerMidnightReceiver\" android:enabled=\"true\" android:exported=\"true\">
+              <intent-filter>
+                  <action android:name=\"android.intent.action.BOOT_COMPLETED\" />
+                  <action android:name=\"${{ inputs.package_id }}.PEDOMETER_MIDNIGHT\" />
+              </intent-filter>
+          </receiver>
+          '''
+          xml = xml.replace('</application>', receiver_xml + '</application>', 1)
           with open(path, 'w') as f:
               f.write(xml)
           "
           cat "$JAVA_DIR/MainActivity.java"
-          grep ACTIVITY_RECOGNITION app/src/main/AndroidManifest.xml
+          grep -E 'ACTIVITY_RECOGNITION|RECEIVE_BOOT_COMPLETED|PedometerMidnightReceiver' app/src/main/AndroidManifest.xml
 
       - name: Fetch signing key
         working-directory: build-project/android
