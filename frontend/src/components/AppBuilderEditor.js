@@ -1269,6 +1269,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [quotaBannerDismissed, setQuotaBannerDismissed] = useState(false);
+  const [apkReadyBannerDismissed, setApkReadyBannerDismissed] = useState(false);
   const [canvasDragOver, setCanvasDragOver] = useState(false);
   const [exportHubOpen, setExportHubOpen] = useState(false);
   const [publishHubOpen, setPublishHubOpen] = useState(false);
@@ -1923,6 +1924,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const startApkBuild = async (buildAab = false) => {
     setExportHubOpen(false);
     setApkBusy(true);
+    setApkReadyBannerDismissed(false);
     setBuildProgress({ step: 'Fetching your secrets and keys…' });
     try {
       const secretsMap = await fetchSecretsMap();
@@ -2157,7 +2159,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
           <span>Building your APK — this usually takes a few minutes, you can keep editing in the meantime.</span>
         </div>
       )}
-      {enableApkBuild && apkBuild?.status === 'ready' && !apkInProgress && (
+      {enableApkBuild && apkBuild?.status === 'ready' && !apkInProgress && !apkReadyBannerDismissed && (
         <div className="bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20 shrink-0">
           <div className="flex items-center justify-between gap-3 px-5 py-2 text-[11px] text-emerald-700 dark:text-emerald-400">
             <span>Your APK is ready.</span>
@@ -2166,6 +2168,7 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 {apkQrOpen ? 'Hide QR code' : 'Show QR code'}
               </button>
               <a href={`${API}${apkBuild.apk_url}`} className="font-semibold underline" download>Download APK</a>
+              <button onClick={() => setApkReadyBannerDismissed(true)} className="shrink-0" title="Dismiss"><X size={12} /></button>
             </div>
           </div>
           {apkQrOpen && (
