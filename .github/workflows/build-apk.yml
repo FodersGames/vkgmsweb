@@ -1,18 +1,21 @@
-# Builds a debug (unsigned) Android APK for one Studio App Builder app,
-# triggered by the backend (backend/app/routers/apk_builds.py) via the
-# GitHub REST API — never runs on the production VPS. Wraps the app's
-# exported static HTML/CSS/JS bundle (produced client-side by
-# frontend/src/utils/exportApp.js) with Capacitor and reports the result
-# back to the backend via a one-time callback token.
+# Builds a signed Android APK (and, when requested, an AAB) for one Studio
+# App Builder app, triggered by the backend (backend/app/routers/
+# apk_builds.py) via the GitHub REST API — never runs on the production
+# VPS. Wraps the app's exported static HTML/CSS/JS bundle (produced
+# client-side by frontend/src/utils/exportApp.js) with Capacitor and
+# reports the result back to the backend via a one-time callback token.
 #
-# NOTE: the core build (steps through "Build debug APK") has been verified
-# working end-to-end on a real dispatch. The package-name/SDK/icon
-# customization steps below that are NEW and have not been verified live
-# yet — watch the first real run with a custom icon/SDK closely. See
-# MEMORY: studio_app_builder.md.
+# The APK is ALWAYS signed with the app's own persistent signing key (the
+# same one AAB/Google Play builds use — backend/app/routers/apk_builds.py's
+# _get_or_create_signing_key), not the Android SDK's auto-generated debug
+# keystore. A fresh GitHub Actions runner has no ~/.android/debug.keystore,
+# so `assembleDebug` would mint a NEW random one on every single run —
+# Android refuses to install an "update" whose signature doesn't match the
+# already-installed app, forcing a full uninstall before every reinstall.
+# Signing with the app's own stable key (assembleRelease, same
+# -Pandroid.injected.signing.* mechanism bundleRelease already used) fixes
+# that: the signature is the same across every rebuild of a given app.
 #
-# NOTE 2: the signed-AAB steps (build_aab=true, for Google Play) are ALSO
-# new and unverified on a real dispatch — watch the first real run closely.
 # This repo is PUBLIC, so workflow_dispatch inputs are visible forever to
 # anyone in the Actions run history. The signing keystore + passwords are
 # therefore never passed as inputs — only a one-time, unguessable
@@ -64,13 +67,12 @@ on:
         required: false
         default: ""
       build_aab:
-        description: "\"true\" to also produce a signed .aab (Google Play) alongside the debug APK"
+        description: "\"true\" to also produce a signed .aab (Google Play) alongside the signed APK"
         required: false
         default: "false"
       signing_url:
-        description: "One-time URL to fetch {keystore_b64, store_password, key_password, key_alias} JSON from — required when build_aab is true"
-        required: false
-        default: ""
+        description: "One-time URL to fetch {keystore_b64, store_password, key_password, key_alias} JSON from — used to sign the APK (and the AAB, when build_aab is true)"
+        required: true
 
 permissions:
   contents: read
@@ -131,14 +133,7 @@ jobs:
           npm install --no-audit --no-fund @capacitor/assets
           npx capacitor-assets generate --android --iconBackgroundColor "#ffffff" --iconBackgroundColorDark "#1D1D1F"
 
-      - name: Build debug APK
-        working-directory: build-project/android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
-
       - name: Fetch signing key
-        if: inputs.build_aab == 'true'
         working-directory: build-project/android
         run: |
           curl -sfL "${{ inputs.signing_url }}" -o /tmp/signing.json
@@ -155,6 +150,16 @@ jobs:
             echo "KEY_ALIAS=$KEY_ALIAS"
           } >> "$GITHUB_ENV"
 
+      - name: Build release APK
+        working-directory: build-project/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$(pwd)/app/upload-key.p12" \
+            -Pandroid.injected.signing.store.password="$STORE_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
+
       - name: Build signed AAB
         if: inputs.build_aab == 'true'
         working-directory: build-project/android
@@ -165,12 +170,16 @@ jobs:
             -Pandroid.injected.signing.store.password="$STORE_PASS" \
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$KEY_PASS"
-          rm -f app/upload-key.p12
+
+      - name: Clean up the signing key file
+        if: always()
+        working-directory: build-project/android
+        run: rm -f app/upload-key.p12
 
       - name: Report success
         if: success()
         run: |
-          APK_PATH="build-project/android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_PATH="build-project/android/app/build/outputs/apk/release/app-release.apk"
           AAB_PATH="build-project/android/app/build/outputs/bundle/release/app-release.aab"
           ARGS=(-F "callback_token=${{ inputs.callback_token }}" -F "status=ready" -F "apk=@${APK_PATH};type=application/vnd.android.package-archive")
           if [ "${{ inputs.build_aab }}" = "true" ] && [ -f "$AAB_PATH" ]; then

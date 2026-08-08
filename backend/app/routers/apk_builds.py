@@ -293,19 +293,24 @@ async def trigger_apk_build(app_id: str, body: ApkBuildTriggerRequest, user=Depe
         "build_aab": "false",
     }
 
-    signing_filename = None
+    # The APK is always signed with this app's own persistent key too, not
+    # just the AAB — otherwise a fresh GitHub Actions runner mints a new
+    # random debug keystore on every build, and Android refuses to install
+    # an "update" whose signature doesn't match what's already installed
+    # (the "App not installed" error, forcing an uninstall every time).
+    # See build-apk.yml's own header comment.
+    material = await _get_or_create_signing_key(doc)
+    signing_filename = f"{uuid.uuid4().hex}.json"
+    with open(UPLOADS_DIR / signing_filename, "w") as f:
+        json.dump({
+            "keystore_b64": material["keystore_b64"],
+            "store_password": material["store_password"],
+            "key_password": material["key_password"],
+            "key_alias": material["key_alias"],
+        }, f)
+    inputs["signing_url"] = f"{BACKEND_PUBLIC_URL}/api/uploads/{signing_filename}"
     if body.build_aab:
-        material = await _get_or_create_signing_key(doc)
-        signing_filename = f"{uuid.uuid4().hex}.json"
-        with open(UPLOADS_DIR / signing_filename, "w") as f:
-            json.dump({
-                "keystore_b64": material["keystore_b64"],
-                "store_password": material["store_password"],
-                "key_password": material["key_password"],
-                "key_alias": material["key_alias"],
-            }, f)
         inputs["build_aab"] = "true"
-        inputs["signing_url"] = f"{BACKEND_PUBLIC_URL}/api/uploads/{signing_filename}"
 
     payload = {"ref": GITHUB_WORKFLOW_REF, "inputs": inputs}
     headers = {
