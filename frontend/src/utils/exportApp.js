@@ -56,36 +56,44 @@ const escJsonAttr = (obj) => JSON.stringify(obj)
 // async only because of the 'qr' case (baking a data URI once at export
 // time via the qrcode package — see COMPONENT_TYPES' qr entry for why this
 // is a one-time snapshot, not a live-updating value, in the exported project).
-async function renderComponentHTML(node, index = 0) {
+async function renderComponentHTML(node, index = 0, topLevel = false) {
   if (!node) return '';
-  // A top-level component with layout.anchors renders into
-  // .vk-anchored-layer (see generateHTML) instead of the scaled/
-  // letterboxed .canvas — plain CSS left/right/top/bottom against that
-  // layer's own box (sized to the real device viewport) is what actually
-  // makes it stretch/stick to the true screen edge on any screen size, no
-  // JS/resize math involved. Both edges set on an axis means "stretch"
-  // (the browser computes that dimension itself); a single edge keeps the
-  // component's own designed width/height.
-  const anchors = getEffectiveAnchors(node);
   let pos, autoAttr = '';
-  if (anchors) {
+  let topLevelLayout = null;
+  if (topLevel) {
+    // Every top-level component (directly on a screen, not nested inside a
+    // Group) renders here against the REAL device viewport, sized in real
+    // (data-w/-h, resized by fitCanvas() below) px instead of the fixed
+    // CANVAS_WIDTH/CANVAS_HEIGHT reference frame the whole screen used to
+    // be scaled+letterboxed as one block — that used to leave dead space
+    // on any screen whose aspect ratio didn't match the 360x640 design
+    // canvas. Position is a percentage of the real viewport on whichever
+    // axis isn't pinned to an edge, so placement reaches the true screen
+    // edges proportionally everywhere, not just for explicitly anchored
+    // bars. Anchors (see getEffectiveAnchors) still win outright on their
+    // axis: both edges set stretches (plain CSS, no JS needed — the
+    // browser computes the width itself), one edge pins with a fixed real
+    // margin (e.g. a FAB's 20px corner gap) instead of a percentage.
+    const anchors = getEffectiveAnchors(node) || {};
     const l = getLayout(node, index);
     const parts = ['position:absolute;'];
     if (anchors.left != null) parts.push(`left:${anchors.left}px;`);
+    else if (anchors.right == null) parts.push(`left:${((l.x / CANVAS_WIDTH) * 100).toFixed(3)}%;`);
     if (anchors.right != null) parts.push(`right:${anchors.right}px;`);
     if (anchors.top != null) parts.push(`top:${anchors.top}px;`);
+    else if (anchors.bottom == null) parts.push(`top:${((l.y / CANVAS_HEIGHT) * 100).toFixed(3)}%;`);
     if (anchors.bottom != null) parts.push(`bottom:${anchors.bottom}px;`);
-    if (!(anchors.left != null && anchors.right != null)) parts.push(`width:${l.w}px;`);
-    if (!(anchors.top != null && anchors.bottom != null)) parts.push(`height:${l.h}px;`);
-    // A node anchored on only one axis (e.g. auto-anchored to the bottom
-    // edge but nowhere near left/right) has no CSS left/right at all —
-    // that falls back to static-flow placement, not the designed spot.
-    // fitCanvas() (see generateJS below) fills these in at runtime using
-    // the same canvas-centering math the scaled canvas itself uses, so it
-    // lines up with where a free/positioned component would have drawn it.
-    if (anchors.left == null && anchors.right == null) { autoAttr += ` data-auto-x="${l.x}"`; parts.push('left:0px;'); }
-    if (anchors.top == null && anchors.bottom == null) { autoAttr += ` data-auto-y="${l.y}"`; parts.push('top:0px;'); }
+    // Real px width/height depends on the runtime scale factor, unknown
+    // until the page actually loads — data-w/-h let fitCanvas() (see
+    // generateJS below) fill these in on load and every resize, the same
+    // way it already resizes the canvas itself.
+    // The static width/height below is a same-as-design (scale 1) fallback
+    // for the instant before fitCanvas() runs (or on a no-JS user agent);
+    // fitCanvas() immediately overwrites it with the real scaled px.
+    if (!(anchors.left != null && anchors.right != null)) { autoAttr += ` data-w="${l.w}"`; parts.push(`width:${l.w}px;`); }
+    if (!(anchors.top != null && anchors.bottom != null)) { autoAttr += ` data-h="${l.h}"`; parts.push(`height:${l.h}px;`); }
     pos = parts.join('');
+    topLevelLayout = l;
   } else {
     const l = getLayout(node, index);
     pos = `position:absolute;left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px;`;
@@ -152,7 +160,22 @@ async function renderComponentHTML(node, index = 0) {
       const opacity = (node.props?.opacity ?? 100) / 100;
       const style = `position:relative;width:100%;height:100%;background:${bg};border:${node.props?.border ? '1px solid var(--vk-border)' : 'none'};border-radius:${node.props?.radius ?? 0}px;box-shadow:${node.props?.shadow ? '0 10px 30px -12px rgba(0,0,0,0.18)' : 'none'};opacity:${opacity};box-sizing:border-box;overflow:hidden;`;
       const children = (await Promise.all((node.children || []).map((child, i) => renderComponentHTML(child, i)))).join('\n    ');
-      return `${wrapperOpen}<div class="vk-container" style="${style}">\n    ${children}\n    </div></div>`;
+      const inner = `<div class="vk-container" style="${style}">\n    ${children}\n    </div>`;
+      // A Group's children are positioned via raw, unscaled design px
+      // relative to ITS OWN box (see the recursive renderComponentHTML
+      // call above). At the top level the outer wrapper is sized in real
+      // (scaled) px (see topLevelLayout above), so an inner box at the
+      // node's raw design size with its own transform:scale keeps those
+      // children exactly where they were designed — the same trick the
+      // old shared canvas used for the whole screen, scoped to just this
+      // Group now (fitCanvas() updates the scale on resize via the
+      // vk-toplevel-inner class). Nested (non-top-level) containers need
+      // no such wrapper — they already sit inside SOME top-level
+      // ancestor's scale box, which covers them too.
+      if (topLevel) {
+        return `${wrapperOpen}<div class="vk-toplevel-inner" style="width:${topLevelLayout.w}px;height:${topLevelLayout.h}px;transform-origin:top left;">${inner}</div></div>`;
+      }
+      return `${wrapperOpen}${inner}</div>`;
     }
     case 'divider':
       // The positioned box is a taller hitbox in the editor than the
@@ -295,33 +318,16 @@ async function renderComponentHTML(node, index = 0) {
 }
 
 async function generateHTML(app, showWatermark) {
-  // Anchored top-level components (bottom nav/app bar/FAB — see the
-  // Anchors inspector section in AppBuilderEditor.js) render into a
-  // separate .vk-anchored-layer, sized to the real device viewport
-  // instead of the scaled/letterboxed .canvas — see renderComponentHTML's
-  // own comment for why. Each screen still gets its own wrapper in BOTH
-  // places, reusing the exact same "screen" class/data-screen-id/initial
-  // display so showScreen() (script.js) toggles both halves together with
-  // no extra JS needed.
-  const perScreen = (app.screens || []).map((s, i) => ({
-    screen: s, index: i,
-    free: (s.components || []).filter(n => !getEffectiveAnchors(n)),
-    anchored: (s.components || []).filter(n => getEffectiveAnchors(n)),
-  }));
-
-  const screensHTML = (await Promise.all(perScreen.map(async ({ screen: s, index: i, free }) => {
-    const componentsHTML = (await Promise.all(free.map((node, j) => renderComponentHTML(node, j)))).join('\n');
+  // Every component renders directly against the real device viewport
+  // (see renderComponentHTML's topLevel=true branch) instead of inside a
+  // shared, scaled/letterboxed .canvas sized to the fixed 360x640 design
+  // reference — that used to leave dead space on any screen whose aspect
+  // ratio didn't match the design canvas.
+  const screensHTML = (await Promise.all((app.screens || []).map(async (s, i) => {
+    const componentsHTML = (await Promise.all((s.components || []).map((node, j) => renderComponentHTML(node, j, true)))).join('\n');
     return `  <section class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
 ${componentsHTML}
   </section>`;
-  }))).join('\n');
-
-  const anchoredScreensHTML = (await Promise.all(perScreen.map(async ({ screen: s, index: i, anchored }) => {
-    if (anchored.length === 0) return '';
-    const html = (await Promise.all(anchored.map((node, j) => renderComponentHTML(node, j)))).join('\n');
-    return `  <div class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
-${html}
-  </div>`;
   }))).join('\n');
 
   const watermarkHTML = showWatermark
@@ -338,12 +344,9 @@ ${html}
 </head>
 <body>
 <div class="canvas-wrap">
-  <div class="canvas">
+  <div class="vk-screen-layer">
 ${screensHTML}
     <div id="vk-toast"></div>
-  </div>
-  <div class="vk-anchored-layer">
-${anchoredScreensHTML}
   </div>
 ${watermarkHTML}</div>
 <script src="script.js"></script>
@@ -369,10 +372,8 @@ body {
   margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--vk-bg); overflow: hidden;
 }
-.canvas-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--vk-bg); }
-.canvas { position: relative; width: ${CANVAS_WIDTH}px; height: ${CANVAS_HEIGHT}px; flex-shrink: 0; background: var(--vk-bg); overflow: hidden; }
-.vk-anchored-layer { position: absolute; inset: 0; pointer-events: none; }
-.vk-anchored-layer [data-comp-id] { pointer-events: auto; }
+.canvas-wrap { position: fixed; inset: 0; overflow: hidden; background: var(--vk-bg); }
+.vk-screen-layer { position: absolute; inset: 0; }
 .screen { position: absolute; inset: 0; overflow: hidden; }
 .vk-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: calc(var(--vk-radius) * 0.7); font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
 .vk-btn-icon svg { display: block; width: 16px; height: 16px; }
@@ -550,28 +551,32 @@ function generateJS(app) {
   var overrides = {};
   var visibilityOverrides = {};
 
+  // Every top-level component is positioned via plain CSS (percentage or
+  // pinned-edge, baked in at build time — see renderComponentHTML), so no
+  // JS is needed for placement. Only SIZE depends on a scale factor that's
+  // unknown until the page actually has real dimensions: data-w/-h (design
+  // px) get multiplied into real px on load and every resize, same as the
+  // single shared .canvas used to be scaled as one block. A Group's own
+  // children stay laid out at their raw design px (unaffected) inside a
+  // .vk-toplevel-inner wrapper that gets the same scale as a CSS transform,
+  // instead of resizing the wrapper itself (which would fight the layout
+  // its raw-px children rely on).
   function fitCanvas() {
     var wrap = document.querySelector('.canvas-wrap');
-    var canvas = document.querySelector('.canvas');
-    if (!wrap || !canvas) return;
+    if (!wrap) return;
     var scale = Math.min(wrap.clientWidth / CANVAS_WIDTH, wrap.clientHeight / CANVAS_HEIGHT);
     if (!(scale > 0)) scale = 1;
-    canvas.style.transform = 'scale(' + scale + ')';
-    // Anchored-layer elements pinned on only one axis (data-auto-x/-y, set
-    // by renderComponentHTML for a node with no left/right or no top/bottom
-    // anchor) have no CSS offset on the other axis — position them using
-    // the same canvas-centering math the scaled .canvas itself is centered
-    // with, so they line up with where the free/positioned layer would
-    // have drawn them.
-    var offsetX = (wrap.clientWidth - CANVAS_WIDTH * scale) / 2;
-    var offsetY = (wrap.clientHeight - CANVAS_HEIGHT * scale) / 2;
-    var autoXEls = document.querySelectorAll('[data-auto-x]');
-    for (var i = 0; i < autoXEls.length; i++) {
-      autoXEls[i].style.left = (offsetX + parseFloat(autoXEls[i].getAttribute('data-auto-x')) * scale) + 'px';
+    var wEls = document.querySelectorAll('[data-w]');
+    for (var i = 0; i < wEls.length; i++) {
+      wEls[i].style.width = (parseFloat(wEls[i].getAttribute('data-w')) * scale) + 'px';
     }
-    var autoYEls = document.querySelectorAll('[data-auto-y]');
-    for (var j = 0; j < autoYEls.length; j++) {
-      autoYEls[j].style.top = (offsetY + parseFloat(autoYEls[j].getAttribute('data-auto-y')) * scale) + 'px';
+    var hEls = document.querySelectorAll('[data-h]');
+    for (var j = 0; j < hEls.length; j++) {
+      hEls[j].style.height = (parseFloat(hEls[j].getAttribute('data-h')) * scale) + 'px';
+    }
+    var innerEls = document.querySelectorAll('.vk-toplevel-inner');
+    for (var k = 0; k < innerEls.length; k++) {
+      innerEls[k].style.transform = 'scale(' + scale + ')';
     }
   }
   window.addEventListener('resize', fitCanvas);

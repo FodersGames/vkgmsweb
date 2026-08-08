@@ -833,45 +833,54 @@ export function PositionedNode({ node, index = 0, vars, setVars, runAction, them
   );
 }
 
-// A top-level component with layout.anchors (bottom nav bars, app bars,
-// FABs — see the Anchors inspector section in AppBuilderEditor.js) is
-// positioned here instead, against the REAL device viewport rather than
-// the fixed CANVAS_WIDTH/CANVAS_HEIGHT reference frame every other
-// component is scaled/letterboxed within (see AppRuntime below) — that's
-// the whole point: a bar anchored to both left+right genuinely stretches
-// to the true screen edge on any device, not just the design canvas's own
-// 360px width. Plain CSS left/right/top/bottom does all the work; no
-// resize-observer/JS math needed for this to "just work" on any screen
-// size — both edges set on an axis makes the browser compute that
-// dimension itself, so width/height is only set explicitly when just one
-// edge on that axis is pinned (keeping the component's own designed size).
-function AnchoredNode({ node, vars, setVars, runAction, theme, overrides, visibilityOverrides, scale, canvasOffset }) {
+// Every top-level component (everything directly on a screen, not nested
+// inside a Group) renders here, positioned against the REAL device
+// viewport instead of a fixed CANVAS_WIDTH/CANVAS_HEIGHT reference frame
+// scaled+letterboxed as one block — that's what used to leave dead space
+// on any screen whose aspect ratio didn't match the 360x640 design
+// canvas. Position is expressed as a percentage of the real viewport on
+// whichever axis isn't pinned to an edge, so every element's placement —
+// not just ones explicitly anchored — reaches the true screen edges
+// proportionally on any device. Explicit/auto-detected edge anchors (see
+// getEffectiveAnchors) still win outright on their axis: both edges set
+// stretches (plain CSS left+right, no width needed — the browser computes
+// it), one edge set pins with a fixed real-px margin (e.g. a FAB's 20px
+// gap from the corner) instead of a proportional position. Size always
+// scales uniformly by `scale` (same value the old shared canvas used) so
+// nothing looks bigger/smaller than before — only placement is new.
+function TopLevelNode({ node, index = 0, vars, setVars, runAction, theme, overrides, visibilityOverrides, scale }) {
   if (!resolveVisible(node, vars, visibilityOverrides)) return null;
   const a = getEffectiveAnchors(node) || {};
-  const l = getLayout(node);
+  const l = getLayout(node, index);
   const style = { position: 'absolute', pointerEvents: 'auto' };
   if (a.left != null) style.left = a.left;
+  else if (a.right == null) style.left = `${(l.x / CANVAS_WIDTH) * 100}%`;
   if (a.right != null) style.right = a.right;
   if (a.top != null) style.top = a.top;
+  else if (a.bottom == null) style.top = `${(l.y / CANVAS_HEIGHT) * 100}%`;
   if (a.bottom != null) style.bottom = a.bottom;
-  // A node auto- or manually-anchored on only one axis (e.g. pinned to the
-  // bottom edge but not to a left/right one) still needs an explicit
-  // position on the OTHER axis — CSS position:absolute with neither left
-  // nor right set falls back to static-flow placement, not the designed
-  // spot. Reuse the same canvas-centering math the scaled/letterboxed
-  // canvas itself is positioned with (see AppRuntime's ResizeObserver) so
-  // it lines up with where PositionedNode would have drawn it.
-  if (a.left == null && a.right == null) style.left = canvasOffset.x + l.x * scale;
-  if (a.top == null && a.bottom == null) style.top = canvasOffset.y + l.y * scale;
-  if (!(a.left != null && a.right != null)) style.width = l.w;
-  if (!(a.top != null && a.bottom != null)) style.height = l.h;
+  if (!(a.left != null && a.right != null)) style.width = l.w * scale;
+  if (!(a.top != null && a.bottom != null)) style.height = l.h * scale;
   const animation = node.props?.animation;
   const animClass = animation && animation !== 'none' ? `vk-anim-${animation}` : '';
-  return (
-    <div className={animClass} style={style}>
+  // A Group's children are positioned via raw, unscaled design px relative
+  // to ITS OWN box (see PositionedNode/the 'container' case above) — same
+  // as every nested layout in this app. Since the outer wrapper above is
+  // already sized in real (scaled) px, an inner box at the node's raw
+  // design size with its own transform:scale keeps those children exactly
+  // where they were designed, the same trick the old shared canvas used
+  // for the whole screen, just scoped to this one Group now. Every other
+  // component type fills its wrapper via plain CSS (width/height:100%)
+  // with no nested px-relative children, so it doesn't need this — the
+  // outer wrapper's real-px size alone is already correct for it.
+  const content = node.type === 'container' ? (
+    <div style={{ width: l.w, height: l.h, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
       <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
     </div>
+  ) : (
+    <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
   );
+  return <div className={animClass} style={style}>{content}</div>;
 }
 
 export default function AppRuntime({ app, token, className = '', showWatermark = false }) {
@@ -884,7 +893,6 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
   const [message, setMessage] = useState(null);
   const wrapRef = useRef(null);
   const [scale, setScale] = useState(1);
-  const [canvasOffset, setCanvasOffset] = useState({ x: 0, y: 0 });
 
   const screen = useMemo(() => screens.find(s => s.id === screenId) || screens[0], [screens, screenId]);
 
@@ -893,11 +901,7 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
     const compute = () => {
       const w = el.clientWidth, h = el.clientHeight;
-      if (w > 0 && h > 0) {
-        const s = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
-        setScale(s);
-        setCanvasOffset({ x: (w - CANVAS_WIDTH * s) / 2, y: (h - CANVAS_HEIGHT * s) / 2 });
-      }
+      if (w > 0 && h > 0) setScale(Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT));
     };
     compute();
     const ro = new ResizeObserver(compute);
@@ -1081,42 +1085,20 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     );
   }
 
-  // Anchored top-level components (bottom nav/app bar/FAB, or anything
-  // else the author pinned to an edge) render against the real viewport
-  // wrapper below, not inside the scaled/letterboxed canvas — see
-  // AnchoredNode's comment. Index is preserved from the original array
-  // (not the filtered one) so an old, layout-less legacy component's
-  // cascade-fallback position (getLayout's index parameter) is unaffected.
-  const indexed = (screen.components || []).map((node, i) => ({ node, i }));
-  const freeComponents = indexed.filter(({ node }) => !getEffectiveAnchors(node));
-  const anchoredComponents = indexed.filter(({ node }) => getEffectiveAnchors(node));
-
   return (
-    <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box' }}>
-      <div style={{
-        position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, flexShrink: 0,
-        transform: `scale(${scale})`, background: theme.colors.background, overflow: 'hidden', fontFamily: FONT_STACK,
-      }}>
-        {message && (
-          <div style={{
-            position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
-            background: theme.colors.text, color: theme.colors.background, fontSize: 12, fontWeight: 600,
-            padding: '8px 12px', borderRadius: theme.radius * 0.7, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
-          }}>
-            {message}
-          </div>
-        )}
-        {freeComponents.map(({ node, i }) => (
-          <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
-        ))}
-      </div>
-      {anchoredComponents.length > 0 && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', fontFamily: FONT_STACK }}>
-          {anchoredComponents.map(({ node }) => (
-            <AnchoredNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} scale={scale} canvasOffset={canvasOffset} />
-          ))}
+    <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box', fontFamily: FONT_STACK }}>
+      {message && (
+        <div style={{
+          position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
+          background: theme.colors.text, color: theme.colors.background, fontSize: 12, fontWeight: 600,
+          padding: '8px 12px', borderRadius: theme.radius * 0.7, textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+        }}>
+          {message}
         </div>
       )}
+      {(screen.components || []).map((node, i) => (
+        <TopLevelNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} scale={scale} />
+      ))}
       {showWatermark && (
         <a
           href="https://vakargames.com" target="_blank" rel="noopener noreferrer"
