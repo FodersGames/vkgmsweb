@@ -833,6 +833,38 @@ export function PositionedNode({ node, index = 0, vars, setVars, runAction, them
   );
 }
 
+// A top-level component with layout.anchors (bottom nav bars, app bars,
+// FABs — see the Anchors inspector section in AppBuilderEditor.js) is
+// positioned here instead, against the REAL device viewport rather than
+// the fixed CANVAS_WIDTH/CANVAS_HEIGHT reference frame every other
+// component is scaled/letterboxed within (see AppRuntime below) — that's
+// the whole point: a bar anchored to both left+right genuinely stretches
+// to the true screen edge on any device, not just the design canvas's own
+// 360px width. Plain CSS left/right/top/bottom does all the work; no
+// resize-observer/JS math needed for this to "just work" on any screen
+// size — both edges set on an axis makes the browser compute that
+// dimension itself, so width/height is only set explicitly when just one
+// edge on that axis is pinned (keeping the component's own designed size).
+function AnchoredNode({ node, vars, setVars, runAction, theme, overrides, visibilityOverrides }) {
+  if (!resolveVisible(node, vars, visibilityOverrides)) return null;
+  const a = node.layout?.anchors || {};
+  const l = getLayout(node);
+  const style = { position: 'absolute', pointerEvents: 'auto' };
+  if (a.left != null) style.left = a.left;
+  if (a.right != null) style.right = a.right;
+  if (a.top != null) style.top = a.top;
+  if (a.bottom != null) style.bottom = a.bottom;
+  if (!(a.left != null && a.right != null)) style.width = l.w;
+  if (!(a.top != null && a.bottom != null)) style.height = l.h;
+  const animation = node.props?.animation;
+  const animClass = animation && animation !== 'none' ? `vk-anim-${animation}` : '';
+  return (
+    <div className={animClass} style={style}>
+      <ComponentVisual node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
+    </div>
+  );
+}
+
 export default function AppRuntime({ app, token, className = '', showWatermark = false }) {
   const theme = useMemo(() => resolveTheme(app?.theme), [app?.theme]);
   const screens = useMemo(() => app?.screens || [], [app]);
@@ -1035,6 +1067,16 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
     );
   }
 
+  // Anchored top-level components (bottom nav/app bar/FAB, or anything
+  // else the author pinned to an edge) render against the real viewport
+  // wrapper below, not inside the scaled/letterboxed canvas — see
+  // AnchoredNode's comment. Index is preserved from the original array
+  // (not the filtered one) so an old, layout-less legacy component's
+  // cascade-fallback position (getLayout's index parameter) is unaffected.
+  const indexed = (screen.components || []).map((node, i) => ({ node, i }));
+  const freeComponents = indexed.filter(({ node }) => !node.layout?.anchors);
+  const anchoredComponents = indexed.filter(({ node }) => node.layout?.anchors);
+
   return (
     <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box' }}>
       <div style={{
@@ -1050,22 +1092,29 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
             {message}
           </div>
         )}
-        {(screen.components || []).map((node, i) => (
+        {freeComponents.map(({ node, i }) => (
           <PositionedNode key={node.id} node={node} index={i} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
         ))}
-        {showWatermark && (
-          <a
-            href="https://vakargames.com" target="_blank" rel="noopener noreferrer"
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, textAlign: 'center',
-              padding: '5px 0', fontSize: 10, fontWeight: 600, color: theme.colors.textMuted,
-              background: `${theme.colors.surface}cc`, textDecoration: 'none', letterSpacing: '0.02em',
-            }}
-          >
-            Made with <span style={{ color: '#EB5757' }}>♥</span> by Vakar
-          </a>
-        )}
       </div>
+      {anchoredComponents.length > 0 && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', fontFamily: FONT_STACK }}>
+          {anchoredComponents.map(({ node }) => (
+            <AnchoredNode key={node.id} node={node} vars={vars} setVars={setVars} runAction={runAction} theme={theme} overrides={overrides} visibilityOverrides={visibilityOverrides} />
+          ))}
+        </div>
+      )}
+      {showWatermark && (
+        <a
+          href="https://vakargames.com" target="_blank" rel="noopener noreferrer"
+          style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, textAlign: 'center',
+            padding: '5px 0', fontSize: 10, fontWeight: 600, color: theme.colors.textMuted,
+            background: `${theme.colors.surface}cc`, textDecoration: 'none', letterSpacing: '0.02em',
+          }}
+        >
+          Made with <span style={{ color: '#EB5757' }}>♥</span> by Vakar
+        </a>
+      )}
     </div>
   );
 }

@@ -58,8 +58,30 @@ const escJsonAttr = (obj) => JSON.stringify(obj)
 // is a one-time snapshot, not a live-updating value, in the exported project).
 async function renderComponentHTML(node, index = 0) {
   if (!node) return '';
-  const l = getLayout(node, index);
-  const pos = `position:absolute;left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px;`;
+  // A top-level component with layout.anchors renders into
+  // .vk-anchored-layer (see generateHTML) instead of the scaled/
+  // letterboxed .canvas — plain CSS left/right/top/bottom against that
+  // layer's own box (sized to the real device viewport) is what actually
+  // makes it stretch/stick to the true screen edge on any screen size, no
+  // JS/resize math involved. Both edges set on an axis means "stretch"
+  // (the browser computes that dimension itself); a single edge keeps the
+  // component's own designed width/height.
+  const anchors = node.layout?.anchors;
+  let pos;
+  if (anchors) {
+    const l = getLayout(node, index);
+    const parts = ['position:absolute;'];
+    if (anchors.left != null) parts.push(`left:${anchors.left}px;`);
+    if (anchors.right != null) parts.push(`right:${anchors.right}px;`);
+    if (anchors.top != null) parts.push(`top:${anchors.top}px;`);
+    if (anchors.bottom != null) parts.push(`bottom:${anchors.bottom}px;`);
+    if (!(anchors.left != null && anchors.right != null)) parts.push(`width:${l.w}px;`);
+    if (!(anchors.top != null && anchors.bottom != null)) parts.push(`height:${l.h}px;`);
+    pos = parts.join('');
+  } else {
+    const l = getLayout(node, index);
+    pos = `position:absolute;left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px;`;
+  }
   // Visibility (imperative set_visibility override, or declarative
   // visible_if — see render()'s [data-comp-id] pass) and entrance animation
   // apply uniformly to any component type, so the wrapper is built once and
@@ -265,15 +287,37 @@ async function renderComponentHTML(node, index = 0) {
 }
 
 async function generateHTML(app, showWatermark) {
-  const screensHTML = (await Promise.all((app.screens || []).map(async (s, i) => {
-    const componentsHTML = (await Promise.all((s.components || []).map((node, j) => renderComponentHTML(node, j)))).join('\n');
+  // Anchored top-level components (bottom nav/app bar/FAB — see the
+  // Anchors inspector section in AppBuilderEditor.js) render into a
+  // separate .vk-anchored-layer, sized to the real device viewport
+  // instead of the scaled/letterboxed .canvas — see renderComponentHTML's
+  // own comment for why. Each screen still gets its own wrapper in BOTH
+  // places, reusing the exact same "screen" class/data-screen-id/initial
+  // display so showScreen() (script.js) toggles both halves together with
+  // no extra JS needed.
+  const perScreen = (app.screens || []).map((s, i) => ({
+    screen: s, index: i,
+    free: (s.components || []).filter(n => !n.layout?.anchors),
+    anchored: (s.components || []).filter(n => n.layout?.anchors),
+  }));
+
+  const screensHTML = (await Promise.all(perScreen.map(async ({ screen: s, index: i, free }) => {
+    const componentsHTML = (await Promise.all(free.map((node, j) => renderComponentHTML(node, j)))).join('\n');
     return `  <section class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
 ${componentsHTML}
   </section>`;
   }))).join('\n');
 
+  const anchoredScreensHTML = (await Promise.all(perScreen.map(async ({ screen: s, index: i, anchored }) => {
+    if (anchored.length === 0) return '';
+    const html = (await Promise.all(anchored.map((node, j) => renderComponentHTML(node, j)))).join('\n');
+    return `  <div class="screen" data-screen-id="${esc(s.id)}" style="display:${i === 0 ? 'block' : 'none'}">
+${html}
+  </div>`;
+  }))).join('\n');
+
   const watermarkHTML = showWatermark
-    ? `    <a class="vk-watermark" href="https://vakargames.com" target="_blank" rel="noopener noreferrer">Made with <span style="color:#EB5757">♥</span> by Vakar</a>\n`
+    ? `  <a class="vk-watermark" href="https://vakargames.com" target="_blank" rel="noopener noreferrer">Made with <span style="color:#EB5757">♥</span> by Vakar</a>\n`
     : '';
 
   return `<!doctype html>
@@ -289,8 +333,11 @@ ${componentsHTML}
   <div class="canvas">
 ${screensHTML}
     <div id="vk-toast"></div>
-${watermarkHTML}  </div>
-</div>
+  </div>
+  <div class="vk-anchored-layer">
+${anchoredScreensHTML}
+  </div>
+${watermarkHTML}</div>
 <script src="script.js"></script>
 </body>
 </html>
@@ -316,6 +363,8 @@ body {
 }
 .canvas-wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--vk-bg); }
 .canvas { position: relative; width: ${CANVAS_WIDTH}px; height: ${CANVAS_HEIGHT}px; flex-shrink: 0; background: var(--vk-bg); overflow: hidden; }
+.vk-anchored-layer { position: absolute; inset: 0; pointer-events: none; }
+.vk-anchored-layer [data-comp-id] { pointer-events: auto; }
 .screen { position: absolute; inset: 0; overflow: hidden; }
 .vk-btn { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: calc(var(--vk-radius) * 0.7); font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
 .vk-btn-icon svg { display: block; width: 16px; height: 16px; }
