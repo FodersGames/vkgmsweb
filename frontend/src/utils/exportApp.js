@@ -317,7 +317,7 @@ ${html}
   }))).join('\n');
 
   const watermarkHTML = showWatermark
-    ? `  <a class="vk-watermark" href="https://vakargames.com" target="_blank" rel="noopener noreferrer">Made with <span style="color:#EB5757">♥</span> by Vakar</a>\n`
+    ? `  <a class="vk-watermark" href="https://vakargames.com" target="_blank" rel="noopener noreferrer" title="Made with Vakar Games"><span style="color:#EB5757">♥</span> Vakar</a>\n`
     : '';
 
   return `<!doctype html>
@@ -392,7 +392,7 @@ textarea.vk-input { padding: 8px 12px; resize: none; }
 .vk-list-item-grid span { font-size: 12px; color: var(--vk-text); text-align: center; }
 .vk-list-empty { font-size: 13px; color: var(--vk-text-muted); margin: 0; }
 #vk-toast { display: none; position: absolute; top: 12px; left: 12px; right: 12px; background: var(--vk-text); color: var(--vk-bg); font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: calc(var(--vk-radius) * 0.7); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.2); z-index: 10; }
-.vk-watermark { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.vk-watermark { position: absolute; bottom: 10px; right: 10px; z-index: 20; display: flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; font-size: 9px; font-weight: 700; color: var(--vk-text-muted); background: ${hexToRgba(theme.colors.surface || '#ffffff', 0.8)}; text-decoration: none; letter-spacing: 0.02em; box-shadow: 0 2px 10px rgba(0,0,0,0.15); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 .vk-checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--vk-text); cursor: pointer; }
 .vk-checkbox-row[data-unbound] { opacity: 0.5; cursor: default; }
 .vk-checkbox-box { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--vk-border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; color: var(--vk-primary-text); }

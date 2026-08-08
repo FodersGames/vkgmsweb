@@ -1106,13 +1106,15 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
       {showWatermark && (
         <a
           href="https://vakargames.com" target="_blank" rel="noopener noreferrer"
+          title="Made with Vakar Games"
           style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20, textAlign: 'center',
-            padding: '5px 0', fontSize: 10, fontWeight: 600, color: theme.colors.textMuted,
-            background: `${theme.colors.surface}cc`, textDecoration: 'none', letterSpacing: '0.02em',
+            position: 'absolute', bottom: 10, right: 10, zIndex: 20,
+            display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 999,
+            fontSize: 9, fontWeight: 700, color: theme.colors.textMuted, background: `${theme.colors.surface}cc`,
+            textDecoration: 'none', letterSpacing: '0.02em', boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
           }}
         >
-          Made with <span style={{ color: '#EB5757' }}>♥</span> by Vakar
+          <span style={{ color: '#EB5757' }}>♥</span> Vakar
         </a>
       )}
     </div>
