@@ -1267,6 +1267,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [canvasDragOver, setCanvasDragOver] = useState(false);
   const [exportHubOpen, setExportHubOpen] = useState(false);
   const [publishHubOpen, setPublishHubOpen] = useState(false);
+  // Shown in place of the Export hub the instant a download/build starts —
+  // { step, error? }, null when hidden. Only covers the fast client-side
+  // prep (fetching secrets, generating files, uploading) — the APK/AAB
+  // server-side compile itself (can take a few minutes) hands off to the
+  // existing persistent top banner instead, so the user isn't stuck
+  // staring at a blocking popup for that long (see startApkBuild).
+  const [buildProgress, setBuildProgress] = useState(null);
   const reviewBannerInputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -1667,18 +1674,25 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
 
   const handleExport = async () => {
     if (!allowPremium) { setSaveError('Code export requires Vakar+.'); return; }
+    setExportHubOpen(false);
     setExporting(true);
+    setBuildProgress({ step: 'Fetching your secrets and keys…' });
     try {
       const secretsMap = await fetchSecretsMap();
+      setBuildProgress({ step: 'Generating the project files…' });
       await exportAppAsZip({ ...app, secrets: secretsMap }, { showWatermark: !allowPremium });
+      setBuildProgress(null);
+    } catch (e) {
+      setBuildProgress({ step: '', error: e.message || 'Could not export this app.' });
     } finally {
       setExporting(false);
     }
   };
 
   const handleExportFile = async () => {
+    setExportHubOpen(false);
     setExportingFile(true);
-    setSaveError('');
+    setBuildProgress({ step: 'Encrypting your project…' });
     try {
       const r = await fetch(`${API}${apiBase}/${appId}/export-file`, { headers: { Authorization: `Bearer ${token}` } });
       if (!r.ok) throw new Error('Could not export this app.');
@@ -1691,8 +1705,9 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setBuildProgress(null);
     } catch (e) {
-      setSaveError(e.message);
+      setBuildProgress({ step: '', error: e.message || 'Could not export this app.' });
     } finally {
       setExportingFile(false);
     }
@@ -1900,19 +1915,23 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   }, [apkQrOpen, apkBuild?.apk_url]);
 
   const startApkBuild = async (buildAab = false) => {
+    setExportHubOpen(false);
     setApkBusy(true);
-    setSaveError('');
+    setBuildProgress({ step: 'Fetching your secrets and keys…' });
     try {
       const secretsMap = await fetchSecretsMap();
+      setBuildProgress({ step: 'Generating app resources…' });
       const blob = await generateAppZipBlob({ ...app, secrets: secretsMap }, { showWatermark: !allowPremium });
       const formData = new FormData();
       formData.append('file', blob, 'bundle.zip');
+      setBuildProgress({ step: 'Uploading to the build server…' });
       const uploadRes = await fetch(`${API}${apiBase}/${appId}/apk-bundle`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(uploadData.detail || 'Could not prepare the build.');
 
+      setBuildProgress({ step: 'Starting the build…' });
       const triggerRes = await fetch(`${API}${apiBase}/${appId}/build-apk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -1921,8 +1940,13 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
       const triggerData = await triggerRes.json();
       if (!triggerRes.ok) throw new Error(triggerData.detail || 'Could not start the build.');
       setApkBuild({ status: 'building' });
+      // The build itself runs server-side and can take a few minutes — the
+      // persistent banner near the top bar (not this popup) tracks that
+      // part, since it lets the user keep editing in the meantime instead
+      // of being stuck looking at a spinner.
+      setBuildProgress(null);
     } catch (e) {
-      setSaveError(e.message);
+      setBuildProgress({ step: '', error: e.message || 'Could not start the build.' });
     } finally {
       setApkBusy(false);
     }
@@ -2517,6 +2541,36 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
               <X size={14} />
             </button>
             <AppRuntime app={{ ...app, secrets: previewSecrets }} token={token} className="w-full h-full" showWatermark={!allowPremium} />
+          </div>
+        </div>
+      )}
+
+      {/* Build/export progress — replaces the Export hub the instant a
+          download or build starts (see buildProgress's own comment). */}
+      {buildProgress && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50"
+          onClick={() => { if (buildProgress.error) setBuildProgress(null); }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-xs overflow-hidden p-6 text-center"
+          >
+            {buildProgress.error ? (
+              <>
+                <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                  <X size={18} className="text-red-500" />
+                </div>
+                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">Something went wrong</p>
+                <p className="text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] mb-4">{buildProgress.error}</p>
+                <button onClick={() => setBuildProgress(null)} className="text-xs font-semibold text-[#4ECDC4] hover:underline">Close</button>
+              </>
+            ) : (
+              <>
+                <div className="w-8 h-8 mx-auto mb-4 border-[3px] border-[#D2D2D7] dark:border-[#2a2a3c] border-t-[#4ECDC4] rounded-full animate-spin" />
+                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{buildProgress.step}</p>
+              </>
+            )}
           </div>
         </div>
       )}
