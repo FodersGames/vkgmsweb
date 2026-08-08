@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Copy, Eye, Save, Globe, Lock,
   Check, X, ChevronRight, Palette, Download, Smartphone, Settings,
   Send, Clock, ThumbsDown, DollarSign, Package, Monitor, Undo2, Redo2,
-  ShieldAlert, EyeOff, History, Zap, Key, Database,
+  ShieldAlert, EyeOff, History, Zap, Key,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Button } from '../ui/Button';
@@ -939,10 +939,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
   const [signingImportForm, setSigningImportForm] = useState({ store_password: '', key_password: '', key_alias: '' });
   const signingFileInputRef = useRef(null);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [integrationsTab, setIntegrationsTab] = useState('keys');
   const [secrets, setSecrets] = useState([]);
   const [secretsLoading, setSecretsLoading] = useState(false);
   const [secretsSaving, setSecretsSaving] = useState(false);
-  const [dataOpen, setDataOpen] = useState(false);
   const [dataCollections, setDataCollections] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataClearingName, setDataClearingName] = useState('');
@@ -1781,17 +1781,10 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </Button>
         <Button
           size="sm" variant="secondary" icon={Key}
-          onClick={() => { loadSecrets(); setIntegrationsOpen(true); }}
-          title="API keys/tokens your blocks can reference by name"
+          onClick={() => { loadSecrets(); loadDataCollections(); setIntegrationsOpen(true); }}
+          title="API keys and shared data collections your blocks can use"
         >
           Integrations
-        </Button>
-        <Button
-          size="sm" variant="secondary" icon={Database}
-          onClick={() => { loadDataCollections(); setDataOpen(true); }}
-          title="This app's shared data collections"
-        >
-          Data
         </Button>
         <Button size="sm" variant="secondary" icon={Undo2} onClick={undo} disabled={history.length === 0} title="Undo (Ctrl+Z)" />
         <Button size="sm" variant="secondary" icon={Redo2} onClick={redo} disabled={future.length === 0} title="Redo (Ctrl+Shift+Z)" />
@@ -2395,10 +2388,14 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
         </div>
       )}
 
-      {/* Integrations — named API keys/tokens the "Secrets" block category
-          reads by name (see appBuilderBlock/blocks.js's ab_secret block).
-          NOT a real secret vault past this editor — see the warning banner
-          below and config.STUDIO_SECRETS_KEY's comment. */}
+      {/* Integrations — combines named API keys/tokens ("Secrets" blocks)
+          and shared Data collections in one modal (two internal tabs)
+          instead of two separate top-bar buttons. Keys are NOT a real
+          secret vault past this editor — see the warning copy below and
+          config.STUDIO_SECRETS_KEY's comment. Data records themselves are
+          only ever added/edited through the app's own blocks at runtime,
+          not from here — this tab is read-only except for the owner-only
+          bulk clear. */}
       {integrationsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setIntegrationsOpen(false)}>
           <div
@@ -2411,95 +2408,95 @@ export default function AppBuilderEditor({ appId, onBack, apiBase = '/api/admin/
                 <X size={16} />
               </button>
             </div>
-            <div className="px-6 py-5 space-y-3 overflow-y-auto">
-              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
-                Store API keys/tokens (e.g. a Firebase config) here once, then read them from any "Secrets" block by name instead of pasting the raw value everywhere. <strong className="text-[#1D1D1F] dark:text-[#e4e4e7]">Not a hidden vault</strong> — once this app is published or exported, its real value is embedded in the app's own code, same as any client app.
-              </p>
-              {secretsLoading ? (
-                <p className="text-xs text-[#A1A1A6]">Loading…</p>
-              ) : (
-                <div className="space-y-2">
-                  {secrets.map((s, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <input
-                        value={s.name}
-                        onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                        placeholder="NAME"
-                        className="w-[38%] rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
-                      />
-                      <input
-                        value={s.value}
-                        onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
-                        placeholder="value"
-                        className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
-                      />
-                      <button onClick={() => setSecrets(list => list.filter((_, j) => j !== i))} className="text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={13} /></button>
-                    </div>
-                  ))}
+            <div className="px-6 pt-4 shrink-0">
+              <div className="inline-flex rounded-full bg-[#EDEDEF] dark:bg-[#1c1c2e] p-1 gap-1 w-full">
+                {[{ id: 'keys', label: 'Keys' }, { id: 'data', label: 'Data' }].map(t => (
                   <button
-                    onClick={() => setSecrets(list => [...list, { name: '', value: '' }])}
-                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors"
+                    key={t.id}
+                    onClick={() => setIntegrationsTab(t.id)}
+                    className={`flex-1 py-1.5 rounded-full text-[11px] font-semibold transition-all ${integrationsTab === t.id ? 'bg-white dark:bg-[#2a2a3c] text-[#1D1D1F] dark:text-white shadow-sm' : 'text-[#6E6E73] dark:text-[#a1a1aa]'}`}
                   >
-                    <Plus size={11} />Add key
+                    {t.label}
                   </button>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-            <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
-              <Button
-                className="w-full" icon={Save} loading={secretsSaving}
-                onClick={() => saveSecrets(secrets.map(s => ({ ...s, name: s.name.trim() })).filter(s => s.name)).then(() => setIntegrationsOpen(false)).catch(() => {})}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Data — collections overview + owner-only bulk clear. Records
-          themselves are only ever added/edited through the app's own
-          blocks at runtime, not from here. */}
-      {dataOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/50" onClick={() => setDataOpen(false)}>
-          <div
-            onClick={e => e.stopPropagation()}
-            className="rounded-2xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col"
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
-              <h3 className="font-display text-lg font-medium text-[#1D1D1F] dark:text-[#e4e4e7]">Data</h3>
-              <button onClick={() => setDataOpen(false)} className="p-1.5 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-3 overflow-y-auto">
-              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
-                Collections your app's "Data" blocks have created. They're shared and public — any visitor of a live app can add/edit/delete individual records. There's no per-user private data yet.
-              </p>
-              {dataLoading ? (
-                <p className="text-xs text-[#A1A1A6]">Loading…</p>
-              ) : dataCollections.length === 0 ? (
-                <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No collections yet — they appear automatically the first time a "Data" block writes to one.</p>
-              ) : (
-                <div className="space-y-2">
-                  {dataCollections.map(c => (
-                    <div key={c.name} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
-                      <div className="min-w-0">
-                        <span className="block text-xs font-mono font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{c.name}</span>
-                        <span className="block text-[10px] text-[#A1A1A6]">{c.count} record{c.count === 1 ? '' : 's'}</span>
-                      </div>
+            {integrationsTab === 'keys' ? (
+              <>
+                <div className="px-6 py-5 space-y-3 overflow-y-auto">
+                  <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
+                    Store API keys/tokens (e.g. a Firebase config) here once, then read them from any "Secrets" block by name instead of pasting the raw value everywhere. <strong className="text-[#1D1D1F] dark:text-[#e4e4e7]">Not a hidden vault</strong> — once this app is published or exported, its real value is embedded in the app's own code, same as any client app.
+                  </p>
+                  {secretsLoading ? (
+                    <p className="text-xs text-[#A1A1A6]">Loading…</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {secrets.map((s, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <input
+                            value={s.name}
+                            onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                            placeholder="NAME"
+                            className="w-[38%] rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
+                          />
+                          <input
+                            value={s.value}
+                            onChange={e => setSecrets(list => list.map((x, j) => j === i ? { ...x, value: e.target.value } : x))}
+                            placeholder="value"
+                            className="flex-1 min-w-0 rounded-md px-2 py-1.5 text-xs font-mono bg-[#F5F5F7] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none"
+                          />
+                          <button onClick={() => setSecrets(list => list.filter((_, j) => j !== i))} className="text-[#A1A1A6] hover:text-red-500 shrink-0"><X size={13} /></button>
+                        </div>
+                      ))}
                       <button
-                        onClick={() => clearDataCollection(c.name)}
-                        disabled={dataClearingName === c.name}
-                        className="text-[11px] font-semibold text-red-500 hover:underline disabled:opacity-50 shrink-0"
+                        onClick={() => setSecrets(list => [...list, { name: '', value: '' }])}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1A6] hover:text-[#4ECDC4] transition-colors"
                       >
-                        {dataClearingName === c.name ? 'Clearing…' : 'Clear'}
+                        <Plus size={11} />Add key
                       </button>
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+                <div className="px-6 py-4 border-t border-[#D2D2D7] dark:border-[#2a2a3c] shrink-0">
+                  <Button
+                    className="w-full" icon={Save} loading={secretsSaving}
+                    onClick={() => saveSecrets(secrets.map(s => ({ ...s, name: s.name.trim() })).filter(s => s.name)).then(() => setIntegrationsOpen(false)).catch(() => {})}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="px-6 py-5 space-y-3 overflow-y-auto">
+                <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">
+                  Collections your app's "Data" blocks have created. They're shared and public — any visitor of a live app can add/edit/delete individual records. There's no per-user private data yet.
+                </p>
+                {dataLoading ? (
+                  <p className="text-xs text-[#A1A1A6]">Loading…</p>
+                ) : dataCollections.length === 0 ? (
+                  <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No collections yet — they appear automatically the first time a "Data" block writes to one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {dataCollections.map(c => (
+                      <div key={c.name} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#D2D2D7] dark:border-[#2a2a3c]">
+                        <div className="min-w-0">
+                          <span className="block text-xs font-mono font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{c.name}</span>
+                          <span className="block text-[10px] text-[#A1A1A6]">{c.count} record{c.count === 1 ? '' : 's'}</span>
+                        </div>
+                        <button
+                          onClick={() => clearDataCollection(c.name)}
+                          disabled={dataClearingName === c.name}
+                          className="text-[11px] font-semibold text-red-500 hover:underline disabled:opacity-50 shrink-0"
+                        >
+                          {dataClearingName === c.name ? 'Clearing…' : 'Clear'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
