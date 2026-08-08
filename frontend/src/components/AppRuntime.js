@@ -290,6 +290,7 @@ export function ComponentVisual({ node, vars = {}, setVars, runAction, theme, ov
         width: '100%', height: '100%', padding: multiline ? '8px 12px' : '0 12px', borderRadius: theme.radius * 0.6, border: `1px solid ${theme.colors.border}`,
         fontSize: 14, boxSizing: 'border-box', fontFamily: FONT_STACK, background: bound ? theme.colors.surface : `${theme.colors.border}30`,
         color: theme.colors.text, resize: 'none',
+        userSelect: 'text', WebkitUserSelect: 'text', WebkitTouchCallout: 'default',
       };
       if (!bound || !interactive) {
         return multiline
@@ -1086,7 +1087,14 @@ export default function AppRuntime({ app, token, className = '', showWatermark =
   }
 
   return (
-    <div ref={wrapRef} className={className} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box', fontFamily: FONT_STACK }}>
+    <div ref={wrapRef} className={className} style={{
+      position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: theme.colors.background, boxSizing: 'border-box', fontFamily: FONT_STACK,
+      // Feels like a native app, not a webpage: no blue tap-highlight
+      // flash, no long-press "Copy" callout/selection on labels, buttons,
+      // etc. — re-enabled just for actual text-entry fields (see the
+      // 'input' case below), where it's the whole point.
+      WebkitTapHighlightColor: 'transparent', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none',
+    }}>
       {message && (
         <div style={{
           position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,

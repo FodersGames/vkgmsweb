@@ -366,12 +366,18 @@ function generateCSS(theme) {
   --vk-text-muted: ${theme.colors.textMuted};
   --vk-radius: ${theme.radius}px;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; }
 body {
   margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--vk-bg); overflow: hidden;
+  /* Feels like a native app, not a webpage: no blue tap-highlight flash,
+     no long-press "Copy" callout/selection on labels, buttons, etc. —
+     re-enabled below just for actual text-entry fields, where it's the
+     whole point. */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 .canvas-wrap { position: fixed; inset: 0; overflow: hidden; background: var(--vk-bg); }
 .vk-screen-layer { position: absolute; inset: 0; }
 .screen { position: absolute; inset: 0; overflow: hidden; }
