@@ -5,7 +5,10 @@ from typing import List, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Depends, Request
-import stripe
+try:
+    import stripe
+except ImportError:
+    stripe = None
 
 from ..config import STRIPE_WEBHOOK_SECRET
 from ..database import db
@@ -16,7 +19,7 @@ from ..rate_limit import limiter
 from ..schemas import (
     ShopProductCreateRequest, ShopProductUpdateRequest, ShopCheckoutRequest, GamePurchaseCheckoutRequest,
 )
-from .studio_apps import CREATOR_SHARE_PCT
+CREATOR_SHARE_PCT = 0.70
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

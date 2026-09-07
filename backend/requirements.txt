@@ -9,5 +9,3 @@ python-multipart>=0.0.9
 slowapi>=0.1.9
 python-dotenv>=1.0.0
 dnspython>=2.6.0
-cryptography>=42.0.0
-stripe>=7.0.0
