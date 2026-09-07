@@ -1,6 +1,8 @@
+from __future__ import annotations
 import os
 import re
 import logging
+from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import HTTPException
@@ -98,7 +100,7 @@ _FORMAT_MAGIC_BYTES: dict = {
 }
 
 
-def _detect_mime(content: bytes) -> str | None:
+def _detect_mime(content: bytes) -> Optional[str]:
     if not _MAGIC_AVAILABLE:
         return None
     try:

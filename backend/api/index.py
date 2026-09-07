@@ -11,8 +11,12 @@ for p in (str(backend_dir), str(parent_dir), str(this_file.parent)):
 
 try:
     from app.main import app
-except ImportError:
+except Exception:
     try:
         from server import app
-    except ImportError:
+    except Exception:
         from backend.app.main import app
+
+application = app
+handler = app
+__all__ = ["app", "application", "handler"]
