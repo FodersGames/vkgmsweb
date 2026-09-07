@@ -57,6 +57,7 @@ const NAV_GROUPS = [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'account',  label: 'Account',  icon: UserCircle },
     ],
+  },
   {
     label: 'Website',
     items: [
