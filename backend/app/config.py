@@ -26,11 +26,18 @@ SETUP_KEY = os.environ.get('MASTER_KEY', '')
 SUPER_ADMIN_EMAIL    = os.environ.get('SUPER_ADMIN_EMAIL', '')
 SUPER_ADMIN_PASSWORD = os.environ.get('SUPER_ADMIN_PASSWORD', '')
 
-UPLOADS_DIR = ROOT_DIR / "uploads"
-UPLOADS_DIR.mkdir(exist_ok=True)
+if os.environ.get("VERCEL"):
+    UPLOADS_DIR = Path("/tmp/uploads")
+    GAME_FILES_DIR = Path("/tmp/uploads/game_files")
+else:
+    UPLOADS_DIR = ROOT_DIR / "uploads"
+    GAME_FILES_DIR = ROOT_DIR / "uploads" / "game_files"
 
-GAME_FILES_DIR = ROOT_DIR / "uploads" / "game_files"
-GAME_FILES_DIR.mkdir(exist_ok=True, parents=True)
+try:
+    UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
+    GAME_FILES_DIR.mkdir(exist_ok=True, parents=True)
+except Exception:
+    pass
 
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')

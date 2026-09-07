@@ -62,7 +62,10 @@ async def _verify_files_api_key(project_slug: str, request: Request):
 
 def _game_file_path(project_slug: str, file_id: str) -> Path:
     project_dir = GAME_FILES_DIR / project_slug
-    project_dir.mkdir(exist_ok=True)
+    try:
+        project_dir.mkdir(exist_ok=True, parents=True)
+    except Exception:
+        pass
     return project_dir / file_id  # stored without extension; original name in Content-Disposition
 
 # ── Admin: get / regenerate files API key ────────────────────────────────────
@@ -607,7 +610,10 @@ async def clone_file_version(slug: str, req: VersionCloneRequest, user=Depends(r
 
     cloned = 0
     project_dir = GAME_FILES_DIR / slug
-    project_dir.mkdir(exist_ok=True)
+    try:
+        project_dir.mkdir(exist_ok=True, parents=True)
+    except Exception:
+        pass
 
     for src in source_files:
         src_id = str(src["_id"])
