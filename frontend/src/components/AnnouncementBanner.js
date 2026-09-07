@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Megaphone } from '@phosphor-icons/react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const BANNER_HEIGHT = '36px';
 const DISMISS_KEY = 'vkg_announcement_dismissed';
 

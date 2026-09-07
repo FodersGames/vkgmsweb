@@ -25,7 +25,7 @@ function isAudioFile(filename) {
   return AUDIO_EXTS.some(e => s.endsWith(e));
 }
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const PLATFORMS = ['all', 'windows', 'mac', 'linux', 'android', 'ios'];
 const FILE_TYPES = ['build', 'patch', 'config', 'asset', 'text_engine', 'other'];

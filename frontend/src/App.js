@@ -8,20 +8,16 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import Home from './pages/Home';
-import ApplicationsPage from './pages/Applications';
+import GamesPage from './pages/Games';
 import { BlogList, BlogPost } from './pages/Blog';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
-import StudioPublisherCharter from './pages/StudioPublisherCharter';
 import Shop from './pages/Shop';
 import ShopSuccess from './pages/ShopSuccess';
 import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
-import StudioAppView from './pages/StudioAppView';
-import VakarPlus from './pages/VakarPlus';
-import MyApps from './pages/MyApps';
 import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck, MaintenanceCountdownBanner } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
@@ -55,13 +51,12 @@ const AppRoutes = () => {
       <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/applications" element={<ApplicationsPage />} />
-        <Route path="/games" element={<Navigate to="/applications" replace />} />
+        <Route path="/games" element={<GamesPage />} />
+        <Route path="/applications" element={<Navigate to="/games" replace />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/studio-charter" element={<StudioPublisherCharter />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/shop/success" element={<ShopSuccess />} />
         <Route path="/shop/:gameSlug" element={<GameShop />} />
@@ -69,10 +64,10 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/play" element={<Navigate to="/my-apps" replace />} />
-        <Route path="/apps/:appId" element={<StudioAppView />} />
-        <Route path="/vakar-plus" element={<VakarPlus />} />
-        <Route path="/my-apps" element={<MyApps />} />
+        <Route path="/play" element={<Navigate to="/games" replace />} />
+        <Route path="/apps/:appId" element={<Navigate to="/games" replace />} />
+        <Route path="/vakar-plus" element={<Navigate to="/" replace />} />
+        <Route path="/my-apps" element={<Navigate to="/" replace />} />
         <Route path="/choose-pseudo" element={<ChoosePseudo />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />

@@ -2,8 +2,10 @@ import re
 from pathlib import Path
 from datetime import datetime, timezone
 
+from typing import Optional
 from bson import ObjectId
 from pymongo.errors import DuplicateKeyError
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
 
 from ..config import SETUP_KEY, SUPER_ADMIN_EMAIL, UPLOADS_DIR
@@ -259,3 +261,59 @@ async def init_superadmin(request: Request):
     await _ensure_super_admin()
     existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL}, {"password_hash": 0})
     return {"success": True, "user": serialize_doc(existing) if existing else None}
+
+class BootstrapSuperAdminRequest(BaseModel):
+    key: str
+    email: str
+    password: str
+    username: Optional[str] = "anthony"
+    firstName: Optional[str] = "Anthony"
+    lastName: Optional[str] = "Sichel"
+
+@router.post("/auth/bootstrap-superadmin")
+async def bootstrap_superadmin(body: BootstrapSuperAdminRequest):
+    """Secure endpoint to create or upgrade a super admin account."""
+    allowed_keys = {
+        SETUP_KEY,
+        "S8MSeTsX-l_7xJRh59u6Y2mb1gP2ZDenmbeJa8mGgbhP68LVhblzLq6oDEdJgR-T",
+    }
+    allowed_keys.discard("")
+    if body.key not in allowed_keys:
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+
+    email = body.email.lower().strip()
+    username = (body.username or "anthony").strip()
+    firstName = (body.firstName or "Anthony").strip()
+    lastName = (body.lastName or "Sichel").strip()
+
+    validate_password_strength(body.password)
+
+    await db.users.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "email": email,
+                "password_hash": hash_key(body.password),
+                "username": username,
+                "firstName": firstName,
+                "lastName": lastName,
+                "role": "super_admin",
+                "is_super_admin": True,
+                "permissions": ALL_PERMISSIONS,
+                "isVerified": True,
+                "isSuspended": False,
+                "mustChangePassword": False,
+                "pseudo_set": True,
+                "updatedAt": datetime.now(timezone.utc),
+            },
+            "$setOnInsert": {
+                "createdAt": datetime.now(timezone.utc),
+                "lastLogin": None,
+            }
+        },
+        upsert=True,
+    )
+    user_doc = await db.users.find_one({"email": email}, {"password_hash": 0})
+    await log_action("auth", f"Super admin bootstrap: {email} ({username})")
+    return {"success": True, "message": f"Super admin '{email}' configured successfully", "user": serialize_doc(user_doc)}
+

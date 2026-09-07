@@ -8,8 +8,7 @@ import {
   Gamepad2, Settings, PenTool,
   MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
   ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
-  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical, AppWindow,
-  ClipboardCheck, ShieldCheck, Blocks,
+  ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { ServerStatus }        from '../components/ServerStatus';
@@ -31,10 +30,6 @@ import { AccountSettings }     from '../components/AccountSettings';
 import { CouponManagement }    from '../components/CouponManagement';
 import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
-import AppBuilderList         from '../components/AppBuilderList';
-import AppReviewQueue         from '../components/AppReviewQueue';
-import PublishedAppsManager   from '../components/PublishedAppsManager';
-import VakarBlockList         from '../components/VakarBlockList';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import { NotificationBell }   from '../components/NotificationBell';
@@ -62,20 +57,10 @@ const NAV_GROUPS = [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'account',  label: 'Account',  icon: UserCircle },
     ],
-  },
-  {
-    label: 'Studio',
-    id: 'studio',
-    items: [
-      { id: 'app-builder',   label: 'App Builder',     icon: AppWindow,      permission: 'manage_studio_apps' },
-      { id: 'app-reviews',   label: 'Reviews',         icon: ClipboardCheck, permission: 'review_studio_apps' },
-      { id: 'app-published', label: 'Published Apps',  icon: ShieldCheck,    permission: 'review_studio_apps' },
-      { id: 'vakar-block',   label: 'Vakar Block',     icon: Blocks,         permission: 'manage_vakar_block' },
-    ],
-  },
   {
     label: 'Website',
     items: [
+      { id: 'website-games',    label: 'Games',    icon: Gamepad2,  permission: 'manage_website' },
       { id: 'website-blog',     label: 'Blog',     icon: PenTool,   permission: 'create_blog'    },
       { id: 'careers',          label: 'Careers',  icon: Briefcase, permission: 'manager_careers' },
       { id: 'website-settings', label: 'Settings', icon: Settings,  permission: 'manage_website'  },
@@ -760,10 +745,6 @@ const DashboardContent = () => {
             )}
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
-            {activeTab === 'app-builder'      && hasPermission('manage_studio_apps') && <AppBuilderList onNavigate={setActiveTab} />}
-            {activeTab === 'app-reviews'      && hasPermission('review_studio_apps') && <AppReviewQueue />}
-            {activeTab === 'app-published'    && hasPermission('review_studio_apps') && <PublishedAppsManager />}
-            {activeTab === 'vakar-block'      && hasPermission('manage_vakar_block') && <VakarBlockList />}
             {activeTab === 'account'          && <AccountSettings />}
 
           </div>

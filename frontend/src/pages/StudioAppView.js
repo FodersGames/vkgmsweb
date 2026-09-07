@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import AppRuntime from '../components/AppRuntime';
 import { VersionHistoryModal } from '../components/VersionHistoryModal';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 export default function StudioAppView() {
   const { appId } = useParams();

@@ -13,7 +13,7 @@ import {
   SignIn,
 } from '@phosphor-icons/react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 // ── Badge system ──────────────────────────────────────────────────────────────
 const BadgePill = ({ badge, discount_pct }) => {

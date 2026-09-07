@@ -7,7 +7,7 @@ import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
 import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 // Mirrors backend/app/deps.py's FIRSTNAME_COOLDOWN_DAYS — client-side only
 // for the disabled-field hint; the backend is authoritative.
 const FIRSTNAME_COOLDOWN_DAYS = 30;

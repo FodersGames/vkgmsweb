@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
 
 export const SiteFooter = ({ onAbout }) => {
@@ -20,16 +20,15 @@ export const SiteFooter = ({ onAbout }) => {
   <footer className="bg-[#F5F5F7]">
     <div className="max-w-[1040px] mx-auto px-6 pt-10 pb-14">
       <div className="pb-6 border-b border-[#D2D2D7] text-xs text-[#6E6E73]">
-        Vakar Games — Independent software company, based in France.
+        Vakar Games — Independent video game studio, based in France.
       </div>
 
       <div className="pt-7 grid grid-cols-2 sm:grid-cols-4 gap-6">
         <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Products</h4>
+          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Games</h4>
           <ul className="flex flex-col gap-2.5">
-            <li><Link to="/my-apps" className={linkCls}>Vakar Studio</Link></li>
-            <li><Link to="/applications" className={linkCls}>Applications</Link></li>
-            <li><Link to="/vakar-plus" className={linkCls}>Vakar+</Link></li>
+            <li><Link to="/games" className={linkCls}>All Games</Link></li>
+            <li><Link to="/shop" className={linkCls}>Store</Link></li>
           </ul>
         </div>
 

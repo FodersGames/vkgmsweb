@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Cpu, Database, HardDrive, RefreshCw, Clock, Loader2 } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const fmt = (bytes) => {
   if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' Go';

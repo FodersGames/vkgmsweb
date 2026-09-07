@@ -7,7 +7,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 // The public "Applications" showcase — apps built with Vakar Studio by the
 // community, listed here once an admin approves their submitted version
