@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Select } from '../ui';
 import { PublicButton } from '../ui/PublicButton';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const CATEGORIES = [
   { value: 'general', label: 'General' },

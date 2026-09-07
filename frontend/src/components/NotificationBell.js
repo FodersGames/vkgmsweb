@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Bell, Ticket, Trophy, Tag, Megaphone, ShieldAlert, Info } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const POLL_MS = 60000;
 
 const ICON_FOR_TYPE = {

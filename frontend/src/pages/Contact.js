@@ -9,7 +9,7 @@ import { Reveal } from '../components/Reveal';
 import { Select } from '../ui';
 import { PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle, CircleNotch } from '@phosphor-icons/react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
 
 const CATEGORIES = [

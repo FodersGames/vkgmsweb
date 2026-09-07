@@ -21,8 +21,7 @@ from .deps import ALL_PERMISSIONS
 from .routers import (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
-    play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block, studio_data, studio_accounts, studio_push,
+    play, play_chat, guilds, careers,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,7 @@ async def root():
     }
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
@@ -92,8 +92,7 @@ async def get_all_permissions():
 for _router_module in (
     auth, uploads, projects, users, website, admin_system, chat_legacy,
     shop, me, files, coupons, tickets, missions, notifications,
-    play, play_chat, guilds, careers, studio_apps, vakar_plus, apk_builds,
-    vakar_block, studio_data, studio_accounts, studio_push,
+    play, play_chat, guilds, careers,
 ):
     app.include_router(_router_module.router, prefix="/api")
 

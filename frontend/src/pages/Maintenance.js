@@ -4,7 +4,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import cloudSunrise from '../assets/photos/cloud-sunrise.jpg';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 // Fixed to the viewport (h-screen, not min-h-screen) with the top/footer
 // bars pinned via shrink-0 and only the middle section allowed to flex —

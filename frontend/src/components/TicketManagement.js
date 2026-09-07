@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 import axios from 'axios';
 import { Select, SkeletonRow, DensityToggle, useDensity } from '../ui';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const api = axios.create({ baseURL: API_URL });
 api.interceptors.request.use(cfg => {

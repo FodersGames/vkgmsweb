@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Tag, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock, Loader2, Users, Gamepad2, ShoppingBag, Search } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const TIERS = ['bronze', 'silver', 'gold', 'diamond'];
 const TIER_LABELS = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', diamond: 'Diamond' };

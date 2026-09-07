@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 
 const ProjectContext = createContext(null);
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 export const ProjectProvider = ({ children }) => {
   const { token } = useAuth();

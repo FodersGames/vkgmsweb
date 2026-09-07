@@ -6,7 +6,7 @@ import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from 
 import { PublicButton } from '../ui/PublicButton';
 import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { API_URL } from '../utils/api';
 
 const hasDashboardAccess = (u) =>
   !!u && (u.is_super_admin || u.role === 'admin' || (u.permissions?.length > 0));
