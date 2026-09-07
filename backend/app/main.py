@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 
-import stripe
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
@@ -26,7 +25,11 @@ from .routers import (
 
 logger = logging.getLogger(__name__)
 
-stripe.api_key = config.STRIPE_SECRET_KEY
+try:
+    import stripe
+    stripe.api_key = config.STRIPE_SECRET_KEY
+except ImportError:
+    stripe = None
 
 app = FastAPI(title="Vakar Games API", version=config.VERSION)
 app.state.limiter = limiter

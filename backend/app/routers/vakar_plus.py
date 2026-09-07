@@ -1,7 +1,10 @@
 import asyncio
 import logging
 
-import stripe
+try:
+    import stripe
+except ImportError:
+    stripe = None
 from fastapi import APIRouter, HTTPException, Depends, Request
 
 from ..config import VAKAR_PLUS_MONTHLY_PRICE_CENTS, VAKAR_PLUS_YEARLY_PRICE_CENTS
