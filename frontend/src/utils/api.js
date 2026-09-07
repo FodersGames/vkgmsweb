@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 
-export const API_URL = process.env.REACT_APP_BACKEND_URL;
+export const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 /**
  * Centralized Axios instance.
@@ -47,7 +47,7 @@ api.interceptors.response.use(
     if (status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
       toast.error('Session expired — please log in again');
-      window.location.href = '/login';
+      window.location.hash = '/login';
       return Promise.reject(error);
     }
 

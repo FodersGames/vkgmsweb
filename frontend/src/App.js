@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconContext } from '@phosphor-icons/react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -90,10 +90,10 @@ function App() {
       <IconContext.Provider value={{ weight: 'regular' }}>
         <ThemeProvider>
           <AuthProvider>
-            <BrowserRouter>
+            <HashRouter>
               <AppRoutes />
               <CookieBanner />
-            </BrowserRouter>
+            </HashRouter>
             <Toaster position="bottom-right" />
           </AuthProvider>
         </ThemeProvider>

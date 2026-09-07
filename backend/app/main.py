@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import stripe
 from bson import ObjectId
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -29,9 +29,22 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = config.STRIPE_SECRET_KEY
 
-app = FastAPI()
+app = FastAPI(title="Vakar Games API", version=config.VERSION)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "Vakar Games API",
+        "version": config.VERSION,
+        "docs": "/docs"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 # Extensions served inline in the browser (images); everything else forces a download.
 _INLINE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif"}
@@ -40,6 +53,19 @@ _INLINE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff
 async def serve_upload(filename: str):
     # Path(filename).name strips any directory components → prevents path traversal
     safe_name = Path(filename).name
+
+    # Check MongoDB first (Serverless compatible)
+    try:
+        doc = await db.uploads.find_one({"filename": safe_name})
+        if doc and "data" in doc:
+            return Response(
+                content=doc["data"],
+                media_type=doc.get("content_type", "image/jpeg"),
+                headers={"Cache-Control": "public, max-age=31536000, immutable"}
+            )
+    except Exception:
+        pass
+
     filepath = (config.UPLOADS_DIR / safe_name).resolve()
     # Defence-in-depth: ensure resolved path stays inside UPLOADS_DIR
     if not str(filepath).startswith(str(config.UPLOADS_DIR.resolve())):
@@ -71,23 +97,24 @@ for _router_module in (
 ):
     app.include_router(_router_module.router, prefix="/api")
 
-# CORS — reads CORS_ORIGINS from env; falls back to localhost only (never wildcard in prod)
-_cors_raw = os.environ.get('CORS_ORIGINS', '').strip()
-if _cors_raw:
+# CORS
+_cors_raw = os.environ.get('CORS_ORIGINS', '*').strip()
+if _cors_raw == '*':
+    _cors_origins = ['*']
+    _cors_creds = False
+elif _cors_raw:
     _cors_origins = [o.strip() for o in _cors_raw.split(',') if o.strip()]
+    _cors_creds = True
 else:
-    logger.warning(
-        "CORS_ORIGINS not set — allowing localhost:3000 only. "
-        "Set CORS_ORIGINS=https://yourdomain.com in production."
-    )
-    _cors_origins = ['http://localhost:3000']
+    _cors_origins = ['*']
+    _cors_creds = False
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=False,
+    allow_credentials=_cors_creds,
     allow_origins=_cors_origins,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Chat-Api-Key", "X-Files-Api-Key"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
