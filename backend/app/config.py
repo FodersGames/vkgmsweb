@@ -10,8 +10,8 @@ VERSION = "1.3.0"
 ROOT_DIR = Path(__file__).parent.parent
 load_dotenv(ROOT_DIR / '.env')
 
-MONGO_URL = os.environ['MONGO_URL']
-DB_NAME = os.environ['DB_NAME']
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+DB_NAME = os.environ.get('DB_NAME', 'vakargames_db')
 
 _jwt_secret_env = os.environ.get('JWT_SECRET', '')
 JWT_SECRET = _jwt_secret_env if _jwt_secret_env else secrets.token_urlsafe(64)

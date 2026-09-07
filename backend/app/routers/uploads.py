@@ -1,10 +1,12 @@
 import re
 import uuid
 from pathlib import Path
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 
 from ..config import UPLOADS_DIR
+from ..database import db
 from ..deps import get_current_user
 from ..utils import _validate_file, _IMAGE_MIMES, _DELIVERY_MIMES
 
@@ -22,9 +24,27 @@ async def upload_file(file: UploadFile = File(...), current_user=Depends(get_cur
         raise HTTPException(status_code=413, detail="File too large. Maximum 5 MB.")
     content = _validate_file(content, ext, _IMAGE_MIMES)
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = UPLOADS_DIR / filename
-    with open(filepath, "wb") as f:
-        f.write(content)
+
+    # Store in MongoDB (Serverless compatible)
+    try:
+        await db.uploads.insert_one({
+            "filename": filename,
+            "content_type": file.content_type or "image/jpeg",
+            "data": content,
+            "size": len(content),
+            "created_at": datetime.now(timezone.utc),
+            "uploaded_by": current_user.get("username", "system")
+        })
+    except Exception:
+        pass
+
+    try:
+        filepath = UPLOADS_DIR / filename
+        with open(filepath, "wb") as f:
+            f.write(content)
+    except Exception:
+        pass
+
     return {"url": f"/api/uploads/{filename}", "filename": filename}
 
 @router.post("/upload-delivery")
@@ -40,7 +60,25 @@ async def upload_delivery_file(file: UploadFile = File(...), current_user=Depend
     content = _validate_file(content, ext, _DELIVERY_MIMES)
     safe_stem = re.sub(r"[^a-zA-Z0-9_-]", "_", Path(file.filename).stem)[:40]
     filename = f"{uuid.uuid4().hex}_{safe_stem}{ext}"
-    filepath = UPLOADS_DIR / filename
-    with open(filepath, "wb") as f:
-        f.write(content)
+
+    # Store in MongoDB (Serverless compatible)
+    try:
+        await db.uploads.insert_one({
+            "filename": filename,
+            "content_type": file.content_type or "application/octet-stream",
+            "data": content,
+            "size": len(content),
+            "created_at": datetime.now(timezone.utc),
+            "uploaded_by": current_user.get("username", "system")
+        })
+    except Exception:
+        pass
+
+    try:
+        filepath = UPLOADS_DIR / filename
+        with open(filepath, "wb") as f:
+            f.write(content)
+    except Exception:
+        pass
+
     return {"url": f"/api/uploads/{filename}", "filename": file.filename, "size": len(content)}
