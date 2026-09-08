@@ -1,4 +1,6 @@
 import re
+import asyncio
+import functools
 import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
@@ -49,11 +51,25 @@ PSEUDO_COOLDOWN_DAYS = 7
 FIRSTNAME_COOLDOWN_DAYS = 30
 
 # ============== AUTH / PASSWORD HELPERS ==============
+# Bcrypt cost factor: 10 is the OWASP-recommended minimum and runs in ~100ms
+# on commodity hardware. We keep it synchronous for places that run outside an
+# async context (tests, CLI scripts) and provide async wrappers for the
+# request path so we don't block Vercel's single-threaded event loop.
+_BCRYPT_ROUNDS = 10
+
 def hash_key(key: str) -> str:
-    return bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
+    return bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)).decode('utf-8')
 
 def verify_key(key: str, hashed: str) -> bool:
     return bcrypt.checkpw(key.encode('utf-8'), hashed.encode('utf-8'))
+
+async def async_hash_key(key: str) -> str:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, hash_key, key)
+
+async def async_verify_key(key: str, hashed: str) -> bool:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, functools.partial(verify_key, key, hashed))
 
 def validate_password_strength(password: str) -> None:
     if len(password) < 8:
