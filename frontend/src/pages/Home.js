@@ -89,7 +89,7 @@ const Home = () => {
             className="font-bold uppercase tracking-[0.25em] mt-5"
             style={{ fontSize: 'clamp(0.8rem, 2vw, 1.15rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
           >
-            Crafting Unforgettable Worlds
+            Forged in Passion
           </p>
 
           {/* CTA buttons */}
