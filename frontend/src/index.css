@@ -245,13 +245,13 @@
   color: #555555;
 }
 
-/* Gaming stat number */
 .stat-number {
-  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-size: clamp(1.4rem, 2.8vw, 2.4rem);
   font-weight: 900;
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.1;
   color: #FFFFFF;
+  white-space: nowrap;
 }
 
 /* Dot grid (adapted for dark) */
