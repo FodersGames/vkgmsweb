@@ -14,9 +14,9 @@ const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
 
 /* ─── Stat card ─────────────────────────────────────────────────────────── */
 const StatCard = ({ value, label }) => (
-  <div className="text-center px-8 py-6" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+  <div className="text-center px-4 py-7 flex flex-col items-center justify-center min-w-0" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
     <p className="stat-number">{value}</p>
-    <p className="kefir-label mt-2">{label}</p>
+    <p className="kefir-label mt-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>{label}</p>
   </div>
 );
 
@@ -74,26 +74,23 @@ const Home = () => {
         </div>
 
         {/* Center content */}
-        <div className="relative z-10 px-6 fade-up">
-          <p className="kefir-label mb-5" style={{ color: 'rgba(255,255,255,0.45)', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-            Est. 2024 · France · Indie Game Studio
-          </p>
+        <div className="relative z-10 px-6 fade-up max-w-4xl mx-auto">
           <h1
             className="font-black uppercase tracking-tight text-white drop-shadow-2xl"
-            style={{ fontSize: 'clamp(3.5rem, 12vw, 9rem)', lineHeight: 0.95, letterSpacing: '-0.02em', textShadow: '0 4px 24px rgba(0,0,0,0.9)' }}
+            style={{ fontSize: 'clamp(3rem, 8.5vw, 6.5rem)', lineHeight: 0.95, letterSpacing: '-0.02em', textShadow: '0 4px 30px rgba(0,0,0,0.9)' }}
             data-testid="hero-title"
           >
             Vakar Games
           </h1>
           <p
-            className="font-bold uppercase tracking-[0.25em] mt-5"
-            style={{ fontSize: 'clamp(0.8rem, 2vw, 1.15rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
+            className="font-bold uppercase tracking-[0.28em] mt-5"
+            style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.2rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}
           >
             Forged in Passion
           </p>
 
           {/* CTA buttons */}
-          <div className="flex items-center justify-center gap-4 mt-10 flex-wrap">
+          <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
             <Link to="/games" className="btn-kefir">
               View Games
             </Link>
@@ -119,7 +116,7 @@ const Home = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
             <StatCard value="2024" label="Founded" />
             <StatCard value="France" label="HQ" />
-            <StatCard value={games.length > 0 ? `${games.length}+` : '∞'} label="Games" />
+            <StatCard value={games.length > 0 ? `${games.length}` : 'Original'} label="Productions" />
             <StatCard value="PC · Web" label="Platforms" />
           </div>
         </div>
