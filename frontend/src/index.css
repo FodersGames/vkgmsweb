@@ -16,33 +16,31 @@
 
 @layer base {
   :root {
-    /* Apple-style light theme — pure white ground, #1D1D1F ink */
-    --background: 0 0% 100%;
-    --foreground: 240 3% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 3% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 3% 12%;
+    /* Dark gaming theme — Kefir-inspired */
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
     /* Brand teal — #4ECDC4 */
     --primary: 176 57% 55%;
-    --primary-foreground: 240 3% 12%;
-    /* #F5F5F7 — Apple's canonical alternating-section grey */
-    --secondary: 240 11% 96%;
-    --secondary-foreground: 240 3% 12%;
-    --muted: 240 11% 96%;
-    /* #6E6E73 */
-    --muted-foreground: 240 2% 44%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 85%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 50%;
     --accent: 176 57% 55%;
-    --accent-foreground: 240 3% 12%;
-    --destructive: 0 64% 55%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
-    /* #D2D2D7 — Apple's hairline grey */
-    --border: 240 6% 83%;
-    --input: 240 6% 83%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
     --ring: 176 57% 55%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
+  /* Admin dashboard keeps its own dark variant — unchanged */
   .dark {
     --background: 244 25% 7%;
     --foreground: 240 5% 91%;
@@ -72,10 +70,8 @@
     @apply border-border;
   }
   html {
-    /* Belt-and-suspenders against any stray element (decorative blur blobs,
-       third-party injected widgets, etc.) creating a sliver of horizontal
-       scroll on narrow phones — a real site should never scroll sideways. */
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -84,10 +80,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    background-color: #0D0D0D;
+    color: #FFFFFF;
   }
 }
 
-/* Admin dashboard polish — reusable appear animation and smooth theme switching. */
+/* ── Admin dashboard polish ─────────────────────────────────────────── */
 @keyframes vgAppear {
   from { opacity: 0; transform: translateY(4px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
@@ -96,8 +94,6 @@
   animation: vgAppear 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Directional content transitions for Alt+←/→ and back/forward buttons —
-   content slides in from the direction of travel instead of a plain fade. */
 @keyframes vgSlideInForward {
   from { opacity: 0; transform: translateX(10px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -126,11 +122,7 @@
   .theme-transition * { transition: none; }
 }
 
-/* Studio App Builder — entrance animations for published/previewed
-   components (frontend/src/constants/appBuilder.js's ANIMATION_TYPES /
-   PositionedNode in AppRuntime.js). Mirrored verbatim as plain CSS text in
-   exportApp.js's generateCSS for the static HTML export, which has no
-   Tailwind/React to share these classes with. */
+/* ── App Builder animation classes (kept for export compatibility) ───── */
 @keyframes vkAnimFade {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -160,21 +152,17 @@
   .vk-anim-pop { animation: none; }
 }
 
-/* ── Liquid glass (public site) ───────────────────────────────────────────
-   Apple's translucent, light-catching material: heavy blur+saturation to
-   pull color from whatever sits behind it, a bright inset edge that reads
-   as a highlight rather than a flat border, and a soft floating shadow so
-   the surface feels like it's hovering above the page, not stuck to it. */
+/* ── Public site — Gaming dark glass ─────────────────────────────────── */
+/* Kept for admin/dashboard compatibility */
 .liquid-glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58));
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.7);
+  background: linear-gradient(180deg, rgba(30,30,30,0.85), rgba(20,20,20,0.75));
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.9),
-    inset 0 -1px 0 rgba(0,0,0,0.02),
-    0 1px 2px rgba(0,0,0,0.04),
-    0 12px 32px -10px rgba(0,0,0,0.14);
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    0 1px 2px rgba(0,0,0,0.3),
+    0 12px 32px -10px rgba(0,0,0,0.5);
 }
 
 .liquid-glass-dark {
@@ -194,22 +182,14 @@
 .liquid-glass-interactive:hover {
   transform: translateY(-1px);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -1px 0 rgba(0,0,0,0.02),
-    0 2px 6px rgba(0,0,0,0.05),
-    0 18px 44px -10px rgba(0,0,0,0.18);
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 2px 6px rgba(0,0,0,0.3),
+    0 18px 44px -10px rgba(0,0,0,0.6);
 }
 .liquid-glass-interactive:active {
   transform: translateY(0px) scale(0.985);
 }
 
-/* Diagonal specular sweep for glass buttons/pills — only used on elements
-   with no overflowing children, since it relies on overflow:hidden.
-   `position` is wrapped in :where() to keep its specificity at zero, so a
-   Tailwind utility like `fixed`/`absolute` on the same element always wins
-   instead of being silently clobbered by this class loading after the
-   Tailwind layer (this exact thing broke the support button's `fixed`
-   positioning — it computed to `relative` and the button landed top-left). */
 :where(.glass-sheen) {
   position: relative;
 }
@@ -220,7 +200,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 28%);
+  background: linear-gradient(115deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 28%);
   pointer-events: none;
 }
 
@@ -229,12 +209,118 @@
   .liquid-glass-interactive:hover { transition: none; transform: none; }
 }
 
-/* Fine dot-grid texture — a "considered/technical" backdrop instead of the
-   soft gradient blobs every AI-generated hero reaches for. Fades out toward
-   the edges via mask so it reads as an accent, not a hard-edged grid. */
+/* ── Public site — Hero & section utilities ──────────────────────────── */
+/* Hero: dark split background */
+.hero-bg {
+  background: linear-gradient(135deg, #0D0D0D 0%, #111111 50%, #0D0D0D 100%);
+  position: relative;
+}
+.hero-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(78,205,196,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.02) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Section dark alternates */
+.section-dark {
+  background-color: #111111;
+}
+.section-darker {
+  background-color: #0D0D0D;
+}
+.section-accent {
+  background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+}
+
+/* Kefir-style uppercase bold label */
+.kefir-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #555555;
+}
+
+/* Gaming stat number */
+.stat-number {
+  font-size: clamp(2.5rem, 8vw, 6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #FFFFFF;
+}
+
+/* Dot grid (adapted for dark) */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(29,29,31,0.12) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
+}
+
+/* Kefir-style white CTA button */
+.btn-kefir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.75rem;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid #FFFFFF;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-kefir:hover {
+  background: transparent;
+  color: #FFFFFF;
+}
+.btn-kefir-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.75rem;
+  background: transparent;
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-kefir-outline:hover {
+  border-color: #FFFFFF;
+  color: #FFFFFF;
+}
+
+/* Chevron bounce */
+@keyframes bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+.animate-bounce-y {
+  animation: bounce-y 1.8s ease-in-out infinite;
+}
+
+/* Fade-up reveal for public pages */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-y { animation: none; }
+  .fade-up { animation: none; }
 }

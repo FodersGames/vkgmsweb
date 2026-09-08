@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, User } from '@phosphor-icons/react';
+import { ArrowLeft, Calendar, User, CircleNotch } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { Reveal } from '../components/Reveal';
-import sunTextile from '../assets/photos/sun-textile.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
+
+const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
 
 export const BlogList = () => {
@@ -22,77 +22,93 @@ export const BlogList = () => {
   }, []);
 
   return (
-    <div className="bg-[#F5F5F7] min-h-screen">
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav />
 
-      <div className="pt-[52px]">
-        {/* Page header */}
-        <div className="bg-white border-b border-[#D2D2D7] py-16 px-6">
-          <Reveal className="max-w-4xl mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// vakar games</p>
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
-              Blog
-            </h1>
-            <p className="text-[#6E6E73] mt-3">
-              News, updates and announcements from the company.
-            </p>
-          </Reveal>
+      {/* Page header */}
+      <div style={{ paddingTop: '60px', backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-[1100px] mx-auto px-6 py-16">
+          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Studio</p>
+          <h1
+            className="font-black uppercase text-white"
+            style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
+          >
+            Blog
+          </h1>
+          <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            News, updates and announcements from the studio.
+          </p>
         </div>
+      </div>
 
-        <div className="max-w-4xl mx-auto px-6 py-14">
-          {loading ? (
-            <div className="text-center py-20 text-[#A1A1A6]">Loading…</div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-20">
-              <h2 className="font-display text-xl font-medium text-[#A1A1A6] mb-2">
-                No posts yet
-              </h2>
-              <p className="text-[#6E6E73]">Check back soon for updates.</p>
-            </div>
-          ) : (
-            <div className="space-y-4" data-testid="blog-posts-list">
-              {posts.map((post) => (
-                <Link
-                  key={post.slug}
-                  to={`/blog/${post.slug}`}
-                  className="group block rounded-xl liquid-glass liquid-glass-interactive overflow-hidden"
-                  data-testid={`blog-post-${post.slug}`}
-                >
-                  <div className="flex flex-col sm:flex-row">
-                    {post.image_url && (
-                      <div className="sm:w-52 h-44 sm:h-auto flex-shrink-0">
-                        <img
-                          src={post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url}
-                          alt={post.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="p-6 flex-1">
-                      <h2 className="font-display text-lg font-medium text-[#1D1D1F] group-hover:text-[#4ECDC4] transition-colors mb-2 leading-snug">
+      <div className="max-w-[1100px] mx-auto px-6 py-14">
+        {loading ? (
+          <div className="text-center py-20" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <CircleNotch size={32} className="animate-spin mx-auto mb-4" />
+            Loading…
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-20">
+            <h2 className="font-black uppercase text-white/40 text-2xl tracking-tight mb-2">
+              No Posts Yet
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.3)' }}>Check back soon for updates.</p>
+          </div>
+        ) : (
+          <div className="space-y-2" data-testid="blog-posts-list">
+            {posts.map((post) => (
+              <Link
+                key={post.slug}
+                to={`/blog/${post.slug}`}
+                className="group block overflow-hidden transition-all"
+                style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  transition: 'border-color 0.3s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(78,205,196,0.3)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
+                data-testid={`blog-post-${post.slug}`}
+              >
+                <div className="flex flex-col sm:flex-row">
+                  {post.image_url && (
+                    <div className="sm:w-56 h-44 sm:h-auto flex-shrink-0 overflow-hidden">
+                      <img
+                        src={imgUrl(post.image_url)}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                  )}
+                  <div className="p-7 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h2
+                        className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors mb-3 leading-tight"
+                        style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', letterSpacing: '-0.01em' }}
+                      >
                         {post.title}
                       </h2>
-                      <p className="text-[#6E6E73] text-sm line-clamp-2 mb-4 leading-relaxed">
+                      <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
                         {post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-[#A1A1A6]">
-                        <span className="flex items-center gap-1.5">
-                          <User size={11} />{post.author}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Calendar size={11} />
-                          {new Date(post.created_at).toLocaleDateString('en-US', {
-                            month: 'short', day: 'numeric', year: 'numeric',
-                          })}
-                        </span>
-                      </div>
+                    </div>
+                    <div className="flex items-center gap-5 mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
+                        <User size={10} />{post.author}
+                      </span>
+                      <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
+                        <Calendar size={10} />
+                        {new Date(post.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <SiteFooter />
@@ -116,45 +132,58 @@ export const BlogPost = () => {
   }, [slug]);
 
   if (loading) return (
-    <div className="bg-[#F5F5F7] min-h-screen flex items-center justify-center text-[#A1A1A6]">
-      Loading…
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <CircleNotch size={32} className="animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
     </div>
   );
   if (!post) return (
-    <div className="bg-[#F5F5F7] min-h-screen flex items-center justify-center text-[#A1A1A6]">
+    <div style={{ backgroundColor: '#0D0D0D', color: 'rgba(255,255,255,0.3)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       Post not found
     </div>
   );
 
   return (
-    <div className="bg-[#F5F5F7] min-h-screen">
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav />
 
-      <div className="pt-[52px]">
+      <div style={{ paddingTop: '60px' }}>
         <div className="max-w-2xl mx-auto px-6 py-14">
           <Link
             to="/blog"
-            className="inline-flex items-center gap-2 text-sm text-[#6E6E73] hover:text-[#1D1D1F] mb-10 transition-colors"
+            className="inline-flex items-center gap-2 text-sm mb-10 transition-colors"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
           >
-            <ArrowLeft size={14} /> Back to Blog
+            <ArrowLeft size={14} />
+            <span className="text-[11px] font-bold uppercase tracking-wide">Back to Blog</span>
           </Link>
 
-          <img
-            src={post.image_url ? (post.image_url.startsWith('/') ? `${API_URL}${post.image_url}` : post.image_url) : sunTextile}
-            alt={post.title}
-            className="rounded-xl w-full mb-10 max-h-80 object-cover border border-[#D2D2D7]"
-          />
+          {post.image_url && (
+            <img
+              src={imgUrl(post.image_url)}
+              alt={post.title}
+              className="w-full mb-10 object-cover"
+              style={{ maxHeight: '360px', border: '1px solid rgba(255,255,255,0.08)' }}
+            />
+          )}
 
           <h1
-            className="font-display text-3xl sm:text-5xl font-medium text-[#1D1D1F] mb-4 leading-tight"
+            className="font-black uppercase text-white mb-4 leading-tight"
+            style={{ fontSize: 'clamp(1.8rem, 5vw, 3.5rem)', letterSpacing: '-0.02em' }}
           >
             {post.title}
           </h1>
 
-          <div className="flex items-center gap-5 text-sm text-[#A1A1A6] mb-10 pb-10 border-b border-[#D2D2D7]">
-            <span className="flex items-center gap-1.5"><User size={13} />{post.author}</span>
-            <span className="flex items-center gap-1.5">
-              <Calendar size={13} />
+          <div
+            className="flex items-center gap-5 text-xs mb-10 pb-10"
+            style={{ color: 'rgba(255,255,255,0.25)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+          >
+            <span className="flex items-center gap-1.5 uppercase tracking-wider font-bold" style={{ fontSize: '0.65rem' }}>
+              <User size={11} />{post.author}
+            </span>
+            <span className="flex items-center gap-1.5 uppercase tracking-wider font-bold" style={{ fontSize: '0.65rem' }}>
+              <Calendar size={11} />
               {new Date(post.created_at).toLocaleDateString('en-US', {
                 month: 'long', day: 'numeric', year: 'numeric',
               })}
@@ -162,7 +191,8 @@ export const BlogPost = () => {
           </div>
 
           <div
-            className="text-[#3A3A3C] leading-relaxed whitespace-pre-wrap text-base"
+            className="leading-relaxed whitespace-pre-wrap"
+            style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: 1.8 }}
             data-testid="blog-content"
           >
             {post.content}

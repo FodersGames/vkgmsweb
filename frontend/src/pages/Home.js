@@ -1,278 +1,333 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, GameController, Sparkle, Compass, ShieldCheck } from '@phosphor-icons/react';
+import { CaretDown, GameController } from '@phosphor-icons/react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { Reveal } from '../components/Reveal';
-import { LiveTerminal } from '../components/LiveTerminal';
-import { PublicButton } from '../ui/PublicButton';
-import jellyfish from '../assets/photos/jellyfish.jpg';
-import tealFronds from '../assets/photos/teal-fronds.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
-const FRAME_CLS = 'rounded-[20px] border border-[#D2D2D7] overflow-hidden';
+/* ─── Helpers ──────────────────────────────────────────────────────────── */
+const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
 
-const PILLARS = [
-  {
-    icon: GameController,
-    title: 'Player-First Game Design',
-    description: 'We develop tight mechanics, deliberate pacing, and rich atmospheres that truly respect the player\'s time.',
-  },
-  {
-    icon: Compass,
-    title: 'Original Universes',
-    description: 'From atmospheric indie adventures to competitive multiplayer experiences, every world is built from the ground up.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'In-House Technology',
-    description: 'We write our own backend systems, player registries, and live operations, ensuring reliable online gameplay.',
-  },
-];
+/* ─── Stat card ─────────────────────────────────────────────────────────── */
+const StatCard = ({ value, label }) => (
+  <div className="text-center px-8 py-6" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+    <p className="stat-number">{value}</p>
+    <p className="kefir-label mt-2">{label}</p>
+  </div>
+);
 
+/* ─── Home ──────────────────────────────────────────────────────────────── */
 const Home = () => {
-  const aboutRef = useRef(null);
+  const studioRef = useRef(null);
   const { user } = useAuth();
   const [games, setGames] = useState([]);
-  const [featuredGame, setFeaturedGame] = useState(null);
 
   useEffect(() => {
     document.title = 'Vakar Games — Independent Video Game Studio';
     axios.get(`${API_URL}/api/website/games/public`)
-      .then(r => {
-        const list = r.data.games || [];
-        setGames(list);
-        const featured = list.find(g => g.is_featured) || list[0];
-        if (featured) setFeaturedGame(featured);
-      })
+      .then(r => setGames(r.data.games || []))
       .catch(() => {});
   }, []);
 
-  const scrollToAbout = () =>
-    aboutRef.current?.scrollIntoView({ behavior: 'smooth' });
-
-  const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
+  const scrollToStudio = () =>
+    studioRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <div className="bg-white">
-      <PublicNav onAbout={scrollToAbout} />
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
+      <PublicNav onAbout={scrollToStudio} />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden [contain:paint] pt-[132px] pb-20 sm:pb-28 px-6" data-testid="hero-section">
-        <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
-        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[1fr_0.85fr] gap-10 lg:gap-12 items-center">
-          <div className="text-center lg:text-left">
-            <Reveal
-              as="p"
-              className="text-[12px] font-mono text-[#6E6E73] mb-5"
-            >
-              // vakar games studio
-            </Reveal>
-            <Reveal
-              as="h1"
-              className="font-display text-[38px] sm:text-[56px] lg:text-[64px] leading-[1.05] tracking-[-0.01em] font-medium text-[#1D1D1F]"
-            >
-              <span style={{ textWrap: 'balance' }} data-testid="hero-title">
-                Building games <em className="not-italic text-[#4ECDC4]">worth playing.</em>
-              </span>
-            </Reveal>
-            <Reveal as="p" className="text-[16px] sm:text-[18px] text-[#6E6E73] max-w-[46ch] mx-auto lg:mx-0 mt-5 leading-relaxed">
-              Vakar Games is an independent video game development studio based in France. Small team, deliberate creative choices, and zero shortcuts on gameplay feel.
-            </Reveal>
-            <Reveal as="div" className="flex items-center justify-center lg:justify-start gap-3 mt-8 flex-wrap">
-              <Link to="/games">
-                <PublicButton icon={ArrowRight} className="group">
-                  Explore our games
-                </PublicButton>
-              </Link>
-              <Link to="/blog">
-                <PublicButton variant="outline">
-                  Studio journal
-                </PublicButton>
-              </Link>
-            </Reveal>
+      {/* ── HERO ─ 100vh split screen ───────────────────────────────────── */}
+      <section
+        className="relative flex flex-col items-center justify-center text-center overflow-hidden"
+        style={{ height: '100vh', minHeight: '560px' }}
+        data-testid="hero-section"
+      >
+        {/* Split background */}
+        <div className="absolute inset-0 flex">
+          {/* Left half — dark wireframe feel */}
+          <div
+            className="flex-1"
+            style={{
+              background: 'linear-gradient(160deg, #111111 0%, #0A0A0F 100%)',
+              borderRight: '1px solid rgba(255,255,255,0.04)',
+            }}
+          >
+            {/* Subtle grid lines overlay */}
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(255,255,255,0.015) 60px,rgba(255,255,255,0.015) 61px),' +
+                  'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.015) 60px,rgba(255,255,255,0.015) 61px)',
+              }}
+            />
           </div>
+          {/* Right half — slightly warmer dark */}
+          <div
+            className="flex-1"
+            style={{ background: 'linear-gradient(200deg, #0F0F14 0%, #080808 100%)' }}
+          />
+        </div>
 
-          <Reveal as="div" className={`${FRAME_CLS} aspect-[4/3] lg:aspect-[3/4]`} style={{ transitionDelay: '100ms' }}>
-            <img src={jellyfish} alt="Vakar Games" className="w-full h-full object-cover" />
-          </Reveal>
+        {/* Radial teal glow at center */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 60% 40% at 50% 50%, rgba(78,205,196,0.05) 0%, transparent 70%)',
+          }}
+        />
+
+        {/* Center content */}
+        <div className="relative z-10 px-6 fade-up">
+          <p className="kefir-label mb-6" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            Est. 2024 · France
+          </p>
+          <h1
+            className="font-black uppercase tracking-tight text-white"
+            style={{ fontSize: 'clamp(3.5rem, 12vw, 9rem)', lineHeight: 1, letterSpacing: '-0.02em' }}
+            data-testid="hero-title"
+          >
+            Vakar Games
+          </h1>
+          <p
+            className="font-bold uppercase tracking-[0.3em] mt-4"
+            style={{ fontSize: 'clamp(0.75rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.4)' }}
+          >
+            We Make Games
+          </p>
+
+          {/* CTA buttons */}
+          <div className="flex items-center justify-center gap-4 mt-10 flex-wrap">
+            <Link to="/games" className="btn-kefir">
+              View Games
+            </Link>
+            <Link to="/blog" className="btn-kefir-outline">
+              Studio Blog
+            </Link>
+          </div>
+        </div>
+
+        {/* Scroll chevron */}
+        <button
+          onClick={scrollToStudio}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 hover:text-white/60 transition-colors animate-bounce-y"
+          aria-label="Scroll down"
+        >
+          <CaretDown size={28} weight="bold" />
+        </button>
+      </section>
+
+      {/* ── STATS BANNER ───────────────────────────────────────────────── */}
+      <section style={{ backgroundColor: '#111111', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-[1100px] mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+            <StatCard value="2024" label="Founded" />
+            <StatCard value="France" label="HQ" />
+            <StatCard value={games.length > 0 ? `${games.length}+` : '∞'} label="Games" />
+            <StatCard value="PC · Web" label="Platforms" />
+          </div>
         </div>
       </section>
 
-      {/* Pillars */}
-      <section className="bg-[#F5F5F7] py-20 sm:py-28 px-6">
-        <div className="max-w-[1120px] mx-auto">
-          <Reveal className="text-center max-w-lg mx-auto mb-14">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// our philosophy</p>
-            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-              <span style={{ textWrap: 'balance' }}>Craft, constraint & passion.</span>
+      {/* ── GAMES SHOWCASE ─────────────────────────────────────────────── */}
+      <section
+        id="games"
+        style={{ backgroundColor: '#0D0D0D', paddingTop: '6rem', paddingBottom: '6rem' }}
+      >
+        <div className="max-w-[1100px] mx-auto px-6">
+          {/* Section header */}
+          <div className="mb-12">
+            <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Our Productions</p>
+            <h2
+              className="font-black uppercase text-white"
+              style={{ fontSize: 'clamp(2rem, 6vw, 4.5rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
+            >
+              Games
             </h2>
-          </Reveal>
-          <div className="grid sm:grid-cols-3 gap-5">
-            {PILLARS.map((b, i) => (
-              <Reveal key={b.title} className="rounded-xl bg-white border border-[#D2D2D7] p-6" style={{ transitionDelay: `${i * 60}ms` }}>
-                <div className="w-10 h-10 rounded-lg bg-[#4ECDC4]/10 flex items-center justify-center mb-4">
-                  <b.icon size={18} className="text-[#4ECDC4]" />
-                </div>
-                <h3 className="font-display text-base font-medium text-[#1D1D1F] mb-2">{b.title}</h3>
-                <p className="text-sm text-[#6E6E73] leading-relaxed">{b.description}</p>
-              </Reveal>
-            ))}
           </div>
-        </div>
-      </section>
-
-      {/* Featured Games Showcase */}
-      <section id="games" className="py-20 sm:py-28 px-6 text-center">
-        <div className="max-w-[1040px] mx-auto">
-          <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// production catalog</p>
-          <Reveal as="h2" className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-            Games from the studio.
-          </Reveal>
 
           {games.length > 0 ? (
-            <Reveal
-              className="mt-14 grid text-left rounded-[18px] border border-[#D2D2D7] overflow-hidden"
-              as="div"
-              style={{ gridTemplateColumns: `repeat(${Math.min(games.length, 3)}, 1fr)`, gap: '1px', background: '#D2D2D7' }}
-            >
-              {games.slice(0, 3).map(g => (
+            <div className="space-y-2">
+              {games.map((game) => (
                 <Link
-                  key={g.slug}
+                  key={game.slug}
                   to="/games"
-                  className="relative bg-white hover:bg-[#FCFCFD] hover:shadow-[0_16px_32px_-16px_rgba(0,0,0,0.18)] hover:-translate-y-px hover:z-10 transition-all duration-300 ease-out px-[30px] py-9"
+                  className="group block relative overflow-hidden"
+                  style={{
+                    backgroundColor: '#111111',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    transition: 'border-color 0.3s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(78,205,196,0.3)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
+                  data-testid={`game-card-${game.slug}`}
                 >
-                  {g.banner_url || g.logo_url ? (
-                    <img
-                      src={img(g.banner_url || g.logo_url)}
-                      alt={g.name}
-                      className="w-full h-36 rounded-xl object-cover mb-[18px] border border-[#D2D2D7]"
-                    />
-                  ) : (
-                    <div className="h-36 rounded-xl bg-[#F5F5F7] flex items-center justify-center mb-[18px] border border-[#D2D2D7]">
-                      <GameController size={32} className="text-[#4ECDC4]" />
+                  <div className="flex flex-col sm:flex-row items-stretch">
+                    {/* Banner image */}
+                    <div className="sm:w-64 h-44 sm:h-auto flex-shrink-0 relative overflow-hidden">
+                      {game.banner_url || game.logo_url ? (
+                        <img
+                          src={img(game.banner_url || game.logo_url)}
+                          alt={game.name}
+                          className="w-full h-full object-cover"
+                          style={{ transition: 'transform 0.6s ease', transform: 'scale(1)' }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
+                          <GameController size={40} style={{ color: '#4ECDC4', opacity: 0.4 }} />
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-display text-xl tracking-[-0.01em] font-medium text-[#1D1D1F]">{g.name}</h3>
-                    {g.status === 'coming_soon' && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6E6E73] border border-[#D2D2D7] px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    )}
+
+                    {/* Game info */}
+                    <div className="flex-1 p-8 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-4 mb-3">
+                          <h3
+                            className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors"
+                            style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '-0.01em', lineHeight: 1 }}
+                          >
+                            {game.name}
+                          </h3>
+                          {game.status === 'coming_soon' && (
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
+                              style={{ color: '#4ECDC4', border: '1px solid #4ECDC4', opacity: 0.8 }}
+                            >
+                              Coming Soon
+                            </span>
+                          )}
+                        </div>
+                        {game.description && (
+                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                            {game.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-5">
+                        <span className="btn-kefir text-[10px] py-2 px-4">
+                          Discover
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-[#6E6E73] leading-relaxed mb-[18px] min-h-[42px] line-clamp-2">
-                    {g.description || 'Independent production by Vakar Games.'}
-                  </p>
-                  <span className="text-[11.5px] font-semibold text-[#4ECDC4] inline-flex items-center gap-1">
-                    View title details <ArrowRight size={12} />
-                  </span>
                 </Link>
               ))}
-            </Reveal>
+            </div>
           ) : (
-            <Reveal as="div" className="mt-12 p-12 liquid-glass rounded-2xl max-w-xl mx-auto border border-[#D2D2D7]">
-              <div className="w-12 h-12 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center mx-auto mb-4">
-                <Sparkle size={20} className="text-[#4ECDC4]" />
-              </div>
-              <h3 className="font-display text-xl font-medium text-[#1D1D1F] mb-2">New Titles in Production</h3>
-              <p className="text-sm text-[#6E6E73] leading-relaxed mb-6">
-                Our game projects are currently undergoing development and testing. Stay tuned to our devlog journal for early reveals and release announcements.
+            <div
+              className="text-center py-20"
+              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <GameController size={48} style={{ color: 'rgba(78,205,196,0.3)', margin: '0 auto 1rem' }} />
+              <h3 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
+                New Titles In Production
+              </h3>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: '2rem' }}>
+                Our games are currently in development. Follow the studio blog for updates.
               </p>
-              <Link to="/blog">
-                <PublicButton size="sm" variant="outline">Read Studio Devlogs</PublicButton>
+              <Link to="/blog" className="btn-kefir-outline">
+                Read Devlogs
               </Link>
-            </Reveal>
+            </div>
           )}
 
-          <div className="mt-10">
-            <Link to="/games" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#4ECDC4] group">
-              Browse full studio catalog <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+          <div className="mt-8">
+            <Link to="/games" className="btn-kefir-outline">
+              All Games →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* The Studio */}
-      <section ref={aboutRef} id="studio" className="bg-[#F5F5F7] py-20 sm:py-28 px-6" data-testid="about-section">
-        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-10 lg:gap-16 items-center">
-          <Reveal as="div">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// the studio</p>
-            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-              <span style={{ textWrap: 'balance' }}>Focused on games,<br />not fleeting trends.</span>
-            </h2>
-            <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
-              We keep the core team compact on purpose. Every artist, developer and sound designer is closely connected to the vision, ensuring each game carries an authentic, unmistakable identity.
-            </p>
-            <div className="mt-8 flex items-center gap-6">
-              <div>
-                <p className="font-display text-2xl font-bold text-[#1D1D1F]">2024</p>
-                <p className="text-xs text-[#6E6E73]">Founded</p>
-              </div>
-              <div className="w-px h-8 bg-[#D2D2D7]" />
-              <div>
-                <p className="font-display text-2xl font-bold text-[#1D1D1F]">France</p>
-                <p className="text-xs text-[#6E6E73]">Headquarters</p>
-              </div>
-              <div className="w-px h-8 bg-[#D2D2D7]" />
-              <div>
-                <p className="font-display text-2xl font-bold text-[#1D1D1F]">PC · Web</p>
-                <p className="text-xs text-[#6E6E73]">Platforms</p>
+      {/* ── THE STUDIO ─────────────────────────────────────────────────── */}
+      <section
+        ref={studioRef}
+        id="studio"
+        style={{ backgroundColor: '#111111', paddingTop: '6rem', paddingBottom: '6rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        data-testid="about-section"
+      >
+        <div className="max-w-[1100px] mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-14 items-center">
+            <div>
+              <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>The Studio</p>
+              <h2
+                className="font-black uppercase text-white"
+                style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
+              >
+                We Make<br />
+                <span style={{ color: '#4ECDC4' }}>Games</span><br />
+                We Love.
+              </h2>
+              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '42ch' }}>
+                Vakar Games is an independent studio based in France. We keep our team compact by design — every developer, artist, and designer is closely tied to the vision. Small team, deliberate creative choices, zero shortcuts on gameplay.
+              </p>
+              <div className="mt-8 flex items-center gap-6 flex-wrap">
+                <Link to="/blog" className="btn-kefir">
+                  Studio Journal
+                </Link>
+                <Link to="/contact" className="btn-kefir-outline">
+                  Get In Touch
+                </Link>
               </div>
             </div>
-          </Reveal>
 
-          <Reveal as="div" style={{ transitionDelay: '100ms' }}>
-            <LiveTerminal />
-          </Reveal>
+            {/* Right — manifesto / philosophy cards */}
+            <div className="space-y-px">
+              {[
+                { label: 'Player-First Design', desc: 'Tight mechanics, deliberate pacing, rich atmospheres that respect the player\'s time.' },
+                { label: 'Original Universes', desc: 'Every world is built from scratch — atmospheric adventures to competitive multiplayer.' },
+                { label: 'In-House Technology', desc: 'We write our own backend systems, player registries, and live operations.' },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="px-6 py-5 flex items-start gap-4"
+                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(78,205,196,0.3)' }}
+                >
+                  <div>
+                    <p className="font-bold uppercase text-white text-sm tracking-[0.08em] mb-1">{item.label}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Craft */}
-      <section className="py-20 sm:py-28 px-6">
-        <div className="max-w-[1120px] mx-auto grid lg:grid-cols-[0.85fr_1.15fr] gap-10 lg:gap-12 items-center">
-          <Reveal as="div" className={`${FRAME_CLS} aspect-[4/3]`}>
-            <img src={tealFronds} alt="Studio Craft" className="w-full h-full object-cover" />
-          </Reveal>
-          <Reveal as="div" style={{ transitionDelay: '100ms' }}>
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-4">// development philosophy</p>
-            <h2 className="font-display text-[30px] sm:text-[42px] leading-[1.08] tracking-[-0.015em] font-medium text-[#1D1D1F]">
-              <span style={{ textWrap: 'balance' }}>Slow, deliberate, refined.</span>
-            </h2>
-            <p className="text-[16px] sm:text-[18px] text-[#6E6E73] mt-5 leading-relaxed max-w-[46ch]">
-              We believe great games take patience. We prototype rigorously, discard what doesn't spark joy, and polish until the controls feel natural and the world feels alive.
-            </p>
-          </Reveal>
+      {/* ── CONTACT CTA ────────────────────────────────────────────────── */}
+      <section
+        id="contact"
+        style={{ backgroundColor: '#0D0D0D', paddingTop: '5rem', paddingBottom: '5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="max-w-[1100px] mx-auto px-6 text-center">
+          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Let's Talk</p>
+          <h2
+            className="font-black uppercase text-white"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
+          >
+            Let's Talk <span style={{ color: '#4ECDC4' }}>Games.</span>
+          </h2>
+          <p className="mt-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', maxWidth: '38ch' }}>
+            Press inquiries, publishing opportunities, or general questions — we read every message.
+          </p>
+          <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
+            <Link to="/contact" className="btn-kefir">
+              Contact Studio
+            </Link>
+            <a href="mailto:support@vakargames.com" className="btn-kefir-outline">
+              Email Directly
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Contact CTA */}
-      <section id="contact" className="py-20 sm:py-28 px-6">
-        <Reveal className="max-w-[1040px] mx-auto liquid-glass rounded-[24px] px-8 sm:px-12 py-10 sm:py-12 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left" as="div">
-          <div>
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// connect with us</p>
-            <h2 className="font-display text-[26px] sm:text-[32px] leading-[1.1] tracking-[-0.01em] font-medium text-[#1D1D1F]">
-              Let's talk games.
-            </h2>
-            <p className="text-[15px] text-[#6E6E73] mt-2 max-w-[38ch]">
-              Press inquiries, publishing opportunities, community feedback or questions — we read every message.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap justify-center shrink-0">
-            <PublicButton as={Link} to="/contact" data-testid="contact-email-button">
-              Contact studio
-            </PublicButton>
-            <PublicButton as="a" href="mailto:support@vakargames.com" variant="outline">
-              Email us directly
-            </PublicButton>
-          </div>
-        </Reveal>
-      </section>
-
-      <SiteFooter onAbout={scrollToAbout} />
+      <SiteFooter onAbout={scrollToStudio} />
     </div>
   );
 };
