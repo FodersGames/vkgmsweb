@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretDown, GameController } from '@phosphor-icons/react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { getPublicGames } from '../utils/publicCache';
 import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -28,8 +28,8 @@ const Home = () => {
 
   useEffect(() => {
     document.title = 'Vakar Games — Independent Video Game Studio';
-    axios.get(`${API_URL}/api/website/games/public`)
-      .then(r => setGames(r.data.games || []))
+    getPublicGames()
+      .then(gamesList => setGames(gamesList || []))
       .catch(() => {});
   }, []);
 

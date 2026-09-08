@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
@@ -122,8 +123,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(PlayCORSMiddleware)  # must be last — runs first, intercepts /api/play/* before CORSMiddleware
 
 
-@app.on_event("startup")
-async def startup_event():
+async def _init_db_indexes_and_migrations():
     try:
         await db.users.create_index("username", unique=True)
         await db.users.create_index("email", unique=True, sparse=True)
@@ -131,10 +131,6 @@ async def startup_event():
         await db.items.create_index([("project_slug", 1), ("uid", 1)])
         await db.logs.create_index([("project_slug", 1), ("type", 1)])
         await db.logs.create_index("timestamp")
-        # Sparse: legacy docs only have "variable_name", new docs only have "name" — sparse
-        # keeps each shape's uniqueness constraint from colliding with the other on the
-        # "missing field" (null) case. The old index is dropped/recreated as sparse since a
-        # non-sparse unique index with the same key pattern already existed pre-migration.
         try:
             await db.variables.drop_index("project_slug_1_variable_name_1")
         except Exception:
@@ -170,8 +166,6 @@ async def startup_event():
         await db.studio_records.create_index([("app_id", 1), ("collection", 1), ("created_at", -1)])
         await db.studio_app_users.create_index([("app_id", 1), ("username", 1)], unique=True)
         await db.studio_app_sessions.create_index("token", unique=True)
-        # TTL — a session past 90 days is just cleaned up by Mongo itself,
-        # no manual expiry check needed anywhere that reads a session.
         await db.studio_app_sessions.create_index("created_at", expireAfterSeconds=90 * 24 * 3600)
         await db.studio_push_subscriptions.create_index([("app_id", 1), ("endpoint", 1)], unique=True)
         await db.studio_push_subscriptions.create_index([("app_id", 1), ("app_user_id", 1)])
@@ -188,10 +182,6 @@ async def startup_event():
         await db.cli_lockouts.create_index([("username", 1), ("locked_at", -1)])
         logger.info("Database indexes initialized")
 
-        # Migration: merge the old per-game shop categories (now retired in favor of one
-        # global category list) into website_shop_global_settings. Non-destructive — only
-        # runs while the global list is still empty, and never touches/deletes the old
-        # per-game website_shop_settings documents themselves.
         global_shop = await db.website_shop_global_settings.find_one({})
         if not global_shop or not global_shop.get("categories"):
             merged, seen_labels = [], set()
@@ -205,8 +195,6 @@ async def startup_event():
                 await db.website_shop_global_settings.update_one({}, {"$set": {"categories": merged}}, upsert=True)
                 logger.info(f"Shop categories migration: merged {len(merged)} categories from per-game settings")
 
-        # Migration: backfill stable_id on files cloned before the stable-ID
-        # system existed, so every version shares the original asset's ID.
         legacy = await db.game_files.find(
             {"cloned_from": {"$exists": True}, "stable_id": {"$exists": False}}
         ).to_list(2000)
@@ -230,13 +218,6 @@ async def startup_event():
         if legacy:
             logger.info(f"Backfilled stable_id on {len(legacy)} cloned game files")
 
-        # Migration: save-slot categories used to be one hardcoded global enum
-        # (inventory/stats/craft/tech/others) — they're now per-project and
-        # admin-defined, with nothing pre-created by default. For every
-        # project that already has play_saves under one of those legacy
-        # names, backfill a matching "all players" category definition so
-        # existing live data keeps working; a brand-new project is left
-        # untouched (genuinely empty, as intended going forward).
         legacy_slugs = await db.play_saves.distinct("project_slug", {"category": {"$in": list(LEGACY_PLAY_SAVE_CATEGORIES)}})
         backfilled = 0
         for slug in legacy_slugs:
@@ -259,6 +240,15 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
 
+    # Create initial super admin if not already present
+    try:
+        await _ensure_super_admin()
+    except Exception as e:
+        logger.error(f"Super admin initialization error: {e}")
+
+
+@app.on_event("startup")
+async def startup_event():
     # Security warnings for missing env vars
     if config._JWT_EPHEMERAL:
         logger.warning("⚠ JWT_SECRET not set in environment — using ephemeral random secret. All tokens will be invalidated on every restart!")
@@ -267,8 +257,16 @@ async def startup_event():
     if not config.SETUP_KEY:
         logger.warning("⚠ MASTER_KEY not set in environment — /auth/init-superadmin endpoint is disabled")
 
-    # Create initial super admin if not already present
-    await _ensure_super_admin()
+    # In serverless environments (e.g. Vercel), do not block HTTP request startup
+    # by running 40+ MongoDB index checks and data migrations synchronously.
+    # Instead, run them asynchronously in the background so the API responds instantly (<100ms).
+    if os.environ.get("VERCEL"):
+        if os.environ.get("RUN_MIGRATIONS") == "1":
+            asyncio.create_task(_init_db_indexes_and_migrations())
+        else:
+            asyncio.create_task(_ensure_super_admin())
+    else:
+        asyncio.create_task(_init_db_indexes_and_migrations())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -7,6 +7,7 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { HoverPreview } from '../components/HoverPreview';
 import { PublicButton } from '../ui/PublicButton';
+import { getPublicGames } from '../utils/publicCache';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -35,8 +36,8 @@ const GamesPage = () => {
 
   useEffect(() => {
     document.title = 'Games — Vakar Games';
-    axios.get(`${API_URL}/api/website/games/public`)
-      .then(r => { setGames(r.data.games); setLoading(false); })
+    getPublicGames()
+      .then(gamesList => { setGames(gamesList || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

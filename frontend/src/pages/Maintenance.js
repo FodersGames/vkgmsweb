@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useLocation, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
+import { getWebsiteSettings } from '../utils/publicCache';
 import cloudSunrise from '../assets/photos/cloud-sunrise.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -110,7 +111,7 @@ export const MaintenanceCountdownBanner = ({ scheduledAt, announcement }) => {
 
 export const useMaintenanceCheck = () => {
   const [state, setState] = useState({ maintenance: false, scheduledAt: null, announcement: '' });
-  const [checked, setChecked] = useState(false);
+  const [checked, setChecked] = useState(true);
   const location = useLocation();
 
   const bypassPaths = ['/login', '/dashboard', '/terms', '/privacy'];
@@ -122,19 +123,19 @@ export const useMaintenanceCheck = () => {
       setState({ maintenance: false, scheduledAt: null, announcement: '' });
       return;
     }
-    axios.get(`${API_URL}/api/website/settings`)
-      .then(r => {
+    getWebsiteSettings()
+      .then(data => {
         setState({
-          maintenance: !!r.data.maintenance_mode,
-          scheduledAt: r.data.maintenance_scheduled_at || null,
-          announcement: r.data.maintenance_announcement || '',
+          maintenance: !!data.maintenance_mode,
+          scheduledAt: data.maintenance_scheduled_at || null,
+          announcement: data.maintenance_announcement || '',
         });
         setChecked(true);
       })
       .catch(() => setChecked(true));
   }, [bypassed]);
 
-  useEffect(() => { check(); }, [location.pathname, check]);
+  useEffect(() => { check(); }, [check]);
 
   // Independent of navigation — a visitor sitting still on one page (not
   // clicking anything) still needs to get swapped to the maintenance page

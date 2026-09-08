@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { X, Megaphone } from '@phosphor-icons/react';
+import { getWebsiteSettings } from '../utils/publicCache';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const BANNER_HEIGHT = '36px';
 const DISMISS_KEY = 'vkg_announcement_dismissed';
 
@@ -18,10 +17,10 @@ export const AnnouncementBanner = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/settings`)
-      .then(r => {
-        const active = !!r.data.announcement_active;
-        const banner = (r.data.announcement_banner || '').trim();
+    getWebsiteSettings()
+      .then(data => {
+        const active = !!data.announcement_active;
+        const banner = (data.announcement_banner || '').trim();
         if (active && banner) {
           setText(banner);
           setDismissed(localStorage.getItem(DISMISS_KEY) === banner);

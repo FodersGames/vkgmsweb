@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { getWebsiteSettings } from '../utils/publicCache';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const DEFAULT_SUPPORT_EMAIL = 'support@vakargames.com';
 
 export const SiteFooter = ({ onAbout }) => {
   const [supportEmail, setSupportEmail] = useState(DEFAULT_SUPPORT_EMAIL);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/settings`)
-      .then(r => { if (r.data.support_email) setSupportEmail(r.data.support_email); })
+    getWebsiteSettings()
+      .then(data => { if (data.support_email) setSupportEmail(data.support_email); })
       .catch(() => {});
   }, []);
 
