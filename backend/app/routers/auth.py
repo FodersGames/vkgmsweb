@@ -12,8 +12,9 @@ from fastapi import APIRouter, HTTPException, Depends, Request, UploadFile, File
 from ..config import SETUP_KEY, SUPER_ADMIN_EMAIL, UPLOADS_DIR
 from ..database import db
 from ..deps import (
-    ALL_PERMISSIONS, create_access_token, get_current_user, verify_key,
-    hash_key, validate_password_strength, PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS,
+    ALL_PERMISSIONS, create_access_token, get_current_user, verify_key, hash_key,
+    async_hash_key, async_verify_key,
+    validate_password_strength, PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS,
     FIRSTNAME_COOLDOWN_DAYS,
 )
 from ..utils import log_action, serialize_doc, _validate_file, _IMAGE_MIMES
@@ -61,7 +62,7 @@ def _check_cooldown(changed_at, cooldown_days: int, label: str) -> None:
 async def login(request: Request, body: LoginEmailRequest):
     email = body.email.lower().strip()
     user = await db.users.find_one({"email": email})
-    if not user or not verify_key(body.password, user.get("password_hash", "")):
+    if not user or not await async_verify_key(body.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.get("isSuspended"):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
@@ -162,7 +163,7 @@ async def register(request: Request, body: RegisterRequest):
     try:
         await db.users.insert_one({
             "email": email,
-            "password_hash": hash_key(body.password),
+            "password_hash": await async_hash_key(body.password),
             "name": name,
             "firstName": name,
             "lastName": lastName,
@@ -310,12 +311,12 @@ async def change_password(request: Request, body: ChangePasswordRequest, user=De
     if not u.get("mustChangePassword"):
         if not body.current_password:
             raise HTTPException(status_code=400, detail="Current password is required")
-        if not verify_key(body.current_password, u.get("password_hash", "")):
+        if not await async_verify_key(body.current_password, u.get("password_hash", "")):
             raise HTTPException(status_code=400, detail="Current password is incorrect")
     validate_password_strength(body.new_password)
     await db.users.update_one(
         {"_id": u["_id"]},
-        {"$set": {"password_hash": hash_key(body.new_password), "mustChangePassword": False}}
+        {"$set": {"password_hash": await async_hash_key(body.new_password), "mustChangePassword": False}}
     )
     await log_action("auth", f"User '{u['username']}' changed their password")
     return {"success": True, "message": "Password updated successfully"}
@@ -361,7 +362,7 @@ async def bootstrap_superadmin(body: BootstrapSuperAdminRequest):
         {
             "$set": {
                 "email": email,
-                "password_hash": hash_key(body.password),
+                "password_hash": await async_hash_key(body.password),
                 "username": username,
                 "firstName": firstName,
                 "lastName": lastName,

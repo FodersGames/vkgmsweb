@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from ..database import db
 from ..deps import (
-    require_permission, require_super_admin, ALL_PERMISSIONS, hash_key, validate_password_strength, is_valid_permission,
+    require_permission, require_super_admin, ALL_PERMISSIONS, hash_key, async_hash_key, validate_password_strength, is_valid_permission,
     PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS, FIRSTNAME_COOLDOWN_DAYS,
 )
 from ..utils import log_action, _create_notification
@@ -94,7 +94,7 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
             raise HTTPException(status_code=400, detail=f"Invalid permission: {p}")
     await db.users.insert_one({
         "email": email,
-        "password_hash": hash_key(password),
+        "password_hash": await async_hash_key(password),
         "name": name,
         "firstName": name,
         "lastName": lastName,

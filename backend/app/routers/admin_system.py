@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 
 from ..config import VERSION, SETUP_KEY, STRIPE_WEBHOOK_SECRET, _JWT_EPHEMERAL, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD, ROOT_DIR
 from ..database import db, client
-from ..deps import require_permission, require_super_admin, hash_key, PSEUDO_REGEX
+from ..deps import require_permission, require_super_admin, hash_key, async_hash_key, PSEUDO_REGEX
 from ..utils import log_action, _create_notification
 from ..chat_common import get_banned_words, contains_banned_word
 from ..rate_limit import limiter
@@ -773,7 +773,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             temp_password = "".join(secrets.choice("abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789") for _ in range(12))
             await db.users.update_one(
                 {"_id": target["_id"]},
-                {"$set": {"password_hash": hash_key(temp_password), "mustChangePassword": True}},
+                {"$set": {"password_hash": await async_hash_key(temp_password), "mustChangePassword": True}},
             )
             await log_action("user_action", f"[CLI] Password reset for '{target.get('username')}'", user=admin["username"])
             return [
