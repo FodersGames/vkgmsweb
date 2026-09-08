@@ -9,7 +9,14 @@ import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
 import { API_URL } from '../utils/api';
 
 const hasDashboardAccess = (u) =>
-  !!u && (u.is_super_admin || u.role === 'admin' || (u.permissions?.length > 0));
+  !!u && (
+    u.is_super_admin ||
+    u.role === 'admin' ||
+    u.role === 'super_admin' ||
+    (Array.isArray(u.permissions) && u.permissions.length > 0) ||
+    (Array.isArray(u.custom_roles) && u.custom_roles.length > 0) ||
+    (Array.isArray(u.roles) && u.roles.length > 0)
+  );
 
 const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoComplete, required = true }) => {
   const [show, setShow] = useState(false);

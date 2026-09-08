@@ -74,15 +74,20 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
     await log_action("support", f"New ticket {ticket_number}: '{subject}' from {email}")
     return {"success": True, "ticket_number": ticket_number}
 
+@router.get("/tickets")
 @router.get("/tickets/mine")
 async def list_my_tickets(user=Depends(get_current_user)):
-    email = user.get("email", "").lower()
-    tickets = await db.support_tickets.find({"user_email": email}).sort("created_at", -1).to_list(50)
+    # If staff with manage_tickets, return all open tickets; else return user's own tickets
+    if user.get("is_super_admin") or "manage_tickets" in user.get("permissions", []):
+        tickets = await db.support_tickets.find({}).sort("created_at", -1).to_list(100)
+    else:
+        email = user.get("email", "").lower()
+        tickets = await db.support_tickets.find({"user_email": email}).sort("created_at", -1).to_list(50)
     open_count = sum(1 for t in tickets if t.get("status") != "closed")
     return {
         "tickets": [serialize_doc(t) for t in tickets],
         "open_count": open_count,
-        "max_open": 5
+        "max_open": 3
     }
 
 @router.get("/tickets/{ticket_number}")

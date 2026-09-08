@@ -69,14 +69,20 @@ const WEBSITE_SETTINGS_SUBTABS = [
   { id: 'global', label: 'Global Management', icon: Settings, component: GlobalManagement, permission: 'manage_website' },
 ];
 
+const VALID_TAB_IDS = new Set([
+  'overview', 'account', 'website-games', 'website-blog',
+  'careers', 'website-settings', 'support', 'users', 'roles', 'system',
+]);
+
 const NAV_ORDER_KEY = 'vg_admin_nav_order';
 
 const applyNavOrder = (groups) => {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(NAV_ORDER_KEY) || '{}'); } catch {}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return groups;
   return groups.map(g => {
     const order = saved[g.label];
-    if (!order || !order.length) return g;
+    if (!Array.isArray(order) || !order.length) return g;
     const byId = new Map(g.items.map(i => [i.id, i]));
     const ordered = order.map(id => byId.get(id)).filter(Boolean);
     const known = new Set(ordered.map(i => i.id));
@@ -289,11 +295,55 @@ const SESSION_KEY = 'vg_admin_last_section';
 
 const restoreSession = () => {
   try {
-    return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null') || {};
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        ...parsed,
+        activeTab: VALID_TAB_IDS.has(parsed.activeTab) ? parsed.activeTab : 'overview',
+      };
+    }
+    return {};
   } catch {
     return {};
   }
 };
+
+class TabErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(err) {
+    console.warn('[Dashboard Tab Error]', err);
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.tabKey !== this.props.tabKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/20 p-8 text-center max-w-lg mx-auto my-8">
+          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto mb-3 text-lg font-bold">!</div>
+          <h3 className="text-base font-bold text-[#1D1D1F] dark:text-white mb-1">Section Temporarily Unavailable</h3>
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mb-4">
+            An error occurred while displaying this section. You can return to the overview safely.
+          </p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); this.props.onReset(); }}
+            className="px-4 py-2 bg-[#4ECDC4] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+          >
+            Back to Overview
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
@@ -302,7 +352,10 @@ const DashboardContent = () => {
 
   const restored = useRef(restoreSession()).current;
 
-  const [activeTab,    setActiveTab]    = useState(restored.activeTab || 'overview');
+  const [activeTab,    setActiveTab]    = useState(() => {
+    const tab = restored.activeTab || 'overview';
+    return VALID_TAB_IDS.has(tab) ? tab : 'overview';
+  });
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [paletteOpen,  setPaletteOpen]  = useState(false);
 
@@ -569,22 +622,43 @@ const DashboardContent = () => {
         {isSuperAdmin && <CriticalActionBanner />}
 
         <main>
-          <div key={`${activeTab}:${activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
-            {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
-            {activeTab === 'users'    && hasPermission('manage_users')    && <UserManagement />}
-            {activeTab === 'roles'    && hasPermission('manage_users')    && <RoleManagement />}
-            {activeTab === 'website-games'    && <GamesManagement />}
-            {activeTab === 'website-blog'     && <BlogManagement />}
-            {activeTab === 'website-settings' && (
-              <WebsiteSettingsWorkspace tab={websiteSettingsTab} setTab={setWebsiteSettingsTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
-            )}
-            {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
-            {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
-            {activeTab === 'system'           && (
-              <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
-            )}
-            {activeTab === 'account'          && <AccountSettings />}
-          </div>
+          <TabErrorBoundary tabKey={activeTab} onReset={() => setActiveTab('overview')}>
+            <div key={`${activeTab}:${activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
+              {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
+              {activeTab === 'users'    && hasPermission('manage_users')    && <UserManagement />}
+              {activeTab === 'roles'    && hasPermission('manage_users')    && <RoleManagement />}
+              {activeTab === 'website-games'    && <GamesManagement />}
+              {activeTab === 'website-blog'     && <BlogManagement />}
+              {activeTab === 'website-settings' && (
+                <WebsiteSettingsWorkspace tab={websiteSettingsTab} setTab={setWebsiteSettingsTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
+              )}
+              {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
+              {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
+              {activeTab === 'system'           && (
+                <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
+              )}
+              {activeTab === 'account'          && <AccountSettings />}
+
+              {/* Fallback to Overview if no tab condition matched */}
+              {activeTab !== 'overview' &&
+               !(activeTab === 'users' && hasPermission('manage_users')) &&
+               !(activeTab === 'roles' && hasPermission('manage_users')) &&
+               activeTab !== 'website-games' &&
+               activeTab !== 'website-blog' &&
+               activeTab !== 'website-settings' &&
+               !(activeTab === 'support' && hasPermission('manage_tickets')) &&
+               !(activeTab === 'careers' && hasPermission('manager_careers')) &&
+               activeTab !== 'system' &&
+               activeTab !== 'account' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-200">
+                    Cette section n'est pas accessible ou ne dispose pas des permissions requises. Affichage de la vue d'ensemble.
+                  </div>
+                  <DashboardOverview goTo={goTo} />
+                </div>
+              )}
+            </div>
+          </TabErrorBoundary>
         </main>
       </div>
     </div>

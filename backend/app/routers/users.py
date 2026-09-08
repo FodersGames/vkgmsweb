@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from ..database import db
 from ..deps import (
-    require_permission, hash_key, validate_password_strength, is_valid_permission,
+    require_permission, require_super_admin, ALL_PERMISSIONS, hash_key, validate_password_strength, is_valid_permission,
     PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS, FIRSTNAME_COOLDOWN_DAYS,
 )
 from ..utils import log_action, _create_notification
@@ -17,7 +17,7 @@ from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest,
     AdminUpdateUserProfileRequest, ResetCooldownRequest, AdminVakarPlusRequest,
-    UpdateUserCustomRolesRequest,
+    UpdateUserCustomRolesRequest, UpdateUserRoleRequest,
 )
 
 router = APIRouter()
@@ -33,7 +33,7 @@ def _user_summary(u: dict) -> dict:
         "firstName": u.get("name") or u.get("firstName", ""),
         "lastName": u.get("lastName", ""),
         "role": u.get("role", "user"),
-        "custom_roles": u.get("custom_roles", []),
+        "custom_roles": [str(r) for r in (u.get("custom_roles") or [])],
         "permissions": u.get("permissions", []),
         "isSuspended": u.get("isSuspended", False),
         "createdAt": _iso(u.get("createdAt")) or u.get("created_at", ""),
@@ -213,6 +213,30 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
     await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
     return {"success": True, "id": user_id, "permissions": req.permissions}
+
+@router.put("/admin/users/{user_id}/role")
+async def update_user_system_role(user_id: str, req: UpdateUserRoleRequest, admin=Depends(require_super_admin)):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Prevent demoting the last super admin
+    if target.get("role") == "super_admin" and req.role != "super_admin":
+        super_admin_count = await db.users.count_documents({"role": "super_admin"})
+        if super_admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last remaining super admin")
+
+    updates = {"role": req.role}
+    if req.role == "super_admin":
+        updates["permissions"] = list(ALL_PERMISSIONS)
+        updates["isSuspended"] = False
+
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
+    await log_action("user_action", f"User '{target.get('username', user_id)}' role updated to {req.role}", user=admin["username"])
+    return {"success": True, "id": user_id, "role": req.role}
 
 @router.patch("/admin/users/{user_id}/profile")
 async def admin_update_user_profile(user_id: str, body: AdminUpdateUserProfileRequest, admin=Depends(require_permission("manage_users"))):
