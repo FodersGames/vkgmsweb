@@ -3,10 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
-import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { Reveal } from '../components/Reveal';
-import { Select } from '../ui';
 import { PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle, CircleNotch } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -18,6 +15,15 @@ const CATEGORIES = [
   { value: 'billing', label: 'Billing / Purchase' },
   { value: 'account', label: 'Account' },
 ];
+
+/* Input style shorthand */
+const inputStyle = {
+  backgroundColor: '#0D0D0D',
+  border: '1px solid rgba(255,255,255,0.12)',
+  color: '#FFFFFF',
+  borderRadius: 0,
+  outline: 'none',
+};
 
 const Contact = () => {
   const { user, token } = useAuth();
@@ -40,7 +46,6 @@ const Contact = () => {
     if (user?.email) setForm(f => ({ ...f, email: user.email }));
   }, [user]);
 
-  // Pre-fill from URL params (e.g. the in-game ban-appeal button links here directly)
   useEffect(() => {
     const category = searchParams.get('category');
     const subject   = searchParams.get('subject');
@@ -72,172 +77,216 @@ const Contact = () => {
   };
 
   return (
-    <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
-      <div className="flex-1 pt-[52px]">
+      <div style={{ flex: 1, paddingTop: '60px' }}>
         {/* Header */}
-        <div className="bg-white border-b border-[#D2D2D7] py-14 px-6">
-          <Reveal className="max-w-6xl mx-auto">
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-3">// support</p>
-            <h1 className="font-display text-4xl sm:text-5xl font-medium tracking-[-0.02em] text-[#1D1D1F]">
-              Contact &amp; support
+        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '4rem 0' }}>
+          <div className="max-w-[1100px] mx-auto px-6">
+            <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Support</p>
+            <h1
+              className="font-black uppercase text-white"
+              style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
+            >
+              Contact & Support
             </h1>
-            <p className="text-[#6E6E73] mt-4 max-w-md text-sm leading-relaxed">
+            <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '42ch' }}>
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
-          </Reveal>
+          </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="max-w-[1100px] mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Form */}
           <div className="lg:col-span-2">
             {success ? (
-              <div className="rounded-xl liquid-glass p-10 text-center">
-                <CheckCircle size={40} className="text-[#4ECDC4] mx-auto mb-4" />
-                <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-2">
-                  Ticket submitted!
+              <div
+                className="p-10 text-center"
+                style={{ backgroundColor: '#111111', border: '1px solid rgba(78,205,196,0.2)' }}
+              >
+                <CheckCircle size={40} style={{ color: '#4ECDC4', margin: '0 auto 1rem' }} />
+                <h2 className="font-black uppercase text-white text-xl tracking-tight mb-2">
+                  Ticket Submitted!
                 </h2>
-                <p className="text-sm text-[#6E6E73] mb-1">
-                  Your reference: <strong className="text-[#1D1D1F]">{success}</strong>
+                <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Your reference: <strong className="text-white">{success}</strong>
                 </p>
-                <p className="text-xs text-[#A1A1A6] mt-3 mb-6">
+                <p className="text-xs mt-3 mb-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   We'll reply by email as soon as possible.
                 </p>
                 {token && (
                   <Link
                     to="/profile"
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#4ECDC4] hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide"
+                    style={{ color: '#4ECDC4', fontSize: '0.7rem' }}
                   >
                     <Ticket size={14} /> View my tickets
                   </Link>
                 )}
                 <button
                   onClick={() => setSuccess('')}
-                  className="block mx-auto mt-3 text-xs text-[#A1A1A6] hover:text-[#1D1D1F] transition-colors"
+                  className="block mx-auto mt-3 text-xs uppercase tracking-wide transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}
                 >
                   Send another message
                 </button>
               </div>
             ) : (
-              <div className="rounded-xl liquid-glass p-8">
-                <h2 className="font-display text-lg font-medium text-[#1D1D1F] mb-6">Send us a message</h2>
+              <div
+                className="p-8"
+                style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <h2 className="font-black uppercase text-white text-lg tracking-tight mb-6">
+                  Send Us a Message
+                </h2>
                 {!token ? (
                   <div className="text-center py-10 space-y-4">
-                    <p className="text-sm font-semibold text-[#1D1D1F]">Account required</p>
-                    <p className="text-xs text-[#6E6E73] max-w-xs mx-auto leading-relaxed">You need to be signed in to open a support ticket. This helps us track your request and reply faster.</p>
-                    <PublicButton as="a" href="/login">
-                      Sign in or create account
-                    </PublicButton>
+                    <p className="font-bold uppercase text-white tracking-wide" style={{ fontSize: '0.8rem' }}>Account Required</p>
+                    <p className="text-xs leading-relaxed mx-auto max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      You need to be signed in to open a support ticket. This helps us track your request and reply faster.
+                    </p>
+                    <Link to="/login" className="btn-kefir inline-flex">
+                      Sign in or Create Account
+                    </Link>
                   </div>
                 ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Your email</label>
-                    <input
-                      type="email"
-                      required
-                      value={form.email}
-                      readOnly
-                      className="rounded-xl w-full px-3 py-2.5 text-sm border border-[#D2D2D7] bg-[#F5F5F7] text-[#6E6E73]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Category</label>
-                    <Select
-                      value={form.category}
-                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        Your email
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={form.email}
+                        readOnly
+                        className="w-full px-3 py-2.5 text-sm"
+                        style={{ ...inputStyle, opacity: 0.5 }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        Category
+                      </label>
+                      <select
+                        value={form.category}
+                        onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm"
+                        style={inputStyle}
+                      >
+                        {CATEGORIES.map(c => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={200}
+                        value={form.subject}
+                        onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm"
+                        style={inputStyle}
+                        placeholder="Brief description of your issue"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        Message
+                      </label>
+                      <textarea
+                        required
+                        maxLength={2000}
+                        rows={6}
+                        value={form.message}
+                        onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                        className="w-full px-3 py-2.5 text-sm resize-none"
+                        style={inputStyle}
+                        placeholder="Describe your issue in detail…"
+                      />
+                    </div>
+                    {error && <p className="text-xs text-red-400">{error}</p>}
+                    <button
+                      type="submit"
+                      disabled={sending}
+                      className="btn-kefir disabled:opacity-50"
                     >
-                      {CATEGORIES.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Subject</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={200}
-                      value={form.subject}
-                      onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                      className="rounded-lg w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F]"
-                      placeholder="Brief description of your issue"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#1D1D1F] mb-1.5">Message</label>
-                    <textarea
-                      required
-                      maxLength={2000}
-                      rows={6}
-                      value={form.message}
-                      onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                      className="rounded-lg w-full px-3 py-2.5 text-sm border border-[#D2D2D7] focus:outline-none focus:border-[#4ECDC4] bg-white text-[#1D1D1F] resize-none"
-                      placeholder="Describe your issue in detail…"
-                    />
-                  </div>
-                  {error && <p className="text-xs text-red-500">{error}</p>}
-                  <PublicButton type="submit" disabled={sending} size="lg">
-                    {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
-                    {sending ? 'Sending…' : 'Send message'}
-                  </PublicButton>
-                </form>
+                      {sending ? <CircleNotch size={14} className="animate-spin mr-2" /> : <PaperPlaneTilt size={14} className="mr-2" />}
+                      {sending ? 'Sending…' : 'Send Message'}
+                    </button>
+                  </form>
                 )}
               </div>
             )}
           </div>
 
           {/* Sidebar info */}
-          <div className="space-y-4">
-            <div className="rounded-xl liquid-glass p-5">
+          <div className="space-y-2">
+            <div
+              className="p-5"
+              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
-                  <EnvelopeSimple size={14} className="text-[#4ECDC4]" />
-                </div>
-                <h3 className="text-sm font-bold text-[#1D1D1F]">Email</h3>
+                <EnvelopeSimple size={14} style={{ color: '#4ECDC4' }} />
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
-                className="text-sm text-[#6E6E73] hover:text-[#4ECDC4] transition-colors"
+                className="text-sm transition-colors"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#4ECDC4'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
               >
                 {supportEmail}
               </a>
             </div>
 
-            <div className="rounded-xl liquid-glass p-5">
+            <div
+              className="p-5"
+              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
-                  <ChatCircle size={14} className="text-[#4ECDC4]" />
-                </div>
-                <h3 className="text-sm font-bold text-[#1D1D1F]">Chat support</h3>
+                <ChatCircle size={14} style={{ color: '#4ECDC4' }} />
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Chat Support</h3>
               </div>
-              <p className="text-xs text-[#6E6E73] leading-relaxed">
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 The chat bubble at the bottom right of every page lets you open a ticket or track your existing requests instantly.
               </p>
             </div>
 
             {token && (
-              <div className="rounded-xl liquid-glass p-5">
+              <div
+                className="p-5"
+                style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="rounded-lg w-8 h-8 bg-[#4ECDC4]/10 flex items-center justify-center">
-                    <Ticket size={14} className="text-[#4ECDC4]" />
-                  </div>
-                  <h3 className="text-sm font-bold text-[#1D1D1F]">My tickets</h3>
+                  <Ticket size={14} style={{ color: '#4ECDC4' }} />
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">My Tickets</h3>
                 </div>
                 <Link
                   to="/profile"
-                  className="text-sm font-semibold text-[#4ECDC4] hover:underline"
+                  className="text-[10px] font-bold uppercase tracking-wide transition-colors"
+                  style={{ color: '#4ECDC4' }}
                 >
                   View ticket history →
                 </Link>
               </div>
             )}
 
-            <div className="rounded-xl liquid-glass p-5">
-              <p className="text-xs font-semibold text-[#1D1D1F] mb-1.5">Response time</p>
-              <p className="text-xs text-[#6E6E73] leading-relaxed">
-                We typically respond within <strong>24–48 hours</strong> during business days.
+            <div
+              className="p-5"
+              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white mb-1.5">Response Time</p>
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                We typically respond within <strong className="text-white/60">24–48 hours</strong> during business days.
               </p>
             </div>
           </div>

@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { SupportWidget } from './SupportWidget';
-import { PublicButton } from '../ui/PublicButton';
 import { AnnouncementBanner } from './AnnouncementBanner';
 
 export const PublicNav = ({ onAbout }) => {
@@ -29,80 +28,82 @@ export const PublicNav = ({ onAbout }) => {
     <>
     <AnnouncementBanner />
     <nav
-      className="fixed left-0 right-0 z-50 liquid-glass rounded-none transition-[top,box-shadow] duration-200"
-      style={{ top: 'var(--vkg-banner-h, 0px)', ...(scrolled ? {} : { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9)' }) }}
+      className="fixed left-0 right-0 z-50 transition-[top,background] duration-200"
+      style={{
+        top: 'var(--vkg-banner-h, 0px)',
+        backgroundColor: scrolled ? '#0D0D0D' : 'rgba(13,13,13,0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
+      }}
     >
-      <div className="max-w-[1040px] mx-auto px-6 h-[52px] flex items-center justify-between">
-        <div className="flex items-center gap-8">
+      <div className="max-w-[1100px] mx-auto px-6 h-[60px] flex items-center justify-between">
+        <div className="flex items-center gap-10">
           <Link
             to="/"
-            className="font-display text-[16px] font-medium tracking-tight text-[#1D1D1F] transition-colors"
+            className="font-black text-white tracking-[0.08em] uppercase text-[17px] hover:text-[#4ECDC4] transition-colors"
           >
             Vakar Games
           </Link>
 
-          <div className="hidden md:flex items-center gap-[26px]">
-            {onAbout && (
-              <button
-                onClick={() => { onAbout(); setOpen(false); }}
-                className="text-[12.5px] text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
-              >
-                About
-              </button>
-            )}
+          <div className="hidden md:flex items-center gap-8">
             {links.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`text-[12.5px] transition-colors ${
-                  active(to) ? 'text-[#4ECDC4] font-medium' : 'text-[#1D1D1F] hover:text-[#6E6E73]'
+                className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                  active(to) ? 'text-[#4ECDC4]' : 'text-white/70 hover:text-white'
                 }`}
               >
                 {label}
               </Link>
             ))}
+            <Link
+              to="/contact"
+              className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
+                active('/contact') ? 'text-[#4ECDC4]' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Contact
+            </Link>
           </div>
         </div>
 
         {/* Desktop right side */}
-        <div className="hidden md:flex items-center gap-5">
-          <Link
-            to="/contact"
-            className={`text-[12.5px] transition-colors ${active('/contact') ? 'text-[#4ECDC4] font-medium' : 'text-[#1D1D1F] hover:text-[#6E6E73]'}`}
-          >
-            Contact
-          </Link>
-
+        <div className="hidden md:flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-2.5 py-1.5 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 hover:text-white border border-white/15 hover:border-white/40 px-3 py-1.5 transition-colors"
                 >
-                  <SquaresFour size={12} />
+                  <SquaresFour size={11} />
                   Admin
                 </Link>
               )}
               <Link
                 to="/profile"
-                className="inline-flex items-center gap-2 text-[12.5px] font-medium text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
               >
-                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[10.5px] font-bold text-[#4ECDC4]">
-                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={11} />}
+                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/20 border border-[#4ECDC4]/40 flex items-center justify-center text-[10px] font-bold text-[#4ECDC4]">
+                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />}
                 </div>
                 <span>{user.firstName || user.username}</span>
               </Link>
             </div>
           ) : (
-            <PublicButton as={Link} to="/login" size="sm">
+            <Link
+              to="/login"
+              className="btn-kefir text-[10px] py-2 px-4"
+            >
               Sign In
-            </PublicButton>
+            </Link>
           )}
         </div>
 
         <button
-          className="md:hidden p-2 -mr-1 text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
+          className="md:hidden p-2 -mr-1 text-white/70 hover:text-white transition-colors"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -112,22 +113,17 @@ export const PublicNav = ({ onAbout }) => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden liquid-glass rounded-none px-6 py-3 space-y-0.5">
-          {onAbout && (
-            <button
-              onClick={() => { onAbout(); setOpen(false); }}
-              className="block w-full text-left text-sm text-[#6E6E73] hover:text-[#1D1D1F] py-2.5 transition-colors"
-            >
-              About
-            </button>
-          )}
+        <div
+          className="md:hidden px-6 py-4 space-y-1"
+          style={{ backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.07)' }}
+        >
           {links.map(({ to, label }) => (
             <Link
               key={to}
               to={to}
               onClick={() => setOpen(false)}
-              className={`block text-sm py-2.5 transition-colors ${
-                active(to) ? 'text-[#4ECDC4] font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+              className={`block text-[11px] font-bold uppercase tracking-[0.12em] py-3 transition-colors ${
+                active(to) ? 'text-[#4ECDC4]' : 'text-white/60 hover:text-white'
               }`}
             >
               {label}
@@ -136,7 +132,7 @@ export const PublicNav = ({ onAbout }) => {
           <Link
             to="/contact"
             onClick={() => setOpen(false)}
-            className="block text-sm text-[#6E6E73] hover:text-[#1D1D1F] py-2.5 transition-colors"
+            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
           >
             Contact
           </Link>
@@ -146,7 +142,7 @@ export const PublicNav = ({ onAbout }) => {
               <Link
                 to="/profile"
                 onClick={() => setOpen(false)}
-                className="block text-sm text-[#6E6E73] hover:text-[#1D1D1F] py-2.5 font-medium transition-colors"
+                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
               >
                 My Account ({user.firstName || user.username})
               </Link>
@@ -154,7 +150,7 @@ export const PublicNav = ({ onAbout }) => {
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
-                  className="block text-sm text-[#6E6E73] hover:text-[#1D1D1F] py-2.5 transition-colors"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
                 >
                   Admin Dashboard
                 </Link>
@@ -164,7 +160,7 @@ export const PublicNav = ({ onAbout }) => {
             <Link
               to="/login"
               onClick={() => setOpen(false)}
-              className="block text-sm font-semibold text-[#1D1D1F] py-2.5 transition-colors"
+              className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white py-3 transition-colors"
             >
               Sign In
             </Link>

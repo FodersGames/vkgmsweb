@@ -14,60 +14,80 @@ export const SiteFooter = ({ onAbout }) => {
       .catch(() => {});
   }, []);
 
-  const linkCls = 'text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors';
-
   return (
-  <footer className="bg-[#F5F5F7]">
-    <div className="max-w-[1040px] mx-auto px-6 pt-10 pb-14">
-      <div className="pb-6 border-b border-[#D2D2D7] text-xs text-[#6E6E73]">
-        Vakar Games — Independent video game studio, based in France.
+    <footer style={{ backgroundColor: '#0A0A0A', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="max-w-[1100px] mx-auto px-6 pt-14 pb-10">
+        {/* Top row */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-10 pb-10 border-b border-white/[0.07]">
+          {/* Brand */}
+          <div>
+            <Link
+              to="/"
+              className="font-black text-white tracking-[0.08em] uppercase text-[18px] hover:text-[#4ECDC4] transition-colors block mb-3"
+            >
+              Vakar Games
+            </Link>
+            <p className="text-white/35 text-xs leading-relaxed max-w-[22ch]">
+              Independent video game studio.<br />Based in France.
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+            <div>
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-4">Studio</h4>
+              <ul className="space-y-2.5">
+                <li>
+                  {onAbout ? (
+                    <button onClick={onAbout} className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">About</button>
+                  ) : (
+                    <Link to="/" className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">About</Link>
+                  )}
+                </li>
+                <li><Link to="/blog" className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">Blog</Link></li>
+                <li><Link to="/careers" className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">Careers</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-4">Games</h4>
+              <ul className="space-y-2.5">
+                <li><Link to="/games" className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">All Games</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30 mb-4">Contact</h4>
+              <ul className="space-y-2.5">
+                <li><Link to="/contact" className="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-[0.08em] font-medium">Support</Link></li>
+                <li>
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="text-xs text-white/50 hover:text-[#4ECDC4] transition-colors"
+                  >
+                    {supportEmail}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom row */}
+        <div className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <p className="text-[10px] text-white/20 uppercase tracking-[0.1em]">
+            © {new Date().getFullYear()} Vakar Games. All rights reserved.
+          </p>
+          <div className="flex items-center gap-5">
+            <Link to="/privacy" className="text-[10px] text-white/25 hover:text-white/60 transition-colors uppercase tracking-[0.1em]">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-[10px] text-white/25 hover:text-white/60 transition-colors uppercase tracking-[0.1em]">
+              Terms of Service
+            </Link>
+          </div>
+        </div>
       </div>
-
-      <div className="pt-7 grid grid-cols-2 sm:grid-cols-4 gap-6">
-        <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Games</h4>
-          <ul className="flex flex-col gap-2.5">
-            <li><Link to="/games" className={linkCls}>All Games</Link></li>
-            <li><Link to="/shop" className={linkCls}>Store</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Company</h4>
-          <ul className="flex flex-col gap-2.5">
-            <li>
-              {onAbout ? (
-                <button onClick={onAbout} className={linkCls}>About</button>
-              ) : (
-                <Link to="/" className={linkCls}>About</Link>
-              )}
-            </li>
-            <li><Link to="/blog" className={linkCls}>Blog</Link></li>
-            <li><Link to="/careers" className={linkCls}>Careers</Link></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Support</h4>
-          <ul className="flex flex-col gap-2.5">
-            <li><Link to="/contact" className={linkCls}>Contact</Link></li>
-            <li><a href={`mailto:${supportEmail}`} className={linkCls}>{supportEmail}</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="text-[12.5px] font-semibold text-[#1D1D1F] mb-3.5">Legal</h4>
-          <ul className="flex flex-col gap-2.5">
-            <li><Link to="/privacy" className={linkCls}>Privacy Policy</Link></li>
-            <li><Link to="/terms" className={linkCls}>Terms of Service</Link></li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="mt-8 pt-5 border-t border-[#D2D2D7] text-[11.5px] text-[#A1A1A6]">
-        © {new Date().getFullYear()} Vakar Games. All rights reserved.
-      </div>
-    </div>
-  </footer>
+    </footer>
   );
 };
