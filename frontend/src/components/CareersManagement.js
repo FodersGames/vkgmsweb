@@ -9,8 +9,9 @@ import { EmptyState } from '../ui/EmptyState';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import { DEPARTMENTS, CONTRACT_TYPES, TOOL_OPTIONS, ToolIcon, departmentColor } from '../constants/careers';
+import { API_URL } from '../utils/api';
 
-const API = process.env.REACT_APP_API_URL || '';
+const API = API_URL;
 
 const EMPTY_FORM = {
   title: '',
@@ -51,8 +52,15 @@ export default function CareersManagement() {
     setLoading(true);
     try {
       const r = await fetch(`${API}/api/admin/careers`, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await r.json();
-      setCareers(data.careers || []);
+      if (r.ok) {
+        const data = await r.json();
+        setCareers(data.careers || []);
+      } else {
+        setCareers([]);
+      }
+    } catch (err) {
+      console.warn('Failed to load careers:', err);
+      setCareers([]);
     } finally {
       setLoading(false);
     }

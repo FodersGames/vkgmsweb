@@ -8,7 +8,7 @@ const CARD_ORDER_KEY = 'vg_overview_card_order';
 const applySavedOrder = (cards) => {
   let saved = [];
   try { saved = JSON.parse(localStorage.getItem(CARD_ORDER_KEY) || '[]'); } catch {}
-  if (!saved.length) return cards;
+  if (!Array.isArray(saved) || !saved.length) return cards;
   const byLabel = new Map(cards.map(c => [c.label, c]));
   const ordered = saved.map(label => byLabel.get(label)).filter(Boolean);
   const known = new Set(ordered.map(c => c.label));
@@ -58,7 +58,7 @@ export const DashboardOverview = ({ goTo }) => {
     );
     if (canManageTickets) {
       fetches.push(
-        api.get('/api/tickets')
+        api.get('/api/admin/tickets')
           .then(r => setGlobalStats(s => ({ ...s, tickets: Array.isArray(r.data.tickets) ? r.data.tickets.filter(t => t.status !== 'closed').length : null })))
           .catch(() => {})
       );

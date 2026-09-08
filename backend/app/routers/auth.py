@@ -66,15 +66,31 @@ async def login(request: Request, body: LoginEmailRequest):
     if user.get("isSuspended"):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
-    permissions = ALL_PERMISSIONS if is_super else user.get("permissions", [])
+    direct_perms = set(user.get("permissions", []))
+    custom_role_keys = [str(r) for r in (user.get("custom_roles") or [])]
+    if custom_role_keys:
+        try:
+            role_queries = [{"id": {"$in": custom_role_keys}}]
+            valid_oids = [ObjectId(r) for r in custom_role_keys if ObjectId.is_valid(r)]
+            if valid_oids:
+                role_queries.append({"_id": {"$in": valid_oids}})
+            role_docs = await db.roles.find({"$or": role_queries}).to_list(50)
+            for rd in role_docs:
+                for p in rd.get("permissions", []):
+                    direct_perms.add(p)
+        except Exception:
+            pass
+
+    effective_perms = list(ALL_PERMISSIONS) if is_super else list(direct_perms)
+
     # During maintenance, only accounts with dashboard access (staff) may sign in
     settings = await db.website_settings.find_one({}, {"_id": 0})
     if settings and settings.get("maintenance_mode"):
-        has_dashboard_access = is_super or user.get("role") == "admin" or len(permissions) > 0
+        has_dashboard_access = is_super or user.get("role") == "admin" or len(effective_perms) > 0 or len(custom_role_keys) > 0
         if not has_dashboard_access:
             raise HTTPException(status_code=403, detail="The site is under maintenance. Only staff accounts can sign in right now.")
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": datetime.now(timezone.utc)}})
-    token = create_access_token(str(user["_id"]), user["username"], is_super, permissions, email)
+    token = create_access_token(str(user["_id"]), user["username"], is_super, effective_perms, email)
     await log_action("auth", f"User '{user['username']}' logged in", user=user["username"])
     return {
         "token": token,
@@ -86,9 +102,9 @@ async def login(request: Request, body: LoginEmailRequest):
             "firstName": user.get("name") or user.get("firstName", ""),
             "lastName": user.get("lastName", ""),
             "role": user.get("role", "user"),
-            "custom_roles": user.get("custom_roles", []),
+            "custom_roles": custom_role_keys,
             "is_super_admin": is_super,
-            "permissions": permissions,
+            "permissions": effective_perms,
             "mustChangePassword": user.get("mustChangePassword", False),
             "pseudo_set": user.get("pseudo_set", False),
         },

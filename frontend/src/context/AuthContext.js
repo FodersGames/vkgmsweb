@@ -145,7 +145,14 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = () => {
     if (!user) return false;
-    return user.is_super_admin || user.role === 'admin' || (user.permissions?.length > 0);
+    return (
+      !!user.is_super_admin ||
+      user.role === 'admin' ||
+      user.role === 'super_admin' ||
+      (Array.isArray(user.permissions) && user.permissions.length > 0) ||
+      (Array.isArray(user.custom_roles) && user.custom_roles.length > 0) ||
+      (Array.isArray(user.roles) && user.roles.length > 0)
+    );
   };
 
   return (

@@ -94,7 +94,7 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
     direct_perms = set(user.get("permissions", []))
-    custom_role_keys = user.get("custom_roles", [])
+    custom_role_keys = [str(r) for r in (user.get("custom_roles") or [])]
 
     user_roles = []
     if is_super:
@@ -115,21 +115,24 @@ async def get_current_user(request: Request):
         })
 
     if custom_role_keys:
-        role_queries = [{"id": {"$in": custom_role_keys}}]
-        valid_oids = [ObjectId(r) for r in custom_role_keys if ObjectId.is_valid(r)]
-        if valid_oids:
-            role_queries.append({"_id": {"$in": valid_oids}})
-        role_docs = await db.roles.find({"$or": role_queries}).to_list(50)
-        for rd in role_docs:
-            for p in rd.get("permissions", []):
-                direct_perms.add(p)
-            user_roles.append({
-                "id": rd.get("id") or str(rd["_id"]),
-                "name": rd.get("name", ""),
-                "color": rd.get("color", "#4ECDC4"),
-                "icon": rd.get("icon", "Shield"),
-                "is_system": rd.get("is_system", False),
-            })
+        try:
+            role_queries = [{"id": {"$in": custom_role_keys}}]
+            valid_oids = [ObjectId(r) for r in custom_role_keys if ObjectId.is_valid(r)]
+            if valid_oids:
+                role_queries.append({"_id": {"$in": valid_oids}})
+            role_docs = await db.roles.find({"$or": role_queries}).to_list(50)
+            for rd in role_docs:
+                for p in rd.get("permissions", []):
+                    direct_perms.add(p)
+                user_roles.append({
+                    "id": rd.get("id") or str(rd["_id"]),
+                    "name": rd.get("name", ""),
+                    "color": rd.get("color", "#4ECDC4"),
+                    "icon": rd.get("icon", "Shield"),
+                    "is_system": rd.get("is_system", False),
+                })
+        except Exception:
+            pass
 
     effective_perms = list(ALL_PERMISSIONS) if is_super else list(direct_perms)
 

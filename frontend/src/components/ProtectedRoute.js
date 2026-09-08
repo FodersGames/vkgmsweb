@@ -18,7 +18,27 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
   }
 
   if (requiresAdmin && !isAdmin()) {
-    return <Navigate to="/profile" replace />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0D0D] p-6 text-center text-white">
+        <div className="max-w-md w-full bg-[#16161F] border border-white/10 rounded-2xl p-8">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400 text-lg font-bold">
+            !
+          </div>
+          <h2 className="text-xl font-bold mb-2">Accès Administrateur Requis</h2>
+          <p className="text-xs text-white/50 mb-6 leading-relaxed">
+            Votre compte actuel ({user?.email}) ne dispose pas des droits administrateur nécessaires pour accéder à l'admin panel.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <a href="#/profile" className="btn-kefir text-xs py-2 px-4">
+              Mon Profil
+            </a>
+            <a href="#/login" className="text-xs text-white/60 hover:text-white py-2 px-4 border border-white/15 rounded">
+              Changer de compte
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (permission && !hasPermission(permission)) {

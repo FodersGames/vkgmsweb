@@ -338,6 +338,18 @@ export const UserManagement = () => {
     });
   };
 
+  const handleRoleChange = async (newRole) => {
+    if (!activeUser) return;
+    try {
+      await api.put(`/api/admin/users/${activeUser.id}/role`, { role: newRole });
+      setActiveUser(prev => ({ ...prev, role: newRole }));
+      toast.success(`User role updated to ${newRole}`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update user role');
+    }
+  };
+
   const handleSuspend = (u, suspend) => {
     showConfirm({
       title: suspend ? 'Suspend user' : 'Reactivate user',
@@ -515,16 +527,32 @@ export const UserManagement = () => {
                     <h2 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
                       {displayName}
                     </h2>
-                    {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
-                    {u.role === 'admin' && !isSuperAdmin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
+                    {isSuperAdmin && !currentUser?.is_super_admin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
+                    {u.role === 'admin' && !currentUser?.is_super_admin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
+                    {currentUser?.is_super_admin && !isSelf && (
+                      <select
+                        value={u.role || 'user'}
+                        onChange={(e) => handleRoleChange(e.target.value)}
+                        className="text-[10px] font-semibold rounded bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] px-2 py-0.5 outline-none focus:border-[#4ECDC4]"
+                        title="Change system role"
+                      >
+                        <option value="user">Role: User</option>
+                        <option value="admin">Role: Admin</option>
+                        <option value="super_admin">Role: Super Admin</option>
+                      </select>
+                    )}
+                    {currentUser?.is_super_admin && isSelf && (
+                      <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>
+                    )}
                     {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
                     {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
                     {(u.custom_roles || []).map(rId => {
-                      const rObj = customRolesList.find(r => r.id === rId);
+                      const rIdStr = String(rId);
+                      const rObj = customRolesList.find(r => r.id === rIdStr || r._id === rIdStr);
                       const color = rObj?.color || '#4ECDC4';
-                      const rName = rObj?.name || rId;
+                      const rName = typeof rObj?.name === 'string' ? rObj.name : rIdStr;
                       return (
-                        <span key={rId} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border" style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}>
+                        <span key={rIdStr} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border" style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}>
                           {rName}
                         </span>
                       );
@@ -988,12 +1016,13 @@ export const UserManagement = () => {
                             {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
                             {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
                             {(u.custom_roles || []).map(rId => {
-                              const rObj = customRolesList.find(r => r.id === rId);
+                              const rIdStr = String(rId);
+                              const rObj = customRolesList.find(r => r.id === rIdStr || r._id === rIdStr);
                               const color = rObj?.color || '#4ECDC4';
-                              const rName = rObj?.name || rId;
+                              const rName = typeof rObj?.name === 'string' ? rObj.name : rIdStr;
                               return (
                                 <span
-                                  key={rId}
+                                  key={rIdStr}
                                   className="text-[10px] font-semibold px-1.5 py-0.5 rounded border"
                                   style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}
                                 >

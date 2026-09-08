@@ -517,3 +517,6 @@ class CareerUpdateRequest(BaseModel):
     requirements: Optional[List[str]] = None
     tools: Optional[List[str]] = None
     is_open: Optional[bool] = None
+
+class UpdateUserRoleRequest(BaseModel):
+    role: Literal["super_admin", "admin", "user"]
