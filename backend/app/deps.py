@@ -93,25 +93,69 @@ async def get_current_user(request: Request):
     if user.get("isSuspended"):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
+    direct_perms = set(user.get("permissions", []))
+    custom_role_keys = user.get("custom_roles", [])
+
+    user_roles = []
+    if is_super:
+        user_roles.append({
+            "id": "super_admin",
+            "name": "Super Admin",
+            "color": "#4ECDC4",
+            "icon": "Crown",
+            "is_system": True,
+        })
+    elif user.get("role") == "admin":
+        user_roles.append({
+            "id": "admin",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "icon": "Shield",
+            "is_system": True,
+        })
+
+    if custom_role_keys:
+        role_queries = [{"id": {"$in": custom_role_keys}}]
+        valid_oids = [ObjectId(r) for r in custom_role_keys if ObjectId.is_valid(r)]
+        if valid_oids:
+            role_queries.append({"_id": {"$in": valid_oids}})
+        role_docs = await db.roles.find({"$or": role_queries}).to_list(50)
+        for rd in role_docs:
+            for p in rd.get("permissions", []):
+                direct_perms.add(p)
+            user_roles.append({
+                "id": rd.get("id") or str(rd["_id"]),
+                "name": rd.get("name", ""),
+                "color": rd.get("color", "#4ECDC4"),
+                "icon": rd.get("icon", "Shield"),
+                "is_system": rd.get("is_system", False),
+            })
+
+    effective_perms = list(ALL_PERMISSIONS) if is_super else list(direct_perms)
 
     def _iso(dt):
         return dt.isoformat() if dt else None
 
     vakar_plus_status = user.get("vakar_plus_status", "none")
+    display_name = user.get("name") or (f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()) or user.get("username", "")
 
     return {
         "id": str(user["_id"]),
         "email": user.get("email", ""),
         "username": user.get("username", ""),
-        "firstName": user.get("firstName", ""),
+        "name": display_name,
+        "firstName": user.get("name") or user.get("firstName", ""),
         "lastName": user.get("lastName", ""),
         "role": user.get("role", "user"),
+        "custom_roles": custom_role_keys,
+        "roles": user_roles,
         "is_super_admin": is_super,
-        "permissions": ALL_PERMISSIONS if is_super else user.get("permissions", []),
+        "permissions": effective_perms,
         "mustChangePassword": user.get("mustChangePassword", False),
         "avatar_url": user.get("avatar_url"),
         "pseudo_set": user.get("pseudo_set", False),
         "firstNameChangedAt": _iso(user.get("firstNameChangedAt")),
+        "nameChangedAt": _iso(user.get("nameChangedAt")),
         "usernameChangedAt": _iso(user.get("usernameChangedAt")),
         "stripe_customer_id": user.get("stripe_customer_id"),
         "is_vakar_plus": vakar_plus_status == "active",

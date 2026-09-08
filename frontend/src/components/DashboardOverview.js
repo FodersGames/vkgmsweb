@@ -103,7 +103,7 @@ export const DashboardOverview = ({ goTo }) => {
   };
   const handleDragEnd = () => { dragIndexRef.current = null; setDragOverIndex(null); };
 
-  const displayName = user?.firstName || user?.username;
+  const displayName = user?.name || user?.firstName || user?.username;
 
   return (
     <div className="max-w-[980px] mx-auto space-y-7">

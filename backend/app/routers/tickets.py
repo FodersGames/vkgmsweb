@@ -26,15 +26,15 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
     if not subject or not message:
         raise HTTPException(status_code=400, detail="Subject and message are required")
 
-    # Limit: max 5 open tickets simultaneously per user
+    # Limit: max 3 open tickets simultaneously per user
     open_count = await db.support_tickets.count_documents({
         "user_email": email.lower(),
         "status": {"$ne": "closed"}
     })
-    if open_count >= 5:
+    if open_count >= 3:
         raise HTTPException(
             status_code=400,
-            detail="Ticket ouvert maximum atteint (5/5). Veuillez attendre la résolution de vos tickets existants."
+            detail="Ticket ouvert maximum atteint (3/3). Veuillez attendre la résolution de vos tickets existants."
         )
 
     ticket_number = "TKT-" + secrets.token_hex(3).upper()

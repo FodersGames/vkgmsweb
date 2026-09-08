@@ -17,6 +17,7 @@ from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest,
     AdminUpdateUserProfileRequest, ResetCooldownRequest, AdminVakarPlusRequest,
+    UpdateUserCustomRolesRequest,
 )
 
 router = APIRouter()
@@ -28,15 +29,18 @@ def _user_summary(u: dict) -> dict:
         "id": str(u["_id"]),
         "email": u.get("email", ""),
         "username": u.get("username", ""),
-        "firstName": u.get("firstName", ""),
+        "name": u.get("name") or (f"{u.get('firstName', '')} {u.get('lastName', '')}".strip()) or u.get("username", ""),
+        "firstName": u.get("name") or u.get("firstName", ""),
         "lastName": u.get("lastName", ""),
         "role": u.get("role", "user"),
+        "custom_roles": u.get("custom_roles", []),
         "permissions": u.get("permissions", []),
         "isSuspended": u.get("isSuspended", False),
         "createdAt": _iso(u.get("createdAt")) or u.get("created_at", ""),
         "lastLogin": _iso(u.get("lastLogin")),
         "pseudo_set": u.get("pseudo_set", False),
         "firstNameChangedAt": _iso(u.get("firstNameChangedAt")),
+        "nameChangedAt": _iso(u.get("nameChangedAt")),
         "usernameChangedAt": _iso(u.get("usernameChangedAt")),
         "vakar_plus_status": u.get("vakar_plus_status", "none"),
         "vakar_plus_plan": u.get("vakar_plus_plan"),
@@ -50,7 +54,7 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
         raise HTTPException(status_code=400, detail="Invalid email address")
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
-    firstName = (body.firstName or "").strip()[:50]
+    name = (body.name or body.firstName or "").strip()[:70]
     lastName = (body.lastName or "").strip()[:50]
     # Auto-generate username if not provided
     raw_username = (body.username or "").strip()
@@ -91,10 +95,12 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
     await db.users.insert_one({
         "email": email,
         "password_hash": hash_key(password),
-        "firstName": firstName,
+        "name": name,
+        "firstName": name,
         "lastName": lastName,
         "username": raw_username,
         "role": body.role,
+        "custom_roles": getattr(body, "custom_roles", []) or [],
         "permissions": body.permissions,
         "isVerified": True,
         "isSuspended": False,
@@ -102,6 +108,7 @@ async def admin_create_user(body: AdminCreateUserRequest, admin=Depends(require_
         "createdAt": datetime.now(timezone.utc),
         "lastLogin": None,
         "createdByAdmin": admin["username"],
+        "nameChangedAt": None,
         "firstNameChangedAt": None,
         "usernameChangedAt": None,
         # An admin-chosen pseudo counts as deliberately set; an auto-generated
@@ -223,11 +230,13 @@ async def admin_update_user_profile(user_id: str, body: AdminUpdateUserProfileRe
         raise HTTPException(status_code=404, detail="User not found")
     updates = {}
     now = datetime.now(timezone.utc)
-    if body.firstName is not None:
-        firstName = body.firstName.strip()[:50]
-        if not firstName:
-            raise HTTPException(status_code=400, detail="First name is required")
-        updates["firstName"] = firstName
+    if body.name is not None or body.firstName is not None:
+        name_val = (body.name if body.name is not None else body.firstName).strip()[:70]
+        if not name_val:
+            raise HTTPException(status_code=400, detail="Name is required")
+        updates["name"] = name_val
+        updates["firstName"] = name_val
+        updates["nameChangedAt"] = now
         updates["firstNameChangedAt"] = now
     if body.lastName is not None:
         updates["lastName"] = body.lastName.strip()[:50]
@@ -251,6 +260,18 @@ async def admin_update_user_profile(user_id: str, body: AdminUpdateUserProfileRe
     updated = await db.users.find_one({"_id": ObjectId(user_id)})
     return _user_summary(updated)
 
+@router.put("/admin/users/{user_id}/custom-roles")
+async def update_user_custom_roles(user_id: str, req: UpdateUserCustomRolesRequest, admin=Depends(require_permission("manage_users"))):
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"custom_roles": req.custom_roles}})
+    await log_action("user_action", f"Admin '{admin['username']}' updated custom roles of '{target.get('username', user_id)}' to {req.custom_roles}", user=admin["username"])
+    return {"success": True, "id": user_id, "custom_roles": req.custom_roles}
+
 @router.post("/admin/users/{user_id}/reset-cooldown")
 async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=Depends(require_permission("manage_users"))):
     """Clears the change-cooldown timestamp for one field so the USER's own next
@@ -262,8 +283,8 @@ async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=D
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    field_key = "firstNameChangedAt" if body.field == "firstName" else "usernameChangedAt"
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {field_key: None}})
+    field_key = "nameChangedAt" if body.field in ("name", "firstName") else "usernameChangedAt"
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {field_key: None, "firstNameChangedAt": None}})
     await log_action("user_action", f"Admin '{admin['username']}' reset {body.field} cooldown for '{target.get('username', user_id)}'", user=admin["username"])
     return {"success": True}
 

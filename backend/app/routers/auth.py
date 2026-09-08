@@ -82,16 +82,14 @@ async def login(request: Request, body: LoginEmailRequest):
             "id": str(user["_id"]),
             "email": user["email"],
             "username": user["username"],
-            "firstName": user.get("firstName", ""),
+            "name": user.get("name") or (f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()) or user.get("username", ""),
+            "firstName": user.get("name") or user.get("firstName", ""),
             "lastName": user.get("lastName", ""),
             "role": user.get("role", "user"),
+            "custom_roles": user.get("custom_roles", []),
             "is_super_admin": is_super,
             "permissions": permissions,
             "mustChangePassword": user.get("mustChangePassword", False),
-            # Existing accounts predate this field and default to False — under
-            # the new rules their current username was never a deliberate pseudo
-            # choice, so they're routed through the same mandatory pick as a
-            # brand-new signup the next time they log in.
             "pseudo_set": user.get("pseudo_set", False),
         },
         "first_login": user.get("mustChangePassword", False),
@@ -101,10 +99,10 @@ async def login(request: Request, body: LoginEmailRequest):
 @limiter.limit("5/minute")
 async def register(request: Request, body: RegisterRequest):
     email = body.email.lower().strip()
-    firstName = (body.firstName or "").strip()[:50]
+    name = (body.name or body.firstName or "").strip()[:70]
     lastName = (body.lastName or "").strip()[:50]
-    if not firstName:
-        raise HTTPException(status_code=400, detail="First name is required")
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
     if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
         raise HTTPException(status_code=400, detail="Invalid email address")
     # Auto-generate a placeholder username from the email prefix — this is never
@@ -149,10 +147,12 @@ async def register(request: Request, body: RegisterRequest):
         await db.users.insert_one({
             "email": email,
             "password_hash": hash_key(body.password),
-            "firstName": firstName,
+            "name": name,
+            "firstName": name,
             "lastName": lastName,
             "username": username,
             "role": "user",
+            "custom_roles": [],
             "permissions": [],
             "isVerified": True,
             "isSuspended": False,
@@ -160,6 +160,7 @@ async def register(request: Request, body: RegisterRequest):
             "createdAt": datetime.now(timezone.utc),
             "lastLogin": None,
             "firstNameChangedAt": None,
+            "nameChangedAt": None,
             "usernameChangedAt": None,
             "pseudo_set": False,
         })
@@ -176,6 +177,12 @@ async def get_me(user=Depends(get_current_user)):
 @limiter.limit("10/minute")
 async def upload_avatar(request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
     ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".svg"}
+    MIME_MAP = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".svg": "image/svg+xml",
+    }
     MAX_SIZE = 5 * 1024 * 1024  # 5 MB
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_EXTS:
@@ -183,32 +190,54 @@ async def upload_avatar(request: Request, file: UploadFile = File(...), user=Dep
     content = await file.read()
     if len(content) > MAX_SIZE:
         raise HTTPException(400, "File too large. Maximum size is 5 MB.")
-    # Same validation pipeline as /api/upload: sanitizes SVGs, verifies real
-    # MIME type for raster formats — avatars are user-uploaded and served
-    # inline, so this can't be skipped like it was before.
     content = _validate_file(content, ext, _IMAGE_MIMES)
-    # Delete previous avatar file if it exists
+
+    content_type = MIME_MAP.get(ext, "image/jpeg")
+
+    # Delete previous avatar files from MongoDB and disk
     for old_ext in ALLOWED_EXTS:
-        old_path = UPLOADS_DIR / f"avatar_{user['id']}{old_ext}"
+        old_filename = f"avatar_{user['id']}{old_ext}"
+        try:
+            await db.uploads.delete_many({"filename": old_filename})
+        except Exception:
+            pass
+        old_path = UPLOADS_DIR / old_filename
         if old_path.exists():
             old_path.unlink(missing_ok=True)
+
     filename = f"avatar_{user['id']}{ext}"
     filepath = UPLOADS_DIR / filename
-    with open(filepath, "wb") as f:
-        f.write(content)
-    avatar_url = f"/api/uploads/{filename}"
+    try:
+        with open(filepath, "wb") as f:
+            f.write(content)
+    except Exception:
+        pass
+
+    # Save to MongoDB db.uploads for persistence across Vercel serverless containers
+    await db.uploads.update_one(
+        {"filename": filename},
+        {"$set": {
+            "filename": filename,
+            "data": content,
+            "content_type": content_type,
+            "updated_at": datetime.now(timezone.utc),
+            "user_id": str(user["id"]),
+        }},
+        upsert=True
+    )
+
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    avatar_url = f"/api/uploads/{filename}?v={timestamp}"
     await db.users.update_one({"_id": ObjectId(user["id"])}, {"$set": {"avatar_url": avatar_url}})
     return {"avatar_url": avatar_url}
 
 @router.patch("/auth/profile")
 async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_user)):
-    firstName = body.firstName.strip()
-    lastName = (body.lastName or "").strip()
+    name = (body.name or body.firstName or "").strip()[:70]
+    lastName = (body.lastName or "").strip()[:50]
     username = body.username.strip()
-    if not (1 <= len(firstName) <= 50):
-        raise HTTPException(status_code=400, detail="First name must be 1-50 characters")
-    if len(lastName) > 50:
-        raise HTTPException(status_code=400, detail="Last name must be at most 50 characters")
+    if not (1 <= len(name) <= 70):
+        raise HTTPException(status_code=400, detail="Name must be 1-70 characters")
     if not re.match(PSEUDO_REGEX, username):
         raise HTTPException(status_code=400, detail="Pseudo must be 5-14 characters (letters, numbers, underscores only)")
 
@@ -216,13 +245,17 @@ async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_us
     now = datetime.now(timezone.utc)
     updates = {"lastName": lastName}
 
-    firstName_changed = firstName != current.get("firstName", "")
-    if firstName_changed:
-        _check_cooldown(current.get("firstNameChangedAt"), FIRSTNAME_COOLDOWN_DAYS, "first name")
-        updates["firstName"] = firstName
+    current_name = current.get("name") or current.get("firstName", "")
+    name_changed = name != current_name
+    if name_changed:
+        _check_cooldown(current.get("nameChangedAt") or current.get("firstNameChangedAt"), FIRSTNAME_COOLDOWN_DAYS, "name")
+        updates["name"] = name
+        updates["firstName"] = name
+        updates["nameChangedAt"] = now
         updates["firstNameChangedAt"] = now
     else:
-        updates["firstName"] = firstName
+        updates["name"] = name
+        updates["firstName"] = name
 
     username_changed = username != current.get("username", "")
     if username_changed:

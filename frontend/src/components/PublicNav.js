@@ -87,9 +87,9 @@ export const PublicNav = ({ onAbout }) => {
                 className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
               >
                 <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/20 border border-[#4ECDC4]/40 flex items-center justify-center text-[10px] font-bold text-[#4ECDC4]">
-                  {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />}
+                  {user.name?.charAt(0)?.toUpperCase() || user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />}
                 </div>
-                <span>{user.firstName || user.username}</span>
+                <span>{user.name || user.firstName || user.username}</span>
               </Link>
             </div>
           ) : (
@@ -144,7 +144,7 @@ export const PublicNav = ({ onAbout }) => {
                 onClick={() => setOpen(false)}
                 className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
               >
-                My Account ({user.firstName || user.username})
+                My Account ({user.name || user.firstName || user.username})
               </Link>
               {isAdmin && isAdmin() && (
                 <Link
