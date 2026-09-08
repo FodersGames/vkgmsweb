@@ -102,6 +102,9 @@ if _cors_raw == '*':
     _cors_creds = False
 elif _cors_raw:
     _cors_origins = [o.strip() for o in _cors_raw.split(',') if o.strip()]
+    for _domain in ['https://vakargames.com', 'http://vakargames.com', 'https://www.vakargames.com', 'https://fodersgames.github.io']:
+        if _domain not in _cors_origins:
+            _cors_origins.append(_domain)
     _cors_creds = True
 else:
     _cors_origins = ['*']
