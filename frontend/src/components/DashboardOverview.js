@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AppWindow, ClipboardCheck, Users, GripVertical } from 'lucide-react';
+import { Users, Gamepad2, PenTool, Ticket, GripVertical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 
 const CARD_ORDER_KEY = 'vg_overview_card_order';
 
-// Reorders `cards` (each needs a stable `.label`) to match a saved order,
-// appending any new cards the saved order doesn't know about yet.
 const applySavedOrder = (cards) => {
   let saved = [];
   try { saved = JSON.parse(localStorage.getItem(CARD_ORDER_KEY) || '[]'); } catch {}
@@ -17,19 +15,14 @@ const applySavedOrder = (cards) => {
   return [...ordered, ...cards.filter(c => !known.has(c.label))];
 };
 
-const Panel = ({ children, className = '' }) => (
-  <div className={`animate-appear rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] overflow-hidden ${className}`}>
-    {children}
-  </div>
-);
-
 export const DashboardOverview = ({ goTo }) => {
   const { user, hasPermission } = useAuth();
 
   const canManageUsers = hasPermission('manage_users');
-  const canSeeStudio    = hasPermission('manage_studio_apps');
+  const canManageWebsite = hasPermission('manage_website');
+  const canManageTickets = hasPermission('manage_tickets');
 
-  const [globalStats, setGlobalStats]     = useState({ users: null, apps: null, pendingReviews: null });
+  const [globalStats, setGlobalStats] = useState({ users: null, games: null, blog: null, tickets: null });
   const [globalLoading, setGlobalLoading] = useState(false);
 
   const dateStr = useMemo(() => {
@@ -53,31 +46,38 @@ export const DashboardOverview = ({ goTo }) => {
           .catch(() => {})
       );
     }
-    if (canSeeStudio) {
+    fetches.push(
+      api.get('/api/website/games/public')
+        .then(r => setGlobalStats(s => ({ ...s, games: Array.isArray(r.data.games) ? r.data.games.length : null })))
+        .catch(() => {})
+    );
+    fetches.push(
+      api.get('/api/website/blog/public')
+        .then(r => setGlobalStats(s => ({ ...s, blog: Array.isArray(r.data.posts) ? r.data.posts.length : null })))
+        .catch(() => {})
+    );
+    if (canManageTickets) {
       fetches.push(
-        api.get('/api/admin/studio-apps')
-          .then(r => setGlobalStats(s => ({ ...s, apps: Array.isArray(r.data.apps) ? r.data.apps.length : null })))
-          .catch(() => {})
-      );
-      fetches.push(
-        api.get('/api/admin/studio-apps/reviews?status=pending')
-          .then(r => setGlobalStats(s => ({ ...s, pendingReviews: Array.isArray(r.data.reviews) ? r.data.reviews.length : null })))
+        api.get('/api/tickets')
+          .then(r => setGlobalStats(s => ({ ...s, tickets: Array.isArray(r.data.tickets) ? r.data.tickets.filter(t => t.status !== 'closed').length : null })))
           .catch(() => {})
       );
     }
+
     if (fetches.length > 0) {
       setGlobalLoading(true);
       Promise.all(fetches).finally(() => setGlobalLoading(false));
     }
-  }, [canManageUsers, canSeeStudio]);
+  }, [canManageUsers, canManageWebsite, canManageTickets]);
 
   const statCards = applySavedOrder([
-    canManageUsers ? { label: 'Staff',           value: globalStats.users,          accent: '#F2994A', icon: Users,          loading: globalLoading && globalStats.users === null } : null,
-    canSeeStudio   ? { label: 'Studio Apps',      value: globalStats.apps,           accent: '#4ECDC4', icon: AppWindow,      loading: globalLoading && globalStats.apps === null } : null,
-    canSeeStudio   ? { label: 'Pending reviews',  value: globalStats.pendingReviews, accent: '#9B51E0', icon: ClipboardCheck, loading: globalLoading && globalStats.pendingReviews === null } : null,
+    canManageUsers ? { label: 'Staff', value: globalStats.users, accent: '#F2994A', icon: Users, loading: globalLoading && globalStats.users === null } : null,
+    { label: 'Games', value: globalStats.games, accent: '#4ECDC4', icon: Gamepad2, loading: globalLoading && globalStats.games === null },
+    { label: 'Blog Posts', value: globalStats.blog, accent: '#9B51E0', icon: PenTool, loading: globalLoading && globalStats.blog === null },
+    canManageTickets ? { label: 'Open Tickets', value: globalStats.tickets, accent: '#EB5757', icon: Ticket, loading: globalLoading && globalStats.tickets === null } : null,
   ].filter(Boolean));
 
-  // Drag-to-reorder for the stat cards, persisted per-browser.
+  // Drag-to-reorder for stat cards
   const dragIndexRef = useRef(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
@@ -85,7 +85,7 @@ export const DashboardOverview = ({ goTo }) => {
     try { localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(cards.map(c => c.label))); } catch {}
   };
 
-  const [cardOrder, setCardOrder] = useState(null); // null = "use computed statCards as-is"
+  const [cardOrder, setCardOrder] = useState(null);
   const orderedCards = cardOrder ?? statCards;
 
   const handleDragStart = (index) => { dragIndexRef.current = index; };
@@ -107,16 +107,13 @@ export const DashboardOverview = ({ goTo }) => {
 
   return (
     <div className="max-w-[980px] mx-auto space-y-7">
-
-      {/* Page head */}
       <div>
         <h1 className="text-[26px] font-bold tracking-[-0.02em] text-[#1D1D1F] dark:text-white">
           {displayName ? `Welcome, ${displayName}` : 'Welcome'}
         </h1>
-        <p className="text-[13.5px] text-[#6E6E73] dark:text-[#a1a1aa] mt-1">{dateStr} — here's what's happening across Vakar Studio.</p>
+        <p className="text-[13.5px] text-[#6E6E73] dark:text-[#a1a1aa] mt-1">{dateStr} — Vakar Games Studio Overview.</p>
       </div>
 
-      {/* Stat cards — drag to reorder, saved per-browser */}
       {orderedCards.length > 0 && (
         <div
           className="animate-appear grid gap-px bg-[#D2D2D7] dark:bg-[#2a2a3c] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded-xl overflow-hidden"
@@ -153,30 +150,6 @@ export const DashboardOverview = ({ goTo }) => {
           })}
         </div>
       )}
-
-      {/* Pending reviews shortcut */}
-      {canSeeStudio && !!globalStats.pendingReviews && (
-        <Panel className="p-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#9B51E0]/10 flex items-center justify-center shrink-0">
-              <ClipboardCheck size={18} className="text-[#9B51E0]" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
-                {globalStats.pendingReviews} app{globalStats.pendingReviews !== 1 ? 's' : ''} waiting for review
-              </p>
-              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Community submissions need your approval before they go live.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => goTo('app-reviews')}
-            className="rounded-full inline-flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-4 py-2 text-xs font-semibold transition-colors shrink-0"
-          >
-            Review now
-          </button>
-        </Panel>
-      )}
-
     </div>
   );
 };
