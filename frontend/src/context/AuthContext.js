@@ -60,20 +60,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async ({ email, password, firstName, lastName, username }) => {
+  const register = async ({ email, password, name, firstName, lastName, username }) => {
     try {
-      await axios.post(`${API_URL}/api/auth/register`, { email, password, firstName, lastName, username });
+      const payloadName = (name || firstName || '').trim();
+      await axios.post(`${API_URL}/api/auth/register`, {
+        email,
+        password,
+        name: payloadName,
+        firstName: payloadName,
+        lastName: lastName || '',
+        username,
+      });
       return { success: true };
     } catch (err) {
       return { success: false, error: extractErrorMessage(err, 'Registration failed') };
     }
   };
 
-  const updateProfile = async ({ firstName, lastName, username }) => {
+  const updateProfile = async ({ name, firstName, lastName, username }) => {
     try {
+      const payloadName = (name || firstName || '').trim();
       await axios.patch(
         `${API_URL}/api/auth/profile`,
-        { firstName, lastName, username },
+        {
+          name: payloadName,
+          firstName: payloadName,
+          lastName: lastName || '',
+          username,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await fetchMe(token);

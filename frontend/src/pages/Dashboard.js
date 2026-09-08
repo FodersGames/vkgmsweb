@@ -6,10 +6,11 @@ import {
   Users, Activity, FileText, LogOut,
   Gamepad2, Settings, PenTool,
   Menu, X, LayoutDashboard,
-  Home, Ticket, UserCircle, Server,
+  Home, Ticket, UserCircle, Server, Shield,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
+import { RoleManagement }     from '../components/RoleManagement';
 import { DashboardOverview }   from '../components/DashboardOverview';
 import { GamesManagement }     from '../components/GamesManagement';
 import { BlogManagement }      from '../components/BlogManagement';
@@ -51,6 +52,7 @@ const NAV_GROUPS = [
     label: 'Team',
     items: [
       { id: 'users',  label: 'Users',  icon: Users,  permission: 'manage_users' },
+      { id: 'roles',  label: 'Roles',  icon: Shield, permission: 'manage_users' },
       { id: 'system', label: 'System', icon: Server, permission: 'view_vps'    },
     ],
   },
@@ -398,12 +400,11 @@ const DashboardContent = () => {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const displayName = user?.firstName && user?.lastName
+  const displayName = user?.name || (user?.firstName && user?.lastName
     ? `${user.firstName} ${user.lastName}`
-    : (user?.username || '');
+    : (user?.firstName || user?.username || ''));
 
-  const initials = ((user?.firstName?.[0] || '') + (user?.lastName?.[0] || '')).toUpperCase()
-    || user?.username?.charAt(0)?.toUpperCase() || '?';
+  const initials = (user?.name?.[0] || user?.firstName?.[0] || user?.username?.charAt(0) || '?').toUpperCase();
 
   const currentGroup = findCurrentGroup(activeTab);
   const currentItem  = findCurrentItem(activeTab);
@@ -571,6 +572,7 @@ const DashboardContent = () => {
           <div key={`${activeTab}:${activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
             {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
             {activeTab === 'users'    && hasPermission('manage_users')    && <UserManagement />}
+            {activeTab === 'roles'    && hasPermission('manage_users')    && <RoleManagement />}
             {activeTab === 'website-games'    && <GamesManagement />}
             {activeTab === 'website-blog'     && <BlogManagement />}
             {activeTab === 'website-settings' && (

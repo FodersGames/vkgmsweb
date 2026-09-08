@@ -102,10 +102,10 @@ const buildPermissionGroups = (projects = []) => [
   ...STATIC_GROUPS,
 ];
 
-// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
+// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/NAME_COOLDOWN_DAYS —
 // client-side only for the "days remaining" hint; the backend is authoritative,
 // and admin edits/resets here bypass it anyway.
-const FIRSTNAME_COOLDOWN_DAYS = 30;
+const NAME_COOLDOWN_DAYS = 30;
 const PSEUDO_COOLDOWN_DAYS = 7;
 const cooldownDaysLeft = (changedAt, cooldownDays) => {
   if (!changedAt) return 0;
@@ -125,6 +125,8 @@ export const UserManagement = () => {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [projectsList, setProjectsList] = useState([]);
+  const [customRolesList, setCustomRolesList] = useState([]);
+  const [customRolesSaving, setCustomRolesSaving] = useState(false);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -139,7 +141,7 @@ export const UserManagement = () => {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const [showCreateUser, setShowCreateUser] = useState(false);
-  const [createForm, setCreateForm] = useState({ email: '', password: '', firstName: '', lastName: '', username: '', role: 'user', permissions: [] });
+  const [createForm, setCreateForm] = useState({ email: '', password: '', name: '', username: '', role: 'user', permissions: [], custom_roles: [] });
   const [createLoading, setCreateLoading] = useState(false);
   const [createResult, setCreateResult] = useState(null);
 
@@ -149,7 +151,7 @@ export const UserManagement = () => {
   const [permsDraft, setPermsDraft] = useState([]);
   const [permsLoading, setPermsLoading] = useState(false);
 
-  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
+  const [profileForm, setProfileForm] = useState({ name: '', username: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [resettingField, setResettingField] = useState('');
@@ -184,6 +186,7 @@ export const UserManagement = () => {
 
   useEffect(() => {
     api.get('/api/projects').then(r => setProjectsList(r.data.projects || [])).catch(() => {});
+    api.get('/api/admin/roles').then(r => setCustomRolesList(r.data.roles || [])).catch(() => {});
   }, []);
 
   // Debounce the search box so it doesn't fire a request on every keystroke.
@@ -245,7 +248,7 @@ export const UserManagement = () => {
   // ── Detail view ──────────────────────────────────────────────────────
   const openUser = (u) => {
     setActiveUser(u);
-    setProfileForm({ firstName: u.firstName || '', lastName: u.lastName || '', username: u.username || '' });
+    setProfileForm({ name: u.name || (u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : '') || u.username || '', username: u.username || '' });
     setProfileError('');
     setEditingPerms(false);
     setPermsDraft(u.permissions || []);
@@ -279,12 +282,31 @@ export const UserManagement = () => {
     setResettingField(field);
     try {
       await api.post(`/api/admin/users/${activeUser.id}/reset-cooldown`, { field });
-      setActiveUser(u => ({ ...u, [field === 'firstName' ? 'firstNameChangedAt' : 'usernameChangedAt']: null }));
-      toast.success(`${field === 'firstName' ? 'First name' : 'Pseudo'} cooldown reset`);
+      setActiveUser(u => ({ ...u, [field === 'name' ? 'nameChangedAt' : 'usernameChangedAt']: null, firstNameChangedAt: null }));
+      toast.success(`${field === 'name' ? 'Name' : 'Pseudo'} cooldown reset`);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to reset cooldown');
     } finally {
       setResettingField('');
+    }
+  };
+
+  const handleToggleCustomRole = async (roleId) => {
+    if (!activeUser) return;
+    const currentRoles = activeUser.custom_roles || [];
+    const newRoles = currentRoles.includes(roleId)
+      ? currentRoles.filter(r => r !== roleId)
+      : [...currentRoles, roleId];
+    setCustomRolesSaving(true);
+    try {
+      await api.put(`/api/admin/users/${activeUser.id}/custom-roles`, { custom_roles: newRoles });
+      setActiveUser(u => ({ ...u, custom_roles: newRoles }));
+      setUsers(list => list.map(u => u.id === activeUser.id ? { ...u, custom_roles: newRoles } : u));
+      toast.success('Roles updated');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update user roles');
+    } finally {
+      setCustomRolesSaving(false);
     }
   };
 
@@ -361,7 +383,6 @@ export const UserManagement = () => {
     }
   };
 
-  // ── Create user (unchanged from before, pseudo rules updated) ──────────
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setCreateLoading(true);
@@ -369,13 +390,22 @@ export const UserManagement = () => {
     try {
       const r = await api.post('/api/admin/users/create', createForm);
       setCreateResult({ success: true, ...r.data });
-      setCreateForm({ email: '', password: '', firstName: '', lastName: '', username: '', role: 'user', permissions: [] });
+      setCreateForm({ email: '', password: '', name: '', username: '', role: 'user', permissions: [], custom_roles: [] });
       fetchUsers();
     } catch (err) {
       setCreateResult({ success: false, error: err.response?.data?.detail || 'Failed to create user' });
     } finally {
       setCreateLoading(false);
     }
+  };
+
+  const toggleCreateCustomRole = (roleId) => {
+    setCreateForm(f => ({
+      ...f,
+      custom_roles: (f.custom_roles || []).includes(roleId)
+        ? (f.custom_roles || []).filter(r => r !== roleId)
+        : [...(f.custom_roles || []), roleId],
+    }));
   };
 
   const toggleCreatePermission = (permId) => {
@@ -458,8 +488,9 @@ export const UserManagement = () => {
     const u = activeUser;
     const isSuperAdmin = u.role === 'super_admin';
     const isSelf = currentUser?.id === u.id;
-    const initials = ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || u.username?.[0]?.toUpperCase() || '?';
-    const firstNameDaysLeft = cooldownDaysLeft(u.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS);
+    const displayName = u.name || (u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username);
+    const initials = (u.name?.[0] || u.firstName?.[0] || u.username?.[0] || '?').toUpperCase();
+    const nameDaysLeft = cooldownDaysLeft(u.nameChangedAt || u.firstNameChangedAt, NAME_COOLDOWN_DAYS);
     const pseudoDaysLeft = cooldownDaysLeft(u.usernameChangedAt, PSEUDO_COOLDOWN_DAYS);
 
     return (
@@ -482,11 +513,22 @@ export const UserManagement = () => {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
-                      {u.firstName || u.username} {u.lastName}
+                      {displayName}
                     </h2>
-                    {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5">Super Admin</span>}
-                    {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5">Suspended</span>}
-                    {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5">You</span>}
+                    {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
+                    {u.role === 'admin' && !isSuperAdmin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
+                    {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
+                    {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
+                    {(u.custom_roles || []).map(rId => {
+                      const rObj = customRolesList.find(r => r.id === rId);
+                      const color = rObj?.color || '#4ECDC4';
+                      const rName = rObj?.name || rId;
+                      return (
+                        <span key={rId} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border" style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}>
+                          {rName}
+                        </span>
+                      );
+                    })}
                   </div>
                   <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa]">@{u.username} · {u.email}</p>
                   <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mt-0.5">
@@ -519,27 +561,20 @@ export const UserManagement = () => {
               <form onSubmit={saveProfileField} className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase">First name</label>
-                    {firstNameDaysLeft > 0 && (
-                      <button type="button" onClick={() => resetCooldown('firstName')} disabled={resettingField === 'firstName'}
+                    <label className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase">Name</label>
+                    {nameDaysLeft > 0 && (
+                      <button type="button" onClick={() => resetCooldown('name')} disabled={resettingField === 'name'}
                         className="flex items-center gap-1 text-[10px] font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">
-                        <RotateCcw size={10} className={resettingField === 'firstName' ? 'animate-spin' : ''} />
-                        Reset cooldown ({firstNameDaysLeft}d left)
+                        <RotateCcw size={10} className={resettingField === 'name' ? 'animate-spin' : ''} />
+                        Reset cooldown ({nameDaysLeft}d left)
                       </button>
                     )}
                   </div>
                   <input
-                    type="text" maxLength={50} value={profileForm.firstName}
-                    onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))}
+                    type="text" maxLength={70} value={profileForm.name}
+                    onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
                     className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase mb-1">Last name (optional)</label>
-                  <input
-                    type="text" maxLength={50} value={profileForm.lastName}
-                    onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))}
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                    placeholder="Display name"
                   />
                 </div>
                 <div>
@@ -597,6 +632,50 @@ export const UserManagement = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Assigned Roles */}
+          <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] flex items-center gap-2">
+                <Shield size={14} className="text-[#4ECDC4]" /> Assigned Roles
+              </h3>
+              {customRolesSaving && <Loader2 size={14} className="animate-spin text-[#4ECDC4]" />}
+            </div>
+            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-4">
+              Toggle roles to grant specific permissions and badges to this user.
+            </p>
+            {customRolesList.length === 0 ? (
+              <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">No custom roles created yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {customRolesList.map((role) => {
+                  const isAssigned = (u.custom_roles || []).includes(role.id);
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      disabled={customRolesSaving}
+                      onClick={() => handleToggleCustomRole(role.id)}
+                      style={{
+                        borderColor: isAssigned ? role.color : undefined,
+                        backgroundColor: isAssigned ? `${role.color}18` : undefined,
+                        color: isAssigned ? role.color : undefined,
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all ${
+                        isAssigned
+                          ? 'border-opacity-60 shadow-sm'
+                          : 'border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: role.color }} />
+                      <span>{role.name}</span>
+                      {isAssigned && <span className="ml-1 text-[10px] opacity-80">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Permissions */}
@@ -731,18 +810,11 @@ export const UserManagement = () => {
                           placeholder="auto-generated" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">First name</label>
-                        <input type="text" maxLength={50} value={createForm.firstName}
-                          onChange={e => setCreateForm(f => ({ ...f, firstName: e.target.value }))}
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Name</label>
+                        <input type="text" maxLength={70} value={createForm.name}
+                          onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
                           className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-                          placeholder="Optional" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Last name</label>
-                        <input type="text" maxLength={50} value={createForm.lastName}
-                          onChange={e => setCreateForm(f => ({ ...f, lastName: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-                          placeholder="Optional" />
+                          placeholder="Display name (optional)" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Pseudo (leave blank = auto)</label>
@@ -761,6 +833,35 @@ export const UserManagement = () => {
                         </select>
                       </div>
                     </div>
+                    {customRolesList.length > 0 && (
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">Assigned Roles</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {customRolesList.map(r => {
+                            const isSel = (createForm.custom_roles || []).includes(r.id);
+                            return (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => toggleCreateCustomRole(r.id)}
+                                style={{
+                                  borderColor: isSel ? r.color : undefined,
+                                  backgroundColor: isSel ? `${r.color}20` : undefined,
+                                  color: isSel ? r.color : undefined,
+                                }}
+                                className={`rounded text-[10px] px-2 py-0.5 border transition-colors ${
+                                  isSel
+                                    ? 'font-semibold'
+                                    : 'bg-white dark:bg-[#111118] border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
+                                }`}
+                              >
+                                {r.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">Permissions</label>
                       <div className="flex flex-wrap gap-1.5">
@@ -852,7 +953,8 @@ export const UserManagement = () => {
                   {users.map((u) => {
                     const isSelf = currentUser?.id === u.id;
                     const isSuperAdmin = u.role === 'super_admin';
-                    const initials = ((u.firstName?.[0] || '') + (u.lastName?.[0] || '')).toUpperCase() || u.username?.[0]?.toUpperCase() || '?';
+                    const initials = (u.name?.[0] || u.firstName?.[0] || u.username?.[0] || '?').toUpperCase();
+                    const displayName = u.name || (u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.username);
                     const selectable = !isSuperAdmin && !isSelf;
                     return (
                       <div
@@ -878,13 +980,27 @@ export const UserManagement = () => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] text-sm">
-                              {u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.firstName || u.username)}
+                              {displayName}
                             </span>
                             <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">@{u.username}</span>
-                            {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5">Super Admin</span>}
-                            {u.role === 'admin' && !isSuperAdmin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5">Admin</span>}
-                            {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5">Suspended</span>}
-                            {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5">You</span>}
+                            {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
+                            {u.role === 'admin' && !isSuperAdmin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
+                            {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
+                            {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
+                            {(u.custom_roles || []).map(rId => {
+                              const rObj = customRolesList.find(r => r.id === rId);
+                              const color = rObj?.color || '#4ECDC4';
+                              const rName = rObj?.name || rId;
+                              return (
+                                <span
+                                  key={rId}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded border"
+                                  style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}
+                                >
+                                  {rName}
+                                </span>
+                              );
+                            })}
                           </div>
                           {density !== 'compact' && (
                             <div className="flex items-center gap-1.5 mt-0.5">

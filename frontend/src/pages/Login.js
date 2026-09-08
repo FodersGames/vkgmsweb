@@ -130,7 +130,7 @@ export const Login = () => {
   const [loginLoading, setLoginLoading] = useState(false);
 
   // Register state
-  const [reg, setReg] = useState({ email: '', password: '', firstName: '', lastName: '' });
+  const [reg, setReg] = useState({ email: '', password: '', name: '' });
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
@@ -183,11 +183,10 @@ export const Login = () => {
     e.preventDefault();
     setRegError('');
     const cleanEmail = reg.email.trim().toLowerCase();
-    const cleanFirst = reg.firstName.trim();
-    const cleanLast = reg.lastName.trim();
+    const cleanName = (reg.name || reg.firstName || '').trim();
 
-    if (!cleanFirst) {
-      setRegError('First name is required');
+    if (!cleanName) {
+      setRegError('Name is required');
       return;
     }
     if (!cleanEmail) {
@@ -203,8 +202,7 @@ export const Login = () => {
     const result = await register({
       email: cleanEmail,
       password: reg.password,
-      firstName: cleanFirst,
-      lastName: cleanLast,
+      name: cleanName,
     });
     if (!result.success) {
       setRegLoading(false);
@@ -350,34 +348,18 @@ export const Login = () => {
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
-                        First name
-                      </label>
-                      <InputField
-                        icon={User}
-                        type="text"
-                        placeholder="Jane"
-                        value={reg.firstName}
-                        onChange={e => setReg(r => ({ ...r, firstName: e.target.value }))}
-                        autoComplete="given-name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
-                        Last name <span className="text-[#BFBFC4] normal-case font-normal">(optional)</span>
-                      </label>
-                      <InputField
-                        icon={User}
-                        type="text"
-                        placeholder="Doe"
-                        value={reg.lastName}
-                        onChange={e => setReg(r => ({ ...r, lastName: e.target.value }))}
-                        autoComplete="family-name"
-                        required={false}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                      Name
+                    </label>
+                    <InputField
+                      icon={User}
+                      type="text"
+                      placeholder="Jane Doe"
+                      value={reg.name}
+                      onChange={e => setReg(r => ({ ...r, name: e.target.value }))}
+                      autoComplete="name"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">

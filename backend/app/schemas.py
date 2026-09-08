@@ -281,6 +281,7 @@ class StudioAppReviewDecisionRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    name: Optional[str] = ""
     firstName: Optional[str] = ""
     lastName: Optional[str] = ""
     username: Optional[str] = ""
@@ -302,7 +303,8 @@ class CliExecuteRequest(BaseModel):
     confirm: bool = False
 
 class UpdateProfileRequest(BaseModel):
-    firstName: str
+    name: Optional[str] = ""
+    firstName: Optional[str] = ""
     lastName: Optional[str] = ""
     username: str
 
@@ -310,12 +312,13 @@ class SetPseudoRequest(BaseModel):
     username: str
 
 class AdminUpdateUserProfileRequest(BaseModel):
+    name: Optional[str] = None
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     username: Optional[str] = None
 
 class ResetCooldownRequest(BaseModel):
-    field: Literal["firstName", "username"]
+    field: Literal["name", "firstName", "username"]
 
 class UpdateUserRoleRequest(BaseModel):
     role: Literal["user", "admin", "super_admin"]
@@ -329,14 +332,33 @@ class UpdateUserRoleRequest(BaseModel):
                 raise ValueError(f"Invalid permission: {p}")
         return perms
 
+class UpdateUserCustomRolesRequest(BaseModel):
+    custom_roles: List[str] = []
+
+class RoleCreateRequest(BaseModel):
+    name: str
+    color: str = "#4ECDC4"
+    icon: str = "Shield"
+    permissions: List[str] = []
+    description: Optional[str] = ""
+
+class RoleUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    permissions: Optional[List[str]] = None
+    description: Optional[str] = None
+
 class AdminCreateUserRequest(BaseModel):
     email: str
     password: Optional[str] = ""
+    name: Optional[str] = ""
     firstName: Optional[str] = ""
     lastName: Optional[str] = ""
     username: Optional[str] = ""
     role: Literal["user", "admin"] = "user"
     permissions: List[str] = []
+    custom_roles: List[str] = []
 
 class VersionCloneRequest(BaseModel):
     new_tag: str

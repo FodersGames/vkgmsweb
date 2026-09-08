@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import {
-  User, Lock, SignOut, Ticket, Eye, EyeSlash,
+  User, Lock, SignOut, Eye, EyeSlash,
   CheckCircle, Warning, PencilSimple, X,
   FloppyDisk, SquaresFour, Camera, CircleNotch,
-  PaperPlaneTilt, CaretDown, CaretUp, ArrowSquareOut,
+  Crown, ShieldCheck, Sparkle, GameController, Code,
+  Terminal, Heart, Lightning, Flame, Trophy,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
-const FIRSTNAME_COOLDOWN_DAYS = 30;
+const NAME_COOLDOWN_DAYS = 30;
 
 /* ─── Style helpers ────────────────────────────────────────────────────── */
 const inputDark = {
@@ -31,6 +32,30 @@ const cardDark = {
   backgroundColor: '#111111',
   border: '1px solid rgba(255,255,255,0.06)',
   padding: '1.5rem',
+};
+
+/* ─── Role Icon Resolver ───────────────────────────────────────────────── */
+const ROLE_ICON_MAP = {
+  Crown,
+  Shield: ShieldCheck,
+  ShieldCheck,
+  Sparkle,
+  Sparkles: Sparkle,
+  Gamepad2: GameController,
+  GameController,
+  Code,
+  Terminal,
+  Heart,
+  Zap: Lightning,
+  Lightning,
+  Flame,
+  Fire: Flame,
+  Trophy,
+  Award: Trophy,
+};
+
+const getRoleIcon = (iconName) => {
+  return ROLE_ICON_MAP[iconName] || ShieldCheck;
 };
 
 /* ─── Sub-components ─────────────────────────────────────────────────── */
@@ -110,12 +135,6 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
   return Math.max(0, remaining);
 };
 
-const TABS = [
-  { id: 'account',  label: 'Account',  icon: User },
-  { id: 'security', label: 'Security', icon: Lock },
-  { id: 'tickets',  label: 'Tickets',  icon: Ticket },
-];
-
 /* ─── Main Profile component ─────────────────────────────────────────── */
 const Profile = () => {
   const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser, loading: authLoading } = useAuth();
@@ -125,23 +144,15 @@ const Profile = () => {
   const [avatarError, setAvatarError] = useState('');
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('account');
-
-  const [tickets, setTickets] = useState([]);
-  const [openTicketsCount, setOpenTicketsCount] = useState(0);
-  const [ticketsLoading, setTicketsLoading] = useState(false);
-  const [expandedTicket, setExpandedTicket] = useState(null);
-  const [ticketReply, setTicketReply] = useState('');
-  const [sendingTicketReply, setSendingTicketReply] = useState(false);
-  const [ticketReplyError, setTicketReplyError] = useState('');
-
   const [editingProfile, setEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
-  const firstNameDaysLeft = user ? cooldownDaysLeft(user.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS) : 0;
+  const [profileForm, setProfileForm] = useState({ name: '', username: '' });
+  const nameDaysLeft = user ? cooldownDaysLeft(user.nameChangedAt || user.firstNameChangedAt, NAME_COOLDOWN_DAYS) : 0;
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Password change state
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -149,59 +160,23 @@ const Profile = () => {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
-  const fetchTickets = useCallback(async () => {
-    if (!token) return;
-    setTicketsLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}/api/tickets/mine`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const list = res.data.tickets || [];
-      setTickets(list);
-      setOpenTicketsCount(res.data.open_count ?? list.filter(t => t.status !== 'closed').length);
-    } catch {
-      // silent
-    } finally {
-      setTicketsLoading(false);
-    }
-  }, [token]);
-
   useEffect(() => {
     document.title = 'My Account — Vakar Games';
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
-    setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
-    fetchTickets();
-  }, [user, authLoading, fetchTickets]);
-
-  const handleTicketReply = async (e, ticketNumber) => {
-    e.preventDefault();
-    if (!ticketReply.trim() || !token) return;
-    setSendingTicketReply(true);
-    setTicketReplyError('');
-    try {
-      await axios.post(`${API_URL}/api/tickets/${ticketNumber}/reply`, { content: ticketReply }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTicketReply('');
-      const r = await axios.get(`${API_URL}/api/tickets/${ticketNumber}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setExpandedTicket(r.data.ticket);
-      fetchTickets();
-    } catch (err) {
-      setTicketReplyError(err.response?.data?.detail || 'Failed to send reply');
-    } finally {
-      setSendingTicketReply(false);
-    }
-  };
+    const currentName = user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '');
+    setProfileForm({ name: currentName, username: user.username || '' });
+  }, [user, authLoading, navigate]);
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setProfileError('');
     setProfileSuccess(false);
     setProfileLoading(true);
-    const result = await updateProfile(profileForm);
+    const result = await updateProfile({
+      name: profileForm.name.trim(),
+      username: profileForm.username.trim(),
+    });
     setProfileLoading(false);
     if (result.success) {
       setProfileSuccess(true);
@@ -215,21 +190,34 @@ const Profile = () => {
   const handleProfileCancel = () => {
     setEditingProfile(false);
     setProfileError('');
-    setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
+    const currentName = user?.name || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '');
+    setProfileForm({ name: currentName, username: user?.username || '' });
   };
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPwError('');
     setPwSuccess(false);
-    if (newPw !== confirmPw) { setPwError('Passwords do not match'); return; }
+    if (!newPw || newPw.length < 8) {
+      setPwError('New password must be at least 8 characters');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwError('Passwords do not match');
+      return;
+    }
     setPwLoading(true);
     const result = await changePassword({ currentPassword: currentPw, newPassword: newPw });
     setPwLoading(false);
     if (result.success) {
       setPwSuccess(true);
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
-      setTimeout(() => setPwSuccess(false), 4000);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setTimeout(() => {
+        setPwSuccess(false);
+        setShowPasswordChange(false);
+      }, 3000);
     } else {
       setPwError(result.error);
     }
@@ -258,6 +246,7 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
       });
       await refreshUser();
+      setAvatarPreview(null);
     } catch {
       setAvatarError('Upload failed. Please try again.');
       setAvatarPreview(null);
@@ -270,8 +259,10 @@ const Profile = () => {
 
   if (authLoading || !user) return null;
 
-  const initials = ((user.firstName?.[0] || '') + (user.lastName?.[0] || '')).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
-  const displayName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;
+  const displayName = user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '') || user.username;
+  const initials = (displayName[0] || user.username?.[0] || '?').toUpperCase();
+
+  const customRoles = (user.roles || []).filter(r => !r.is_system);
 
   return (
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -283,6 +274,103 @@ const Profile = () => {
         <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
           <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
+            {/* Roles / Badges DISPLAYED ABOVE THE PROFILE PHOTO */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+              {user.is_super_admin && (
+                <div
+                  title="Super Admin"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(78,205,196,0.12)',
+                    border: '1px solid rgba(78,205,196,0.3)',
+                    color: '#4ECDC4',
+                    cursor: 'default',
+                    transition: 'transform 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <Crown size={16} weight="bold" />
+                </div>
+              )}
+              {!user.is_super_admin && (user.role === 'admin' || user.permissions?.includes('manage_users')) && (
+                <div
+                  title="Admin"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(59,130,246,0.12)',
+                    border: '1px solid rgba(59,130,246,0.3)',
+                    color: '#3B82F6',
+                    cursor: 'default',
+                    transition: 'transform 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <ShieldCheck size={16} weight="bold" />
+                </div>
+              )}
+              {user.is_vakar_plus && (
+                <div
+                  title="Vakar+ Member"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(245,158,11,0.12)',
+                    border: '1px solid rgba(245,158,11,0.3)',
+                    color: '#F59E0B',
+                    cursor: 'default',
+                    transition: 'transform 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <Sparkle size={16} weight="fill" />
+                </div>
+              )}
+              {/* Custom roles badges: icon only, text on hover */}
+              {customRoles.map(role => {
+                const IconComponent = getRoleIcon(role.icon);
+                return (
+                  <div
+                    key={role.id}
+                    title={role.name}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '6px',
+                      backgroundColor: `${role.color}15`,
+                      border: `1px solid ${role.color}40`,
+                      color: role.color,
+                      cursor: 'default',
+                      transition: 'transform 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <IconComponent size={16} weight="bold" />
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Avatar */}
             <div
               style={{ position: 'relative', cursor: 'pointer', marginBottom: '1.25rem' }}
@@ -290,10 +378,10 @@ const Profile = () => {
               title="Change avatar"
             >
               <div style={{
-                width: '80px', height: '80px',
+                width: '86px', height: '86px',
                 border: '2px solid rgba(255,255,255,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.5rem', fontWeight: 900, color: '#4ECDC4',
+                fontSize: '1.75rem', fontWeight: 900, color: '#4ECDC4',
                 backgroundColor: '#1A1A1A', overflow: 'hidden',
               }}>
                 {avatarPreview || user.avatar_url ? (
@@ -315,25 +403,20 @@ const Profile = () => {
                 onMouseLeave={e => e.currentTarget.style.opacity = '0'}
               >
                 {avatarUploading
-                  ? <CircleNotch size={16} className="animate-spin" style={{ color: '#FFFFFF' }} />
-                  : <Camera size={16} style={{ color: '#FFFFFF' }} />
+                  ? <CircleNotch size={18} className="animate-spin" style={{ color: '#FFFFFF' }} />
+                  : <Camera size={18} style={{ color: '#FFFFFF' }} />
                 }
               </div>
               <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.svg" style={{ display: 'none' }} onChange={handleAvatarChange} />
             </div>
 
-            {/* Name + badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '0.25rem' }}>
-              <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0 }}>
-                {displayName}
-              </h1>
-              {user.is_super_admin && (
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4ECDC4', border: '1px solid rgba(78,205,196,0.3)', padding: '0.1rem 0.5rem' }}>
-                  Super Admin
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email}</p>
+            {/* Display Name */}
+            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0, marginBottom: '0.25rem' }}>
+              {displayName}
+            </h1>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+              @{user.username} • {user.email}
+            </p>
 
             {/* Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -369,147 +452,143 @@ const Profile = () => {
           </div>
         )}
 
-        {/* ── Tabs ────────────────────────────────────────────────── */}
-        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '1.5rem 1.5rem 0' }}>
-          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                style={{
-                  position: 'relative',
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem',
-                  padding: '0.75rem 0.5rem',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: activeTab === id ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
-                  borderBottom: activeTab === id ? '2px solid #4ECDC4' : '2px solid transparent',
-                  marginBottom: '-1px',
-                  transition: 'color 0.2s',
-                }}
-              >
-                <Icon size={12} />
-                {label}
-                {id === 'tickets' && openTicketsCount > 0 && (
-                  <span style={{ position: 'absolute', top: '8px', right: '6px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#4ECDC4', color: '#000', fontSize: '8px', fontWeight: 900 }}>
-                    {openTicketsCount}/5
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* ── Main Content ────────────────────────────────────────── */}
+        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-        {/* ── Tab content ─────────────────────────────────────────── */}
-        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '1.5rem' }}>
-
-          {/* ACCOUNT TAB */}
-          {activeTab === 'account' && (
-            <div style={cardDark}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <User size={14} style={{ color: '#4ECDC4' }} />
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Account Details</h2>
-                </div>
-                {!editingProfile && (
-                  <button
-                    onClick={() => setEditingProfile(true)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                  >
-                    <PencilSimple size={10} /> Edit
-                  </button>
-                )}
+          {/* 1. ACCOUNT DETAILS CARD */}
+          <div style={cardDark}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <User size={15} style={{ color: '#4ECDC4' }} />
+                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
+                  Account Details
+                </h2>
               </div>
-
-              {editingProfile ? (
-                <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <TextField
-                      label="First Name" value={profileForm.firstName}
-                      onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))}
-                      placeholder="Jane" autoComplete="given-name"
-                      disabled={firstNameDaysLeft > 0}
-                      hint={firstNameDaysLeft > 0 ? `Changeable again in ${firstNameDaysLeft} day${firstNameDaysLeft !== 1 ? 's' : ''}.` : null}
-                    />
-                    <TextField
-                      label="Last Name" value={profileForm.lastName}
-                      onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))}
-                      placeholder="Doe" autoComplete="family-name" required={false}
-                    />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
-                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
-                  </div>
-                  {profileError && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
-                      <Warning size={12} style={{ flexShrink: 0 }} />{profileError}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
-                    <button
-                      type="submit"
-                      disabled={profileLoading}
-                      className="btn-kefir"
-                      style={{ opacity: profileLoading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                      <FloppyDisk size={12} />
-                      {profileLoading ? 'Saving…' : 'Save Changes'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleProfileCancel}
-                      className="btn-kefir-outline"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                    >
-                      <X size={12} /> Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  {profileSuccess && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem', marginBottom: '1rem' }}>
-                      <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
-                    </div>
-                  )}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    {[
-                      { label: 'First Name', value: user.firstName || '—' },
-                      { label: 'Last Name',  value: user.lastName  || '—' },
-                      { label: 'Username',   value: user.username  || '—' },
-                      { label: 'Email',      value: user.email },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
-                        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
-                        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all' }}>{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </>
+              {!editingProfile && (
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                >
+                  <PencilSimple size={10} /> Edit
+                </button>
               )}
             </div>
-          )}
 
-          {/* SECURITY TAB */}
-          {activeTab === 'security' && (
-            <div style={cardDark}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                <Lock size={14} style={{ color: '#4ECDC4' }} />
-                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Change Password</h2>
+            {editingProfile ? (
+              <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <TextField
+                  label="Name"
+                  value={profileForm.name}
+                  onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Your Name"
+                  autoComplete="name"
+                  disabled={nameDaysLeft > 0}
+                  hint={nameDaysLeft > 0 ? `Changeable again in ${nameDaysLeft} day${nameDaysLeft !== 1 ? 's' : ''}.` : null}
+                />
+                <TextField
+                  label="Pseudo (Username)"
+                  value={profileForm.username}
+                  onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))}
+                  placeholder="username"
+                  autoComplete="username"
+                />
+                <div>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
+                </div>
+                {profileError && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
+                    <Warning size={12} style={{ flexShrink: 0 }} />{profileError}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
+                  <button
+                    type="submit"
+                    disabled={profileLoading}
+                    className="btn-kefir"
+                    style={{ opacity: profileLoading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <FloppyDisk size={12} />
+                    {profileLoading ? 'Saving…' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleProfileCancel}
+                    className="btn-kefir-outline"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <X size={12} /> Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {profileSuccess && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem', marginBottom: '1rem' }}>
+                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  {[
+                    { label: 'Name',     value: displayName },
+                    { label: 'Username', value: user.username || '—' },
+                    { label: 'Email',    value: user.email },
+                    { label: 'Status',   value: user.is_super_admin ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Player') },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all', margin: 0 }}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 2. PASSWORD & SECURITY CARD (IN ACCOUNT DETAILS) */}
+          <div style={cardDark}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPasswordChange ? '1.25rem' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Lock size={15} style={{ color: '#4ECDC4' }} />
+                <div>
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
+                    Password & Security
+                  </h2>
+                  {!showPasswordChange && (
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', margin: 0, marginTop: '0.2rem' }}>
+                      Keep your account secure by updating your password regularly.
+                    </p>
+                  )}
+                </div>
               </div>
-              <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => { setShowPasswordChange(s => !s); setPwError(''); }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: showPasswordChange ? 'rgba(255,255,255,0.5)' : '#4ECDC4',
+                  border: `1px solid ${showPasswordChange ? 'rgba(255,255,255,0.15)' : 'rgba(78,205,196,0.3)'}`,
+                  padding: '0.35rem 0.75rem',
+                  background: 'none',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  marginLeft: '0.75rem',
+                }}
+              >
+                {showPasswordChange ? 'Cancel' : 'Change Password'}
+              </button>
+            </div>
+
+            {showPasswordChange && (
+              <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '0.5rem' }}>
                 <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
                 <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
                 <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
@@ -520,7 +599,7 @@ const Profile = () => {
                 )}
                 {pwSuccess && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem' }}>
-                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated.
+                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated successfully.
                   </div>
                 )}
                 <button
@@ -529,189 +608,11 @@ const Profile = () => {
                   className="btn-kefir"
                   style={{ opacity: pwLoading ? 0.6 : 1, marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
                 >
-                  {pwLoading ? 'Saving…' : 'Update Password'}
+                  {pwLoading ? 'Updating…' : 'Save New Password'}
                 </button>
               </form>
-            </div>
-          )}
-
-          {/* TICKETS TAB */}
-          {activeTab === 'tickets' && (
-            <div style={cardDark}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Ticket size={14} style={{ color: '#4ECDC4' }} />
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
-                    Mes Tickets ({openTicketsCount}/5 ouverts)
-                  </h2>
-                </div>
-                <Link
-                  to="/contact"
-                  style={{
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: openTicketsCount >= 5 ? 'rgba(255,255,255,0.25)' : '#4ECDC4',
-                    pointerEvents: openTicketsCount >= 5 ? 'none' : 'auto',
-                    textDecoration: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <PaperPlaneTilt size={11} />
-                  Nouveau ticket
-                </Link>
-              </div>
-
-              {openTicketsCount >= 5 && (
-                <div style={{ padding: '0.75rem', marginBottom: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#F87171', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Ticket ouvert maximum atteint (5/5). Vous avez atteint la limite de 5 tickets ouverts simultanés.
-                </div>
-              )}
-
-              {ticketsLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {[1,2,3].map(i => (
-                    <div key={i} style={{ height: '48px', backgroundColor: '#1A1A1A', animation: 'pulse 1.5s ease-in-out infinite' }} />
-                  ))}
-                </div>
-              ) : tickets.length === 0 ? (
-                <div style={{ padding: '2.5rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-                  <p style={{ margin: '0 0 1rem' }}>Vous n'avez aucun ticket de support pour le moment.</p>
-                  <Link to="/contact" className="btn-kefir" style={{ display: 'inline-flex', fontSize: '0.7rem', padding: '0.5rem 1rem' }}>
-                    Ouvrir un ticket
-                  </Link>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {tickets.map(t => {
-                    const isOpen = expandedTicket?.ticket_number === t.ticket_number;
-                    const isClosed = t.status === 'closed';
-                    const activeTicketObj = isOpen ? (expandedTicket || t) : t;
-                    const statusColor = t.status === 'open' ? '#4ECDC4' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
-                    const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
-
-                    return (
-                      <div
-                        key={t.id || t.ticket_number}
-                        style={{
-                          backgroundColor: '#0D0D0D',
-                          border: `1px solid ${isOpen ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                          transition: 'border-color 0.2s',
-                        }}
-                      >
-                        <div
-                          onClick={() => {
-                            if (isOpen) {
-                              setExpandedTicket(null);
-                            } else {
-                              setExpandedTicket(t);
-                            }
-                          }}
-                          style={{
-                            padding: '0.75rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                              <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', fontWeight: 700, color: '#4ECDC4' }}>{t.ticket_number}</span>
-                              <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>• {t.category}</span>
-                              <span style={{
-                                fontSize: '0.6rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                backgroundColor: `${statusColor}18`,
-                                color: statusColor,
-                                marginLeft: 'auto',
-                                marginRight: '0.5rem',
-                              }}>
-                                {statusLabel}
-                              </span>
-                            </div>
-                            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#FFFFFF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {t.subject}
-                            </p>
-                          </div>
-                          <div style={{ color: 'rgba(255,255,255,0.3)', paddingLeft: '0.5rem' }}>
-                            {isOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}
-                          </div>
-                        </div>
-
-                        {isOpen && (
-                          <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '0.25rem', paddingTop: '0.75rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '240px', overflowY: 'auto', marginBottom: '0.75rem' }}>
-                              {(activeTicketObj.messages || []).map((m, i) => {
-                                const isUser = m.sender === 'user';
-                                return (
-                                  <div
-                                    key={i}
-                                    style={{
-                                      padding: '0.6rem 0.8rem',
-                                      backgroundColor: isUser ? '#141414' : 'rgba(78,205,196,0.08)',
-                                      border: `1px solid ${isUser ? 'rgba(255,255,255,0.06)' : 'rgba(78,205,196,0.2)'}`,
-                                      alignSelf: isUser ? 'flex-start' : 'flex-end',
-                                      maxWidth: '90%',
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: isUser ? '#FFFFFF' : '#4ECDC4' }}>
-                                        {m.author_name || (isUser ? 'Vous' : 'Support')}
-                                      </span>
-                                      <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.25)' }}>
-                                        {m.timestamp ? new Date(m.timestamp).toLocaleDateString() : ''}
-                                      </span>
-                                    </div>
-                                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
-                                      {m.content}
-                                    </p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {!isClosed ? (
-                              <form onSubmit={(e) => handleTicketReply(e, t.ticket_number)} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <textarea
-                                  rows={2}
-                                  value={ticketReply}
-                                  onChange={e => setTicketReply(e.target.value)}
-                                  placeholder="Répondre à ce ticket..."
-                                  style={{ ...inputDark, fontSize: '0.75rem', resize: 'none' }}
-                                />
-                                {ticketReplyError && <p style={{ fontSize: '0.65rem', color: '#F87171', margin: 0 }}>{ticketReplyError}</p>}
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                  <button
-                                    type="submit"
-                                    disabled={sendingTicketReply || !ticketReply.trim()}
-                                    className="btn-kefir"
-                                    style={{ fontSize: '0.65rem', padding: '0.4rem 0.8rem', opacity: (sendingTicketReply || !ticketReply.trim()) ? 0.5 : 1 }}
-                                  >
-                                    {sendingTicketReply ? 'Envoi...' : 'Envoyer la réponse'}
-                                  </button>
-                                </div>
-                              </form>
-                            ) : (
-                              <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', margin: 0, textAlign: 'center', fontStyle: 'italic' }}>
-                                Ce ticket est résolu / fermé.
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
       </div>

@@ -16,7 +16,7 @@ const inputStyle = {
 };
 
 function ApplyModal({ career, onClose, token, user }) {
-  const [name, setName] = useState(user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '');
+  const [name, setName] = useState(user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '') : '');
   const [email, setEmail] = useState(user?.email || '');
   const [portfolio, setPortfolio] = useState('');
   const [cover, setCover] = useState('');

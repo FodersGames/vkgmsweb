@@ -6,9 +6,7 @@ import { SavedFlash, useSavedFlash } from '../ui';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
-// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/FIRSTNAME_COOLDOWN_DAYS —
-// client-side only for the disabled-field hint; the backend is authoritative.
-const FIRSTNAME_COOLDOWN_DAYS = 30;
+const NAME_COOLDOWN_DAYS = 30;
 const PSEUDO_COOLDOWN_DAYS = 7;
 
 const cooldownDaysLeft = (changedAt, cooldownDays) => {
@@ -20,13 +18,12 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
 
 export const AccountSettings = () => {
   const { user, token, refreshUser } = useAuth();
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [name, setName] = useState(user?.name || user?.firstName || '');
   const [username, setUsername] = useState(user?.username || '');
   const [saving, setSaving] = useState(false);
   const [success, flashSuccess] = useSavedFlash(3000);
   const [error, setError] = useState('');
-  const firstNameDaysLeft = cooldownDaysLeft(user?.firstNameChangedAt, FIRSTNAME_COOLDOWN_DAYS);
+  const nameDaysLeft = cooldownDaysLeft(user?.nameChangedAt || user?.firstNameChangedAt, NAME_COOLDOWN_DAYS);
   const pseudoDaysLeft = cooldownDaysLeft(user?.usernameChangedAt, PSEUDO_COOLDOWN_DAYS);
 
   const handleSubmit = async (e) => {
@@ -36,7 +33,7 @@ export const AccountSettings = () => {
     try {
       await axios.patch(
         `${API_URL}/api/auth/profile`,
-        { firstName, lastName, username },
+        { name, username },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       flashSuccess();
@@ -48,6 +45,8 @@ export const AccountSettings = () => {
     }
   };
 
+  const initials = ((user?.name?.[0] || user?.firstName?.[0] || user?.username?.[0] || '?')).toUpperCase();
+
   return (
     <div className="max-w-lg">
       <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">MY ACCOUNT</h2>
@@ -57,43 +56,33 @@ export const AccountSettings = () => {
         <div className="flex items-center gap-3 pb-4 mb-6 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
           <div className="rounded-lg w-10 h-10 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-bold text-[#6E6E73] dark:text-[#a1a1aa]">
-              {(user?.firstName?.[0] || user?.username?.[0] || '?').toUpperCase()}
+              {initials}
             </span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{user?.firstName} {user?.lastName}</p>
+            <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{user?.name || user?.firstName || user?.username}</p>
             <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">@{user?.username} · {user?.email}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">First name</label>
-              <input
-                type="text"
-                required
-                maxLength={50}
-                value={firstName}
-                disabled={firstNameDaysLeft > 0}
-                onChange={e => setFirstName(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              {firstNameDaysLeft > 0 && (
-                <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Changeable again in {firstNameDaysLeft} day{firstNameDaysLeft !== 1 ? 's' : ''}.</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Last name <span className="text-[#A1A1A6] font-normal normal-case">(optional)</span></label>
-              <input
-                type="text"
-                maxLength={50}
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Name</label>
+            <input
+              type="text"
+              required
+              maxLength={70}
+              value={name}
+              disabled={nameDaysLeft > 0}
+              onChange={e => setName(e.target.value)}
+              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
+              placeholder="Your display name"
+            />
+            {nameDaysLeft > 0 && (
+              <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Changeable again in {nameDaysLeft} day{nameDaysLeft !== 1 ? 's' : ''}.</p>
+            )}
           </div>
+
           <div>
             <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Pseudo</label>
             <input

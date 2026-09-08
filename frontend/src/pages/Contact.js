@@ -48,7 +48,7 @@ const Contact = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
 
-  const limitReached = openCount >= 5;
+  const limitReached = openCount >= 3;
 
   useEffect(() => { document.title = 'Contact — Vakar Games'; }, []);
 
@@ -103,7 +103,7 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (limitReached) {
-      setError('Ticket ouvert maximum atteint (5/5).');
+      setError('Ticket ouvert maximum atteint (3/3).');
       return;
     }
     setSending(true);
@@ -199,7 +199,7 @@ const Contact = () => {
                       color: limitReached ? '#F87171' : '#4ECDC4',
                     }}
                   >
-                    {openCount}/5
+                    {openCount}/3
                   </span>
                 </button>
               )}
@@ -229,7 +229,7 @@ const Contact = () => {
                       className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide mb-4"
                       style={{ color: '#4ECDC4', fontSize: '0.7rem' }}
                     >
-                      <Ticket size={14} /> Voir mes tickets ({openCount}/5)
+                      <Ticket size={14} /> Voir mes tickets ({openCount}/3)
                     </button>
                   )}
                   <button
@@ -253,7 +253,7 @@ const Contact = () => {
                     </h2>
                     {token && (
                       <span className="text-xs font-mono" style={{ color: limitReached ? '#F87171' : 'rgba(255,255,255,0.4)' }}>
-                        Tickets ouverts: {openCount}/5
+                        Tickets ouverts: {openCount}/3
                       </span>
                     )}
                   </div>
@@ -261,10 +261,10 @@ const Contact = () => {
                   {limitReached && (
                     <div className="p-4 mb-6 bg-red-500/10 border border-red-500/30 text-red-400">
                       <div className="flex items-center gap-2 font-bold uppercase text-xs tracking-wider mb-1">
-                        <Warning size={16} /> Ticket ouvert maximum atteint ({openCount}/5)
+                        <Warning size={16} /> Ticket ouvert maximum atteint ({openCount}/3)
                       </div>
                       <p className="text-xs text-red-300/80 leading-relaxed">
-                        Vous avez atteint la limite de 5 tickets ouverts simultanés. Veuillez attendre la résolution d'un de vos tickets avant d'en créer un nouveau.
+                        Vous avez atteint la limite de 3 tickets ouverts simultanés. Veuillez attendre la résolution d'un de vos tickets avant d'en créer un nouveau.
                       </p>
                       <button
                         type="button"
@@ -368,7 +368,7 @@ const Contact = () => {
                       Mes Tickets Ouverts
                     </h2>
                     <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      Tickets actifs: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/5</strong>
+                      Tickets actifs: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
                     </p>
                   </div>
                   <button
@@ -384,7 +384,7 @@ const Contact = () => {
 
                 {limitReached && (
                   <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
-                    Ticket ouvert maximum atteint ({openCount}/5).
+                    Ticket ouvert maximum atteint ({openCount}/3).
                   </div>
                 )}
 
