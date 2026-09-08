@@ -12,25 +12,21 @@ import GamesPage from './pages/Games';
 import { BlogList, BlogPost } from './pages/Blog';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
-import Shop from './pages/Shop';
-import ShopSuccess from './pages/ShopSuccess';
-import GameShop from './pages/GameShop';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
-import ChoosePseudo from './pages/ChoosePseudo';
 import MaintenancePage, { useMaintenanceCheck, MaintenanceCountdownBanner } from './pages/Maintenance';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
 import './App.css';
 
 const NotFound = () => (
-  <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-center">
+  <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center p-6 text-center text-white">
     <div>
-      <p className="text-8xl font-black text-[#1D1D1F] mb-2">404</p>
-      <h1 className="text-xl font-bold text-[#1D1D1F] mb-2">Page not found</h1>
-      <p className="text-sm text-[#6E6E73] mb-8">This page doesn't exist or has been moved.</p>
-      <a href="/" className="rounded-full inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white text-sm font-semibold transition-colors">
+      <p className="text-8xl font-black text-white/20 mb-2">404</p>
+      <h1 className="text-xl font-bold uppercase tracking-wide text-white mb-2">Page not found</h1>
+      <p className="text-sm text-white/40 mb-8">This page doesn't exist or has been moved.</p>
+      <a href="/" className="btn-kefir">
         Back to homepage
       </a>
     </div>
@@ -50,27 +46,32 @@ const AppRoutes = () => {
     <>
       <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
+        {/* Main studio showcase routes */}
         <Route path="/" element={<Home />} />
         <Route path="/games" element={<GamesPage />} />
-        <Route path="/applications" element={<Navigate to="/games" replace />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/shop/success" element={<ShopSuccess />} />
-        <Route path="/shop/:gameSlug" element={<GameShop />} />
-        <Route path="/shop/:gameSlug/success" element={<ShopSuccess legacy />} />
+
+        {/* User & Admin */}
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/play" element={<Navigate to="/games" replace />} />
+        <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
+
+        {/* Legacy redirects */}
+        <Route path="/applications" element={<Navigate to="/games" replace />} />
         <Route path="/apps/:appId" element={<Navigate to="/games" replace />} />
+        <Route path="/play" element={<Navigate to="/games" replace />} />
+        <Route path="/shop" element={<Navigate to="/games" replace />} />
+        <Route path="/shop/*" element={<Navigate to="/games" replace />} />
         <Route path="/vakar-plus" element={<Navigate to="/" replace />} />
         <Route path="/my-apps" element={<Navigate to="/" replace />} />
-        <Route path="/choose-pseudo" element={<ChoosePseudo />} />
-        <Route path="/careers" element={<Careers />} />
-        <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
+        <Route path="/choose-pseudo" element={<Navigate to="/" replace />} />
+
+        {/* Catch-all 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
@@ -80,8 +81,6 @@ const AppRoutes = () => {
 function App() {
   return (
     <ErrorBoundary>
-      {/* Phosphor's default weight for the whole app — public pages use it for
-          every icon; the admin dashboard keeps lucide-react untouched. */}
       <IconContext.Provider value={{ weight: 'regular' }}>
         <ThemeProvider>
           <AuthProvider>

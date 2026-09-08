@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, Warning, Users } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { Reveal } from '../components/Reveal';
 import { PublicButton } from '../ui/PublicButton';
 import { ToolIcon, TOOL_LABELS, DEPARTMENTS, departmentColor } from '../constants/careers';
 import { useAuth } from '../context/AuthContext';
@@ -184,7 +183,7 @@ export default function Careers() {
 
       {/* Hero */}
       <section className="bg-white border-b border-[#D2D2D7] px-6 md:px-10 lg:px-16 pt-[84px] pb-14">
-        <Reveal className="max-w-screen-xl mx-auto">
+        <div className="max-w-screen-xl mx-auto">
           <p className="text-[12px] font-mono text-[#4ECDC4] mb-4">// join the company</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
@@ -206,7 +205,7 @@ export default function Careers() {
               </div>
             )}
           </div>
-        </Reveal>
+        </div>
       </section>
 
       <main className="flex-1 max-w-screen-xl mx-auto w-full px-6 md:px-10 lg:px-16 py-12">
@@ -253,7 +252,7 @@ export default function Careers() {
             {filtered.map(c => {
               const color = departmentColor(c.department);
               return (
-                <Reveal key={c._id} className="rounded-xl liquid-glass liquid-glass-interactive overflow-hidden" as="div">
+                <div key={c._id} className="rounded-xl liquid-glass liquid-glass-interactive overflow-hidden">
                   <button className="w-full text-left px-6 py-5" onClick={() => setExpanded(expanded === c._id ? null : c._id)}>
                     <div className="flex items-start gap-4">
                       <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -320,7 +319,7 @@ export default function Careers() {
                       </div>
                     </div>
                   )}
-                </Reveal>
+                </div>
               );
             })}
           </div>

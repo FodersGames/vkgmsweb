@@ -1,34 +1,23 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { ProjectProvider, useProject } from '../context/ProjectContext';
 import { Link } from 'react-router-dom';
 import {
-  Users, Activity, FileText, Database, LogOut,
+  Users, Activity, FileText, LogOut,
   Gamepad2, Settings, PenTool,
-  MessageSquare, Menu, X, ShoppingBag, ClipboardList, LayoutDashboard,
-  ArrowRight, Home, Ticket, UserCircle, Tag, HardDrive, Server,
+  Menu, X, LayoutDashboard,
+  Home, Ticket, UserCircle, Server,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
-import { ServerStatus }        from '../components/ServerStatus';
-import { LogsViewer }          from '../components/LogsViewer';
-import { VariablesManagement } from '../components/VariablesManagement';
 import { DashboardOverview }   from '../components/DashboardOverview';
-import { ProjectManagement }   from '../components/ProjectManagement';
 import { GamesManagement }     from '../components/GamesManagement';
 import { BlogManagement }      from '../components/BlogManagement';
-import { ChatManagement }      from '../components/ChatManagement';
 import { GlobalManagement }    from '../components/GlobalManagement';
 import { Health }              from '../components/Health';
-import { ShopManagement }      from '../components/ShopManagement';
-import { MissionsManagement }  from '../components/MissionsManagement';
-import { FilesManagement }     from '../components/FilesManagement';
 import { VpsStats }            from '../components/VpsStats';
 import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
-import { CouponManagement }    from '../components/CouponManagement';
-import { PlayersManagement }   from '../components/PlayersManagement';
 import CareersManagement      from '../components/CareersManagement';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
@@ -36,20 +25,6 @@ import { NotificationBell }   from '../components/NotificationBell';
 import CriticalActionBanner   from '../components/CriticalActionBanner';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
-// Each top-level item is either a single view, or a workspace that owns its
-// own internal tab bar (see *_SUBTABS below) — collapsing what used to be 8
-// separate "Studio" entries down to one "Projects" workspace, etc.
-//
-// Vakar Studio pivot: the old games business (storefront catalog, shop,
-// coupons) and the legacy per-game server-ops tooling ("Projects" —
-// variables/missions/chat/files/players for db.projects entities) are
-// intentionally NOT listed here anymore — Studio App Builder is the one
-// product now. Nothing was deleted: GamesManagement/ShopWorkspace/
-// ProjectWorkspace and their routes/data all still work, they're just no
-// longer reachable via the sidebar or the ⌘K command palette (which derives
-// its entries from this same array). A direct URL/history entry pointing at
-// one of those tab ids still renders fine — see the switch below.
-
 const NAV_GROUPS = [
   {
     label: 'Main',
@@ -83,23 +58,6 @@ const NAV_GROUPS = [
 ];
 
 // ── Workspace sub-tabs ────────────────────────────────────────────────────────
-
-const PROJECT_SUBTABS = [
-  { id: 'list',      label: 'Projects',      icon: Gamepad2,      component: ProjectManagement,   permission: 'view_projects' },
-  { id: 'status',    label: 'Server Status', icon: Activity,      component: ServerStatus,        permission: 'change_status',  needsProject: true },
-  { id: 'variables', label: 'Variables',     icon: Database,      component: VariablesManagement, permission: 'view_variables', needsProject: true },
-  { id: 'logs',      label: 'Logs',          icon: FileText,      component: LogsViewer,          permission: 'view_logs',      needsProject: true },
-  { id: 'chat',      label: 'Chat',          icon: MessageSquare, component: ChatManagement,      permission: 'manage_chat',    needsProject: true },
-  { id: 'missions',  label: 'Missions',      icon: ClipboardList, component: MissionsManagement,  anyPermission: ['claim_missions', 'create_missions'], needsProject: true },
-  { id: 'files',     label: 'Files',         icon: HardDrive,     component: FilesManagement,     anyPermission: ['manage_files', 'claim_missions'],    needsProject: true },
-  { id: 'players',   label: 'Players',       icon: Users,         component: PlayersManagement,   permission: 'manage_play',    needsProject: true },
-];
-
-const SHOP_SUBTABS = [
-  { id: 'shop',    label: 'Shop',    icon: ShoppingBag, component: ShopManagement,   permission: 'manage_shop' },
-  { id: 'coupons', label: 'Coupons', icon: Tag,         component: CouponManagement, permission: 'manage_shop' },
-];
-
 const SYSTEM_SUBTABS = [
   { id: 'vps',    label: 'VPS',    icon: Server,   component: VpsStats,   permission: 'view_vps' },
   { id: 'health', label: 'Health', icon: Activity, component: Health,     permission: 'view_vps' },
@@ -109,11 +67,6 @@ const SYSTEM_SUBTABS = [
 const WEBSITE_SETTINGS_SUBTABS = [
   { id: 'global', label: 'Global Management', icon: Settings, component: GlobalManagement, permission: 'manage_website' },
 ];
-
-// ── Sidebar order (client-only, drag-to-reorder) ─────────────────────────────
-// Same pattern as the overview stat cards: items can be dragged within their
-// group and the order persists per-browser. Doesn't touch group membership or
-// permissions — just the display order within a group.
 
 const NAV_ORDER_KEY = 'vg_admin_nav_order';
 
@@ -137,7 +90,6 @@ const persistNavOrder = (groups) => {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
 const itemVisible = (item, hasPermission, isSuperAdmin) => {
   if (item.superAdminOnly) return !!isSuperAdmin;
   if (item.anyPermission) return item.anyPermission.some(p => hasPermission(p));
@@ -157,10 +109,6 @@ const findCurrentItem = (tabId) => {
 };
 
 // ── Nav item ──────────────────────────────────────────────────────────────
-// Hoisted to module scope (not defined inside DashboardContent): keeping it a stable
-// component reference means React patches the existing DOM on re-render instead of
-// remounting it, which is what preserves the sidebar's scroll position across tab clicks.
-
 const NavItem = ({ item, activeTab, onSelect, draggable, onDragStart, onDragOver, onDrop, onDragEnd, dragOver }) => {
   const Icon     = item.icon;
   const isActive = activeTab === item.id;
@@ -194,10 +142,6 @@ const NavItem = ({ item, activeTab, onSelect, draggable, onDragStart, onDragOver
   );
 };
 
-// ── Workspace building blocks ────────────────────────────────────────────────
-// Shared by the Projects / Shop / System workspaces below: a horizontal
-// underline tab bar for the workspace's internal sections.
-
 const WorkspaceTabs = ({ tabs, active, onChange }) => (
   <div className="flex items-center gap-1 border-b border-[#D2D2D7] dark:border-[#2a2a3c] mb-6 overflow-x-auto">
     {tabs.map(t => {
@@ -219,59 +163,11 @@ const WorkspaceTabs = ({ tabs, active, onChange }) => (
   </div>
 );
 
-const NoProjectSelected = ({ onGoToList }) => (
-  <div className="flex flex-col items-center justify-center py-24 text-center max-w-sm mx-auto">
-    <div className="w-14 h-14 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center mb-5">
-      <Gamepad2 size={22} className="text-[#BFBFC4] dark:text-[#52525b]" />
-    </div>
-    <p className="text-[11px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-2">No project selected</p>
-    <h3 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">Select a Project</h3>
-    <p className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] mb-6 leading-relaxed">
-      Choose a project from the sidebar to access its data.
-    </p>
-    <button
-      onClick={onGoToList}
-      data-testid="go-to-projects-button"
-      className="inline-flex items-center gap-2 rounded-full bg-[#1D1D1F] hover:bg-[#3A3A3C] dark:bg-[#e4e4e7] dark:text-[#0e0e15] dark:hover:bg-white text-white px-5 py-2.5 text-sm font-semibold transition-colors"
-    >
-      View Projects <ArrowRight size={14} />
-    </button>
-  </div>
-);
-
 const subtabVisible = (t, hasPermission, isSuperAdmin) => {
   if (t.superAdminOnly) return !!isSuperAdmin;
   if (t.anyPermission) return t.anyPermission.some(p => hasPermission(p));
   if (!t.permission) return true;
   return hasPermission(t.permission);
-};
-
-const ProjectWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin, selectedProject }) => {
-  const visible = PROJECT_SUBTABS.filter(t => subtabVisible(t, hasPermission, isSuperAdmin));
-  const active = visible.find(t => t.id === tab) || visible[0];
-  if (!active) return null;
-  const ActiveComponent = active.component;
-  const showEmptyState = active.needsProject && !selectedProject;
-
-  return (
-    <div>
-      <WorkspaceTabs tabs={visible} active={active.id} onChange={setTab} />
-      {showEmptyState ? <NoProjectSelected onGoToList={() => setTab('list')} /> : <ActiveComponent />}
-    </div>
-  );
-};
-
-const ShopWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) => {
-  const visible = SHOP_SUBTABS.filter(t => subtabVisible(t, hasPermission, isSuperAdmin));
-  const active = visible.find(t => t.id === tab) || visible[0];
-  if (!active) return null;
-  const ActiveComponent = active.component;
-  return (
-    <div>
-      <WorkspaceTabs tabs={visible} active={active.id} onChange={setTab} />
-      <ActiveComponent />
-    </div>
-  );
 };
 
 const SystemWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) => {
@@ -300,16 +196,12 @@ const WebsiteSettingsWorkspace = ({ tab, setTab, hasPermission, isSuperAdmin }) 
   );
 };
 
-// ── Sidebar ───────────────────────────────────────────────────────────────
-// Also hoisted for the same reason as NavItem above.
-
 const SidebarContent = ({
   onClose, hasPermission, user, activeTab, onSelectTab,
   displayName, initials, logout, onOpenPalette,
   navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
 }) => (
   <div className="flex flex-col h-full bg-[#F5F5F7] dark:bg-[#151520] border-r border-[#D2D2D7] dark:border-[#2a2a3c]">
-
     {/* Logo */}
     <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
       <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white truncate">
@@ -358,7 +250,7 @@ const SidebarContent = ({
                   onDragStart={() => onNavDragStart(group.label, item.id)}
                   onDragOver={(e) => onNavDragOver(e, group.label, item.id)}
                   onDrop={() => onNavDrop(group.label, item.id)}
-                  onDragEnd={onNavDragEnd}
+                  onDragEnd={onDragEnd}
                 />
               ))}
             </div>
@@ -392,8 +284,6 @@ const SidebarContent = ({
   </div>
 );
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 const SESSION_KEY = 'vg_admin_last_section';
 
 const restoreSession = () => {
@@ -407,7 +297,6 @@ const restoreSession = () => {
 const DashboardContent = () => {
   const { user, logout, hasPermission } = useAuth();
   const { isDark, toggleTheme } = useTheme();
-  const { selectedProject } = useProject();
   const isSuperAdmin = !!user?.is_super_admin;
 
   const restored = useRef(restoreSession()).current;
@@ -416,7 +305,6 @@ const DashboardContent = () => {
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [paletteOpen,  setPaletteOpen]  = useState(false);
 
-  // Sidebar drag-to-reorder — client-only, persisted per-browser (see applyNavOrder).
   const [navGroups, setNavGroups] = useState(() => applyNavOrder(NAV_GROUPS));
   const [navDragOverId, setNavDragOverId] = useState(null);
   const navDragRef = useRef(null);
@@ -449,13 +337,9 @@ const DashboardContent = () => {
   };
   const onNavDragEnd = () => { navDragRef.current = null; setNavDragOverId(null); };
 
-  const [projectTab, setProjectTab] = useState(restored.projectTab || 'list');
-  const [shopTab,    setShopTab]    = useState(restored.shopTab || 'shop');
   const [systemTab,  setSystemTab]  = useState(restored.systemTab || 'vps');
   const [websiteSettingsTab, setWebsiteSettingsTab] = useState(restored.websiteSettingsTab || 'global');
 
-  // Back/forward history — a lightweight in-memory stack of section snapshots,
-  // since the dashboard is pure React state rather than per-tab URLs.
   const historyStack = useRef([]);
   const historyIndex = useRef(-1);
   const suppressHistoryPush = useRef(false);
@@ -464,7 +348,7 @@ const DashboardContent = () => {
   const [navDirection, setNavDirection] = useState('forward');
 
   useEffect(() => {
-    const snap = { activeTab, projectTab, shopTab, systemTab, websiteSettingsTab };
+    const snap = { activeTab, systemTab, websiteSettingsTab };
     try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(snap)); } catch {}
 
     if (suppressHistoryPush.current) {
@@ -477,13 +361,11 @@ const DashboardContent = () => {
     }
     setCanGoBack(historyIndex.current > 0);
     setCanGoForward(historyIndex.current < historyStack.current.length - 1);
-  }, [activeTab, projectTab, shopTab, systemTab, websiteSettingsTab]);
+  }, [activeTab, systemTab, websiteSettingsTab]);
 
   const applySnapshot = (snap) => {
     suppressHistoryPush.current = true;
     setActiveTab(snap.activeTab);
-    setProjectTab(snap.projectTab);
-    setShopTab(snap.shopTab);
     setSystemTab(snap.systemTab);
     setWebsiteSettingsTab(snap.websiteSettingsTab || 'global');
   };
@@ -500,8 +382,6 @@ const DashboardContent = () => {
     applySnapshot(historyStack.current[historyIndex.current]);
   };
 
-  // Global ⌘K / Ctrl+K — jump to any section without touching the sidebar.
-  // Alt+←/→ — step back/forward through recently visited sections.
   useEffect(() => {
     const onKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -529,43 +409,26 @@ const DashboardContent = () => {
   const currentGroup = findCurrentGroup(activeTab);
   const currentItem  = findCurrentItem(activeTab);
   const currentSubLabel = useMemo(() => {
-    if (activeTab === 'projects') return PROJECT_SUBTABS.find(t => t.id === projectTab)?.label;
-    if (activeTab === 'website-shop') return SHOP_SUBTABS.find(t => t.id === shopTab)?.label;
     if (activeTab === 'system') return SYSTEM_SUBTABS.find(t => t.id === systemTab)?.label;
     if (activeTab === 'website-settings') return WEBSITE_SETTINGS_SUBTABS.find(t => t.id === websiteSettingsTab)?.label;
     return null;
-  }, [activeTab, projectTab, shopTab, systemTab, websiteSettingsTab]);
+  }, [activeTab, systemTab, websiteSettingsTab]);
 
   const onSelectTab = (id) => { setNavDirection('forward'); setActiveTab(id); setMobileOpen(false); };
 
-  // Used by DashboardOverview's quick actions to jump straight into a workspace sub-tab.
   const goTo = (tab, subtab) => {
     setNavDirection('forward');
     setActiveTab(tab);
-    if (tab === 'projects' && subtab) setProjectTab(subtab);
-    if (tab === 'website-shop' && subtab) setShopTab(subtab);
     if (tab === 'system' && subtab) setSystemTab(subtab);
     if (tab === 'website-settings' && subtab) setWebsiteSettingsTab(subtab);
   };
 
-  // Flat, permission-filtered list of everything ⌘K can jump straight to —
-  // including workspace sub-sections, so "Logs" or "Coupons" resolve directly.
   const paletteDestinations = useMemo(() => {
     const dest = [];
     for (const group of NAV_GROUPS) {
       for (const item of group.items) {
         if (!itemVisible(item, hasPermission, isSuperAdmin)) continue;
-        if (item.id === 'projects') {
-          for (const t of PROJECT_SUBTABS) {
-            if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
-            dest.push({ label: t.label, group: 'Studio', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('projects'); setProjectTab(t.id); } });
-          }
-        } else if (item.id === 'website-shop') {
-          for (const t of SHOP_SUBTABS) {
-            if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
-            dest.push({ label: t.label, group: 'Website', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('website-shop'); setShopTab(t.id); } });
-          }
-        } else if (item.id === 'system') {
+        if (item.id === 'system') {
           for (const t of SYSTEM_SUBTABS) {
             if (!subtabVisible(t, hasPermission, isSuperAdmin)) continue;
             dest.push({ label: t.label, group: 'Team', icon: t.icon, onSelect: () => { setNavDirection('forward'); setActiveTab('system'); setSystemTab(t.id); } });
@@ -589,42 +452,36 @@ const DashboardContent = () => {
     navGroups, onNavDragStart, onNavDragOver, onNavDrop, onNavDragEnd, navDragOverId,
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  // This element carries the `dark` marker class itself, so a `dark:` variant on the
-  // SAME element would never match — Tailwind's dark: selector requires an ANCESTOR
-  // with .dark, not self. That's why the page background kept leaking light gray
-  // even in dark mode. Fixed by branching the plain bg- class instead.
   return (
     <div className={`flex h-screen overflow-hidden ${isDark ? 'dark bg-[#0e0e15]' : 'bg-[#F5F5F7]'}`}>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex shrink-0 w-[240px] h-full">
+      <aside className="hidden lg:block w-[240px] shrink-0 h-full">
         <SidebarContent {...sidebarProps} />
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="animate-appear relative z-10 w-72 h-full shadow-2xl">
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="relative w-[280px] max-w-[85vw] h-full shadow-2xl z-10 animate-appear">
             <SidebarContent {...sidebarProps} onClose={() => setMobileOpen(false)} />
-          </aside>
+          </div>
         </div>
       )}
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} destinations={paletteDestinations} />
+      {/* ⌘K palette */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        destinations={paletteDestinations}
+      />
 
-      {/* Main — header + content share one scroll container so the header can
-          stay sticky and translucent, with content genuinely passing beneath it. */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto theme-transition">
 
-        {/* Header — glass: translucent + blur, floats above scrolled content */}
+        {/* Header */}
         <header className="sticky top-0 z-20 h-14 shrink-0 bg-white/75 dark:bg-[#151520]/75 backdrop-blur-xl backdrop-saturate-150 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center px-5 gap-4">
-          {/* Mobile burger */}
           <button
             className="lg:hidden w-8 h-8 flex items-center justify-center -ml-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
             onClick={() => setMobileOpen(true)}
@@ -632,12 +489,10 @@ const DashboardContent = () => {
             <Menu size={18} />
           </button>
 
-          {/* Mobile brand */}
           <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
             Vakar Games
           </span>
 
-          {/* Back / forward through recently visited sections */}
           <div className="hidden lg:flex items-center gap-0.5 -ml-1.5 shrink-0">
             <button
               onClick={goBack}
@@ -657,7 +512,6 @@ const DashboardContent = () => {
             </button>
           </div>
 
-          {/* Breadcrumb (desktop) */}
           <div className="hidden lg:flex items-center gap-2 min-w-0">
             <span className="text-sm text-[#A1A1A6] dark:text-[#71717a] shrink-0">
               {currentGroup?.label || 'Dashboard'}
@@ -678,7 +532,6 @@ const DashboardContent = () => {
 
           <div className="flex-1" />
 
-          {/* Right actions */}
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setPaletteOpen(true)}
@@ -716,28 +569,9 @@ const DashboardContent = () => {
 
         {isSuperAdmin && <CriticalActionBanner />}
 
-        {/* Content — keyed by the active section so switching tabs replays the appear animation */}
         <main>
-          <div key={`${activeTab}:${activeTab === 'projects' ? projectTab : activeTab === 'website-shop' ? shopTab : activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
-
+          <div key={`${activeTab}:${activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
             {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}
-
-            {activeTab === 'projects' && (
-              <ProjectWorkspace
-                tab={projectTab} setTab={setProjectTab}
-                hasPermission={hasPermission} isSuperAdmin={isSuperAdmin}
-                selectedProject={selectedProject}
-              />
-            )}
-
-            {activeTab === 'website-shop' && (
-              <ShopWorkspace tab={shopTab} setTab={setShopTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
-            )}
-
-            {activeTab === 'system' && (
-              <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
-            )}
-
             {activeTab === 'users'    && hasPermission('manage_users')    && <UserManagement />}
             {activeTab === 'website-games'    && <GamesManagement />}
             {activeTab === 'website-blog'     && <BlogManagement />}
@@ -746,8 +580,10 @@ const DashboardContent = () => {
             )}
             {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
             {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
+            {activeTab === 'system'           && (
+              <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
+            )}
             {activeTab === 'account'          && <AccountSettings />}
-
           </div>
         </main>
       </div>
@@ -755,8 +591,4 @@ const DashboardContent = () => {
   );
 };
 
-export const Dashboard = () => (
-  <ProjectProvider>
-    <DashboardContent />
-  </ProjectProvider>
-);
+export const Dashboard = () => <DashboardContent />;
