@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -39,64 +40,56 @@ const Home = () => {
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav onAbout={scrollToStudio} />
 
-      {/* ── HERO ─ 100vh split screen ───────────────────────────────────── */}
+      {/* ── HERO ─ 100vh cinematic background ───────────────────────────────────── */}
       <section
         className="relative flex flex-col items-center justify-center text-center overflow-hidden"
         style={{ height: '100vh', minHeight: '560px' }}
         data-testid="hero-section"
       >
-        {/* Split background */}
-        <div className="absolute inset-0 flex">
-          {/* Left half — dark wireframe feel */}
-          <div
-            className="flex-1"
+        {/* Background Image with Dark Atmospheric Overlay */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <img
+            src={seaStackDusk}
+            alt="Vakar Games Hero Background"
+            className="w-full h-full object-cover object-center"
             style={{
-              background: 'linear-gradient(160deg, #111111 0%, #0A0A0F 100%)',
-              borderRight: '1px solid rgba(255,255,255,0.04)',
+              filter: 'brightness(0.35) contrast(1.2) saturate(0.85)',
+              transform: 'scale(1.05)',
             }}
-          >
-            {/* Subtle grid lines overlay */}
-            <div
-              className="w-full h-full"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(255,255,255,0.015) 60px,rgba(255,255,255,0.015) 61px),' +
-                  'repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.015) 60px,rgba(255,255,255,0.015) 61px)',
-              }}
-            />
-          </div>
-          {/* Right half — slightly warmer dark */}
+          />
+          {/* Gradients for text contrast and seamless bottom fade */}
           <div
-            className="flex-1"
-            style={{ background: 'linear-gradient(200deg, #0F0F14 0%, #080808 100%)' }}
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 40%, rgba(13,13,13,0.85) 85%, #0D0D0D 100%)',
+            }}
+          />
+          {/* Radial teal glow centered behind title */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(78,205,196,0.09) 0%, transparent 70%)',
+            }}
           />
         </div>
 
-        {/* Radial teal glow at center */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 60% 40% at 50% 50%, rgba(78,205,196,0.05) 0%, transparent 70%)',
-          }}
-        />
-
         {/* Center content */}
         <div className="relative z-10 px-6 fade-up">
-          <p className="kefir-label mb-6" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            Est. 2024 · France
+          <p className="kefir-label mb-5" style={{ color: 'rgba(255,255,255,0.45)', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+            Est. 2024 · France · Indie Game Studio
           </p>
           <h1
-            className="font-black uppercase tracking-tight text-white"
-            style={{ fontSize: 'clamp(3.5rem, 12vw, 9rem)', lineHeight: 1, letterSpacing: '-0.02em' }}
+            className="font-black uppercase tracking-tight text-white drop-shadow-2xl"
+            style={{ fontSize: 'clamp(3.5rem, 12vw, 9rem)', lineHeight: 0.95, letterSpacing: '-0.02em', textShadow: '0 4px 24px rgba(0,0,0,0.9)' }}
             data-testid="hero-title"
           >
             Vakar Games
           </h1>
           <p
-            className="font-bold uppercase tracking-[0.3em] mt-4"
-            style={{ fontSize: 'clamp(0.75rem, 2vw, 1rem)', color: 'rgba(255,255,255,0.4)' }}
+            className="font-bold uppercase tracking-[0.25em] mt-5"
+            style={{ fontSize: 'clamp(0.8rem, 2vw, 1.15rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}
           >
-            We Make Games
+            Crafting Unforgettable Worlds
           </p>
 
           {/* CTA buttons */}
