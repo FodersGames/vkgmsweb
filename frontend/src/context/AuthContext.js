@@ -4,6 +4,21 @@ import { API_URL } from '../utils/api';
 
 const AuthContext = createContext(null);
 
+export const extractErrorMessage = (err, fallback = 'An error occurred') => {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map(d => (typeof d === 'string' ? d : d.msg || JSON.stringify(d)))
+      .filter(Boolean)
+      .join(', ') || fallback;
+  }
+  if (detail && typeof detail === 'object') {
+    return detail.msg || detail.message || JSON.stringify(detail);
+  }
+  return err?.response?.data?.message || err?.message || fallback;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +56,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       return { success: true, first_login, user: userData };
     } catch (err) {
-      return { success: false, error: err.response?.data?.detail || 'Login failed' };
+      return { success: false, error: extractErrorMessage(err, 'Login failed') };
     }
   };
 
@@ -50,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       await axios.post(`${API_URL}/api/auth/register`, { email, password, firstName, lastName, username });
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.response?.data?.detail || 'Registration failed' };
+      return { success: false, error: extractErrorMessage(err, 'Registration failed') };
     }
   };
 
@@ -64,7 +79,7 @@ export const AuthProvider = ({ children }) => {
       await fetchMe(token);
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.response?.data?.detail || 'Failed to update profile' };
+      return { success: false, error: extractErrorMessage(err, 'Failed to update profile') };
     }
   };
 
@@ -78,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       await fetchMe(token);
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.response?.data?.detail || 'Failed to set pseudo' };
+      return { success: false, error: extractErrorMessage(err, 'Failed to set pseudo') };
     }
   };
 
@@ -93,7 +108,7 @@ export const AuthProvider = ({ children }) => {
       await fetchMe(token);
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.response?.data?.detail || 'Failed to change password' };
+      return { success: false, error: extractErrorMessage(err, 'Failed to change password') };
     }
   };
 

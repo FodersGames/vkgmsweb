@@ -135,7 +135,7 @@ export const Login = () => {
   const [regSuccess, setRegSuccess] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
-  const { login, register, logout } = useAuth();
+  const { login, register, logout, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -148,8 +148,17 @@ export const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setLoginError('Email is required');
+      return;
+    }
+    if (!password) {
+      setLoginError('Password is required');
+      return;
+    }
     setLoginLoading(true);
-    const result = await login(email, password);
+    const result = await login(cleanEmail, password);
     setLoginLoading(false);
     if (result.success) {
       // During maintenance, only accounts with dashboard access may sign in
@@ -160,8 +169,10 @@ export const Login = () => {
       }
       if (result.first_login) {
         setMustChange(true);
-      } else {
+      } else if (hasDashboardAccess(result.user)) {
         navigate('/dashboard');
+      } else {
+        navigate('/profile');
       }
     } else {
       setLoginError(result.error);
@@ -171,8 +182,30 @@ export const Login = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError('');
+    const cleanEmail = reg.email.trim().toLowerCase();
+    const cleanFirst = reg.firstName.trim();
+    const cleanLast = reg.lastName.trim();
+
+    if (!cleanFirst) {
+      setRegError('First name is required');
+      return;
+    }
+    if (!cleanEmail) {
+      setRegError('Email is required');
+      return;
+    }
+    if (!reg.password || reg.password.length < 8) {
+      setRegError('Password must be at least 8 characters');
+      return;
+    }
+
     setRegLoading(true);
-    const result = await register(reg);
+    const result = await register({
+      email: cleanEmail,
+      password: reg.password,
+      firstName: cleanFirst,
+      lastName: cleanLast,
+    });
     if (!result.success) {
       setRegLoading(false);
       setRegError(result.error);
@@ -181,13 +214,17 @@ export const Login = () => {
     // Log the new account straight in — registration alone used to leave the
     // user logged out on a "go sign in" panel, which is now only a fallback
     // if this auto-login step itself fails.
-    const loginResult = await login(reg.email, reg.password);
+    const loginResult = await login(cleanEmail, reg.password);
     setRegLoading(false);
     if (loginResult.success) {
-      navigate('/dashboard');
+      if (hasDashboardAccess(loginResult.user)) {
+        navigate('/dashboard');
+      } else {
+        navigate('/profile');
+      }
     } else {
       setTab('login');
-      setEmail(reg.email);
+      setEmail(cleanEmail);
       setRegSuccess(true);
     }
   };
@@ -207,7 +244,13 @@ export const Login = () => {
       </div>
 
       {mustChange && (
-        <ChangePasswordModal onSuccess={() => navigate('/dashboard')} />
+        <ChangePasswordModal onSuccess={() => {
+          if (hasDashboardAccess(user)) {
+            navigate('/dashboard');
+          } else {
+            navigate('/profile');
+          }
+        }} />
       )}
 
       <div className="w-full max-w-sm">
