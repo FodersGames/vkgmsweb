@@ -34,9 +34,7 @@ const NotFound = () => (
 );
 
 const AppRoutes = () => {
-  const { maintenance, scheduledAt, announcement, checked } = useMaintenanceCheck();
-
-  if (!checked) return null;
+  const { maintenance, scheduledAt, announcement } = useMaintenanceCheck();
 
   if (maintenance) {
     return <MaintenancePage announcement={announcement} />;

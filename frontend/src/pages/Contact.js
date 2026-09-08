@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { getWebsiteSettings } from '../utils/publicCache';
 import {
   PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle,
   CircleNotch, CaretDown, CaretUp, Clock, Warning
@@ -52,8 +53,8 @@ const Contact = () => {
   useEffect(() => { document.title = 'Contact — Vakar Games'; }, []);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/settings`)
-      .then(r => { if (r.data.support_email) setSupportEmail(r.data.support_email); })
+    getWebsiteSettings()
+      .then(data => { if (data.support_email) setSupportEmail(data.support_email); })
       .catch(() => {});
   }, []);
 
