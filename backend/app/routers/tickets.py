@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 
 from ..database import db
 from ..deps import require_permission, get_current_user
-from ..utils import serialize_doc, log_action, _create_notification
+from ..utils import serialize_doc, log_action
 from ..rate_limit import limiter
 from ..schemas import TicketCreateRequest, TicketReplyRequest, TicketStatusUpdateRequest
 
@@ -25,6 +25,18 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
     email = user["email"]
     if not subject or not message:
         raise HTTPException(status_code=400, detail="Subject and message are required")
+
+    # Limit: max 5 open tickets simultaneously per user
+    open_count = await db.support_tickets.count_documents({
+        "user_email": email.lower(),
+        "status": {"$ne": "closed"}
+    })
+    if open_count >= 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Ticket ouvert maximum atteint (5/5). Veuillez attendre la résolution de vos tickets existants."
+        )
+
     ticket_number = "TKT-" + secrets.token_hex(3).upper()
     while await db.support_tickets.find_one({"ticket_number": ticket_number}):
         ticket_number = "TKT-" + secrets.token_hex(3).upper()
@@ -45,7 +57,7 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
         "category": req.category,
         "status": "open",
         "priority": "normal",
-        "user_email": email,
+        "user_email": email.lower(),
         "user_id": user_id_oid,
         "username": username,
         "career_id": career_id,
@@ -66,7 +78,12 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
 async def list_my_tickets(user=Depends(get_current_user)):
     email = user.get("email", "").lower()
     tickets = await db.support_tickets.find({"user_email": email}).sort("created_at", -1).to_list(50)
-    return {"tickets": [serialize_doc(t) for t in tickets]}
+    open_count = sum(1 for t in tickets if t.get("status") != "closed")
+    return {
+        "tickets": [serialize_doc(t) for t in tickets],
+        "open_count": open_count,
+        "max_open": 5
+    }
 
 @router.get("/tickets/{ticket_number}")
 async def get_ticket(ticket_number: str, user=Depends(get_current_user)):
@@ -170,13 +187,5 @@ async def admin_reply_to_ticket(ticket_number: str, req: TicketReplyRequest, use
             "$set": {"updated_at": datetime.now(timezone.utc), "status": "in_progress"},
         }
     )
-    user_account = await db.users.find_one({"email": t.get("user_email", "")})
-    if user_account:
-        await _create_notification(
-            user_id=str(user_account["_id"]),
-            message=f"💬 Support replied to your ticket [{ticket_number.upper()}]: \"{content[:80]}{'...' if len(content) > 80 else ''}\"",
-            notif_type="ticket_reply",
-            link="/profile",
-        )
     await log_action("support", f"Admin '{user['username']}' replied to ticket {ticket_number.upper()}")
     return {"success": True}

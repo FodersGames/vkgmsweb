@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import {
-  User, Lock, SignOut, Bell, Eye, EyeSlash,
+  User, Lock, SignOut, Ticket, Eye, EyeSlash,
   CheckCircle, Warning, PencilSimple, X,
   FloppyDisk, SquaresFour, Camera, CircleNotch,
+  PaperPlaneTilt, CaretDown, CaretUp, ArrowSquareOut,
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -38,29 +39,40 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
-        {label}
-      </label>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+          {label}
+        </label>
+      </div>
       <div style={{ position: 'relative' }}>
-        <Lock size={12} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
         <input
           type={show ? 'text' : 'password'}
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
           placeholder={placeholder}
-          required
+          style={{
+            ...inputDark,
+            paddingRight: '2.5rem',
+            ...(focused ? inputFocusDark : {}),
+          }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={{ ...inputDark, paddingLeft: '2.25rem', paddingRight: '2.5rem', ...(focused ? inputFocusDark : {}) }}
         />
         <button
           type="button"
-          onClick={() => setShow(s => !s)}
           tabIndex={-1}
-          style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}
+          onClick={() => setShow(s => !s)}
+          style={{
+            position: 'absolute', right: '0.75rem', top: '50%',
+            transform: 'translateY(-50%)', background: 'none',
+            border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
+            display: 'flex', alignItems: 'center', padding: 0,
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
         >
-          {show ? <EyeSlash size={13} /> : <Eye size={13} />}
+          {show ? <EyeSlash size={14} /> : <Eye size={14} />}
         </button>
       </div>
     </div>
@@ -99,9 +111,9 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
 };
 
 const TABS = [
-  { id: 'account',       label: 'Account',       icon: User },
-  { id: 'security',      label: 'Security',      icon: Lock },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'account',  label: 'Account',  icon: User },
+  { id: 'security', label: 'Security', icon: Lock },
+  { id: 'tickets',  label: 'Tickets',  icon: Ticket },
 ];
 
 /* ─── Main Profile component ─────────────────────────────────────────── */
@@ -115,9 +127,13 @@ const Profile = () => {
 
   const [activeTab, setActiveTab] = useState('account');
 
-  const [notifications, setNotifications] = useState([]);
-  const [notifUnread, setNotifUnread] = useState(0);
-  const [notifLoading, setNotifLoading] = useState(true);
+  const [tickets, setTickets] = useState([]);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [expandedTicket, setExpandedTicket] = useState(null);
+  const [ticketReply, setTicketReply] = useState('');
+  const [sendingTicketReply, setSendingTicketReply] = useState(false);
+  const [ticketReplyError, setTicketReplyError] = useState('');
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', username: '' });
@@ -133,48 +149,51 @@ const Profile = () => {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
+  const fetchTickets = useCallback(async () => {
+    if (!token) return;
+    setTicketsLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/tickets/mine`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const list = res.data.tickets || [];
+      setTickets(list);
+      setOpenTicketsCount(res.data.open_count ?? list.filter(t => t.status !== 'closed').length);
+    } catch {
+      // silent
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     document.title = 'My Account — Vakar Games';
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
-    fetchNotifications();
-  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchTickets();
+  }, [user, authLoading, fetchTickets]);
 
-  const fetchNotifications = async () => {
-    if (!token) return;
+  const handleTicketReply = async (e, ticketNumber) => {
+    e.preventDefault();
+    if (!ticketReply.trim() || !token) return;
+    setSendingTicketReply(true);
+    setTicketReplyError('');
     try {
-      const res = await fetch(`${API_URL}/api/notifications?limit=20`, {
+      await axios.post(`${API_URL}/api/tickets/${ticketNumber}/reply`, { content: ticketReply }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setNotifUnread(data.unread || 0);
-      }
-    } catch { /* silent */ } finally {
-      setNotifLoading(false);
+      setTicketReply('');
+      const r = await axios.get(`${API_URL}/api/tickets/${ticketNumber}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setExpandedTicket(r.data.ticket);
+      fetchTickets();
+    } catch (err) {
+      setTicketReplyError(err.response?.data?.detail || 'Failed to send reply');
+    } finally {
+      setSendingTicketReply(false);
     }
-  };
-
-  const markRead = async (id) => {
-    try {
-      await fetch(`${API_URL}/api/notifications/${id}/read`, {
-        method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
-      });
-      setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
-      setNotifUnread(u => Math.max(0, u - 1));
-    } catch { /* silent */ }
-  };
-
-  const markAllRead = async () => {
-    try {
-      await fetch(`${API_URL}/api/notifications/read-all`, {
-        method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
-      });
-      setNotifications(ns => ns.map(n => ({ ...n, read: true })));
-      setNotifUnread(0);
-    } catch { /* silent */ }
   };
 
   const handleProfileSave = async (e) => {
@@ -380,9 +399,9 @@ const Profile = () => {
               >
                 <Icon size={12} />
                 {label}
-                {id === 'notifications' && notifUnread > 0 && (
-                  <span style={{ position: 'absolute', top: '8px', right: '8px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#4ECDC4', color: '#000', fontSize: '8px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {notifUnread > 9 ? '9+' : notifUnread}
+                {id === 'tickets' && openTicketsCount > 0 && (
+                  <span style={{ position: 'absolute', top: '8px', right: '6px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#4ECDC4', color: '#000', fontSize: '8px', fontWeight: 900 }}>
+                    {openTicketsCount}/5
                   </span>
                 )}
               </button>
@@ -516,66 +535,179 @@ const Profile = () => {
             </div>
           )}
 
-          {/* NOTIFICATIONS TAB */}
-          {activeTab === 'notifications' && (
+          {/* TICKETS TAB */}
+          {activeTab === 'tickets' && (
             <div style={cardDark}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Bell size={14} style={{ color: '#4ECDC4' }} />
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Notifications</h2>
+                  <Ticket size={14} style={{ color: '#4ECDC4' }} />
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
+                    Mes Tickets ({openTicketsCount}/5 ouverts)
+                  </h2>
                 </div>
-                {notifUnread > 0 && (
-                  <button
-                    onClick={markAllRead}
-                    style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
-                  >
-                    Mark all read
-                  </button>
-                )}
+                <Link
+                  to="/contact"
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: openTicketsCount >= 5 ? 'rgba(255,255,255,0.25)' : '#4ECDC4',
+                    pointerEvents: openTicketsCount >= 5 ? 'none' : 'auto',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <PaperPlaneTilt size={11} />
+                  Nouveau ticket
+                </Link>
               </div>
 
-              {notifLoading ? (
+              {openTicketsCount >= 5 && (
+                <div style={{ padding: '0.75rem', marginBottom: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#F87171', fontSize: '0.75rem', fontWeight: 600 }}>
+                  Ticket ouvert maximum atteint (5/5). Vous avez atteint la limite de 5 tickets ouverts simultanés.
+                </div>
+              )}
+
+              {ticketsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {[1,2,3].map(i => (
                     <div key={i} style={{ height: '48px', backgroundColor: '#1A1A1A', animation: 'pulse 1.5s ease-in-out infinite' }} />
                   ))}
                 </div>
-              ) : notifications.length === 0 ? (
-                <div style={{ padding: '2.5rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem' }}>
-                  No notifications yet.
+              ) : tickets.length === 0 ? (
+                <div style={{ padding: '2.5rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+                  <p style={{ margin: '0 0 1rem' }}>Vous n'avez aucun ticket de support pour le moment.</p>
+                  <Link to="/contact" className="btn-kefir" style={{ display: 'inline-flex', fontSize: '0.7rem', padding: '0.5rem 1rem' }}>
+                    Ouvrir un ticket
+                  </Link>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '400px', overflowY: 'auto' }}>
-                  {notifications.map(n => (
-                    <div
-                      key={n.id}
-                      onClick={() => { if (!n.read) markRead(n.id); if (n.link) navigate(n.link); }}
-                      style={{
-                        padding: '0.75rem',
-                        backgroundColor: n.read ? '#0D0D0D' : 'rgba(78,205,196,0.05)',
-                        border: `1px solid ${n.read ? 'rgba(255,255,255,0.05)' : 'rgba(78,205,196,0.15)'}`,
-                        cursor: 'pointer',
-                        transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1A1A1A'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = n.read ? '#0D0D0D' : 'rgba(78,205,196,0.05)'}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '0.8rem', lineHeight: '1.4', color: n.read ? 'rgba(255,255,255,0.4)' : '#FFFFFF', fontWeight: n.read ? 400 : 600, margin: 0 }}>{n.title}</p>
-                          {n.message && <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.2rem', lineHeight: '1.4' }}>{n.message}</p>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {tickets.map(t => {
+                    const isOpen = expandedTicket?.ticket_number === t.ticket_number;
+                    const isClosed = t.status === 'closed';
+                    const activeTicketObj = isOpen ? (expandedTicket || t) : t;
+                    const statusColor = t.status === 'open' ? '#4ECDC4' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
+                    const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
+
+                    return (
+                      <div
+                        key={t.id || t.ticket_number}
+                        style={{
+                          backgroundColor: '#0D0D0D',
+                          border: `1px solid ${isOpen ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                          transition: 'border-color 0.2s',
+                        }}
+                      >
+                        <div
+                          onClick={() => {
+                            if (isOpen) {
+                              setExpandedTicket(null);
+                            } else {
+                              setExpandedTicket(t);
+                            }
+                          }}
+                          style={{
+                            padding: '0.75rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                              <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', fontWeight: 700, color: '#4ECDC4' }}>{t.ticket_number}</span>
+                              <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>• {t.category}</span>
+                              <span style={{
+                                fontSize: '0.6rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: `${statusColor}18`,
+                                color: statusColor,
+                                marginLeft: 'auto',
+                                marginRight: '0.5rem',
+                              }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#FFFFFF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {t.subject}
+                            </p>
+                          </div>
+                          <div style={{ color: 'rgba(255,255,255,0.3)', paddingLeft: '0.5rem' }}>
+                            {isOpen ? <CaretUp size={14} /> : <CaretDown size={14} />}
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          {!n.read && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ECDC4' }} />}
-                          <time style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
-                            {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </time>
-                        </div>
+
+                        {isOpen && (
+                          <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '0.25rem', paddingTop: '0.75rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '240px', overflowY: 'auto', marginBottom: '0.75rem' }}>
+                              {(activeTicketObj.messages || []).map((m, i) => {
+                                const isUser = m.sender === 'user';
+                                return (
+                                  <div
+                                    key={i}
+                                    style={{
+                                      padding: '0.6rem 0.8rem',
+                                      backgroundColor: isUser ? '#141414' : 'rgba(78,205,196,0.08)',
+                                      border: `1px solid ${isUser ? 'rgba(255,255,255,0.06)' : 'rgba(78,205,196,0.2)'}`,
+                                      alignSelf: isUser ? 'flex-start' : 'flex-end',
+                                      maxWidth: '90%',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                      <span style={{ fontSize: '0.65rem', fontWeight: 700, color: isUser ? '#FFFFFF' : '#4ECDC4' }}>
+                                        {m.author_name || (isUser ? 'Vous' : 'Support')}
+                                      </span>
+                                      <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.25)' }}>
+                                        {m.timestamp ? new Date(m.timestamp).toLocaleDateString() : ''}
+                                      </span>
+                                    </div>
+                                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                                      {m.content}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {!isClosed ? (
+                              <form onSubmit={(e) => handleTicketReply(e, t.ticket_number)} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <textarea
+                                  rows={2}
+                                  value={ticketReply}
+                                  onChange={e => setTicketReply(e.target.value)}
+                                  placeholder="Répondre à ce ticket..."
+                                  style={{ ...inputDark, fontSize: '0.75rem', resize: 'none' }}
+                                />
+                                {ticketReplyError && <p style={{ fontSize: '0.65rem', color: '#F87171', margin: 0 }}>{ticketReplyError}</p>}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                  <button
+                                    type="submit"
+                                    disabled={sendingTicketReply || !ticketReply.trim()}
+                                    className="btn-kefir"
+                                    style={{ fontSize: '0.65rem', padding: '0.4rem 0.8rem', opacity: (sendingTicketReply || !ticketReply.trim()) ? 0.5 : 1 }}
+                                  >
+                                    {sendingTicketReply ? 'Envoi...' : 'Envoyer la réponse'}
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', margin: 0, textAlign: 'center', fontStyle: 'italic' }}>
+                                Ce ticket est résolu / fermé.
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

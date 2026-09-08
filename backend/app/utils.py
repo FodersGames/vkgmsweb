@@ -292,17 +292,8 @@ async def log_action(log_type, message, project_slug=None, user=None, uid=None, 
     logger.info(f"[{log_type}] {message}")
 
 async def _create_notification(user_id: str, message: str, notif_type: str = "info", link: str = ""):
-    try:
-        await db.notifications.insert_one({
-            "userId": ObjectId(user_id),
-            "message": message,
-            "type": notif_type,
-            "link": link,
-            "read": False,
-            "createdAt": datetime.now(timezone.utc),
-        })
-    except Exception as e:
-        logger.error(f"_create_notification error: {e}")
+    # Notification system has been removed
+    pass
 
 def _get_origin(request=None) -> str:
     # Always prefer server-side env var — never trust client Origin/Referer for Stripe URLs

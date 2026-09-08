@@ -21,7 +21,6 @@ import { AccountSettings }     from '../components/AccountSettings';
 import CareersManagement      from '../components/CareersManagement';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
-import { NotificationBell }   from '../components/NotificationBell';
 import CriticalActionBanner   from '../components/CriticalActionBanner';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
@@ -542,7 +541,6 @@ const DashboardContent = () => {
               Jump to…
               <kbd className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">⌘K</kbd>
             </button>
-            <NotificationBell hasPermission={hasPermission} onOpenTicket={() => goTo('support')} />
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
