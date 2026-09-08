@@ -39,20 +39,9 @@ export const SupportWidget = ({ user }) => {
   const [activeTicket, setActiveTicket] = useState(null);
   const [reply, setReply] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
 
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-  // Check for unread ticket reply notifications on mount
-  useEffect(() => {
-    const t = localStorage.getItem('token');
-    if (!t) return;
-    axios.get(`${API_URL}/api/notifications`, {
-      headers: { Authorization: `Bearer ${t}` },
-      params: { notif_type: 'ticket_reply', limit: 1 },
-    }).then(r => setHasUnread((r.data.unread || 0) > 0)).catch(() => {});
-  }, []); // eslint-disable-line
 
   const fetchTickets = useCallback(async () => {
     if (!token) return;
@@ -68,16 +57,10 @@ export const SupportWidget = ({ user }) => {
   }, [token]); // eslint-disable-line
 
   useEffect(() => {
-    if (view === 'mytickets') {
+    if (open) {
       fetchTickets();
-      if (token && hasUnread) {
-        axios.patch(`${API_URL}/api/notifications/read-all`, {}, {
-          headers,
-          params: { notif_type: 'ticket_reply' },
-        }).then(() => setHasUnread(false)).catch(() => {});
-      }
     }
-  }, [view, fetchTickets]); // eslint-disable-line
+  }, [open, fetchTickets]);
 
   const openThread = async (ticket) => {
     try {
@@ -90,14 +73,22 @@ export const SupportWidget = ({ user }) => {
     }
   };
 
+  const openCount = tickets.filter(t => t.status !== 'closed').length;
+  const limitReached = openCount >= 5;
+
   const submitTicket = async (e) => {
     e.preventDefault();
+    if (limitReached) {
+      setError("Ticket ouvert maximum atteint (5/5).");
+      return;
+    }
     setError('');
     setSending(true);
     try {
       const r = await axios.post(`${API_URL}/api/tickets`, form, { headers });
       setSuccess(r.data.ticket_number);
       setForm({ subject: '', category: 'general', message: '', email: user?.email || '' });
+      fetchTickets();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to submit ticket.');
     } finally {
@@ -142,9 +133,6 @@ export const SupportWidget = ({ user }) => {
         >
           Support
         </PublicButton>
-        {hasUnread && (
-          <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white pointer-events-none" />
-        )}
       </div>
 
       {open && (
@@ -224,6 +212,11 @@ export const SupportWidget = ({ user }) => {
                   </div>
                 ) : (
                   <form onSubmit={submitTicket} className="space-y-3">
+                    {limitReached && (
+                      <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold">
+                        Ticket ouvert maximum atteint ({openCount}/5).
+                      </div>
+                    )}
                     <div>
                       <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Email</label>
                       <input
@@ -269,9 +262,9 @@ export const SupportWidget = ({ user }) => {
                       />
                     </div>
                     {error && <p className="text-xs text-red-500">{error}</p>}
-                    <PublicButton type="submit" disabled={sending} className="w-full">
+                    <PublicButton type="submit" disabled={sending || limitReached} className="w-full">
                       {sending ? <CircleNotch size={14} className="animate-spin" /> : <PaperPlaneTilt size={14} />}
-                      {sending ? 'Sending…' : 'Submit ticket'}
+                      {limitReached ? 'Ticket ouvert maximum atteint' : (sending ? 'Sending…' : 'Submit ticket')}
                     </PublicButton>
                   </form>
                 )}
