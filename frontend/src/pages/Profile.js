@@ -3,22 +3,46 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
-import { PublicButton } from '../ui/PublicButton';
 import { SiteFooter } from '../components/SiteFooter';
-import { User, Lock, SignOut, Bell, Eye, EyeSlash, CheckCircle, Warning, PencilSimple, X, FloppyDisk, SquaresFour, Camera, CaretRight, Crown, AppWindow } from '@phosphor-icons/react';
+import {
+  User, Lock, SignOut, Bell, Eye, EyeSlash,
+  CheckCircle, Warning, PencilSimple, X,
+  FloppyDisk, SquaresFour, Camera, CircleNotch,
+} from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
-// Mirrors backend/app/deps.py's FIRSTNAME_COOLDOWN_DAYS — client-side only
-// for the disabled-field hint; the backend is authoritative.
 const FIRSTNAME_COOLDOWN_DAYS = 30;
 
+/* ─── Style helpers ────────────────────────────────────────────────────── */
+const inputDark = {
+  backgroundColor: '#0A0A0A',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#FFFFFF',
+  borderRadius: 0,
+  outline: 'none',
+  width: '100%',
+  padding: '0.6rem 0.75rem',
+  fontSize: '0.875rem',
+};
+const inputFocusDark = { borderColor: '#4ECDC4' };
+
+const cardDark = {
+  backgroundColor: '#111111',
+  border: '1px solid rgba(255,255,255,0.06)',
+  padding: '1.5rem',
+};
+
+/* ─── Sub-components ─────────────────────────────────────────────────── */
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
+  const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">{label}</label>
-      <div className="relative">
-        <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
+      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <Lock size={12} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
         <input
           type={show ? 'text' : 'password'}
           value={value}
@@ -26,9 +50,16 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           autoComplete={autoComplete}
           placeholder={placeholder}
           required
-          className="w-full rounded-lg pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{ ...inputDark, paddingLeft: '2.25rem', paddingRight: '2.5rem', ...(focused ? inputFocusDark : {}) }}
         />
-        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors" onClick={() => setShow(s => !s)} tabIndex={-1}>
+        <button
+          type="button"
+          onClick={() => setShow(s => !s)}
+          tabIndex={-1}
+          style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
           {show ? <EyeSlash size={13} /> : <Eye size={13} />}
         </button>
       </div>
@@ -36,21 +67,13 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   );
 };
 
-// Days remaining in a cooldown window, or 0 once it's expired / never started.
-const cooldownDaysLeft = (changedAt, cooldownDays) => {
-  if (!changedAt) return 0;
-  const elapsedMs = Date.now() - new Date(changedAt).getTime();
-  const remaining = cooldownDays - Math.floor(elapsedMs / 86400000);
-  return Math.max(0, remaining);
-};
-
-const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComplete, required = true, disabled = false, hint }) => (
-  <div>
-    <label className="block text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
-      {label} {!required && <span className="text-[#A1A1A6] normal-case font-normal">(optional)</span>}
-    </label>
-    <div className="relative">
-      {Icon && <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />}
+const TextField = ({ label, value, onChange, placeholder, autoComplete, required = true, disabled = false, hint }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
+        {label} {!required && <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(optional)</span>}
+      </label>
       <input
         type="text"
         value={value}
@@ -59,77 +82,21 @@ const TextField = ({ label, value, onChange, placeholder, icon: Icon, autoComple
         autoComplete={autoComplete}
         required={required}
         disabled={disabled}
-        className={`w-full rounded-lg ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] disabled:opacity-50 disabled:cursor-not-allowed`}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{ ...inputDark, ...(focused && !disabled ? inputFocusDark : {}), opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'text' }}
       />
-    </div>
-    {hint && <p className="mt-1 text-[11px] text-[#A1A1A6]">{hint}</p>}
-  </div>
-);
-
-const VakarPlusWidget = ({ status, onManage, managing }) => {
-  const isActive = !!status?.is_active;
-  return (
-    <div className="rounded-xl liquid-glass p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-mono text-[#6E6E73]">// vakar+</h2>
-        {isActive && (
-          <span className="rounded-full text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5 flex items-center gap-1">
-            <Crown size={10} />ACTIVE
-          </span>
-        )}
-      </div>
-
-      {isActive ? (
-        <>
-          <p className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-2 capitalize">
-            {status.plan || 'Vakar+'} plan
-          </p>
-          <p className="text-xs text-[#6E6E73] mb-5">
-            {status.cancel_at_period_end
-              ? `Cancels on ${status.current_period_end ? new Date(status.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'the end of your billing period'}.`
-              : status.current_period_end
-                ? `Renews on ${new Date(status.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`
-                : 'Your subscription is active.'}
-          </p>
-          <button
-            onClick={onManage}
-            disabled={managing}
-            className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all disabled:opacity-50"
-          >
-            {managing ? 'Opening…' : 'Manage subscription'}
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="font-display text-xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-2">Not subscribed</p>
-          <p className="text-xs text-[#6E6E73] mb-5">
-            Unlock advanced App Builder tools and more, growing over time.
-          </p>
-          <Link
-            to="/vakar-plus"
-            className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#1D1D1F] hover:bg-[#3A3A3C] px-3 py-2 transition-all"
-          >
-            <Crown size={11} />Upgrade to Vakar+
-          </Link>
-        </>
-      )}
+      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>{hint}</p>}
     </div>
   );
 };
 
-const Card = ({ children, className = '' }) => (
-  <div className={`rounded-xl liquid-glass p-6 ${className}`}>{children}</div>
-);
-
-const CardTitle = ({ icon: Icon, children, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <h2 className="text-sm font-bold text-[#1D1D1F] flex items-center gap-2">
-      <Icon size={15} className="text-[#4ECDC4]" />
-      {children}
-    </h2>
-    {action}
-  </div>
-);
+const cooldownDaysLeft = (changedAt, cooldownDays) => {
+  if (!changedAt) return 0;
+  const elapsedMs = Date.now() - new Date(changedAt).getTime();
+  const remaining = cooldownDays - Math.floor(elapsedMs / 86400000);
+  return Math.max(0, remaining);
+};
 
 const TABS = [
   { id: 'account',       label: 'Account',       icon: User },
@@ -137,6 +104,7 @@ const TABS = [
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
+/* ─── Main Profile component ─────────────────────────────────────────── */
 const Profile = () => {
   const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser, loading: authLoading } = useAuth();
   const avatarInputRef = useRef(null);
@@ -146,9 +114,6 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('account');
-
-  const [vakarPlus, setVakarPlus] = useState(null);
-  const [managingBilling, setManagingBilling] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
   const [notifUnread, setNotifUnread] = useState(0);
@@ -174,22 +139,7 @@ const Profile = () => {
     if (!user) { navigate('/login'); return; }
     setProfileForm({ firstName: user.firstName || '', lastName: user.lastName || '', username: user.username || '' });
     fetchNotifications();
-    if (token) {
-      axios.get(`${API_URL}/api/vakar-plus/status`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => setVakarPlus(r.data))
-        .catch(() => {});
-    }
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const manageBilling = async () => {
-    setManagingBilling(true);
-    try {
-      const res = await axios.post(`${API_URL}/api/vakar-plus/billing-portal`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      window.location.href = res.data.url;
-    } catch {
-      setManagingBilling(false);
-    }
-  };
 
   const fetchNotifications = async () => {
     if (!token) return;
@@ -305,72 +255,86 @@ const Profile = () => {
   const displayName = user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username;
 
   return (
-    <div className="bg-[#F5F5F7] min-h-screen flex flex-col">
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
-      <div className="pt-[52px] flex-1">
+      <div style={{ flex: 1, paddingTop: '60px' }}>
 
-        {/* Hero — centered Apple-ID-style summary */}
-        <div className="bg-white border-b border-[#D2D2D7] px-6 pt-14 pb-8">
-          <div className="max-w-lg mx-auto flex flex-col items-center text-center">
+        {/* ── Hero header ─────────────────────────────────────────── */}
+        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
+          <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
             {/* Avatar */}
-            <div className="relative shrink-0 group cursor-pointer mb-4" onClick={() => avatarInputRef.current?.click()}>
-              <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-2xl font-medium font-display bg-[#F5F5F7] border border-[#D2D2D7] text-[#6E6E73]">
+            <div
+              style={{ position: 'relative', cursor: 'pointer', marginBottom: '1.25rem' }}
+              onClick={() => avatarInputRef.current?.click()}
+              title="Change avatar"
+            >
+              <div style={{
+                width: '80px', height: '80px',
+                border: '2px solid rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.5rem', fontWeight: 900, color: '#4ECDC4',
+                backgroundColor: '#1A1A1A', overflow: 'hidden',
+              }}>
                 {avatarPreview || user.avatar_url ? (
                   <img
                     src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
                     alt="avatar"
-                    className="w-full h-full object-cover"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : initials}
               </div>
               {/* Hover overlay */}
-              <div className="absolute inset-0 rounded-full bg-[#1D1D1F]/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="avatar-overlay" style={{
+                position: 'absolute', inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: 0, transition: 'opacity 0.2s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+              >
                 {avatarUploading
-                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  : <Camera size={16} className="text-white" />
+                  ? <CircleNotch size={16} className="animate-spin" style={{ color: '#FFFFFF' }} />
+                  : <Camera size={16} style={{ color: '#FFFFFF' }} />
                 }
               </div>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.svg"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+              <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.svg" style={{ display: 'none' }} onChange={handleAvatarChange} />
             </div>
 
-            <p className="text-[12px] font-mono text-[#6E6E73] mb-2">// my account</p>
-
-            {/* Name + badges */}
-            <div className="flex items-center gap-2 flex-wrap justify-center mb-1">
-              <h1 className="font-display text-2xl font-medium tracking-[-0.01em] text-[#1D1D1F]">{displayName}</h1>
+            {/* Name + badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '0.25rem' }}>
+              <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0 }}>
+                {displayName}
+              </h1>
               {user.is_super_admin && (
-                <span className="rounded-full text-[10px] font-bold bg-[#4ECDC4]/15 text-[#4ECDC4] px-2 py-0.5">
-                  SUPER ADMIN
+                <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4ECDC4', border: '1px solid rgba(78,205,196,0.3)', padding: '0.1rem 0.5rem' }}>
+                  Super Admin
                 </span>
               )}
             </div>
-            <p className="text-[#6E6E73] text-sm">{user.email}</p>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email}</p>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-5">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-3 py-2 transition-all"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 >
-                  <SquaresFour size={12} />
-                  Dashboard
+                  <SquaresFour size={12} /> Dashboard
                 </Link>
               )}
               <button
                 onClick={handleLogout}
-                className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-red-500 border border-[#D2D2D7] hover:border-red-200 px-3 py-2 transition-all"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,100,100,0.6)', border: '1px solid rgba(255,100,100,0.2)', padding: '0.45rem 0.85rem', background: 'none', cursor: 'pointer', transition: 'color 0.2s, border-color 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#FF6464'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.2)'; }}
               >
-                <SignOut size={12} />
-                Sign Out
+                <SignOut size={12} /> Sign Out
               </button>
             </div>
           </div>
@@ -378,46 +342,46 @@ const Profile = () => {
 
         {/* Avatar error */}
         {avatarError && (
-          <div className="max-w-lg mx-auto px-6 pt-4">
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
-              <Warning size={12} className="shrink-0" />{avatarError}
-              <button onClick={() => setAvatarError('')} className="ml-auto"><X size={12} /></button>
+          <div style={{ maxWidth: '520px', margin: '1rem auto', padding: '0 1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
+              <Warning size={12} style={{ flexShrink: 0 }} />{avatarError}
+              <button onClick={() => setAvatarError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}><X size={12} /></button>
             </div>
           </div>
         )}
 
-        {/* Quick links — always visible, independent of the tabs below */}
-        <div className="max-w-lg mx-auto px-6 pt-6 space-y-3">
-          <Link
-            to="/my-apps"
-            className="flex items-center gap-4 rounded-xl liquid-glass liquid-glass-interactive p-4 group"
-          >
-            <div className="rounded-lg w-9 h-9 flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]">
-              <AppWindow size={16} className="text-[#6E6E73]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-[#1D1D1F]">My Apps</p>
-              <p className="text-xs text-[#6E6E73]">Build your own app — no code required</p>
-            </div>
-            <CaretRight size={15} className="text-[#BFBFC4] group-hover:text-[#4ECDC4] transition-colors shrink-0" />
-          </Link>
-        </div>
-
-        {/* Settings tabs — segmented control, System-Settings style */}
-        <div className="max-w-lg mx-auto px-6 pt-6">
-          <div className="inline-flex w-full rounded-full bg-[#EDEDEF] p-1 gap-1">
+        {/* ── Tabs ────────────────────────────────────────────────── */}
+        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '1.5rem 1.5rem 0' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`relative flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition-all ${
-                  activeTab === id ? 'bg-white text-[#1D1D1F] shadow-sm' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
-                }`}
+                style={{
+                  position: 'relative',
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: activeTab === id ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                  borderBottom: activeTab === id ? '2px solid #4ECDC4' : '2px solid transparent',
+                  marginBottom: '-1px',
+                  transition: 'color 0.2s',
+                }}
               >
-                <Icon size={13} />
+                <Icon size={12} />
                 {label}
                 {id === 'notifications' && notifUnread > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#4ECDC4] text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  <span style={{ position: 'absolute', top: '8px', right: '8px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#4ECDC4', color: '#000', fontSize: '8px', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {notifUnread > 9 ? '9+' : notifUnread}
                   </span>
                 )}
@@ -426,153 +390,186 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Tab content */}
-        <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
+        {/* ── Tab content ─────────────────────────────────────────── */}
+        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '1.5rem' }}>
 
+          {/* ACCOUNT TAB */}
           {activeTab === 'account' && (
-            <>
-              <Card>
-                <CardTitle
-                  icon={User}
-                  action={
-                    !editingProfile ? (
-                      <button
-                        onClick={() => setEditingProfile(true)}
-                        className="rounded-full inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#BFBFC4] px-2.5 py-1.5 transition-all"
-                      >
-                        <PencilSimple size={11} />Edit
-                      </button>
-                    ) : null
-                  }
-                >
-                  Account Details
-                </CardTitle>
-
-                {editingProfile ? (
-                  <form onSubmit={handleProfileSave} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <TextField
-                        label="First Name" value={profileForm.firstName}
-                        onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))}
-                        placeholder="Jane" icon={User} autoComplete="given-name"
-                        disabled={firstNameDaysLeft > 0}
-                        hint={firstNameDaysLeft > 0 ? `You can change this again in ${firstNameDaysLeft} day${firstNameDaysLeft !== 1 ? 's' : ''}.` : null}
-                      />
-                      <TextField
-                        label="Last Name" value={profileForm.lastName}
-                        onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))}
-                        placeholder="Doe" icon={User} autoComplete="family-name" required={false}
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-[#A1A1A6] uppercase tracking-wider mb-1">Email</p>
-                      <p className="text-sm text-[#6E6E73]">{user.email} <span className="text-[#A1A1A6] text-xs">(cannot be changed)</span></p>
-                    </div>
-                    {profileError && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
-                        <Warning size={13} className="shrink-0" />{profileError}
-                      </div>
-                    )}
-                    <div className="flex gap-2 pt-1">
-                      <PublicButton type="submit" disabled={profileLoading} size="sm" icon={FloppyDisk} iconPosition="leading">
-                        {profileLoading ? 'Saving…' : 'Save Changes'}
-                      </PublicButton>
-                      <PublicButton type="button" onClick={handleProfileCancel} variant="outline" size="sm" icon={X} iconPosition="leading">
-                        Cancel
-                      </PublicButton>
-                    </div>
-                  </form>
-                ) : (
-                  <>
-                    {profileSuccess && (
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm mb-4">
-                        <CheckCircle size={13} className="shrink-0" />Profile updated successfully.
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                      {[
-                        { label: 'First Name', value: user.firstName || '—' },
-                        { label: 'Last Name',  value: user.lastName  || '—' },
-                        { label: 'Email',      value: user.email           },
-                      ].map(({ label, value }) => (
-                        <div key={label}>
-                          <p className="text-[10px] font-semibold text-[#A1A1A6] uppercase tracking-wider mb-0.5">{label}</p>
-                          <p className="text-sm text-[#1D1D1F] break-all">{value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </>
+            <div style={cardDark}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <User size={14} style={{ color: '#4ECDC4' }} />
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Account Details</h2>
+                </div>
+                {!editingProfile && (
+                  <button
+                    onClick={() => setEditingProfile(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  >
+                    <PencilSimple size={10} /> Edit
+                  </button>
                 )}
-              </Card>
+              </div>
 
-              <VakarPlusWidget status={vakarPlus} onManage={manageBilling} managing={managingBilling} />
-            </>
+              {editingProfile ? (
+                <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <TextField
+                      label="First Name" value={profileForm.firstName}
+                      onChange={e => setProfileForm(f => ({ ...f, firstName: e.target.value }))}
+                      placeholder="Jane" autoComplete="given-name"
+                      disabled={firstNameDaysLeft > 0}
+                      hint={firstNameDaysLeft > 0 ? `Changeable again in ${firstNameDaysLeft} day${firstNameDaysLeft !== 1 ? 's' : ''}.` : null}
+                    />
+                    <TextField
+                      label="Last Name" value={profileForm.lastName}
+                      onChange={e => setProfileForm(f => ({ ...f, lastName: e.target.value }))}
+                      placeholder="Doe" autoComplete="family-name" required={false}
+                    />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
+                  </div>
+                  {profileError && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
+                      <Warning size={12} style={{ flexShrink: 0 }} />{profileError}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
+                    <button
+                      type="submit"
+                      disabled={profileLoading}
+                      className="btn-kefir"
+                      style={{ opacity: profileLoading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <FloppyDisk size={12} />
+                      {profileLoading ? 'Saving…' : 'Save Changes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleProfileCancel}
+                      className="btn-kefir-outline"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <X size={12} /> Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {profileSuccess && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem', marginBottom: '1rem' }}>
+                      <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {[
+                      { label: 'First Name', value: user.firstName || '—' },
+                      { label: 'Last Name',  value: user.lastName  || '—' },
+                      { label: 'Username',   value: user.username  || '—' },
+                      { label: 'Email',      value: user.email },
+                    ].map(({ label, value }) => (
+                      <div key={label}>
+                        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
+                        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all' }}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
+          {/* SECURITY TAB */}
           {activeTab === 'security' && (
-            <Card>
-              <CardTitle icon={Lock}>Change Password</CardTitle>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div style={cardDark}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <Lock size={14} style={{ color: '#4ECDC4' }} />
+                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Change Password</h2>
+              </div>
+              <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
                 <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
                 <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
                 {pwError && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs">
-                    <Warning size={12} className="shrink-0" />{pwError}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
+                    <Warning size={12} style={{ flexShrink: 0 }} />{pwError}
                   </div>
                 )}
                 {pwSuccess && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-xs">
-                    <CheckCircle size={12} className="shrink-0" />Password updated successfully.
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem' }}>
+                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated.
                   </div>
                 )}
-                <PublicButton type="submit" disabled={pwLoading} className="w-full">
+                <button
+                  type="submit"
+                  disabled={pwLoading}
+                  className="btn-kefir"
+                  style={{ opacity: pwLoading ? 0.6 : 1, marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
+                >
                   {pwLoading ? 'Saving…' : 'Update Password'}
-                </PublicButton>
+                </button>
               </form>
-            </Card>
+            </div>
           )}
 
+          {/* NOTIFICATIONS TAB */}
           {activeTab === 'notifications' && (
-            <Card>
-              <CardTitle
-                icon={Bell}
-                action={notifUnread > 0 ? (
-                  <button onClick={markAllRead} className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors">
+            <div style={cardDark}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Bell size={14} style={{ color: '#4ECDC4' }} />
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>Notifications</h2>
+                </div>
+                {notifUnread > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+                  >
                     Mark all read
                   </button>
-                ) : null}
-              >
-                Notifications
-              </CardTitle>
+                )}
+              </div>
 
               {notifLoading ? (
-                <div className="space-y-2">
-                  {[1,2,3].map(i => <div key={i} className="rounded-lg h-12 bg-[#F5F5F7] animate-pulse" />)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {[1,2,3].map(i => (
+                    <div key={i} style={{ height: '48px', backgroundColor: '#1A1A1A', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  ))}
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="py-8 text-center text-sm text-[#A1A1A6]">No notifications yet.</div>
+                <div style={{ padding: '2.5rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem' }}>
+                  No notifications yet.
+                </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto -mx-1 px-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '400px', overflowY: 'auto' }}>
                   {notifications.map(n => (
                     <div
                       key={n.id}
-                      onClick={() => {
-                        if (!n.read) markRead(n.id);
-                        if (n.link) navigate(n.link);
+                      onClick={() => { if (!n.read) markRead(n.id); if (n.link) navigate(n.link); }}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: n.read ? '#0D0D0D' : 'rgba(78,205,196,0.05)',
+                        border: `1px solid ${n.read ? 'rgba(255,255,255,0.05)' : 'rgba(78,205,196,0.15)'}`,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
                       }}
-                      className={`rounded-lg p-3 border transition-all cursor-pointer ${
-                        n.read ? 'border-[#EDEDEF] bg-[#FAFAF9]' : 'border-[#4ECDC4]/20 bg-[#4ECDC4]/5 hover:bg-[#4ECDC4]/8'
-                      }`}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1A1A1A'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = n.read ? '#0D0D0D' : 'rgba(78,205,196,0.05)'}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs leading-snug ${n.read ? 'text-[#6E6E73]' : 'text-[#1D1D1F] font-semibold'}`}>{n.title}</p>
-                          {n.message && <p className="text-[10px] text-[#A1A1A6] mt-0.5 leading-relaxed">{n.message}</p>}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '0.8rem', lineHeight: '1.4', color: n.read ? 'rgba(255,255,255,0.4)' : '#FFFFFF', fontWeight: n.read ? 400 : 600, margin: 0 }}>{n.title}</p>
+                          {n.message && <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.2rem', lineHeight: '1.4' }}>{n.message}</p>}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4]" />}
-                          <time className="text-[9px] text-[#A1A1A6] whitespace-nowrap">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                          {!n.read && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ECDC4' }} />}
+                          <time style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>
                             {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </time>
                         </div>
@@ -581,7 +578,7 @@ const Profile = () => {
                   ))}
                 </div>
               )}
-            </Card>
+            </div>
           )}
 
         </div>
