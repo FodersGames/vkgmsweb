@@ -1,4 +1,5 @@
 import re
+import secrets
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -112,15 +113,33 @@ async def register(request: Request, body: RegisterRequest):
     # registering (see the mandatory onboarding gate on the frontend).
     raw_username = (body.username or "").strip()
     if not raw_username:
-        base = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0])[:14] or "player"
+        clean = re.sub(r'[^a-zA-Z0-9_]', '_', email.split('@')[0]).strip('_')
+        if len(clean) < 5:
+            base = f"user_{clean}"[:14]
+            if len(base) < 5:
+                base = f"user_{secrets.token_hex(4)}"[:14]
+        else:
+            base = clean[:14]
+        if not re.match(PSEUDO_REGEX, base):
+            base = f"user_{secrets.token_hex(4)}"[:14]
+
         raw_username = base
         suffix = 0
         while await db.users.find_one({"username": raw_username}):
             suffix += 1
-            raw_username = f"{base[:14 - len(str(suffix))]}{suffix}"
-    username = raw_username
-    if not re.match(PSEUDO_REGEX, username):
-        raise HTTPException(status_code=400, detail="Pseudo must be 5-14 characters (letters, numbers, underscores only)")
+            suffix_str = str(suffix)
+            avail = 14 - len(suffix_str)
+            raw_base = base[:avail]
+            if len(raw_base) + len(suffix_str) < 5:
+                raw_base = f"u_{raw_base}"[:avail]
+            raw_username = f"{raw_base}{suffix_str}"
+            if not re.match(PSEUDO_REGEX, raw_username):
+                raw_username = f"u{suffix}_{secrets.token_hex(4)}"[:14]
+        username = raw_username
+    else:
+        username = raw_username
+        if not re.match(PSEUDO_REGEX, username):
+            raise HTTPException(status_code=400, detail="Pseudo must be 5-14 characters (letters, numbers, underscores only)")
     validate_password_strength(body.password)
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email already registered")
