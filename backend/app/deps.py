@@ -201,6 +201,8 @@ async def get_optional_user(request: Request):
             "email": user.get("email", ""),
             "username": user.get("username", ""),
             "role": user.get("role", "user"),
+            "custom_roles": [str(r) for r in (user.get("custom_roles") or [])],
+            "permissions": user.get("permissions") or [],
             "is_super_admin": user.get("role") == "super_admin",
         }
     except Exception:

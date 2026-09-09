@@ -99,12 +99,14 @@ class BlogCreateRequest(BaseModel):
     content: str
     image_url: Optional[str] = ""
     published: bool = False
+    allowed_roles: Optional[List[str]] = []
 
 class BlogUpdateRequest(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     image_url: Optional[str] = None
     published: Optional[bool] = None
+    allowed_roles: Optional[List[str]] = None
 
 class WebsiteSettingsRequest(BaseModel):
     maintenance_mode: Optional[bool] = None

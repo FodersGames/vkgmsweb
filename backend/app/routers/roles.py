@@ -64,6 +64,24 @@ async def _ensure_default_roles():
         if docs:
             await db.roles.insert_many(docs)
 
+@router.get("/roles")
+async def get_roles():
+    await _ensure_default_roles()
+    roles = await db.roles.find({}).sort("created_at", 1).to_list(100)
+    return {
+        "roles": [
+            {
+                "id": r.get("id") or str(r["_id"]),
+                "_id": str(r["_id"]),
+                "name": r.get("name", ""),
+                "color": r.get("color", "#4ECDC4"),
+                "icon": r.get("icon", "Shield"),
+                "description": r.get("description", ""),
+            }
+            for r in roles
+        ]
+    }
+
 @router.get("/admin/roles")
 async def list_roles(admin=Depends(require_permission("manage_users"))):
     await _ensure_default_roles()
