@@ -36,7 +36,12 @@ const NotFound = () => (
 const AppRoutes = () => {
   const { maintenance, scheduledAt, announcement } = useMaintenanceCheck();
 
-  if (maintenance) {
+  const isAdminSubdomain = typeof window !== 'undefined' && (
+    window.location.hostname === 'admin.vakargames.com' ||
+    window.location.hostname.startsWith('admin.')
+  );
+
+  if (maintenance && !isAdminSubdomain) {
     return <MaintenancePage announcement={announcement} />;
   }
 
@@ -45,7 +50,8 @@ const AppRoutes = () => {
       <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
         {/* Main studio showcase routes */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={isAdminSubdomain ? <Navigate to="/dashboard" replace /> : <Home />} />
+        <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
