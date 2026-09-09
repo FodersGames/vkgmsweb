@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { Save, Loader2, Lock, Camera, Check, AlertCircle, Eye, EyeSlash } from 'lucide-react';
+import { Save, Loader2, Lock, Camera, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 import { SavedFlash, useSavedFlash } from '../ui';
 import { API_URL } from '../utils/api';
@@ -264,7 +264,7 @@ export const AccountSettings = () => {
                   onClick={() => setShowCurrentPw(s => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white"
                 >
-                  {showCurrentPw ? <EyeSlash size={14} /> : <Eye size={14} />}
+                  {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
@@ -287,7 +287,7 @@ export const AccountSettings = () => {
                   onClick={() => setShowNewPw(s => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white"
                 >
-                  {showNewPw ? <EyeSlash size={14} /> : <Eye size={14} />}
+                  {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
