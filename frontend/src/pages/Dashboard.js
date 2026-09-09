@@ -258,7 +258,7 @@ const SidebarContent = ({
                   onDragStart={() => onNavDragStart(group.label, item.id)}
                   onDragOver={(e) => onNavDragOver(e, group.label, item.id)}
                   onDrop={() => onNavDrop(group.label, item.id)}
-                  onDragEnd={onDragEnd}
+                  onDragEnd={onNavDragEnd}
                 />
               ))}
             </div>
