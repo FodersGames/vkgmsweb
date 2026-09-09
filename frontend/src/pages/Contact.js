@@ -566,7 +566,7 @@ const Contact = () => {
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Mes Tickets</h3>
                 </div>
                 <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Tickets ouverts: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/5</strong>
+                  Tickets ouverts: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
                 </p>
                 <button
                   type="button"

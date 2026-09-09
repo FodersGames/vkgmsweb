@@ -74,12 +74,12 @@ export const SupportWidget = ({ user }) => {
   };
 
   const openCount = tickets.filter(t => t.status !== 'closed').length;
-  const limitReached = openCount >= 5;
+  const limitReached = openCount >= 3;
 
   const submitTicket = async (e) => {
     e.preventDefault();
     if (limitReached) {
-      setError("Ticket ouvert maximum atteint (5/5).");
+      setError("Ticket ouvert maximum atteint (3/3).");
       return;
     }
     setError('');
@@ -214,7 +214,7 @@ export const SupportWidget = ({ user }) => {
                   <form onSubmit={submitTicket} className="space-y-3">
                     {limitReached && (
                       <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold">
-                        Ticket ouvert maximum atteint ({openCount}/5).
+                        Ticket ouvert maximum atteint ({openCount}/3).
                       </div>
                     )}
                     <div>

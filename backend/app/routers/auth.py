@@ -68,7 +68,24 @@ async def login(request: Request, body: LoginEmailRequest):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
     direct_perms = set(user.get("permissions", []))
-    custom_role_keys = [str(r) for r in (user.get("custom_roles") or [])]
+    user_roles = []
+    if is_super:
+        user_roles.append({
+            "id": "super_admin",
+            "name": "Super Admin",
+            "color": "#4ECDC4",
+            "icon": "Crown",
+            "is_system": True,
+        })
+    elif user.get("role") == "admin":
+        user_roles.append({
+            "id": "admin",
+            "name": "Admin",
+            "color": "#3B82F6",
+            "icon": "Shield",
+            "is_system": True,
+        })
+
     if custom_role_keys:
         try:
             role_queries = [{"id": {"$in": custom_role_keys}}]
@@ -79,6 +96,13 @@ async def login(request: Request, body: LoginEmailRequest):
             for rd in role_docs:
                 for p in rd.get("permissions", []):
                     direct_perms.add(p)
+                user_roles.append({
+                    "id": rd.get("id") or str(rd["_id"]),
+                    "name": rd.get("name", ""),
+                    "color": rd.get("color", "#4ECDC4"),
+                    "icon": rd.get("icon", "Shield"),
+                    "is_system": rd.get("is_system", False),
+                })
         except Exception:
             pass
 
@@ -104,10 +128,12 @@ async def login(request: Request, body: LoginEmailRequest):
             "lastName": user.get("lastName", ""),
             "role": user.get("role", "user"),
             "custom_roles": custom_role_keys,
+            "roles": user_roles,
             "is_super_admin": is_super,
             "permissions": effective_perms,
             "mustChangePassword": user.get("mustChangePassword", False),
             "pseudo_set": user.get("pseudo_set", False),
+            "avatar_url": user.get("avatar_url"),
         },
         "first_login": user.get("mustChangePassword", False),
     }

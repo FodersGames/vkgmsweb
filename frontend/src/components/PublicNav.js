@@ -4,6 +4,7 @@ import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { SupportWidget } from './SupportWidget';
 import { AnnouncementBanner } from './AnnouncementBanner';
+import { API_URL } from '../utils/api';
 
 export const PublicNav = ({ onAbout }) => {
   const [open, setOpen] = useState(false);
@@ -86,8 +87,16 @@ export const PublicNav = ({ onAbout }) => {
                 to="/profile"
                 className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
               >
-                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/20 border border-[#4ECDC4]/40 flex items-center justify-center text-[10px] font-bold text-[#4ECDC4]">
-                  {user.name?.charAt(0)?.toUpperCase() || user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />}
+                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/20 border border-[#4ECDC4]/40 flex items-center justify-center text-[10px] font-bold text-[#4ECDC4] overflow-hidden">
+                  {user.avatar_url ? (
+                    <img
+                      src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    user.name?.charAt(0)?.toUpperCase() || user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />
+                  )}
                 </div>
                 <span>{user.name || user.firstName || user.username}</span>
               </Link>
