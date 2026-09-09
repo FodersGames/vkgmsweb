@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const refreshUser = () => token && fetchMe(token);
+  const refreshUser = () => (token ? fetchMe(token) : Promise.resolve(null));
 
   const logout = () => {
     localStorage.removeItem('token');

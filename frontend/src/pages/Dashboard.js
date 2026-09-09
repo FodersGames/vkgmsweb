@@ -23,6 +23,7 @@ import CareersManagement      from '../components/CareersManagement';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import CriticalActionBanner   from '../components/CriticalActionBanner';
+import { API_URL }            from '../utils/api';
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 const NAV_GROUPS = [
@@ -611,8 +612,16 @@ const DashboardContent = () => {
               View site
             </Link>
             <div className="flex items-center gap-2.5 pl-0.5">
-              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
-                {initials}
+              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0 overflow-hidden">
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
               </div>
               <span className="hidden md:block text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{displayName}</span>
             </div>
