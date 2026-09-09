@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, User, CircleNotch } from '@phosphor-icons/react';
+import { ArrowLeft, Calendar, User, CircleNotch, Lock, ShieldCheck, SignIn } from '@phosphor-icons/react';
+import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 
@@ -9,17 +10,41 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.
 
 const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
+const DEFAULT_ROLES_MAP = {
+  admin: { name: 'Admin', color: '#EF4444' },
+  moderator: { name: 'Moderator', color: '#3B82F6' },
+  game_dev: { name: 'Game Developer', color: '#10B981' },
+  community_manager: { name: 'Community Manager', color: '#EC4899' },
+  vip: { name: 'VIP Player', color: '#F59E0B' },
+  tester: { name: 'Tester', color: '#8B5CF6' },
+};
 
 export const BlogList = () => {
+  const { token } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [rolesMap, setRolesMap] = useState(DEFAULT_ROLES_MAP);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = 'Blog — Vakar Games';
-    axios.get(`${API_URL}/api/website/blog/public`)
-      .then(r => { setPosts(r.data.posts); setLoading(false); })
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    axios.get(`${API_URL}/api/website/blog/public`, { headers })
+      .then(r => { setPosts(r.data.posts || []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+
+    axios.get(`${API_URL}/api/roles`)
+      .then(r => {
+        if (r.data?.roles) {
+          const map = { ...DEFAULT_ROLES_MAP };
+          r.data.roles.forEach(role => {
+            map[role.id] = { name: role.name, color: role.color };
+          });
+          setRolesMap(map);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   return (
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
@@ -56,57 +81,84 @@ export const BlogList = () => {
           </div>
         ) : (
           <div className="space-y-2" data-testid="blog-posts-list">
-            {posts.map((post) => (
-              <Link
-                key={post.slug}
-                to={`/blog/${post.slug}`}
-                className="group block overflow-hidden transition-all"
-                style={{
-                  backgroundColor: '#111111',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  transition: 'border-color 0.3s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(78,205,196,0.3)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
-                data-testid={`blog-post-${post.slug}`}
-              >
-                <div className="flex flex-col sm:flex-row">
-                  {post.image_url && (
-                    <div className="sm:w-56 h-44 sm:h-auto flex-shrink-0 overflow-hidden">
-                      <img
-                        src={imgUrl(post.image_url)}
-                        alt={post.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                  )}
-                  <div className="p-7 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h2
-                        className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors mb-3 leading-tight"
-                        style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', letterSpacing: '-0.01em' }}
-                      >
-                        {post.title}
-                      </h2>
-                      <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-5 mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
-                        <User size={10} />{post.author}
-                      </span>
-                      <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
-                        <Calendar size={10} />
-                        {new Date(post.created_at).toLocaleDateString('en-US', {
-                          month: 'short', day: 'numeric', year: 'numeric',
-                        })}
-                      </span>
+            {posts.map((post) => {
+              const isLocked = !!post.is_locked;
+              const allowed = post.allowed_roles || [];
+              return (
+                <Link
+                  key={post.slug}
+                  to={`/blog/${post.slug}`}
+                  className="group block overflow-hidden transition-all"
+                  style={{
+                    backgroundColor: '#111111',
+                    border: isLocked ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                    transition: 'border-color 0.3s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.5)' : 'rgba(78,205,196,0.3)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)'}
+                  data-testid={`blog-post-${post.slug}`}
+                >
+                  <div className="flex flex-col sm:flex-row">
+                    {post.image_url && (
+                      <div className="sm:w-56 h-44 sm:h-auto flex-shrink-0 overflow-hidden relative">
+                        <img
+                          src={imgUrl(post.image_url)}
+                          alt={post.title}
+                          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                            isLocked ? 'brightness-75 saturate-50' : ''
+                          }`}
+                        />
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                            <div className="p-2.5 rounded-xl bg-black/60 border border-amber-500/40 text-amber-400">
+                              <Lock size={20} weight="duotone" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-7 flex-1 flex flex-col justify-between">
+                      <div>
+                        {isLocked && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
+                            <Lock size={12} weight="bold" />
+                            <span>
+                              Restricted: {allowed.map(r => rolesMap[r]?.name || r).join(', ') || 'Staff only'}
+                            </span>
+                          </div>
+                        )}
+                        <h2
+                          className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors mb-3 leading-tight"
+                          style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', letterSpacing: '-0.01em' }}
+                        >
+                          {post.title}
+                        </h2>
+                        <p className="text-sm leading-relaxed line-clamp-2" style={{ color: isLocked ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.4)' }}>
+                          {isLocked ? (
+                            <span className="italic">
+                              🔒 This article is restricted to specific studio roles ({allowed.map(r => rolesMap[r]?.name || r).join(', ')}). Click to view details.
+                            </span>
+                          ) : (
+                            `${post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…`
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-5 mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
+                          <User size={10} />{post.author}
+                        </span>
+                        <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
+                          <Calendar size={10} />
+                          {new Date(post.created_at).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
@@ -118,18 +170,33 @@ export const BlogList = () => {
 
 export const BlogPost = () => {
   const { slug } = useParams();
+  const { user, token } = useAuth();
   const [post, setPost] = useState(null);
+  const [rolesMap, setRolesMap] = useState(DEFAULT_ROLES_MAP);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/website/blog/${slug}`)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    axios.get(`${API_URL}/api/website/blog/${slug}`, { headers })
       .then(r => {
         setPost(r.data.post);
         document.title = `${r.data.post.title} — Vakar Games`;
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [slug]);
+
+    axios.get(`${API_URL}/api/roles`)
+      .then(r => {
+        if (r.data?.roles) {
+          const map = { ...DEFAULT_ROLES_MAP };
+          r.data.roles.forEach(role => {
+            map[role.id] = { name: role.name, color: role.color };
+          });
+          setRolesMap(map);
+        }
+      })
+      .catch(() => {});
+  }, [slug, token]);
 
   if (loading) return (
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -141,6 +208,9 @@ export const BlogPost = () => {
       Post not found
     </div>
   );
+
+  const isLocked = !!post.is_locked;
+  const allowed = post.allowed_roles || [];
 
   return (
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
@@ -160,12 +230,21 @@ export const BlogPost = () => {
           </Link>
 
           {post.image_url && (
-            <img
-              src={imgUrl(post.image_url)}
-              alt={post.title}
-              className="w-full mb-10 object-cover"
-              style={{ maxHeight: '360px', border: '1px solid rgba(255,255,255,0.08)' }}
-            />
+            <div className="relative mb-10 overflow-hidden">
+              <img
+                src={imgUrl(post.image_url)}
+                alt={post.title}
+                className={`w-full object-cover ${isLocked ? 'brightness-75 saturate-50' : ''}`}
+                style={{ maxHeight: '360px', border: '1px solid rgba(255,255,255,0.08)' }}
+              />
+              {isLocked && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                  <div className="p-3.5 rounded-2xl bg-black/70 border border-amber-500/40 text-amber-400 shadow-xl">
+                    <Lock size={28} weight="duotone" />
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           <h1
@@ -190,13 +269,81 @@ export const BlogPost = () => {
             </span>
           </div>
 
-          <div
-            className="leading-relaxed whitespace-pre-wrap"
-            style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: 1.8 }}
-            data-testid="blog-content"
-          >
-            {post.content}
-          </div>
+          {isLocked ? (
+            <div
+              className="p-8 sm:p-12 text-center rounded-2xl border"
+              style={{
+                backgroundColor: '#111111',
+                borderColor: 'rgba(245, 158, 11, 0.25)',
+                boxShadow: '0 0 50px rgba(245, 158, 11, 0.05)',
+              }}
+            >
+              <div
+                className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center border"
+                style={{
+                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                  borderColor: 'rgba(245, 158, 11, 0.3)',
+                  color: '#F59E0B',
+                }}
+              >
+                <Lock size={32} weight="duotone" />
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight mb-2">
+                Restricted Article
+              </h2>
+              <p className="text-sm max-w-md mx-auto text-white/50 mb-6 leading-relaxed">
+                This post is confidential and reserved exclusively for studio members holding at least one of the following roles:
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+                {allowed.map(r => {
+                  const roleInfo = rolesMap[r] || { name: r, color: '#4ECDC4' };
+                  return (
+                    <span
+                      key={r}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5"
+                      style={{
+                        backgroundColor: `${roleInfo.color}15`,
+                        borderColor: `${roleInfo.color}40`,
+                        color: roleInfo.color,
+                      }}
+                    >
+                      <ShieldCheck size={14} weight="bold" />
+                      {roleInfo.name}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {!user ? (
+                <div className="space-y-4">
+                  <Link
+                    to={`/login?redirect=/blog/${post.slug}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#4ECDC4] text-black hover:bg-[#45b7af] transition-colors shadow-lg shadow-[#4ECDC4]/10"
+                  >
+                    <SignIn size={16} weight="bold" />
+                    Log in to access
+                  </Link>
+                  <p className="text-xs text-white/30">
+                    Sign in with an authorized account to unlock this post.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl max-w-md mx-auto bg-white/[0.03] border border-white/[0.08] text-xs text-white/50 leading-relaxed">
+                  Logged in as <span className="text-white font-semibold">@{user.username}</span>. Your account does not currently possess the required role(s) to view this article.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="leading-relaxed whitespace-pre-wrap"
+              style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: 1.8 }}
+              data-testid="blog-content"
+            >
+              {post.content}
+            </div>
+          )}
         </div>
       </div>
 
@@ -204,3 +351,4 @@ export const BlogPost = () => {
     </div>
   );
 };
+

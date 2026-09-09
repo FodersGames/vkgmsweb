@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 
 from ..database import db
-from ..deps import require_permission
+from ..deps import require_permission, get_optional_user
 from ..utils import slugify, serialize_doc, log_action
 from ..schemas import GameCreateRequest, GameUpdateRequest, BlogCreateRequest, BlogUpdateRequest, WebsiteSettingsRequest
 
@@ -73,14 +73,50 @@ async def delete_game(game_slug: str, user=Depends(require_permission("delete_ga
     return {"success": True, "message": f"Game deleted"}
 
 # ============== WEBSITE: BLOG ==============
+def user_can_access_post(user: dict, post: dict) -> bool:
+    allowed_roles = post.get("allowed_roles") or []
+    if not allowed_roles:
+        return True  # Public to everyone
+    if not user:
+        return False  # Visitor, but restricted
+    if user.get("is_super_admin") or user.get("role") == "super_admin":
+        return True  # Super admin has full access
+
+    # Author can always view their own post
+    if user.get("username") and user.get("username") == post.get("author"):
+        return True
+
+    # Check staff permissions (authors / editors can always view)
+    user_perms = user.get("permissions") or []
+    if "edit_blog" in user_perms or "create_blog" in user_perms:
+        return True
+
+    # Check direct role (e.g. "admin", "super_admin") and custom roles
+    user_base_role = str(user.get("role", "")).lower().strip()
+    user_custom_roles = [str(r).lower().strip() for r in (user.get("custom_roles") or [])]
+    for r in allowed_roles:
+        r_clean = str(r).lower().strip()
+        if r_clean == user_base_role or r_clean in user_custom_roles:
+            return True
+
+    return False
+
 @router.post("/website/blog")
 async def create_blog_post(req: BlogCreateRequest, user=Depends(require_permission("create_blog"))):
     slug = slugify(req.title)
     if await db.blog_posts.find_one({"slug": slug}):
         slug = f"{slug}-{uuid.uuid4().hex[:6]}"
-    doc = {"title": req.title, "slug": slug, "content": req.content, "image_url": req.image_url,
-           "published": req.published, "author": user["username"],
-           "created_at": datetime.now(timezone.utc), "updated_at": datetime.now(timezone.utc)}
+    doc = {
+        "title": req.title,
+        "slug": slug,
+        "content": req.content,
+        "image_url": req.image_url,
+        "published": req.published,
+        "allowed_roles": [r.strip() for r in (req.allowed_roles or []) if r.strip()],
+        "author": user["username"],
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
     await db.blog_posts.insert_one(doc)
     await log_action("website", f"Blog post '{req.title}' created", user=user["username"])
     return {"success": True, "post": serialize_doc(doc)}
@@ -91,16 +127,38 @@ async def list_blog_admin(user=Depends(require_permission("create_blog"))):
     return {"posts": [serialize_doc(p) for p in posts]}
 
 @router.get("/website/blog/public")
-async def list_blog_public():
+async def list_blog_public(user=Depends(get_optional_user)):
     posts = await db.blog_posts.find({"published": True}).sort("created_at", -1).to_list(1000)
-    return {"posts": [serialize_doc(p) for p in posts]}
+    result = []
+    for p in posts:
+        has_access = user_can_access_post(user, p)
+        serialized = serialize_doc(p)
+        serialized["is_locked"] = not has_access
+        serialized["allowed_roles"] = p.get("allowed_roles", [])
+        if not has_access:
+            serialized["content"] = "This post is restricted to specific studio roles."
+        result.append(serialized)
+    return {"posts": result}
 
 @router.get("/website/blog/{post_slug}")
-async def get_blog_post(post_slug: str):
+async def get_blog_post(post_slug: str, user=Depends(get_optional_user)):
     post = await db.blog_posts.find_one({"slug": post_slug})
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    return {"post": serialize_doc(post)}
+
+    # Unpublished posts are only viewable by blog editors
+    if not post.get("published", False):
+        if not user or (not user.get("is_super_admin") and "create_blog" not in (user.get("permissions") or [])):
+            raise HTTPException(status_code=404, detail="Post not found")
+
+    has_access = user_can_access_post(user, post)
+    serialized = serialize_doc(post)
+    serialized["is_locked"] = not has_access
+    serialized["allowed_roles"] = post.get("allowed_roles", [])
+    if not has_access:
+        serialized["content"] = ""  # Protect real content from unauthorized clients
+
+    return {"post": serialized, "is_locked": not has_access}
 
 @router.put("/website/blog/{post_slug}")
 async def update_blog_post(post_slug: str, req: BlogUpdateRequest, user=Depends(require_permission("edit_blog"))):
@@ -108,6 +166,8 @@ async def update_blog_post(post_slug: str, req: BlogUpdateRequest, user=Depends(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     updates = {k: v for k, v in req.dict().items() if v is not None}
+    if "allowed_roles" in updates and updates["allowed_roles"] is not None:
+        updates["allowed_roles"] = [r.strip() for r in updates["allowed_roles"] if r.strip()]
     updates["updated_at"] = datetime.now(timezone.utc)
     await db.blog_posts.update_one({"slug": post_slug}, {"$set": updates})
     updated = await db.blog_posts.find_one({"slug": post_slug})
