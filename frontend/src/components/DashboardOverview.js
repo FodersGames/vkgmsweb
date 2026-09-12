@@ -303,9 +303,6 @@ export const DashboardOverview = ({ goTo }) => {
         <div className="relative z-10 p-7 sm:p-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-[0.12em] px-2.5 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15">
-                Studio Control Center
-              </span>
               <span className="text-xs text-white/60 capitalize">
                 {dateStr}
               </span>
@@ -320,18 +317,6 @@ export const DashboardOverview = ({ goTo }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {/* Status Link */}
-            <Link
-              to="/status"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] shadow-sm transition-all group"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse" />
-              <span>Systems Operational</span>
-              <ArrowUpRight size={13} className="text-[#86868B] group-hover:text-[#1D1D1F] transition-colors" />
-            </Link>
-
             {maintenanceMode && (
               <div className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold bg-[#FF6600] text-white shadow-sm">
                 <AlertTriangle size={13} />
