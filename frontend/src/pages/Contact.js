@@ -167,7 +167,6 @@ const Contact = () => {
             />
           </div>
           <div className="relative z-10 max-w-[1100px] mx-auto px-6">
-            <p className="kefir-label mb-4" style={{ color: '#FF6600' }}>// SUPPORT & INQUIRIES</p>
             <h1
               className="font-black uppercase text-white drop-shadow-2xl"
               style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}

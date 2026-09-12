@@ -174,7 +174,6 @@ const TermsOfService = () => {
       {/* Hero */}
       <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
-          <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// LEGAL & COMPLIANCE</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
@@ -245,7 +244,7 @@ const TermsOfService = () => {
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-[#FF6600]/10 text-[#FF6600] border border-[#FF6600]/20">
-                    // {s.num}
+                    {s.num}
                   </span>
                   <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight">
                     {s.title}
@@ -260,7 +259,7 @@ const TermsOfService = () => {
             {/* Quick links to Privacy Policy */}
             <div className="p-6 bg-[#141414] border border-white/[0.08] flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-[#FF6600]">// PRIVACY</p>
+                <p className="text-xs font-mono uppercase tracking-wider text-[#FF6600]">PRIVACY</p>
                 <p className="text-sm font-bold text-white mt-0.5">Looking for our Privacy Policy?</p>
                 <p className="text-xs text-white/40 mt-0.5">Learn how we process, store, and protect your data.</p>
               </div>

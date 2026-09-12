@@ -74,7 +74,7 @@ function ApplyModal({ career, onClose, token, user }) {
       <div className="animate-appear w-full max-w-lg overflow-hidden bg-[#111111] border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#141414]">
           <div>
-            <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1" style={{ color: deptColor }}>// {career.department}</p>
+            <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1" style={{ color: deptColor }}>{career.department}</p>
             <h3 className="font-black uppercase text-base text-white tracking-tight">{career.title}</h3>
           </div>
           <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
@@ -234,7 +234,6 @@ export default function Careers() {
           />
         </div>
         <div className="relative z-10 max-w-[1100px] mx-auto px-6">
-          <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// JOIN THE STUDIO</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
