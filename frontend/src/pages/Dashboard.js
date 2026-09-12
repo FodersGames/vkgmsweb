@@ -461,6 +461,7 @@ const DashboardContent = () => {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const displayName = user?.name || (user?.firstName && user?.lastName
