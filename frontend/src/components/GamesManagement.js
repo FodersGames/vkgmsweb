@@ -14,6 +14,7 @@ const PLATFORMS = [
   { id: 'pc', label: 'PC' },
   { id: 'web', label: 'Web' },
   { id: 'android', label: 'Android' },
+  { id: 'mobile', label: 'Mobile' },
 ];
 
 const statusVariant = { published: 'success', coming_soon: 'purple', draft: 'default' };

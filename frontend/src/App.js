@@ -17,6 +17,7 @@ import Contact from './pages/Contact';
 import Careers from './pages/Careers';
 import StatusPage from './pages/StatusPage';
 import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
+import PublicSurvey from './pages/PublicSurvey';
 import { SiteTopBanner } from './components/SiteTopBanner';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
@@ -50,6 +51,7 @@ const AppRoutes = () => {
   const isDashboard = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard');
   const isTermsPage = location.pathname === '/terms' || location.pathname.startsWith('/terms');
   const isPrivacyPage = location.pathname === '/privacy' || location.pathname.startsWith('/privacy');
+  const isSurveyPage = location.pathname.startsWith('/survey') || location.pathname.startsWith('/feedback');
   const isStaff = user?.is_super_admin || user?.role === 'admin' || (user?.permissions && user.permissions.length > 0);
 
   if (
@@ -60,6 +62,7 @@ const AppRoutes = () => {
     !isDashboard &&
     !isTermsPage &&
     !isPrivacyPage &&
+    !isSurveyPage &&
     !isStaff
   ) {
     return <MaintenancePage announcement={announcement} />;
@@ -76,6 +79,8 @@ const AppRoutes = () => {
         <Route path="/games" element={<GamesPage />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/survey/:slug" element={<PublicSurvey />} />
+        <Route path="/feedback/:slug" element={<PublicSurvey />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

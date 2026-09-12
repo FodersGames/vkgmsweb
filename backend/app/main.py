@@ -19,7 +19,7 @@ from .play_auth import _ensure_super_admin, LEGACY_PLAY_SAVE_CATEGORIES
 from .deps import ALL_PERMISSIONS
 
 from .routers import (
-    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads,
+    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads, surveys,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,7 +92,7 @@ async def get_all_permissions():
     return {"permissions": ALL_PERMISSIONS}
 
 for _router_module in (
-    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads,
+    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads, surveys,
 ):
     app.include_router(_router_module.router, prefix="/api")
 

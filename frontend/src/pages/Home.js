@@ -110,7 +110,7 @@ const Home = () => {
               <p className="text-[13px] text-[#86868B] mt-1">Productions</p>
             </div>
             <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">PC · Web</p>
+              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">Mobile</p>
               <p className="text-[13px] text-[#86868B] mt-1">Platforms</p>
             </div>
           </div>
@@ -157,7 +157,7 @@ const Home = () => {
                         {game.name}
                       </h3>
                       {game.status === 'coming_soon' && (
-                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white text-[#FF6600] border border-[#FF6600]/30">
+                        <span className="text-xs font-semibold text-[#FF6600]">
                           Coming Soon
                         </span>
                       )}

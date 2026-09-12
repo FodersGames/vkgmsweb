@@ -35,6 +35,7 @@ ALL_PERMISSIONS = [
     "manage_studio_apps",
     "review_studio_apps",
     "manage_vakar_block",
+    "manage_surveys",
 ]
 
 def is_valid_permission(p: str) -> bool:

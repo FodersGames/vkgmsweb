@@ -519,3 +519,33 @@ class CareerUpdateRequest(BaseModel):
     requirements: Optional[List[str]] = None
     tools: Optional[List[str]] = None
     is_open: Optional[bool] = None
+
+# ============== SURVEYS & FEEDBACK ==============
+class SurveyQuestionSchema(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = ""
+    type: Literal["choice", "multiple_choice", "rating", "text", "long_text"] = "choice"
+    options: List[str] = []
+    required: bool = False
+
+class SurveyCreateRequest(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    slug: Optional[str] = None
+    status: Literal["active", "closed"] = "active"
+    allow_anonymous: bool = True
+    questions: List[SurveyQuestionSchema] = []
+
+class SurveyUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    slug: Optional[str] = None
+    status: Optional[Literal["active", "closed"]] = None
+    allow_anonymous: Optional[bool] = None
+    questions: Optional[List[SurveyQuestionSchema]] = None
+
+class SurveySubmitRequest(BaseModel):
+    answers: dict = {}
+    username: Optional[str] = None
+
