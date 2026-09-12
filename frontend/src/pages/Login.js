@@ -171,7 +171,7 @@ export const Login = () => {
   const [mustChange, setMustChange] = useState(false);
 
   useEffect(() => {
-    document.title = tab === 'login' ? 'Sign In — Vakar Games' : 'Create Account — Vakar Games';
+    document.title = tab === 'login' ? 'Sign In | Vakar Games' : 'Create Account | Vakar Games';
   }, [tab]);
 
   useEffect(() => {

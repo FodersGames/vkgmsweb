@@ -22,7 +22,7 @@ def censor_message(text: str, banned_words: List[str]) -> str:
     return text
 
 def contains_banned_word(text: str, banned_words: List[str]) -> bool:
-    """Whole-word, case-insensitive check — for reject-on-match validation (e.g.
+    """Whole-word, case-insensitive check : for reject-on-match validation (e.g.
     a pseudo) where silently masking to asterisks like censor_message does isn't
     appropriate; the caller should reject the input outright."""
     for word in banned_words:

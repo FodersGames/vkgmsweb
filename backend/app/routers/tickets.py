@@ -43,7 +43,7 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
     user_id_oid = ObjectId(user["id"])
     username = user.get("username", user["email"])
     # career_id links a recruitment-category ticket back to the posting it
-    # applied to — lets the admin Careers screen show applications per
+    # applied to : lets the admin Careers screen show applications per
     # position instead of them landing as generic, disconnected tickets.
     career_id = None
     if req.career_id:

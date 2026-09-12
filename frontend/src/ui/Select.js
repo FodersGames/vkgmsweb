@@ -11,7 +11,7 @@ const Label = ({ children }) =>
 const FieldError = ({ children }) =>
   children ? <p className="mt-1 text-xs text-red-400">{children}</p> : null;
 
-// Apple-style custom listbox — drop-in replacement for a native <select>.
+// Apple-style custom listbox : drop-in replacement for a native <select>.
 // Accepts the same shape: <Select value={v} onChange={e => ...}><option value="x">Label</option>...</Select>
 const SIZES = {
   sm: 'h-7 px-2 text-xs',

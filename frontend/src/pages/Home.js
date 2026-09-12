@@ -13,7 +13,7 @@ const Home = () => {
   const [games, setGames] = useState([]);
 
   useEffect(() => {
-    document.title = 'Vakar Games — Independent Video Game Studio';
+    document.title = 'Vakar Games | Independent Video Game Studio';
     getPublicGames()
       .then(gamesList => setGames(gamesList || []))
       .catch(() => {});
@@ -214,7 +214,7 @@ const Home = () => {
                 We make games <br />we love.
               </h2>
               <p className="mt-6 text-[#A1A1A6] text-base leading-relaxed max-w-lg">
-                Vakar Games is an independent studio based in France. We keep our team compact by design — every developer, artist, and designer is directly connected to the vision. Deliberate creative choices, zero shortcuts on gameplay.
+                Vakar Games is an independent studio based in France. We keep our team compact by design, where every developer, artist, and designer is directly connected to the vision. Deliberate creative choices, zero shortcuts on gameplay.
               </p>
               <div className="mt-8 flex items-center gap-4 flex-wrap">
                 <Link to="/blog" className="btn-apple-light">
@@ -234,11 +234,6 @@ const Home = () => {
                 className="w-full h-80 lg:h-96 object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F]/70 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-6 right-6">
-                <p className="text-xs text-white/70 font-medium">
-                  Independent & Autonomous · France
-                </p>
-              </div>
             </div>
           </div>
 
@@ -257,7 +252,7 @@ const Home = () => {
                 Original Universes
               </h3>
               <p className="text-sm text-[#86868B] leading-relaxed">
-                Every world is designed from scratch — atmospheric single-player to memorable multiplayer experiences.
+                Every world is designed from scratch, from atmospheric single-player to memorable multiplayer experiences.
               </p>
             </div>
             <div>
@@ -279,7 +274,7 @@ const Home = () => {
             Let's talk games.
           </h2>
           <p className="mt-4 text-base text-[#6E6E73] max-w-md mx-auto">
-            Press inquiries, publishing opportunities, or general questions — we read every message.
+            Press inquiries, publishing opportunities, or general questions. We read every message.
           </p>
           <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
             <Link to="/contact" className="btn-apple">

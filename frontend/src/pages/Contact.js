@@ -43,7 +43,7 @@ const Contact = () => {
 
   const limitReached = openCount >= 3;
 
-  useEffect(() => { document.title = 'Contact — Vakar Games'; }, []);
+  useEffect(() => { document.title = 'Contact | Vakar Games'; }, []);
 
   useEffect(() => {
     getWebsiteSettings()
@@ -136,7 +136,7 @@ const Contact = () => {
       <PublicNav />
 
       <div className="flex-1">
-        {/* Header — Apple Clean White */}
+        {/* Header: Apple Clean White */}
         <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
           <div className="max-w-[1120px] mx-auto px-6">
             <p className="text-[13px] font-medium text-[#FF6600] mb-2">

@@ -224,7 +224,7 @@
       const res = await Scratch.fetch(url, {
         headers: { 'X-Files-Api-Key': this._apiKey },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} : ${url}`);
       return res;
     }
 
@@ -381,7 +381,7 @@
         const mediaFiles = (data.files || []).filter(f => isImage(f.original_filename) || isAudio(f.original_filename));
         const imageFiles = mediaFiles.filter(f => isImage(f.original_filename));
 
-        // Build index — keyed by stable asset ID (same across all versions)
+        // Build index : keyed by stable asset ID (same across all versions)
         // AND by per-version doc id, so both kinds of IDs resolve
         this._fileIndex = {};
         for (const f of mediaFiles) {

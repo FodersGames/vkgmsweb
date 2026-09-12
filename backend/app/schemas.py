@@ -123,7 +123,7 @@ class ChatMessageRequest(BaseModel):
     message: str
     level: Optional[int] = None
 
-# ── Chat & Guilds (Play — JWT-authenticated, channel-aware) ──────────────────
+# ── Chat & Guilds (Play : JWT-authenticated, channel-aware) ──────────────────
 class PlayChatSendRequest(BaseModel):
     project_slug: str
     channel: Literal["global", "guild"]
@@ -388,7 +388,7 @@ class NutritionGoalsRequest(BaseModel):
     daily_protein_g: int = 120
     daily_carbs_g: int = 250
     daily_fat_g: int = 65
-    # Optional profile used to prefill the "estimate for me" calculator next time —
+    # Optional profile used to prefill the "estimate for me" calculator next time :
     # the four fields above remain the actual source of truth for tracking.
     weight_kg: Optional[float] = None
     height_cm: Optional[float] = None
@@ -444,7 +444,7 @@ class StudioAppCreateRequest(BaseModel):
     slug: Optional[str] = None
     # Optional starter template content (frontend/src/constants/
     # appBuilderTemplates.js is the source of truth for what these actually
-    # contain) — validated server-side exactly like any other save (screen
+    # contain) : validated server-side exactly like any other save (screen
     # count + premium component/theme tier gating), so a free-tier request
     # can't sneak a premium template through.
     theme: Optional[str] = None
@@ -479,9 +479,9 @@ class StudioAppStatusRequest(BaseModel):
 class StudioAppVisibilityRequest(BaseModel):
     visibility: Literal["public", "private"]
 
-# ============== VAKAR BLOCK — a second, Scratch-style editor. Genuinely
+# ============== VAKAR BLOCK : a second, Scratch-style editor. Genuinely
 # separate data shape from the App Builder above (sprites/costumes/stage/
-# per-sprite Blockly workspaces vs. screens/components/actions) — see
+# per-sprite Blockly workspaces vs. screens/components/actions) : see
 # routers/vakar_block.py for the full picture. ==============
 class VakarBlockCreateRequest(BaseModel):
     name: str

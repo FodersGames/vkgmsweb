@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Single source of truth for the careers system — used by both the public
+// Single source of truth for the careers system : used by both the public
 // Careers page and the admin CareersManagement screen. Previously the
 // department/tool lists (and even the ToolIcon renderer) were duplicated
 // between the two, and the public page imported ToolIcon straight out of an

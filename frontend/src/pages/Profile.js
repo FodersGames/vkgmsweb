@@ -122,7 +122,7 @@ const Profile = () => {
   const [pwLoading, setPwLoading] = useState(false);
 
   useEffect(() => {
-    document.title = 'My Account — Vakar Games';
+    document.title = 'My Account | Vakar Games';
     if (authLoading) return;
     if (!user) { navigate('/login'); return; }
     const currentName = user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '');
@@ -415,7 +415,7 @@ const Profile = () => {
                 <div className="grid grid-cols-2 gap-6">
                   {[
                     { label: 'Name',     value: displayName },
-                    { label: 'Username', value: user.username || '—' },
+                    { label: 'Username', value: user.username || '' },
                     { label: 'Email',    value: user.email },
                     { label: 'Status',   value: user.is_super_admin ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Player') },
                   ].map(({ label, value }) => (

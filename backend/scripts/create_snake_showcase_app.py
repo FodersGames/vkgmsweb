@@ -1,24 +1,24 @@
 """
-One-off script — creates a real, playable Snake game as a Studio App,
+One-off script : creates a real, playable Snake game as a Studio App,
 built entirely from the App Builder's own Designer components and Blockly
 logic (no special-cased app type, no shortcuts), to show the App Builder
 can genuinely build a game, not just forms/lists.
 
 Run once, on the server, in the backend's own venv (needs the same Mongo
-connection the live API uses — see backend/app/database.py):
+connection the live API uses : see backend/app/database.py):
 
     cd /opt/vakargames/backend
     source venv/bin/activate   # or however this venv is activated here
     python3 -m scripts.create_snake_showcase_app --owner-email you@example.com
 
-Creates the app as a DRAFT, private, owned by the given account — it does
+Creates the app as a DRAFT, private, owned by the given account : it does
 NOT auto-publish. Open it in the App Builder afterwards to review/test
 (steps come from a real Android step sensor only inside a built app, but
-Snake here doesn't touch that — it's pure Designer components + Blockly),
+Snake here doesn't touch that : it's pure Designer components + Blockly),
 then Submit Version / approve / publish it yourself like any other app.
 
 The game logic (movement, wall/self collision, food, growth, score) is
-pre-built, verified Blockly workspace JSON — see snake_blocks.json,
+pre-built, verified Blockly workspace JSON : see snake_blocks.json,
 generated and round-trip/execution-tested against the actual pinned
 Blockly version before being embedded here (see the chat session this
 shipped in for the full verification transcript). This script only
@@ -72,14 +72,14 @@ async def unique_public_id() -> str:
 
 
 def build_screens(blocks: dict) -> list:
-    # 360x640 reference canvas — same coordinate system as every other App
+    # 360x640 reference canvas : same coordinate system as every other App
     # Builder screen. 8x8 emoji grid at 40px/cell (320x320) leaves plenty
     # of room below for a D-pad + Restart, no scrolling needed.
     return [{
         "id": "game",
         "name": "Game",
         # Both "when this screen opens" (initial state + first draw) and
-        # "every 200ms while this screen is open" (the actual game loop —
+        # "every 200ms while this screen is open" (the actual game loop :
         # see the new ab_when_timer hat) live in this ONE workspace, same
         # as any element that has more than one hat.
         "blocks": {"v": 2, "blockly": blocks["game"]},
@@ -114,7 +114,7 @@ def build_screens(blocks: dict) -> list:
 
 def build_variables() -> list:
     # snakeXs/snakeYs are parallel arrays (index i = one segment's x,y),
-    # head at index 0 — see the tick logic. foodXs/foodYs are always a
+    # head at index 0 : see the tick logic. foodXs/foodYs are always a
     # single-element array, same shape, so one render_grid call can mark
     # both "layers" the same way. headX/headY/newHeadX/newHeadY/i/collided
     # are pure scratch space for the tick's own working state.
@@ -150,7 +150,7 @@ async def main():
         "name": name,
         "slug": slug,
         "public_id": await unique_public_id(),
-        "description": "A real Snake game — built entirely with Designer components and Blockly logic, no shortcuts. Use the arrows to move, eat the food to grow, avoid the walls and your own tail.",
+        "description": "A real Snake game : built entirely with Designer components and Blockly logic, no shortcuts. Use the arrows to move, eat the food to grow, avoid the walls and your own tail.",
         "accent_color": "#4ECDC4",
         "theme": "midnight",
         "visibility": "private",
@@ -164,8 +164,8 @@ async def main():
     }
 
     result = await db.studio_apps.insert_one(doc)
-    print(f"Created '{name}' — id={result.inserted_id} slug={slug}")
-    print("It's a private draft — open it in the App Builder (My Apps) to review, then Submit Version / approve / publish yourself.")
+    print(f"Created '{name}' : id={result.inserted_id} slug={slug}")
+    print("It's a private draft : open it in the App Builder (My Apps) to review, then Submit Version / approve / publish yourself.")
 
 
 if __name__ == "__main__":

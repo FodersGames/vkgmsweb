@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Select } from '../ui';
 
 // Shell-quote a value the same way the backend's shlex.split() expects it
-// back — wraps in double quotes (escaping any embedded quote) whenever the
+// back : wraps in double quotes (escaping any embedded quote) whenever the
 // value contains whitespace, leaves single-word values bare.
 const quoteArg = (v) => (/\s/.test(v) ? `"${v.replace(/"/g, '\\"')}"` : v);
 
@@ -13,7 +13,7 @@ const quoteArg = (v) => (/\s/.test(v) ? `"${v.replace(/"/g, '\\"')}"` : v);
 // filled-in values, preserving positional order: a skipped OPTIONAL arg that
 // sits before a later filled arg becomes an empty quoted placeholder (`""`,
 // which shlex.split parses as an empty-string token) rather than being
-// dropped — dropping it would shift every argument after it out of position.
+// dropped : dropping it would shift every argument after it out of position.
 export const buildCliCommand = (path, args, values) => {
   const parts = [...path];
   let lastFilled = -1;
@@ -25,7 +25,7 @@ export const buildCliCommand = (path, args, values) => {
   return parts.join(' ');
 };
 
-// Graphical form for one CLI command — opened by typing `$command` in the
+// Graphical form for one CLI command : opened by typing `$command` in the
 // console. `command` is a catalog entry ({ path, category, description,
 // args, confirm }) from GET /admin/cli/commands; `prefill` holds any extra
 // tokens already typed after the command path, mapped positionally onto the
@@ -52,7 +52,7 @@ export const CliCommandPopup = ({ command, prefill = [], onClose, onSubmit }) =>
   };
 
   return createPortal(
-    // Same portal + isDark-reapplication pattern as ConfirmDialog.js — the
+    // Same portal + isDark-reapplication pattern as ConfirmDialog.js : the
     // portal escapes the Dashboard's `.dark`-scoped root, so the theme class
     // has to be reapplied here or this would always render light.
     <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${isDark ? 'dark' : ''}`}>

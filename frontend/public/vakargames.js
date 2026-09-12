@@ -23,7 +23,7 @@
         return null;
     }
 
-    // Chat & Guilds — predefined logo set (emoji glyphs, no custom uploads) + color palette
+    // Chat & Guilds : predefined logo set (emoji glyphs, no custom uploads) + color palette
     const GUILD_LOGO_EMOJI = {
         shield: '🛡️', sword: '⚔️', flame: '🔥', star: '⭐', wolf: '🐺', dragon: '🐉',
         crown: '👑', skull: '💀', eagle: '🦅', lion: '🦁', anchor: '⚓', leaf: '🍃',
@@ -196,7 +196,7 @@
                     // ══════════════════════════════
                     //  SHOP
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Shop —' },
+                    { blockType: Scratch.BlockType.LABEL, text: 'Shop' },
                     {
                         opcode:    'buyProduct',
                         blockType: Scratch.BlockType.REPORTER,
@@ -210,7 +210,7 @@
                     // ══════════════════════════════
                     //  CHAT GLOBAL
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Chat —' },
+                    { blockType: Scratch.BlockType.LABEL, text: 'Chat' },
                     {
                         opcode:    'setChatConfig',
                         blockType: Scratch.BlockType.COMMAND,
@@ -283,9 +283,9 @@
                     },
 
                     // ══════════════════════════════
-                    //  CHAT & GUILDS (Play — ready-made in-game UI)
+                    //  CHAT & GUILDS (Play : ready-made in-game UI)
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Chat & Guilds —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Chat & Guilds :' },
                     {
                         opcode:    'ouvrirChat',
                         blockType: Scratch.BlockType.COMMAND,
@@ -330,7 +330,7 @@
                     // ══════════════════════════════
                     //  FICHIERS / RESSOURCES
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Ressources —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Ressources :' },
 
                     // Config
                     {
@@ -480,7 +480,7 @@
                     // ══════════════════════════════
                     //  SONS
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Sons —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Sons :' },
 
                     {
                         opcode:    'loadAllSounds',
@@ -532,7 +532,7 @@
                     // ══════════════════════════════
                     //  OVERLAY TEXTE HTML
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Overlay Texte —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Overlay Texte :' },
 
                     {
                         opcode:    'afficherTexte',
@@ -585,7 +585,7 @@
                     // ══════════════════════════════
                     //  VAKAR GAMES PLAY
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— VakarGames Play —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': VakarGames Play :' },
                     {
                         opcode:    'playConfigurer',
                         blockType: Scratch.BlockType.COMMAND,
@@ -682,7 +682,7 @@
                     // ══════════════════════════════
                     //  SERVER VARIABLES
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Server Variables —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Server Variables :' },
                     {
                         opcode:    'preloadServerVars',
                         blockType: Scratch.BlockType.COMMAND,
@@ -710,7 +710,7 @@
                     // ══════════════════════════════
                     //  OUTILS DEV IN-GAME
                     // ══════════════════════════════
-                    { blockType: Scratch.BlockType.LABEL, text: '— Outils Dev In-Game —' },
+                    { blockType: Scratch.BlockType.LABEL, text: ': Outils Dev In-Game :' },
                     {
                         opcode:    'ouvrirPanelDev',
                         blockType: Scratch.BlockType.COMMAND,
@@ -781,13 +781,13 @@
                 checkoutUrl = data.checkout_url;
                 sessionId   = data.session_id;
                 this._log('info', 'Shop: checkout opened for product ' + productId);
-            } catch (e) { this._log('error', 'Shop: network error during checkout — ' + e.message); return false; }
+            } catch (e) { this._log('error', 'Shop: network error during checkout : ' + e.message); return false; }
 
             const popupRef = _openWindow(checkoutUrl);
             const uid = String(UID).trim();
 
             // On confirmed payment: claim the delivered item(s) right away and
-            // apply them to the local Scratch variable — server + local stay in
+            // apply them to the local Scratch variable : server + local stay in
             // sync immediately, no need to wait for the game's own autosave loop
             // or a future reconnect.
             const finishPurchase = async (ok) => {
@@ -817,7 +817,7 @@
                             const ok = d.status === 'complete';
                             this._log(ok ? 'info' : 'warn', 'Shop: purchase ' + (ok ? 'confirmed' : 'not confirmed after window closed'));
                             resolve(await finishPurchase(ok));
-                        } catch (e) { this._log('error', 'Shop: payment verification error — ' + e.message); resolve(false); }
+                        } catch (e) { this._log('error', 'Shop: payment verification error : ' + e.message); resolve(false); }
                         return;
                     }
 
@@ -866,7 +866,7 @@
                     })
                 });
                 this._log('info', 'Chat: message sent by ' + USERNAME);
-            } catch (e) { this._log('error', 'Chat: failed to send message — ' + e.message); }
+            } catch (e) { this._log('error', 'Chat: failed to send message : ' + e.message); }
         }
 
         async getMessages({ LIMIT }) {
@@ -917,7 +917,7 @@
         lastMessageLevel()         { return this._msgAt(1)?.level    ?? 0;  }
 
         // ══════════════════════════════════════════
-        //  CHAT & GUILDS — Play-authenticated, ready-made in-game UI
+        //  CHAT & GUILDS : Play-authenticated, ready-made in-game UI
         // ══════════════════════════════════════════
 
         async _playFetch(path, options) {
@@ -938,7 +938,7 @@
                     messages: d.messages || [], blocked: !!d.blocked, muted_until: d.muted_until || null,
                     channel_enabled: d.channel_enabled !== false, in_guild: !!d.in_guild,
                 };
-            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return empty; }
+            } catch (e) { this._log('error', 'Chat: network error : ' + e.message, 'Chat'); return empty; }
         }
 
         async _chatSend(channel, message) {
@@ -951,11 +951,11 @@
                 if (!r.ok) {
                     let detail = 'rejected';
                     try { const d = await r.json(); detail = d.detail || detail; } catch (e2) {}
-                    this._log('warn', 'Chat: send failed — ' + detail, 'Chat');
+                    this._log('warn', 'Chat: send failed : ' + detail, 'Chat');
                     return false;
                 }
                 return true;
-            } catch (e) { this._log('error', 'Chat: network error — ' + e.message, 'Chat'); return false; }
+            } catch (e) { this._log('error', 'Chat: network error : ' + e.message, 'Chat'); return false; }
         }
 
         async _chatReact(messageId, emoji) {
@@ -1160,7 +1160,7 @@
             this._chatListEl.style.padding = '0';
             this._chatListEl.innerHTML = '';
             if (state.messages.length === 0) {
-                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
+                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet : say hello!</div>';
             } else {
                 state.messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
                 this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
@@ -1168,8 +1168,8 @@
             this._updateChatComposerState(state.blocked, state.muted_until, state.channel_enabled);
         }
 
-        // Decides what the body shows: Global messages, my guild's messages, or —
-        // if on the Guild tab without a guild — the browse/create view.
+        // Decides what the body shows: Global messages, my guild's messages, or :
+        // if on the Guild tab without a guild : the browse/create view.
         async _renderChatBody() {
             if (!this._chatListEl) return;
 
@@ -1211,7 +1211,7 @@
             this._chatListEl.style.padding = '0';
             this._chatListEl.innerHTML = '';
             if (state.messages.length === 0) {
-                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet — say hello!</div>';
+                this._chatListEl.innerHTML = '<div style="padding:20px;text-align:center;color:#5c5d6b;font-size:12px">No messages yet : say hello!</div>';
             } else {
                 state.messages.forEach(m => this._chatListEl.appendChild(this._renderChatMessage(m)));
                 this._chatListEl.scrollTop = this._chatListEl.scrollHeight;
@@ -1385,13 +1385,13 @@
                 if (!this._chatBannerEl) { this._stopChatMuteCountdown(); return; }
                 const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
                 if (remaining <= 0) {
-                    this._chatBannerEl.textContent = 'Your mute has expired — refresh the chat to send messages again.';
+                    this._chatBannerEl.textContent = 'Your mute has expired : refresh the chat to send messages again.';
                     this._stopChatMuteCountdown();
                     return;
                 }
                 const m = Math.floor(remaining / 60), s = remaining % 60;
                 const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
-                this._chatBannerEl.textContent = 'You are muted — ' + label + ' remaining.';
+                this._chatBannerEl.textContent = 'You are muted : ' + label + ' remaining.';
             };
             tick();
             this._chatMuteInterval = setInterval(tick, 1000);
@@ -1535,7 +1535,7 @@
                     row.innerHTML =
                         `<div style="width:28px;height:28px;border-radius:7px;background:${g.color}33;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${GUILD_LOGO_EMOJI[g.logo_id] || '🛡️'}</div>` +
                         `<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#f2f2f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(g.name)}</div>` +
-                        `<div style="font-size:10px;color:${full ? '#eb5757' : '#8f909c'}">${g.member_count}/${GUILD_MAX_MEMBERS} member${g.member_count !== 1 ? 's' : ''}${full ? ' — Full' : ''}</div></div>`;
+                        `<div style="font-size:10px;color:${full ? '#eb5757' : '#8f909c'}">${g.member_count}/${GUILD_MAX_MEMBERS} member${g.member_count !== 1 ? 's' : ''}${full ? ' : Full' : ''}</div></div>`;
                     const joinBtn = this._panelIconBtn(full ? 'Full' : 'Join', '');
                     joinBtn.disabled = full;
                     joinBtn.addEventListener('click', async () => {
@@ -1545,7 +1545,7 @@
                             await this._renderChatBody();
                         } else {
                             joinBtn.disabled = false;
-                            this._log('warn', 'Guild: join failed — ' + (result.error || 'unknown error'), 'Guild');
+                            this._log('warn', 'Guild: join failed : ' + (result.error || 'unknown error'), 'Guild');
                         }
                     });
                     row.appendChild(joinBtn);
@@ -1683,7 +1683,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  FICHIERS / RESSOURCES — helpers internes
+        //  FICHIERS / RESSOURCES : helpers internes
         // ══════════════════════════════════════════
 
         async _ensureFilesCache() {
@@ -1861,7 +1861,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  FICHIERS / RESSOURCES — blocs
+        //  FICHIERS / RESSOURCES : blocs
         // ══════════════════════════════════════════
 
         configureFiles({ SLUG, KEY }) {
@@ -1934,7 +1934,7 @@
                         loaded++;
                     } catch (e) {
                         console.warn('[VG] Could not load ' + f.name + ' : ' + e.message);
-                        this._log('error', 'Resources: failed to load "' + f.name + '" — ' + e.message);
+                        this._log('error', 'Resources: failed to load "' + f.name + '" : ' + e.message);
                     }
                 }
                 this._filesReady = true;
@@ -1984,11 +1984,11 @@
                     try { await this._addCostumeToTarget(target, f); loaded++; }
                     catch (e) {
                         console.warn('[VG] Text engine: ' + f.name + ' → ' + e.message);
-                        this._log('error', 'Text Engine: failed "' + f.name + '" — ' + e.message);
+                        this._log('error', 'Text Engine: failed "' + f.name + '" : ' + e.message);
                     }
                 }
                 this._filesReady = true;
-                this._log('info', `Text Engine: group "${gid}" — ${loaded} file(s) loaded`);
+                this._log('info', `Text Engine: group "${gid}" : ${loaded} file(s) loaded`);
             } catch (e) {
                 this._filesError = e.message;
             }
@@ -2084,7 +2084,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  SONS — blocs
+        //  SONS : blocs
         // ══════════════════════════════════════════
 
         async loadAllSounds({ SPRITE }) {
@@ -2109,7 +2109,7 @@
                         loaded++;
                     } catch (e) {
                         console.warn('[VG] Could not load sound ' + f.name + ' : ' + e.message);
-                        this._log('error', 'Sounds: failed to load "' + f.name + '" — ' + e.message);
+                        this._log('error', 'Sounds: failed to load "' + f.name + '" : ' + e.message);
                     }
                 }
                 this._soundsReady = true;
@@ -2285,8 +2285,8 @@
                 this._playAccessToken = d.access_token;
                 this._playPlayer      = d.player;
                 this._playFirstTime   = !!d.is_first_time;
-                this._log('info', 'Session: restored — ' + (d.player && d.player.username));
-            } catch (e) { this._log('warn', 'Session: network unavailable, staying signed out — ' + e.message); }
+                this._log('info', 'Session: restored : ' + (d.player && d.player.username));
+            } catch (e) { this._log('warn', 'Session: network unavailable, staying signed out : ' + e.message); }
         }
 
         async playConfigurer({ SLUG }) {
@@ -2321,7 +2321,7 @@
                 const d = await r.json();
                 this._playNickname = d.nickname;
                 this._log('info', 'Nickname: set to "' + d.nickname + '" for this game', 'Play');
-            } catch (e) { this._log('error', 'Nickname: network error — ' + e.message, 'Play'); }
+            } catch (e) { this._log('error', 'Nickname: network error : ' + e.message, 'Play'); }
         }
 
         async playPseudoJeu() {
@@ -2355,10 +2355,10 @@
             const cat  = String(CATEGORIE);
             const data = String(DONNEES);
             // Defensive guard: warn if a script keeps saving this category while
-            // the Dev Panel has it open — the game should be paused while the
+            // the Dev Panel has it open : the game should be paused while the
             // panel is open, so this normally can't happen unless pause() failed.
             if (this._devPanel && this._devCatState[cat] && this._devCatState[cat].loaded) {
-                this._log('warn', `Save: an external save for category "${cat}" ran while the Dev Panel had it open — the game may not be fully paused`, 'Dev Panel');
+                this._log('warn', `Save: an external save for category "${cat}" ran while the Dev Panel had it open : the game may not be fully paused`, 'Dev Panel');
             }
             if (this._playSaveCache[cat] === data) return true; // rien changé → déjà sauvegardé
             try {
@@ -2375,7 +2375,7 @@
                     this._log('warn', 'Save: category "' + cat + '" rejected (HTTP ' + r.status + ')');
                     return false;
                 }
-            } catch (e) { this._log('error', 'Save: network error — ' + e.message); return false; }
+            } catch (e) { this._log('error', 'Save: network error : ' + e.message); return false; }
         }
 
         async playCharger({ CATEGORIE }) {
@@ -2389,7 +2389,7 @@
                 const d = await r.json();
                 this._log('info', 'Load: category "' + CATEGORIE + '" loaded');
                 return d.data || '{}';
-            } catch (e) { this._log('error', 'Load: network error — ' + e.message); return '{}'; }
+            } catch (e) { this._log('error', 'Load: network error : ' + e.message); return '{}'; }
         }
 
         playPersonnaliser({ COULEUR, TITRE }) {
@@ -2398,10 +2398,10 @@
         }
 
         // ══════════════════════════════════════════
-        //  SHOP GIFTS — claim queue (db.items / claimgift), local sync + popup
+        //  SHOP GIFTS : claim queue (db.items / claimgift), local sync + popup
         // ══════════════════════════════════════════
 
-        // Applies a numeric increment to a global (Stage) Scratch variable —
+        // Applies a numeric increment to a global (Stage) Scratch variable :
         // the shop's "variable"/"amount" fields already describe exactly this.
         _incrementLocalVariable(varName, amountStr) {
             try {
@@ -2414,7 +2414,7 @@
                 variable.value = cur + amt;
                 return true;
             } catch (e) {
-                this._log('error', 'Gift: could not update variable "' + varName + '" — ' + e.message, 'Shop');
+                this._log('error', 'Gift: could not update variable "' + varName + '" : ' + e.message, 'Shop');
                 return false;
             }
         }
@@ -2463,7 +2463,7 @@
                     if (d.length < 2 && !d.items) break; // queue likely drained
                 }
             } catch (e) {
-                this._log('error', 'Gift: claim failed — ' + e.message, 'Shop');
+                this._log('error', 'Gift: claim failed : ' + e.message, 'Shop');
             }
             return applied;
         }
@@ -2471,7 +2471,7 @@
         // One-shot check, meant to be called once right after the player
         // connects: claims and applies any purchase (made in-game or gifted
         // from the site) that arrived while they were away. No background
-        // polling — the data just sits server-side in the queue until this
+        // polling : the data just sits server-side in the queue until this
         // runs, then it's granted server + local in one go.
         async verifierCadeaux({ UID }) {
             const uid = String(UID).trim();
@@ -2494,7 +2494,7 @@
                 this._serverVarsLoaded = true;
                 this._log('info', 'Server Variables: preloaded ' + Object.keys(this._serverVars).length + ' variable(s)', 'Config');
             } catch (e) {
-                this._log('error', 'Server Variables: network error — ' + e.message, 'Config');
+                this._log('error', 'Server Variables: network error : ' + e.message, 'Config');
             }
         }
 
@@ -2712,20 +2712,20 @@
                         const msg = typeof d.detail === 'string' ? d.detail : LANGS[lang].eLo;
                         errEl.textContent = msg;
                         setLoading(loginBtn, false);
-                        this._log('warn', 'Auth: login failed — ' + msg);
+                        this._log('warn', 'Auth: login failed : ' + msg);
                         return;
                     }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._playFirstTime   = !!d.is_first_time;
-                    this._log('info', 'Auth: login succeeded — ' + (d.player && d.player.username));
+                    this._log('info', 'Auth: login succeeded : ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
                 } catch (err) {
                     errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
                     setLoading(loginBtn, false);
-                    this._log('error', 'Auth: network error on login — ' + (err && err.message));
+                    this._log('error', 'Auth: network error on login : ' + (err && err.message));
                 }
             });
 
@@ -2743,20 +2743,20 @@
                     if (!r.ok) {
                         errEl.textContent = d.detail || LANGS[lang].eRe;
                         setLoading(regBtn, false);
-                        this._log('warn', 'Auth: registration failed — ' + (d.detail || LANGS[lang].eRe));
+                        this._log('warn', 'Auth: registration failed : ' + (d.detail || LANGS[lang].eRe));
                         return;
                     }
                     localStorage.setItem(this._playStorageKey(), d.refresh_token);
                     this._playAccessToken = d.access_token;
                     this._playPlayer      = d.player;
                     this._playFirstTime   = !!d.is_first_time;
-                    this._log('info', 'Auth: account created and signed in — ' + (d.player && d.player.username));
+                    this._log('info', 'Auth: account created and signed in : ' + (d.player && d.player.username));
                     this._closePlayPopup();
                     if (onClose) onClose();
                 } catch (err) {
                     errEl.textContent = LANGS[lang].eNe + ' (' + (err && err.message ? err.message : '?') + ')';
                     setLoading(regBtn, false);
-                    this._log('error', 'Auth: network error on registration — ' + (err && err.message));
+                    this._log('error', 'Auth: network error on registration : ' + (err && err.message));
                 }
             });
 
@@ -2775,7 +2775,7 @@
                     Scratch.vm.runtime.pause();
                 }
             } catch (e) {}
-            this._log('error', 'Game frozen — this account is banned from this project.', 'Play');
+            this._log('error', 'Game frozen : this account is banned from this project.', 'Play');
         }
 
         _showBannedPopup(uid) {
@@ -2819,7 +2819,7 @@
             appealBtn.textContent = 'Open a support ticket';
             appealBtn.style.cssText = `width:100%;padding:11px;background:${accent};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px`;
             appealBtn.addEventListener('click', () => {
-                const subject = 'Ban appeal — ' + this._playSlug;
+                const subject = 'Ban appeal : ' + this._playSlug;
                 const message = 'I believe I was banned by mistake.\nGame: ' + this._playSlug + '\nPlayer ID: ' + (uid || '');
                 const url = API_URL + '/contact?category=account&subject=' + encodeURIComponent(subject) + '&message=' + encodeURIComponent(message);
                 _openWindow(url);
@@ -2831,7 +2831,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  IN-GAME DEV TOOLS — journal + panels
+        //  IN-GAME DEV TOOLS : journal + panels
         // ══════════════════════════════════════════
 
         _log(level, message, source) {
@@ -2872,7 +2872,7 @@
 
         // Pushes a freshly-saved Dev Panel value straight into the closest-matching
         // $-tagged global (Stage) Scratch variable, so the running game sees the
-        // new value immediately — no need to wait for a "modifiée ?" poll to reload it.
+        // new value immediately : no need to wait for a "modifiée ?" poll to reload it.
         _pushValueToLocalVariable(categoryName, dataString) {
             try {
                 const stage = Scratch.vm.runtime.getTargetForStage();
@@ -2884,7 +2884,7 @@
                 variable.value = dataString;
                 return true;
             } catch (e) {
-                this._log('error', 'Dev Panel: could not update local variable — ' + e.message, 'Dev Panel');
+                this._log('error', 'Dev Panel: could not update local variable : ' + e.message, 'Dev Panel');
                 return false;
             }
         }
@@ -2955,7 +2955,7 @@
                 stage.variables[variableId].value = dataString;
                 return true;
             } catch (e) {
-                this._log('error', 'Dev Panel: could not update linked variable — ' + e.message, 'Dev Panel');
+                this._log('error', 'Dev Panel: could not update linked variable : ' + e.message, 'Dev Panel');
                 return false;
             }
         }
@@ -2992,7 +2992,7 @@
                     ta.remove();
                     return ok;
                 } catch (e2) {
-                    this._log('error', 'Clipboard: copy failed — ' + e2.message, 'Clipboard');
+                    this._log('error', 'Clipboard: copy failed : ' + e2.message, 'Clipboard');
                     return false;
                 }
             }
@@ -3017,7 +3017,7 @@
                 const d = await r.json();
                 return !!(d.is_super_admin || (d.permissions || []).includes(perm));
             } catch (e) {
-                this._log('error', 'Permissions: network error — ' + e.message, 'Permissions');
+                this._log('error', 'Permissions: network error : ' + e.message, 'Permissions');
                 return false;
             }
         }
@@ -3029,7 +3029,7 @@
                 return;
             }
             this._log('info', 'Dev Panel: opened by ' + (this._playPlayer ? this._playPlayer.username : '?'), 'Dev Panel');
-            // Blocks script execution at this block until the panel is closed —
+            // Blocks script execution at this block until the panel is closed :
             // combined with the runtime pause, everything after this block only
             // runs once the developer closes the panel.
             return new Promise(resolve => this._showDevPanel(resolve));
@@ -3053,7 +3053,7 @@
             b.title = title || '';
             b.style.cssText = 'background:#22232b;border:1px solid #34353f;color:#c7c8d1;font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:system-ui,sans-serif;white-space:nowrap;filter:none';
             // Hover feedback via a brightness filter rather than swapping the
-            // background color directly — this works no matter what background
+            // background color directly : this works no matter what background
             // a caller later assigns (e.g. the accent color on Save buttons)
             // instead of permanently overwriting it with a hardcoded grey.
             b.addEventListener('mouseenter', () => { if (!b.disabled) b.style.filter = 'brightness(1.18)'; });
@@ -3062,7 +3062,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  DEV PANEL — landscape, multi-category editor
+        //  DEV PANEL : landscape, multi-category editor
         // ══════════════════════════════════════════
 
         _pauseRuntimeForDevPanel() {
@@ -3074,7 +3074,7 @@
                     this._log('info', 'Dev Panel: game paused while the panel is open', 'Dev Panel');
                 }
             } catch (e) {
-                this._log('warn', 'Dev Panel: could not pause the game — ' + e.message, 'Dev Panel');
+                this._log('warn', 'Dev Panel: could not pause the game : ' + e.message, 'Dev Panel');
             }
         }
 
@@ -3086,7 +3086,7 @@
                     this._log('info', 'Dev Panel: game resumed', 'Dev Panel');
                 }
             } catch (e) {
-                this._log('warn', 'Dev Panel: could not resume the game — ' + e.message, 'Dev Panel');
+                this._log('warn', 'Dev Panel: could not resume the game : ' + e.message, 'Dev Panel');
             } finally {
                 this._devPanelPausedRuntime = false;
             }
@@ -3258,7 +3258,7 @@
                 linkSelect.innerHTML = opts.join('');
                 let current = varBindings[activeCat];
                 if (!current) {
-                    // No saved preference yet — suggest the closest-matching $-tagged variable.
+                    // No saved preference yet : suggest the closest-matching $-tagged variable.
                     const suggestion = this._bestMatchingVariable(activeCat, globalVars);
                     current = suggestion ? suggestion.id : 'AUTO';
                 }
@@ -3294,7 +3294,7 @@
                     validityEl.textContent = '✓ Valid JSON';
                     validityEl.style.color = '#5fd97f';
                 } catch (e) {
-                    validityEl.textContent = '✗ Invalid JSON — ' + e.message;
+                    validityEl.textContent = '✗ Invalid JSON : ' + e.message;
                     validityEl.style.color = '#e74c3c';
                 }
                 const dirty = st.loaded && st.value !== st.original;
@@ -3332,15 +3332,15 @@
                 try { JSON.parse(st.value || '{}'); }
                 catch {
                     this._log('error', `Dev Panel: invalid JSON for category "${cat}", save aborted`, 'Dev Panel');
-                    if (cat === activeCat) { validityEl.textContent = '✗ Invalid JSON — save aborted'; validityEl.style.color = '#e74c3c'; }
+                    if (cat === activeCat) { validityEl.textContent = '✗ Invalid JSON : save aborted'; validityEl.style.color = '#e74c3c'; }
                     return;
                 }
                 if (cat === activeCat) { metaEl.textContent = 'Saving…'; metaEl.style.color = '#8b8d97'; }
                 const success = await this.playSauvegarder({ CATEGORIE: cat, DONNEES: st.value });
                 if (!success) {
-                    this._log('error', `Dev Panel: save failed for category "${cat}" — the server rejected the request or the connection was lost`, 'Dev Panel');
+                    this._log('error', `Dev Panel: save failed for category "${cat}" : the server rejected the request or the connection was lost`, 'Dev Panel');
                     if (cat === activeCat) {
-                        metaEl.textContent = '✗ Save failed — see Logs Panel for details';
+                        metaEl.textContent = '✗ Save failed : see Logs Panel for details';
                         metaEl.style.color = '#e74c3c';
                     }
                     renderNav();
@@ -3368,7 +3368,7 @@
                 this._log(
                     'info',
                     `Dev Panel: manual save "${cat}" by ${this._playPlayer ? this._playPlayer.username : '?'}` +
-                    (updatedLocally ? ` — variable "${linkedVarName}" updated` : binding === 'NONE' ? ' — no variable linked' : ' — linked variable not found, server only'),
+                    (updatedLocally ? ` : variable "${linkedVarName}" updated` : binding === 'NONE' ? ' : no variable linked' : ' : linked variable not found, server only'),
                     'Dev Panel'
                 );
                 if (cat === activeCat) {
@@ -3403,7 +3403,7 @@
         }
 
         // ══════════════════════════════════════════
-        //  LOGS PANEL — landscape, filterable, exportable
+        //  LOGS PANEL : landscape, filterable, exportable
         // ══════════════════════════════════════════
 
         _logMatchesFilters(entry) {

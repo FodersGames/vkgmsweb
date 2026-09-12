@@ -202,7 +202,7 @@ export const DashboardOverview = ({ goTo }) => {
             {displayName ? `Welcome, ${displayName}` : 'Welcome'}
           </h1>
           <p className="text-[13.5px] text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">
-            {dateStr} — Vakar Games Studio Control Board.
+            {dateStr} | Vakar Games Studio Control Board.
           </p>
         </div>
 
@@ -250,7 +250,7 @@ export const DashboardOverview = ({ goTo }) => {
                     <div className="h-[26px] w-10 bg-[#EDEDEF] dark:bg-[#1c1c2e] animate-pulse rounded" />
                   ) : (
                     <div className="text-[26px] font-bold tracking-[-0.01em] text-[#1D1D1F] dark:text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {card.value ?? '—'}
+                      {card.value ?? '0'}
                     </div>
                   )}
                   <div className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5 truncate">{card.label}</div>

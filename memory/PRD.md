@@ -7,7 +7,7 @@ Full-stack admin dashboard + public website for Vakar Games (French video game s
 - **Frontend**: React + Tailwind CSS (dark gaming theme)
 - **Backend**: Python FastAPI
 - **Database**: MongoDB
-- **Auth**: Custom JWT — secure first-login key generation (bcrypt hash in DB, no hardcoded keys)
+- **Auth**: Custom JWT : secure first-login key generation (bcrypt hash in DB, no hardcoded keys)
 
 ## Security Model
 - Initial setup key triggers first-login flow
@@ -16,11 +16,11 @@ Full-stack admin dashboard + public website for Vakar Games (French video game s
 - No secrets stored in code or .env (only JWT_SECRET needed in production)
 
 ## Routes
-- `/` — Landing page
-- `/games` — Public games page
-- `/blog`, `/blog/:slug` — Blog
-- `/login` — Admin login (dark theme)
-- `/dashboard` — Admin dashboard (dark theme)
+- `/` : Landing page
+- `/games` : Public games page
+- `/blog`, `/blog/:slug` : Blog
+- `/login` : Admin login (dark theme)
+- `/dashboard` : Admin dashboard (dark theme)
 
 ## Permissions (20 total, 7 groups)
 Projects(3), Items(2), Server(1), Variables(4), Logs & Docs(2), Users(1), Website(7)

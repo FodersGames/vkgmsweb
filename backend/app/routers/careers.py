@@ -16,13 +16,13 @@ router = APIRouter()
 
 @router.get("/careers")
 async def list_careers_public():
-    """Public — returns only open positions."""
+    """Public : returns only open positions."""
     docs = await db.careers.find({"is_open": True}).sort("created_at", -1).to_list(100)
     return {"careers": [{**{k: str(v) if k == "_id" else v for k, v in d.items()}} for d in docs]}
 
 @router.get("/admin/careers")
 async def list_careers_admin(user=Depends(require_any_of("manager_careers"))):
-    """Admin — returns all positions (open and closed), each with its
+    """Admin : returns all positions (open and closed), each with its
     application count (recruitment tickets linked via career_id)."""
     docs = await db.careers.find().sort("created_at", -1).to_list(200)
     counts_raw = await db.support_tickets.aggregate([

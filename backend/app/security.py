@@ -27,7 +27,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class PlayCORSMiddleware:
-    """Pure ASGI CORS middleware for /api/play/* and /api/game/* — never buffers responses, safe for FileResponse/streaming."""
+    """Pure ASGI CORS middleware for /api/play/* and /api/game/* : never buffers responses, safe for FileResponse/streaming."""
     _PREFIXES = ("/api/play/", "/api/game/")
 
     def __init__(self, app):

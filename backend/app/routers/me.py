@@ -43,7 +43,7 @@ async def get_play_stats(user=Depends(get_current_user)):
     result.sort(key=lambda x: x["last_updated"] or "", reverse=True)
     return {"games": result, "total_games": len(result)}
 
-# ── Player guilds — read-only aggregate across every game, gated by the
+# ── Player guilds : read-only aggregate across every game, gated by the
 # website JWT (same db.users identity as the play-token guild routes) rather
 # than requiring a separate play-token exchange just to list membership. ────
 @router.get("/user/guilds")

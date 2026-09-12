@@ -5,7 +5,7 @@ import { CliCommandPopup } from './CliCommandPopup';
 import CriticalActionModal from './CriticalActionModal';
 
 const WELCOME = [
-  'Vakar Games — Super Admin CLI',
+  'Vakar Games : Super Admin CLI',
   "Type 'help' to list available commands.",
   "Prefix any command with $ (e.g. $player mute) to fill it in graphically.",
   '',
@@ -23,7 +23,7 @@ export const CliConsole = () => {
   const [popup, setPopup] = useState(null); // { command, prefill } | null
 
   // Critical actions (admin_system.py's CRITICAL_ACTIONS) never run through
-  // the normal y/n confirm above — they open CriticalActionModal instead,
+  // the normal y/n confirm above : they open CriticalActionModal instead,
   // which schedules a 30s cancellable countdown any super admin can abort
   // (see CriticalActionBanner.js, rendered site-wide in Dashboard.js).
   const [criticalActions, setCriticalActions] = useState([]);
@@ -62,7 +62,7 @@ export const CliConsole = () => {
     setLines(prev => [...prev, ...texts.map(text => ({ type, text }))]);
   };
 
-  // Autocomplete — matches the catalog's command path against whatever's
+  // Autocomplete : matches the catalog's command path against whatever's
   // typed so far (stripping a leading $ so `$player mu` still suggests
   // `player mute`), shown only while there's a partial match and no pending
   // confirmation prompt in the way.
@@ -91,14 +91,14 @@ export const CliConsole = () => {
       if (needs_confirm) setPending(command);
       else setPending(null);
     } catch (e) {
-      appendLines('error', [e.response?.data?.detail || 'Command failed — see server logs.']);
+      appendLines('error', [e.response?.data?.detail || 'Command failed : see server logs.']);
       setPending(null);
     } finally {
       setBusy(false);
     }
   };
 
-  // Finds the longest catalog path that's a prefix of the given tokens —
+  // Finds the longest catalog path that's a prefix of the given tokens :
   // same matching a `$player mute alpha` needs to resolve to `player mute`
   // (2-token path) rather than stopping at just `player`.
   const matchCommand = (tokens) => {
@@ -130,7 +130,7 @@ export const CliConsole = () => {
     if (!cmd || busy) return;
 
     if (dropdownMatches.length > 0) {
-      // A visible suggestion takes over Enter instead of submitting — matches
+      // A visible suggestion takes over Enter instead of submitting : matches
       // CommandPalette's existing Enter-selects-highlighted convention.
       applyCompletion(dropdownMatches[dropdownIdx]);
       return;
@@ -210,7 +210,7 @@ export const CliConsole = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className={`text-lg font-bold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>CLI</h1>
-          <p className={`text-xs ${fullscreen ? 'text-[#8a8a92]' : 'text-[#A1A1A6]'}`}>Super admin only — whitelisted commands, every action is confirmed and logged.</p>
+          <p className={`text-xs ${fullscreen ? 'text-[#8a8a92]' : 'text-[#A1A1A6]'}`}>Super admin only : whitelisted commands, every action is confirmed and logged.</p>
         </div>
         {criticalActions.length > 0 && (
           <div className="relative shrink-0">
@@ -245,7 +245,7 @@ export const CliConsole = () => {
       <div className="rounded-lg flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
         <ShieldAlert size={15} className="text-[#F2994A] shrink-0 mt-0.5" />
         <p className={`text-xs leading-relaxed ${fullscreen ? 'text-[#c4c4c8]' : 'text-[#6E6E73]'}`}>
-          This console only runs a fixed set of predefined commands — there is no raw database access or code
+          This console only runs a fixed set of predefined commands : there is no raw database access or code
           execution. Destructive commands (suspend, ban, revoke, loyalty adjust…) always show a preview first
           and require you to type <span className={`font-semibold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>y</span> to confirm.
         </p>
@@ -264,7 +264,7 @@ export const CliConsole = () => {
             <span className="w-3 h-3 rounded-full bg-[#28C840] ring-1 ring-black/10" />
           </div>
           <span className="absolute left-1/2 -translate-x-1/2 text-[12.5px] font-medium text-white/70">
-            super-admin — vakargames-cli
+            super-admin : vakargames-cli
           </span>
           <button
             type="button"
@@ -353,7 +353,7 @@ export const CliConsole = () => {
           onClose={() => setCriticalTarget(null)}
           onScheduled={() => {
             appendLines('system', [
-              `⚠ CRITICAL: '${criticalTarget.label}' scheduled — see the countdown banner to cancel.`,
+              `⚠ CRITICAL: '${criticalTarget.label}' scheduled : see the countdown banner to cancel.`,
             ]);
             setCriticalTarget(null);
           }}

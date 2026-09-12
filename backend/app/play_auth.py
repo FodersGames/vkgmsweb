@@ -13,13 +13,13 @@ from .deps import ALL_PERMISSIONS, hash_key
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  VAKAR GAMES PLAY — Player Auth + Cloud Saves (comptes unifiés db.users)
+#  VAKAR GAMES PLAY : Player Auth + Cloud Saves (comptes unifiés db.users)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 PLAY_ACCESS_TOKEN_HOURS  = 1
 PLAY_REFRESH_TOKEN_DAYS  = 365
 
-# Legacy fixed category names — no longer a global whitelist (categories are
+# Legacy fixed category names : no longer a global whitelist (categories are
 # now per-project, admin-defined in db.play_save_categories), kept only as the
 # seed list for the one-time backward-compat migration in main.py's startup
 # event (see the "auto-migrate legacy save categories" block there).
@@ -31,7 +31,7 @@ async def _get_project_categories(project_slug: str):
 
 async def _category_allowed(project_slug: str, category: str, user_id) -> bool:
     """A save/load is only allowed if an admin has explicitly defined this
-    category for this project — "no data slots exist by default" — and, for
+    category for this project : "no data slots exist by default" : and, for
     a category scoped to specific players, only if this player is targeted."""
     cat = await db.play_save_categories.find_one({"project_slug": project_slug, "name": category})
     if not cat:
@@ -102,12 +102,12 @@ async def _check_first_time_and_mark(user_id, project_slug: str) -> bool:
 async def _ensure_super_admin():
     """Idempotent: create the super admin account if it doesn't exist yet."""
     if not SUPER_ADMIN_EMAIL or not SUPER_ADMIN_PASSWORD:
-        logger.warning("SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in environment — skipping super admin auto-creation")
+        logger.warning("SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in environment : skipping super admin auto-creation")
         return
     try:
         existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL})
         if existing:
-            # Account exists — make sure it has super_admin role (migration guard)
+            # Account exists : make sure it has super_admin role (migration guard)
             if existing.get("role") != "super_admin":
                 await db.users.update_one(
                     {"email": SUPER_ADMIN_EMAIL},

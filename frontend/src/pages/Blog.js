@@ -25,7 +25,7 @@ export const BlogList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Blog — Vakar Games';
+    document.title = 'Blog | Vakar Games';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     axios.get(`${API_URL}/api/website/blog/public`, { headers })
@@ -49,7 +49,7 @@ export const BlogList = () => {
     <div className="bg-white text-[#1D1D1F] min-h-screen">
       <PublicNav />
 
-      {/* Page Header — Apple Clean */}
+      {/* Page Header: Apple Clean */}
       <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
         <div className="max-w-[1120px] mx-auto px-6">
           <p className="text-[13px] font-medium text-[#FF6600] mb-2">
@@ -168,7 +168,7 @@ export const BlogPost = () => {
     axios.get(`${API_URL}/api/website/blog/${slug}`, { headers })
       .then(r => {
         setPost(r.data.post);
-        document.title = `${r.data.post.title} — Vakar Games`;
+        document.title = `${r.data.post.title} | Vakar Games`;
         setLoading(false);
       })
       .catch(() => setLoading(false));

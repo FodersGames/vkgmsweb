@@ -198,7 +198,7 @@ export const GlobalManagement = () => {
             <div>
               <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Maintenance Mode</h4>
               <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
-                {maintenance ? 'Website is currently in maintenance — only staff accounts can sign in' : 'Website is live and accessible'}
+                {maintenance ? 'Website is currently in maintenance: only staff accounts can sign in' : 'Website is live and accessible'}
               </p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export const GlobalManagement = () => {
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Scheduled Maintenance</h4>
             <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
-              Plan a maintenance window ahead of time — a countdown banner shows on the public site, and everyone is automatically switched to the maintenance page the moment it's due, wherever they are on the site.
+              Plan a maintenance window ahead of time. A countdown banner shows on the public site, and everyone is automatically switched to the maintenance page the moment it's due, wherever they are on the site.
             </p>
           </div>
         </div>
@@ -267,7 +267,7 @@ export const GlobalManagement = () => {
               Schedule maintenance
             </Button>
             {maintenance && (
-              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">Maintenance is already enabled — disable it first to schedule a future window.</p>
+              <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a]">Maintenance is already enabled. Disable it first to schedule a future window.</p>
             )}
           </form>
         )}
@@ -279,14 +279,14 @@ export const GlobalManagement = () => {
           <Megaphone size={18} className="text-[#FF6600]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Announcement Banner</h4>
-            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">A site-wide banner independent of maintenance mode — for "we're aware of an issue" or promo callouts.</p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">A site-wide banner independent of maintenance mode for "we're aware of an issue" or promo callouts.</p>
           </div>
         </div>
         <form onSubmit={saveBanner} className="space-y-3">
           <Input
             value={bannerInput}
             onChange={e => setBannerInput(e.target.value)}
-            placeholder="e.g. Black Friday sale is live — 20% off everything!"
+            placeholder="e.g. Black Friday sale is live: 20% off everything!"
             maxLength={280}
           />
           <label className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa]">

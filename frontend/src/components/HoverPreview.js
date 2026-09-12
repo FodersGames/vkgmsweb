@@ -47,11 +47,11 @@ export const HoverPreview = ({ src, alt = '', children, className = '', glass = 
     <div className={className} onMouseEnter={onEnter} onMouseMove={onMove} onMouseLeave={onLeave}>
       {children}
       {show && createPortal(
-        // Same portal-escapes-the-dark-scope issue as ConfirmDialog — reapply
+        // Same portal-escapes-the-dark-scope issue as ConfirmDialog : reapply
         // the marker from ThemeContext. It has to live on a WRAPPING element,
         // not this one: a `dark:` variant on the same element as the `dark`
         // marker itself never matches (dark: needs an ancestor, not self).
-        // `glass` opts into the public-site's light-only liquid-glass material —
+        // `glass` opts into the public-site's light-only liquid-glass material :
         // admin callers (GamesManagement/FilesManagement) keep the original
         // dark-mode-aware flat panel since the site's dark theme lives there.
         <div className={isDark ? 'dark' : ''}>

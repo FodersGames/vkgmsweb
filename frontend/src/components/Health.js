@@ -7,7 +7,7 @@ import {
 import { Card, CardHeader, CardBody, Badge } from '../ui';
 
 const fmtBytes = (bytes) => {
-  if (bytes === undefined || bytes === null) return '—';
+  if (bytes === undefined || bytes === null) return 'N/A';
   if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
   if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
   if (bytes >= 1e3) return (bytes / 1e3).toFixed(0) + ' KB';
@@ -15,7 +15,7 @@ const fmtBytes = (bytes) => {
 };
 
 const fmtUptime = (seconds) => {
-  if (!seconds) return '—';
+  if (!seconds) return 'N/A';
   const d = Math.floor(seconds / 86400);
   const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -64,7 +64,7 @@ export const Health = () => {
       const r = await api.get('/api/admin/system/health/detailed');
       setData(r.data);
     } catch {
-      // silent — the page below just shows nothing until a manual refresh succeeds
+      // silent : the page below just shows nothing until a manual refresh succeeds
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export const Health = () => {
           </div>
           <div>
             <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">System Health</h1>
-            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Deep technical status across every backend system — v{data?.version || '—'}</p>
+            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Deep technical status across every backend system : v{data?.version || 'N/A'}</p>
           </div>
         </div>
         <button onClick={fetchHealth} disabled={loading} className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors">
@@ -111,7 +111,7 @@ export const Health = () => {
             )}
           </Section>
 
-          <Section icon={Settings2} color="#6C5CE7" title="Configuration" subtitle="Presence only — values are never exposed">
+          <Section icon={Settings2} color="#6C5CE7" title="Configuration" subtitle="Presence only : values are never exposed">
             <Row label="Session persistence"><StatusBadge ok={data.configuration.jwt_persistent} okLabel="Persistent" badLabel="Ephemeral" /></Row>
             <Row label="Emergency setup key"><StatusBadge ok={data.configuration.master_key_configured} /></Row>
             <Row label="Super admin bootstrap"><StatusBadge ok={data.configuration.super_admin_bootstrap_configured} /></Row>
@@ -129,7 +129,7 @@ export const Health = () => {
           </Section>
 
           <Section icon={HardDrive} color="#16A085" title="Storage" subtitle={data.storage.uploads_dir}>
-            <Row label="Game files">{data.storage.game_files_count?.toLocaleString() ?? '—'}</Row>
+            <Row label="Game files">{data.storage.game_files_count?.toLocaleString() ?? '0'}</Row>
             <Row label="Total size">{fmtBytes(data.storage.game_files_total_bytes)}</Row>
             {data.storage.error && <p className="text-xs text-red-500 pt-2">{data.storage.error}</p>}
           </Section>
@@ -150,8 +150,8 @@ export const Health = () => {
 
           <Section icon={Cpu} color="#EB5757" title="Resources" subtitle={`Uptime ${fmtUptime(data.resources.uptime_seconds)}`}>
             <Row label="CPU">{data.resources.cpu.percent.toFixed(0)}% ({data.resources.cpu.count} cores)</Row>
-            <Row label="RAM">{data.resources.ram.percent.toFixed(0)}% — {fmtBytes(data.resources.ram.used)} / {fmtBytes(data.resources.ram.total)}</Row>
-            <Row label="Disk">{data.resources.disk.percent.toFixed(0)}% — {fmtBytes(data.resources.disk.used)} / {fmtBytes(data.resources.disk.total)}</Row>
+            <Row label="RAM">{data.resources.ram.percent.toFixed(0)}% : {fmtBytes(data.resources.ram.used)} / {fmtBytes(data.resources.ram.total)}</Row>
+            <Row label="Disk">{data.resources.disk.percent.toFixed(0)}% : {fmtBytes(data.resources.disk.used)} / {fmtBytes(data.resources.disk.total)}</Row>
             {data.resources.load_avg && <Row label="Load average">{data.resources.load_avg.map(l => l.toFixed(2)).join(' · ')}</Row>}
           </Section>
 

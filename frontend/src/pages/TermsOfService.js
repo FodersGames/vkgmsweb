@@ -89,7 +89,7 @@ const SECTIONS = [
     title: 'Intellectual Property',
     content: (
       <p>
-        All content on this website and in our games — including but not limited to artwork, source code, music, logos, and written content — is the property of Vakar Games and is protected by applicable copyright and intellectual property laws. You may not copy, redistribute, modify, or use our content without explicit written permission from Vakar Games.
+        All content on this website and in our games (including but not limited to artwork, source code, music, logos, and written content) is the property of Vakar Games and is protected by applicable copyright and intellectual property laws. You may not copy, redistribute, modify, or use our content without explicit written permission from Vakar Games.
       </p>
     ),
   },
@@ -109,7 +109,7 @@ const SECTIONS = [
     title: 'Limitation of Liability',
     content: (
       <p>
-        To the fullest extent permitted by applicable law, Vakar Games shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of — or inability to use — our services, even if we have been advised of the possibility of such damages.
+        To the fullest extent permitted by applicable law, Vakar Games shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of, or inability to use, our services, even if we have been advised of the possibility of such damages.
       </p>
     ),
   },
@@ -156,7 +156,7 @@ const TermsOfService = () => {
   const [activeSection, setActiveSection] = useState('acceptance');
 
   useEffect(() => {
-    document.title = 'Terms of Service — Vakar Games';
+    document.title = 'Terms of Service | Vakar Games';
   }, []);
 
   const scrollTo = (id) => {

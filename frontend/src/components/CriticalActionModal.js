@@ -4,7 +4,7 @@ import { ShieldAlert, X, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
 
-// Generates the "type this back" confirmation code — deliberately NOT a
+// Generates the "type this back" confirmation code : deliberately NOT a
 // security code (require_super_admin on the backend is the real boundary),
 // just enough friction that scheduling a critical action is never a single
 // misclick: read the warning, retype a code you can't have muscle-memorized,
@@ -19,9 +19,9 @@ function generateCode(length = 6) {
 }
 
 // Three-step flow for any CRITICAL_ACTIONS entry (backend:
-// admin_system.py) — warn, retype a random code, confirm. Scheduling (not
+// admin_system.py) : warn, retype a random code, confirm. Scheduling (not
 // executing) the action starts a 30s countdown any super admin can cancel
-// — see CriticalActionBanner.js, which is what actually runs after this
+// : see CriticalActionBanner.js, which is what actually runs after this
 // modal closes.
 export default function CriticalActionModal({ actionType, label, onClose, onScheduled }) {
   const { isDark } = useTheme();
@@ -80,7 +80,7 @@ export default function CriticalActionModal({ actionType, label, onClose, onSche
             <>
               <p className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] leading-relaxed">
                 This is irreversible and affects every user on the platform. Once confirmed, it doesn't run
-                immediately — it enters a <span className="font-semibold">30-second countdown</span> that any
+                immediately : it enters a <span className="font-semibold">30-second countdown</span> that any
                 super admin can cancel, but if nobody does, it WILL execute.
               </p>
               <div className="flex items-center gap-3 mt-6 justify-end">
