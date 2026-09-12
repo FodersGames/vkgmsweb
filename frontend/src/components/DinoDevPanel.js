@@ -98,8 +98,8 @@ export const DinoDevPanel = () => {
   // ── 1. Gift Tab State ────────────────────────────────────────────────────────
   const [targetPlayFabId, setTargetPlayFabId] = useState('');
   const [giftMessage, setGiftMessage] = useState('A special reward from the Vakar Games dev team!');
-  const [giftGems, setGiftGems] = useState(500);
-  const [giftDna, setGiftDna] = useState(100000);
+  const [giftGems, setGiftGems] = useState('');
+  const [giftDna, setGiftDna] = useState('');
   const [selectedDinos, setSelectedDinos] = useState({}); // { "T-Rex": 1 }
   const [selectedEggs, setSelectedEggs] = useState({}); // { "T1-EGG": 1 }
   const [selectedChests, setSelectedChests] = useState({}); // { "ChestT1": 1 }
@@ -259,13 +259,16 @@ export const DinoDevPanel = () => {
     const chestsList = Object.entries(selectedChests).map(([chestName, count]) => ({ chestName, count }));
     const itemsList = Object.entries(selectedItems).map(([id, count]) => ({ id, count }));
 
+    const numGems = parseInt(giftGems, 10) || 0;
+    const numDna = parseFloat(giftDna) || 0;
+
     const hasAnyReward =
       dinosList.length > 0 ||
       eggsList.length > 0 ||
       chestsList.length > 0 ||
       itemsList.length > 0 ||
-      giftGems > 0 ||
-      giftDna > 0;
+      numGems > 0 ||
+      numDna > 0;
 
     if (!hasAnyReward) {
       toast.error('Please configure at least one reward (Gems, DNA, Dino, Egg, Chest, or Item)');
@@ -276,10 +279,9 @@ export const DinoDevPanel = () => {
     try {
       const payload = {
         playfab_id: targetPlayFabId.trim(),
-        dino_name: dinosList.length === 1 ? dinosList[0].name : null,
         dinos: dinosList.length > 0 ? dinosList : null,
-        gems: parseInt(giftGems, 10) || 0,
-        dna: parseFloat(giftDna) || 0,
+        gems: numGems,
+        dna: numDna,
         message: giftMessage.trim(),
         items: itemsList.length > 0 ? itemsList : null,
         eggs: eggsList.length > 0 ? eggsList : null,
@@ -293,6 +295,8 @@ export const DinoDevPanel = () => {
       setSelectedEggs({});
       setSelectedChests({});
       setSelectedItems({});
+      setGiftGems('');
+      setGiftDna('');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to send gift');
     } finally {
@@ -717,14 +721,15 @@ export const DinoDevPanel = () => {
                       <span>Gems / Amber</span>
                     </span>
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      +{giftGems.toLocaleString()}
+                      +{((parseInt(giftGems, 10) || 0)).toLocaleString()}
                     </span>
                   </div>
                   <input
                     type="number"
                     min="0"
+                    placeholder="0"
                     value={giftGems}
-                    onChange={(e) => setGiftGems(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) => setGiftGems(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#3a3a4c] text-sm font-mono font-semibold text-[#1D1D1F] dark:text-white"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -732,7 +737,7 @@ export const DinoDevPanel = () => {
                       <button
                         key={val}
                         type="button"
-                        onClick={() => setGiftGems(prev => prev + val)}
+                        onClick={() => setGiftGems(prev => ((parseInt(prev, 10) || 0) + val).toString())}
                         className="px-2 py-1 rounded-lg bg-white dark:bg-[#151520] hover:bg-black/[0.05] text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa]"
                       >
                         +{val}
@@ -740,7 +745,7 @@ export const DinoDevPanel = () => {
                     ))}
                     <button
                       type="button"
-                      onClick={() => setGiftGems(0)}
+                      onClick={() => setGiftGems('')}
                       className="px-2 py-1 rounded-lg hover:bg-red-50 text-[11px] font-semibold text-red-500"
                     >
                       Clear
@@ -756,14 +761,15 @@ export const DinoDevPanel = () => {
                       <span>DNA Bank</span>
                     </span>
                     <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
-                      +{giftDna.toLocaleString()}
+                      +{((parseFloat(giftDna) || 0)).toLocaleString()}
                     </span>
                   </div>
                   <input
                     type="number"
                     min="0"
+                    placeholder="0"
                     value={giftDna}
-                    onChange={(e) => setGiftDna(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setGiftDna(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#3a3a4c] text-sm font-mono font-semibold text-[#1D1D1F] dark:text-white"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -771,7 +777,7 @@ export const DinoDevPanel = () => {
                       <button
                         key={val}
                         type="button"
-                        onClick={() => setGiftDna(prev => prev + val)}
+                        onClick={() => setGiftDna(prev => ((parseFloat(prev) || 0) + val).toString())}
                         className="px-2 py-1 rounded-lg bg-white dark:bg-[#151520] hover:bg-black/[0.05] text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa]"
                       >
                         +{val >= 1000000 ? `${val / 1000000}M` : `${val / 1000}K`}
@@ -779,7 +785,7 @@ export const DinoDevPanel = () => {
                     ))}
                     <button
                       type="button"
-                      onClick={() => setGiftDna(0)}
+                      onClick={() => setGiftDna('')}
                       className="px-2 py-1 rounded-lg hover:bg-red-50 text-[11px] font-semibold text-red-500"
                     >
                       Clear
@@ -1073,23 +1079,23 @@ export const DinoDevPanel = () => {
                 <div className="pt-2 border-t border-[#E5E5EA] dark:border-[#2a2a3c] space-y-2">
                   <span className="text-[#86868B] font-semibold block mb-1">Included Rewards:</span>
 
-                  {giftGems > 0 && (
+                  {(parseInt(giftGems, 10) || 0) > 0 && (
                     <div className="flex items-center justify-between text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded-xl">
                       <span className="flex items-center gap-1.5">
                         <ItemImage src="/dino-assets/icons/gems.png" className="w-4 h-4" />
                         <span>Gems</span>
                       </span>
-                      <span className="font-mono font-bold">+{giftGems.toLocaleString()}</span>
+                      <span className="font-mono font-bold">+{(parseInt(giftGems, 10) || 0).toLocaleString()}</span>
                     </div>
                   )}
 
-                  {giftDna > 0 && (
+                  {(parseFloat(giftDna) || 0) > 0 && (
                     <div className="flex items-center justify-between text-purple-600 font-semibold bg-purple-50 dark:bg-purple-950/30 p-2 rounded-xl">
                       <span className="flex items-center gap-1.5">
                         <ItemImage src="/dino-assets/icons/dna.png" className="w-4 h-4" />
                         <span>DNA</span>
                       </span>
-                      <span className="font-mono font-bold">+{giftDna.toLocaleString()}</span>
+                      <span className="font-mono font-bold">+{(parseFloat(giftDna) || 0).toLocaleString()}</span>
                     </div>
                   )}
 
@@ -1133,7 +1139,7 @@ export const DinoDevPanel = () => {
                     </div>
                   ))}
 
-                  {giftGems === 0 && giftDna === 0 &&
+                  {(parseInt(giftGems, 10) || 0) === 0 && (parseFloat(giftDna) || 0) === 0 &&
                     Object.keys(selectedDinos).length === 0 &&
                     Object.keys(selectedEggs).length === 0 &&
                     Object.keys(selectedChests).length === 0 &&
