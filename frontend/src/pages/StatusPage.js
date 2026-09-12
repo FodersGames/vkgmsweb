@@ -343,45 +343,6 @@ export default function StatusPage() {
             <span>7 days ago</span>
             <span>Today</span>
           </div>
-
-          {/* Legend - 5-stage chromatic progression */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3.5 mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-[#E5E5EA] text-[11px] sm:text-xs text-[#6E6E73]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#30D158] shrink-0" />
-              <span className="font-medium text-[#1D1D1F]">Green</span>
-              <span className="text-[#86868B] hidden sm:inline">(100%)</span>
-            </div>
-            <span className="text-[#D2D2D7]">→</span>
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0"
-                style={{ background: 'linear-gradient(135deg, #30D158 0%, #84CC16 100%)' }}
-              />
-              <span className="font-medium text-[#1D1D1F]">Green-Yellow</span>
-              <span className="text-[#86868B] hidden sm:inline">(&lt; 5m)</span>
-            </div>
-            <span className="text-[#D2D2D7]">→</span>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FFD60A] shrink-0" />
-              <span className="font-medium text-[#1D1D1F]">Yellow</span>
-              <span className="text-[#86868B] hidden sm:inline">(15-45m)</span>
-            </div>
-            <span className="text-[#D2D2D7]">→</span>
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0"
-                style={{ background: 'linear-gradient(135deg, #FFD60A 0%, #FF9500 100%)' }}
-              />
-              <span className="font-medium text-[#1D1D1F]">Yellow-Red</span>
-              <span className="text-[#86868B] hidden sm:inline">(1-3h)</span>
-            </div>
-            <span className="text-[#D2D2D7]">→</span>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FF453A] shrink-0" />
-              <span className="font-medium text-[#1D1D1F]">Red</span>
-              <span className="text-[#86868B] hidden sm:inline">(&gt; 3h)</span>
-            </div>
-          </div>
         </div>
 
         {/* Footer info & Home button */}

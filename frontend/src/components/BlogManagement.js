@@ -641,7 +641,7 @@ export const BlogManagement = () => {
                         )}
                       </div>
                       <p className="text-xs text-[#86868B] truncate">
-                        By {post.author} · Created on{' '}
+                        Created on{' '}
                         {new Date(post.created_at).toLocaleDateString('en-US', {
                           day: 'numeric',
                           month: 'short',
