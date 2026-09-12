@@ -1,7 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { Save, Loader2, Lock, Camera, Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import {
+  Save,
+  Loader2,
+  Lock,
+  Camera,
+  Check,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  User,
+  ShieldCheck,
+  ArrowUpRight,
+  Upload,
+} from 'lucide-react';
 import axios from 'axios';
 import { SavedFlash, useSavedFlash } from '../ui';
 import { API_URL } from '../utils/api';
@@ -126,36 +139,55 @@ export const AccountSettings = () => {
   const initials = ((user?.name?.[0] || user?.firstName?.[0] || user?.username?.[0] || '?')).toUpperCase();
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="max-w-2xl space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+      {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">ACCOUNT DETAILS</h2>
-        <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Manage your profile info, profile photo and password.</p>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6600]/10 border border-[#FF6600]/20 text-[#FF6600] text-[11px] font-semibold uppercase tracking-wider mb-2.5">
+          <ShieldCheck size={13} />
+          <span>Security & Identity</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1D1D1F] dark:text-white">
+          Account Details
+        </h1>
+        <p className="text-xs sm:text-sm text-[#6E6E73] dark:text-[#a1a1aa] mt-1">
+          Manage your personal identity, studio credentials, and authentication security.
+        </p>
       </div>
 
-      {/* Profile info card */}
-      <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
-        <div className="flex items-center gap-4 pb-5 mb-6 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
-          <div className="relative group">
-            <div className="rounded-xl w-14 h-14 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center justify-center flex-shrink-0 overflow-hidden">
+      {/* Hero Profile Summary Card */}
+      <div className="rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 text-center sm:text-left">
+          {/* Avatar with hover upload trigger */}
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-[#F5F5F7] dark:bg-[#111118] border-2 border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-center overflow-hidden shadow-xs">
               {user?.avatar_url ? (
                 <img
                   src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
-                  alt="avatar"
+                  alt="Avatar"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-lg font-bold text-[#6E6E73] dark:text-[#a1a1aa]">{initials}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[#FF6600]">{initials}</span>
               )}
             </div>
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarUploading}
-              title="Change profile photo"
-              className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:opacity-50"
+              title="Upload new avatar"
+              className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:opacity-50"
             >
-              {avatarUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              {avatarUploading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <>
+                  <Camera size={20} />
+                  <span className="text-[10px] font-medium mt-1">Change</span>
+                </>
+              )}
             </button>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -164,17 +196,83 @@ export const AccountSettings = () => {
               onChange={handleAvatarFile}
             />
           </div>
+
+          {/* User details */}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{user?.name || user?.firstName || user?.username}</p>
-            <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] truncate">@{user?.username} · {user?.email}</p>
-            {avatarSuccess && <p className="text-xs text-emerald-500 font-medium mt-1">Photo updated!</p>}
-            {avatarError && <p className="text-xs text-red-500 font-medium mt-1">{avatarError}</p>}
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1.5">
+              <h2 className="text-lg sm:text-xl font-bold text-[#1D1D1F] dark:text-white truncate">
+                {user?.name || user?.firstName || user?.username}
+              </h2>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FF6600]/10 text-[#FF6600] border border-[#FF6600]/25">
+                {user?.is_super_admin ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : 'Staff'}
+              </span>
+            </div>
+
+            <p className="text-xs text-[#86868B] dark:text-[#a1a1aa] font-mono">
+              @{user?.username}
+            </p>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">
+              {user?.email}
+            </p>
+
+            <div className="flex items-center justify-center sm:justify-start gap-3 mt-4">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-[#F5F5F7] dark:bg-[#1f1f2e] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA] dark:hover:bg-[#28283c] transition-colors"
+              >
+                <Upload size={12} />
+                <span>Upload Photo</span>
+              </button>
+
+              {avatarSuccess && (
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <Check size={13} />
+                  <span>Avatar updated!</span>
+                </span>
+              )}
+
+              {avatarError && (
+                <span className="inline-flex items-center gap-1 text-xs text-red-500 font-medium">
+                  <AlertCircle size={13} />
+                  <span>{avatarError}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Form Card */}
+      <div className="rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] p-6 sm:p-8 shadow-xs">
+        <div className="flex items-center gap-3 pb-5 mb-6 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
+          <div className="w-9 h-9 rounded-xl bg-[#F5F5F7] dark:bg-[#111118] text-[#1D1D1F] dark:text-white flex items-center justify-center">
+            <User size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-white">
+              Personal Information
+            </h3>
+            <p className="text-xs text-[#86868B] dark:text-[#a1a1aa]">
+              Update your public display name and studio nickname.
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Display Name */}
           <div>
-            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Name</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
+                Display Name
+              </label>
+              {nameDaysLeft > 0 && (
+                <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  Locked for {nameDaysLeft} day{nameDaysLeft !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
             <input
               type="text"
               required
@@ -182,95 +280,123 @@ export const AccountSettings = () => {
               value={name}
               disabled={nameDaysLeft > 0}
               onChange={e => setName(e.target.value)}
-              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#111118] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               placeholder="Your display name"
             />
-            {nameDaysLeft > 0 && (
-              <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">Changeable again in {nameDaysLeft} day{nameDaysLeft !== 1 ? 's' : ''}.</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">Pseudo</label>
-            <input
-              type="text"
-              required
-              minLength={5}
-              maxLength={14}
-              pattern="[a-zA-Z0-9_]+"
-              value={username}
-              disabled={pseudoDaysLeft > 0}
-              onChange={e => setUsername(e.target.value)}
-              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">
-              {pseudoDaysLeft > 0 ? `Changeable again in ${pseudoDaysLeft} day${pseudoDaysLeft !== 1 ? 's' : ''}.` : '5–14 characters, letters, numbers and underscores only.'}
+            <p className="text-[11px] text-[#86868B] dark:text-[#71717a] mt-1.5">
+              Your publicly visible identity across game chats and the studio board.
             </p>
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {/* Username / Pseudo */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
+                Username (Handle)
+              </label>
+              {pseudoDaysLeft > 0 && (
+                <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  Locked for {pseudoDaysLeft} day{pseudoDaysLeft !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#86868B]">
+                @
+              </span>
+              <input
+                type="text"
+                required
+                minLength={5}
+                maxLength={14}
+                pattern="[a-zA-Z0-9_]+"
+                value={username}
+                disabled={pseudoDaysLeft > 0}
+                onChange={e => setUsername(e.target.value)}
+                className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#111118] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-mono"
+              />
+            </div>
+            <p className="text-[11px] text-[#86868B] dark:text-[#71717a] mt-1.5">
+              5 to 14 alphanumeric characters and underscores only.
+            </p>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium">
+              <AlertCircle size={14} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full flex items-center gap-2 bg-[#1D1D1F] dark:bg-[#e4e4e7] hover:bg-[#3A3A3C] dark:hover:bg-white text-white dark:text-[#0e0e15] px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#1D1D1F] dark:bg-white hover:bg-[#3A3A3C] dark:hover:bg-[#F5F5F7] text-white dark:text-[#1D1D1F] text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {saving ? 'Saving…' : 'Save changes'}
+              <span>{saving ? 'Saving changes…' : 'Save changes'}</span>
             </button>
-            <SavedFlash show={success} label="Saved!" />
+            <SavedFlash show={success} label="Saved successfully!" />
           </div>
         </form>
       </div>
 
       {/* Password & Security Card */}
-      <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
-        <div className="flex items-center justify-between">
+      <div className="rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg w-9 h-9 bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center text-[#FF6600]">
+            <div className="w-9 h-9 rounded-xl bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center text-[#FF6600]">
               <Lock size={16} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Password & Security</p>
-              <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">Update your admin account password.</p>
+              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-white">
+                Password & Security
+              </h3>
+              <p className="text-xs text-[#86868B] dark:text-[#a1a1aa]">
+                Update your administrative account login credentials.
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => { setShowPasswordChange(s => !s); setPwError(''); }}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600] text-[#1D1D1F] dark:text-[#e4e4e7] hover:text-[#FF6600] transition-colors"
+            className="self-start sm:self-auto text-xs font-semibold px-4 py-2 rounded-full border border-[#E5E5EA] dark:border-[#2a2a3c] hover:border-[#FF6600] text-[#1D1D1F] dark:text-white hover:text-[#FF6600] transition-colors"
           >
             {showPasswordChange ? 'Cancel' : 'Change Password'}
           </button>
         </div>
 
         {showPasswordChange && (
-          <form onSubmit={handlePasswordSubmit} className="mt-5 pt-5 border-t border-[#D2D2D7] dark:border-[#2a2a3c] space-y-3.5">
+          <form onSubmit={handlePasswordSubmit} className="mt-6 pt-6 border-t border-[#E5E5EA] dark:border-[#2a2a3c] space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">Current Password</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
+                Current Password
+              </label>
               <div className="relative">
                 <input
                   type={showCurrentPw ? 'text' : 'password'}
                   required
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-                  placeholder="Your current password"
+                  className="w-full pl-4 pr-10 py-2.5 text-sm rounded-xl border border-[#E5E5EA] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 bg-[#F5F5F7] dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7] transition-all"
+                  placeholder="Enter current password"
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowCurrentPw(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
                 >
-                  {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showCurrentPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">New Password</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
+                New Password
+              </label>
               <div className="relative">
                 <input
                   type={showNewPw ? 'text' : 'password'}
@@ -278,41 +404,43 @@ export const AccountSettings = () => {
                   minLength={8}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
-                  placeholder="Min. 8 characters"
+                  className="w-full pl-4 pr-10 py-2.5 text-sm rounded-xl border border-[#E5E5EA] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 bg-[#F5F5F7] dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7] transition-all"
+                  placeholder="Minimum 8 characters"
                 />
                 <button
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowNewPw(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
                 >
-                  {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">Confirm New Password</label>
+              <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
+                Confirm New Password
+              </label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                className="w-full px-4 py-2.5 text-sm rounded-xl border border-[#E5E5EA] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 bg-[#F5F5F7] dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7] transition-all"
                 placeholder="Repeat new password"
               />
             </div>
 
             {pwError && (
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium">
                 <AlertCircle size={14} className="shrink-0" />
                 <span>{pwError}</span>
               </div>
             )}
 
             {pwSuccess && (
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-medium">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
                 <Check size={14} className="shrink-0" />
                 <span>Password updated successfully!</span>
               </div>
@@ -321,22 +449,31 @@ export const AccountSettings = () => {
             <button
               type="submit"
               disabled={pwSaving}
-              className="rounded-lg flex items-center justify-center gap-2 bg-[#FF6600] hover:bg-[#3db8af] text-[#0D0D0D] font-bold px-4 py-2 text-xs transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 bg-[#FF6600] hover:bg-[#E05A00] text-white font-semibold px-5 py-2.5 rounded-full text-xs shadow-xs transition-colors disabled:opacity-50"
             >
               {pwSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              {pwSaving ? 'Updating…' : 'Update Password'}
+              <span>{pwSaving ? 'Updating password…' : 'Update Password'}</span>
             </button>
           </form>
         )}
       </div>
 
-      <p className="text-xs text-[#A1A1A6] dark:text-[#71717a]">
-        View your public gaming profile on{' '}
-        <Link to="/profile" className="underline hover:text-[#1D1D1F] dark:hover:text-white transition-colors">
-          Public Profile
-        </Link>.
-      </p>
+      {/* Public Profile Link Card */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between gap-4 text-xs text-[#6E6E73] dark:text-[#a1a1aa] shadow-xs">
+        <div>
+          <span className="font-medium text-[#1D1D1F] dark:text-white">Public Player Profile</span>
+          <p className="text-[11px] text-[#86868B] dark:text-[#71717a] mt-0.5">
+            Preview how your avatar, stats, and achievements appear to visitors.
+          </p>
+        </div>
+        <Link
+          to="/profile"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F5F5F7] dark:bg-[#1f1f2e] text-[#1D1D1F] dark:text-white hover:bg-[#FF6600] hover:text-white text-xs font-medium transition-all shrink-0"
+        >
+          <span>Open Profile</span>
+          <ArrowUpRight size={12} />
+        </Link>
+      </div>
     </div>
   );
 };
-

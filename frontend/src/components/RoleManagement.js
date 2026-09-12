@@ -225,13 +225,13 @@ export const RoleManagement = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#2a2a3c]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[#1D1D1F] dark:text-white tracking-tight flex items-center gap-2">
             <Shield className="text-[#FF6600]" size={20} />
             Role & Permission Management
           </h1>
-          <p className="text-xs text-[#a1a1aa] mt-1">
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1">
             Create custom roles, define color tags & badges, and assign fine-grained permissions.
           </p>
         </div>
@@ -239,14 +239,14 @@ export const RoleManagement = () => {
           <button
             onClick={fetchRoles}
             disabled={loading}
-            className="p-2 text-[#a1a1aa] hover:text-white bg-[#1a1a24] hover:bg-[#252535] rounded-lg border border-[#2a2a3c] transition-colors"
+            className="p-2 text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white bg-white dark:bg-[#1a1a24] hover:bg-[#F5F5F7] dark:hover:bg-[#252535] rounded-xl border border-[#E5E5EA] dark:border-[#2a2a3c] transition-colors"
             title="Refresh"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#FF6600] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#FF6600] hover:bg-[#E05A00] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors"
           >
             <Plus size={15} />
             Create Role
@@ -258,19 +258,19 @@ export const RoleManagement = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-40 bg-[#16161f] border border-[#2a2a3c] rounded-xl animate-pulse" />
+            <div key={i} className="h-40 bg-white dark:bg-[#16161f] border border-[#E5E5EA] dark:border-[#2a2a3c] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : roles.length === 0 ? (
-        <div className="text-center py-16 bg-[#16161f] border border-[#2a2a3c] rounded-xl p-8">
+        <div className="text-center py-16 bg-white dark:bg-[#16161f] border border-[#E5E5EA] dark:border-[#2a2a3c] rounded-2xl p-8">
           <Shield size={36} className="mx-auto text-[#FF6600]/40 mb-3" />
-          <h3 className="text-base font-semibold text-white">No Custom Roles Configured</h3>
-          <p className="text-xs text-[#a1a1aa] mt-1 max-w-sm mx-auto mb-4">
+          <h3 className="text-base font-semibold text-[#1D1D1F] dark:text-white">No Custom Roles Configured</h3>
+          <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1 max-w-sm mx-auto mb-4">
             Click "Create Role" above to set up community roles like Moderator, Developer, or VIP.
           </p>
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6600] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6600] hover:bg-[#E05A00] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors"
           >
             <Plus size={14} /> Create First Role
           </button>
@@ -281,30 +281,30 @@ export const RoleManagement = () => {
             return (
               <div
                 key={role.id}
-                className="bg-[#14141c] border border-[#242432] hover:border-[#38384a] rounded-xl p-5 flex flex-col justify-between transition-all"
+                className="bg-white dark:bg-[#14141c] border border-[#E5E5EA] dark:border-[#242432] hover:border-[#D2D2D7] dark:hover:border-[#38384a] rounded-2xl p-5 shadow-xs flex flex-col justify-between transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                         style={{
-                          backgroundColor: `${role.color}20`,
-                          border: `1px solid ${role.color}40`,
+                          backgroundColor: `${role.color}18`,
+                          border: `1px solid ${role.color}35`,
                         }}
                       >
                         {renderIcon(role.icon, 18, role.color)}
                       </div>
                       <div>
-                        <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                        <h3 className="font-semibold text-[#1D1D1F] dark:text-white text-sm flex items-center gap-2">
                           {role.name}
                           {role.is_system && (
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-white/60 uppercase">
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#1D1D1F]/5 dark:bg-white/10 text-[#6E6E73] dark:text-white/60 uppercase">
                               System
                             </span>
                           )}
                         </h3>
-                        <span className="text-[11px] font-mono text-[#a1a1aa]">
+                        <span className="text-[11px] font-mono text-[#86868B] dark:text-[#a1a1aa]">
                           @{role.id}
                         </span>
                       </div>
@@ -314,14 +314,14 @@ export const RoleManagement = () => {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleOpenEdit(role)}
-                          className="p-1.5 text-[#a1a1aa] hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                          className="p-1.5 text-[#86868B] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-[#F5F5F7] dark:hover:bg-white/5 rounded-lg transition-colors"
                           title="Edit role"
                         >
                           <Edit2 size={13} />
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(role)}
-                          className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
+                          className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
                           title="Delete role"
                         >
                           <Trash2 size={13} />
@@ -331,40 +331,40 @@ export const RoleManagement = () => {
                   </div>
 
                   {role.description && (
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed mb-4 line-clamp-2">
+                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed mb-4 line-clamp-2">
                       {role.description}
                     </p>
                   )}
 
                   <div className="mb-4">
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#71717a] mb-1.5">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#86868B] dark:text-[#71717a] mb-1.5">
                       Permissions ({role.permissions?.length || 0})
                     </div>
                     <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                       {(role.permissions || []).slice(0, 5).map(p => (
                         <span
                           key={p}
-                          className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e1e2c] text-[#a1a1aa] border border-[#2a2a3c]"
+                          className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#F5F5F7] dark:bg-[#1e1e2c] text-[#1D1D1F] dark:text-[#a1a1aa] border border-[#E5E5EA] dark:border-[#2a2a3c]"
                         >
                           {p}
                         </span>
                       ))}
                       {(role.permissions?.length || 0) > 5 && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e1e2c] text-[#71717a]">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#F5F5F7] dark:bg-[#1e1e2c] text-[#86868B] dark:text-[#71717a] border border-[#E5E5EA] dark:border-[#2a2a3c]">
                           +{role.permissions.length - 5} more
                         </span>
                       )}
                       {(!role.permissions || role.permissions.length === 0) && (
-                        <span className="text-[10px] text-[#71717a] italic">None (Display badge only)</span>
+                        <span className="text-[10px] text-[#86868B] dark:text-[#71717a] italic">None (Display badge only)</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#22222e] flex items-center justify-between text-xs text-[#71717a]">
+                <div className="pt-3 border-t border-[#E5E5EA] dark:border-[#22222e] flex items-center justify-between text-xs text-[#86868B] dark:text-[#71717a]">
                   <span className="flex items-center gap-1.5">
                     <Users size={12} />
-                    <strong className="text-white font-medium">{role.user_count || 0}</strong> members
+                    <strong className="text-[#1D1D1F] dark:text-white font-medium">{role.user_count || 0}</strong> members
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span
@@ -382,18 +382,20 @@ export const RoleManagement = () => {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#14141c] border border-[#2a2a3c] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between p-5 border-b border-[#242432]">
-              <div className="flex items-center gap-2">
-                <Shield size={18} className="text-[#FF6600]" />
-                <h2 className="text-base font-bold text-white">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#14141c] border border-[#E5E5EA] dark:border-[#2a2a3c] rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-[#E5E5EA] dark:border-[#242432]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <Shield size={18} />
+                </div>
+                <h2 className="text-base font-semibold text-[#1D1D1F] dark:text-white">
                   {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}
                 </h2>
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 text-[#a1a1aa] hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                className="p-1.5 text-[#86868B] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-[#F5F5F7] dark:hover:bg-white/5 rounded-lg transition-colors"
               >
                 <X size={16} />
               </button>
@@ -402,7 +404,7 @@ export const RoleManagement = () => {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Name & Slug */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#a1a1aa] mb-1.5">
+                <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
                   Role Name
                 </label>
                 <input
@@ -411,21 +413,21 @@ export const RoleManagement = () => {
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Lead Moderator, Senior Game Dev"
-                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#FF6600] rounded-lg text-sm text-white outline-none"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F5F7] dark:bg-[#0e0e14] border border-[#E5E5EA] dark:border-[#2a2a3c] focus:border-[#FF6600] rounded-xl text-sm text-[#1D1D1F] dark:text-white outline-none transition-colors"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#a1a1aa] mb-1.5">
-                  Description <span className="normal-case font-normal text-[#71717a]">(optional)</span>
+                <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
+                  Description <span className="font-normal text-[#86868B] dark:text-[#71717a]">(optional)</span>
                 </label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Responsibilities and purpose of this role"
-                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#FF6600] rounded-lg text-sm text-white outline-none"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F5F7] dark:bg-[#0e0e14] border border-[#E5E5EA] dark:border-[#2a2a3c] focus:border-[#FF6600] rounded-xl text-sm text-[#1D1D1F] dark:text-white outline-none transition-colors"
                 />
               </div>
 
@@ -433,7 +435,7 @@ export const RoleManagement = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Color */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#a1a1aa] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
                     Role Color
                   </label>
                   <div className="flex items-center gap-2 mb-2">
@@ -447,7 +449,7 @@ export const RoleManagement = () => {
                       type="text"
                       value={form.color}
                       onChange={e => setForm({ ...form, color: e.target.value })}
-                      className="flex-1 px-3 py-1.5 bg-[#0e0e14] border border-[#2a2a3c] rounded-lg text-xs font-mono text-white outline-none uppercase"
+                      className="flex-1 px-3 py-1.5 bg-[#F5F5F7] dark:bg-[#0e0e14] border border-[#E5E5EA] dark:border-[#2a2a3c] rounded-lg text-xs font-mono text-[#1D1D1F] dark:text-white outline-none uppercase"
                     />
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -456,7 +458,7 @@ export const RoleManagement = () => {
                         key={c}
                         type="button"
                         onClick={() => setForm({ ...form, color: c })}
-                        className={`w-6 h-6 rounded-md transition-transform ${form.color.toLowerCase() === c.toLowerCase() ? 'scale-110 ring-2 ring-white' : 'hover:scale-105'}`}
+                        className={`w-6 h-6 rounded-md transition-transform ${form.color.toLowerCase() === c.toLowerCase() ? 'scale-110 ring-2 ring-[#1D1D1F] dark:ring-white' : 'hover:scale-105'}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
@@ -465,7 +467,7 @@ export const RoleManagement = () => {
 
                 {/* Icon */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#a1a1aa] mb-1.5">
+                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1.5">
                     Role Icon
                   </label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -480,8 +482,8 @@ export const RoleManagement = () => {
                           title={i.label}
                           className={`p-2.5 rounded-lg flex items-center justify-center border transition-all ${
                             isSelected
-                              ? 'bg-[#FF6600]/20 border-[#FF6600] text-[#FF6600]'
-                              : 'bg-[#0e0e14] border-[#2a2a3c] text-[#a1a1aa] hover:text-white hover:border-[#38384a]'
+                              ? 'bg-[#FF6600]/15 border-[#FF6600] text-[#FF6600]'
+                              : 'bg-[#F5F5F7] dark:bg-[#0e0e14] border-[#E5E5EA] dark:border-[#2a2a3c] text-[#86868B] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:border-[#D2D2D7] dark:hover:border-[#38384a]'
                           }`}
                         >
                           <IconC size={16} />
@@ -493,8 +495,8 @@ export const RoleManagement = () => {
               </div>
 
               {/* Badge Preview */}
-              <div className="p-3 bg-[#0e0e14] border border-[#242432] rounded-xl flex items-center justify-between">
-                <span className="text-xs text-[#a1a1aa] font-medium">Badge Preview:</span>
+              <div className="p-3 bg-[#F5F5F7] dark:bg-[#0e0e14] border border-[#E5E5EA] dark:border-[#242432] rounded-xl flex items-center justify-between">
+                <span className="text-xs text-[#86868B] dark:text-[#a1a1aa] font-medium">Badge Preview:</span>
                 <div
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider"
                   style={{
@@ -511,10 +513,10 @@ export const RoleManagement = () => {
               {/* Permissions Selector */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#a1a1aa]">
+                  <label className="block text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">
                     Assigned Permissions ({form.permissions.length})
                   </label>
-                  <span className="text-[11px] text-[#71717a]">
+                  <span className="text-[11px] text-[#86868B] dark:text-[#71717a]">
                     Select capabilities for members with this role
                   </span>
                 </div>
@@ -523,12 +525,11 @@ export const RoleManagement = () => {
                   {PERMISSION_CATEGORIES.map(cat => {
                     const permIds = cat.perms.map(p => p.id);
                     const allSelected = permIds.every(id => form.permissions.includes(id));
-                    const someSelected = permIds.some(id => form.permissions.includes(id));
 
                     return (
-                      <div key={cat.category} className="p-3 bg-[#0e0e14] border border-[#22222e] rounded-lg">
+                      <div key={cat.category} className="p-3 bg-[#F5F5F7] dark:bg-[#0e0e14] border border-[#E5E5EA] dark:border-[#22222e] rounded-xl">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-white uppercase tracking-wider">
+                          <span className="text-xs font-semibold text-[#1D1D1F] dark:text-white">
                             {cat.category}
                           </span>
                           <button
@@ -545,10 +546,10 @@ export const RoleManagement = () => {
                             return (
                               <label
                                 key={p.id}
-                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-xs cursor-pointer select-none transition-colors ${
+                                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer select-none transition-colors ${
                                   isChecked
-                                    ? 'bg-[#FF6600]/10 text-white border border-[#FF6600]/30'
-                                    : 'text-[#a1a1aa] hover:bg-white/5 border border-transparent'
+                                    ? 'bg-[#FF6600]/10 text-[#FF6600] dark:text-white border border-[#FF6600]/30'
+                                    : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
                                 }`}
                               >
                                 <input
@@ -569,18 +570,18 @@ export const RoleManagement = () => {
               </div>
 
               {/* Footer Buttons */}
-              <div className="pt-3 border-t border-[#242432] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-[#E5E5EA] dark:border-[#242432] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-[#a1a1aa] hover:text-white transition-colors"
+                  className="px-4 py-2 text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-[#FF6600] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors disabled:opacity-50"
+                  className="px-5 py-2 bg-[#FF6600] hover:bg-[#E05A00] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : editingRole ? 'Update Role' : 'Create Role'}
                 </button>
@@ -592,28 +593,28 @@ export const RoleManagement = () => {
 
       {/* Delete confirmation modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#14141c] border border-red-500/30 rounded-2xl max-w-sm w-full p-6 text-center animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#14141c] border border-red-500/30 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={22} />
             </div>
-            <h3 className="text-base font-bold text-white mb-2">Delete Role?</h3>
-            <p className="text-xs text-[#a1a1aa] mb-6 leading-relaxed">
-              Are you sure you want to delete <strong className="text-white">'{deleteConfirm.name}'</strong>?
+            <h3 className="text-base font-semibold text-[#1D1D1F] dark:text-white mb-2">Delete Role?</h3>
+            <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mb-6 leading-relaxed">
+              Are you sure you want to delete <strong className="text-[#1D1D1F] dark:text-white">'{deleteConfirm.name}'</strong>?
               This role will be unassigned from all {deleteConfirm.user_count || 0} user(s).
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-xs font-semibold text-[#a1a1aa] hover:text-white"
+                className="px-4 py-2 text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(deleteConfirm.id)}
-                className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+                className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-xs"
               >
                 Delete Role
               </button>

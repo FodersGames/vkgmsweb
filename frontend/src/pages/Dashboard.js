@@ -233,18 +233,6 @@ const SidebarContent = ({
       )}
     </div>
 
-    {/* Jump to… */}
-    <div className="px-3 pt-3">
-      <button
-        onClick={onOpenPalette}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-colors"
-      >
-        <Search size={13} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
-        <span className="flex-1 text-[12px] text-[#A1A1A6] dark:text-[#71717a]">Jump to…</span>
-        <kbd className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
-      </button>
-    </div>
-
     {/* Nav groups */}
     <nav className="flex-1 overflow-y-auto py-5" data-testid="sidebar-nav">
       {navGroups.map((group, gi) => {
@@ -277,24 +265,6 @@ const SidebarContent = ({
         );
       })}
     </nav>
-
-    {/* Live Status Chip */}
-    <div className="px-3 pb-2">
-      <Link
-        to="/status"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-xs font-medium text-[#1D1D1F] dark:text-white shadow-2xs transition-all group"
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse shrink-0" />
-          <span className="truncate text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] group-hover:text-[#1D1D1F] dark:group-hover:text-white">
-            Live Systems Status
-          </span>
-        </div>
-        <ArrowUpRight size={12} className="text-[#86868B] group-hover:text-[#FF6600] shrink-0" />
-      </Link>
-    </div>
 
     {/* User card */}
     <div className="shrink-0 border-t border-[#D2D2D7] dark:border-[#2a2a3c] p-3">
@@ -622,32 +592,12 @@ const DashboardContent = () => {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setPaletteOpen(true)}
-              title="Jump to… (⌘K)"
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
-            >
-              <Search size={13} />
-              Jump to…
-              <kbd className="text-[10px] text-[#A1A1A6] dark:text-[#71717a]">⌘K</kbd>
-            </button>
-            <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               className="w-8 h-8 flex items-center justify-center rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
             >
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
-            <Link
-              to="/status"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Vakar Games System Status"
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#1D1D1F] dark:text-white bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 shadow-2xs transition-all"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
-              <span>Status</span>
-              <ArrowUpRight size={12} className="text-[#86868B]" />
-            </Link>
             <Link
               to="/"
               title="View public website"
