@@ -15,26 +15,6 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const NAME_COOLDOWN_DAYS = 30;
 
-/* ─── Style helpers ────────────────────────────────────────────────────── */
-const inputDark = {
-  backgroundColor: '#0A0A0A',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#FFFFFF',
-  borderRadius: 0,
-  outline: 'none',
-  width: '100%',
-  padding: '0.6rem 0.75rem',
-  fontSize: '0.875rem',
-};
-const inputFocusDark = { borderColor: '#FF6600' };
-
-const cardDark = {
-  backgroundColor: '#111111',
-  border: '1px solid rgba(255,255,255,0.06)',
-  padding: '1.5rem',
-};
-
-/* ─── Role Icon Resolver ───────────────────────────────────────────────── */
 const ROLE_ICON_MAP = {
   Crown,
   Shield: ShieldCheck,
@@ -58,46 +38,29 @@ const getRoleIcon = (iconName) => {
   return ROLE_ICON_MAP[iconName] || ShieldCheck;
 };
 
-/* ─── Sub-components ─────────────────────────────────────────────────── */
 const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) => {
   const [show, setShow] = useState(false);
-  const [focused, setFocused] = useState(false);
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
-          {label}
-        </label>
-      </div>
-      <div style={{ position: 'relative' }}>
+      <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
+        {label}
+      </label>
+      <div className="relative">
         <input
           type={show ? 'text' : 'password'}
           value={value}
           onChange={onChange}
           autoComplete={autoComplete}
           placeholder={placeholder}
-          style={{
-            ...inputDark,
-            paddingRight: '2.5rem',
-            ...(focused ? inputFocusDark : {}),
-          }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          className="w-full px-3.5 py-2.5 bg-white border border-[#D2D2D7] rounded-lg text-[#1D1D1F] text-sm focus:outline-none focus:border-[#1D1D1F] transition-colors pr-10"
         />
         <button
           type="button"
           tabIndex={-1}
           onClick={() => setShow(s => !s)}
-          style={{
-            position: 'absolute', right: '0.75rem', top: '50%',
-            transform: 'translateY(-50%)', background: 'none',
-            border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
-            display: 'flex', alignItems: 'center', padding: 0,
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#86868B] hover:text-[#1D1D1F] transition-colors"
         >
-          {show ? <EyeSlash size={14} /> : <Eye size={14} />}
+          {show ? <EyeSlash size={15} /> : <Eye size={15} />}
         </button>
       </div>
     </div>
@@ -105,11 +68,10 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
 };
 
 const TextField = ({ label, value, onChange, placeholder, autoComplete, required = true, disabled = false, hint }) => {
-  const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
-        {label} {!required && <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(optional)</span>}
+      <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
+        {label} {!required && <span className="text-[#86868B] font-normal">(optional)</span>}
       </label>
       <input
         type="text"
@@ -119,11 +81,11 @@ const TextField = ({ label, value, onChange, placeholder, autoComplete, required
         autoComplete={autoComplete}
         required={required}
         disabled={disabled}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={{ ...inputDark, ...(focused && !disabled ? inputFocusDark : {}), opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'text' }}
+        className={`w-full px-3.5 py-2.5 bg-white border border-[#D2D2D7] rounded-lg text-[#1D1D1F] text-sm focus:outline-none focus:border-[#1D1D1F] transition-colors ${
+          disabled ? 'opacity-50 cursor-not-allowed bg-[#E5E5EA]' : ''
+        }`}
       />
-      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-[#86868B]">{hint}</p>}
     </div>
   );
 };
@@ -135,7 +97,6 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
   return Math.max(0, remaining);
 };
 
-/* ─── Main Profile component ─────────────────────────────────────────── */
 const Profile = () => {
   const { user, logout, updateProfile, changePassword, token, isAdmin, refreshUser, loading: authLoading } = useAuth();
   const avatarInputRef = useRef(null);
@@ -261,39 +222,23 @@ const Profile = () => {
 
   const displayName = user.name || (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '') || user.username;
   const initials = (displayName[0] || user.username?.[0] || '?').toUpperCase();
-
   const customRoles = (user.roles || []).filter(r => !r.is_system);
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="bg-white text-[#1D1D1F] min-h-screen flex flex-col">
       <PublicNav />
 
-      <div style={{ flex: 1, paddingTop: '60px' }}>
+      <div className="flex-1 pt-14">
+        {/* Hero Header */}
+        <div className="bg-[#F5F5F7] border-b border-[#E5E5EA] py-16 px-6">
+          <div className="max-w-xl mx-auto flex flex-col items-center text-center">
 
-        {/* ── Hero header ─────────────────────────────────────────── */}
-        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
-          <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-
-            {/* Roles / Badges DISPLAYED ABOVE THE PROFILE PHOTO */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+            {/* Badges */}
+            <div className="flex items-center gap-2 justify-center mb-4 flex-wrap">
               {user.is_super_admin && (
                 <div
                   title="Super Admin"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(255, 102, 0,0.12)',
-                    border: '1px solid rgba(255, 102, 0,0.3)',
-                    color: '#FF6600',
-                    cursor: 'default',
-                    transition: 'transform 0.15s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-[#FF6600] shadow-sm"
                 >
                   <Crown size={16} weight="bold" />
                 </div>
@@ -301,21 +246,7 @@ const Profile = () => {
               {!user.is_super_admin && (user.role === 'admin' || user.permissions?.includes('manage_users')) && (
                 <div
                   title="Admin"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(59,130,246,0.12)',
-                    border: '1px solid rgba(59,130,246,0.3)',
-                    color: '#3B82F6',
-                    cursor: 'default',
-                    transition: 'transform 0.15s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-blue-600 shadow-sm"
                 >
                   <ShieldCheck size={16} weight="bold" />
                 </div>
@@ -323,47 +254,19 @@ const Profile = () => {
               {user.is_vakar_plus && (
                 <div
                   title="Vakar+ Member"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '6px',
-                    backgroundColor: 'rgba(245,158,11,0.12)',
-                    border: '1px solid rgba(245,158,11,0.3)',
-                    color: '#F59E0B',
-                    cursor: 'default',
-                    transition: 'transform 0.15s',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-amber-500 shadow-sm"
                 >
                   <Sparkle size={16} weight="fill" />
                 </div>
               )}
-              {/* Custom roles badges: icon only, text on hover */}
               {customRoles.map(role => {
                 const IconComponent = getRoleIcon(role.icon);
                 return (
                   <div
                     key={role.id}
                     title={role.name}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '6px',
-                      backgroundColor: `${role.color}15`,
-                      border: `1px solid ${role.color}40`,
-                      color: role.color,
-                      cursor: 'default',
-                      transition: 'transform 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] shadow-sm"
+                    style={{ color: role.color }}
                   >
                     <IconComponent size={16} weight="bold" />
                   </div>
@@ -373,70 +276,51 @@ const Profile = () => {
 
             {/* Avatar */}
             <div
-              style={{ position: 'relative', cursor: 'pointer', marginBottom: '1.25rem' }}
+              className="relative cursor-pointer mb-4 group"
               onClick={() => avatarInputRef.current?.click()}
               title="Change avatar"
             >
-              <div style={{
-                width: '86px', height: '86px',
-                border: '2px solid rgba(255,255,255,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.75rem', fontWeight: 900, color: '#FF6600',
-                backgroundColor: '#1A1A1A', overflow: 'hidden',
-              }}>
+              <div className="w-24 h-24 rounded-full border-2 border-white shadow-md flex items-center justify-center text-2xl font-bold text-[#FF6600] bg-white overflow-hidden">
                 {avatarPreview || user.avatar_url ? (
                   <img
                     src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
                     alt="avatar"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    className="w-full h-full object-cover"
                   />
                 ) : initials}
               </div>
-              {/* Hover overlay */}
-              <div className="avatar-overlay" style={{
-                position: 'absolute', inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: 0, transition: 'opacity 0.2s',
-              }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '0'}
-              >
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 {avatarUploading
-                  ? <CircleNotch size={18} className="animate-spin" style={{ color: '#FFFFFF' }} />
-                  : <Camera size={18} style={{ color: '#FFFFFF' }} />
+                  ? <CircleNotch size={20} className="animate-spin text-white" />
+                  : <Camera size={20} className="text-white" />
                 }
               </div>
-              <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.svg" style={{ display: 'none' }} onChange={handleAvatarChange} />
+              <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.svg" className="hidden" onChange={handleAvatarChange} />
             </div>
 
             {/* Display Name */}
-            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0, marginBottom: '0.25rem' }}>
+            <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
               {displayName}
             </h1>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-              @{user.username} • {user.email}
+            <p className="text-sm text-[#6E6E73] mt-0.5">
+              @{user.username} · {user.email}
             </p>
 
             {/* Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div className="flex items-center gap-3 mt-5 flex-wrap justify-center">
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1D1D1F] bg-white border border-[#D2D2D7] rounded-lg px-3.5 py-1.5 hover:border-[#1D1D1F] transition-colors"
                 >
-                  <SquaresFour size={12} /> Dashboard
+                  <SquaresFour size={13} /> Dashboard
                 </Link>
               )}
               <button
                 onClick={handleLogout}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,100,100,0.6)', border: '1px solid rgba(255,100,100,0.2)', padding: '0.45rem 0.85rem', background: 'none', cursor: 'pointer', transition: 'color 0.2s, border-color 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#FF6464'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.4)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.2)'; }}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 bg-white border border-red-200 rounded-lg px-3.5 py-1.5 hover:border-red-400 transition-colors"
               >
-                <SignOut size={12} /> Sign Out
+                <SignOut size={13} /> Sign Out
               </button>
             </div>
           </div>
@@ -444,40 +328,39 @@ const Profile = () => {
 
         {/* Avatar error */}
         {avatarError && (
-          <div style={{ maxWidth: '520px', margin: '1rem auto', padding: '0 1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
-              <Warning size={12} style={{ flexShrink: 0 }} />{avatarError}
-              <button onClick={() => setAvatarError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}><X size={12} /></button>
+          <div className="max-w-xl mx-auto px-6 mt-4">
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+              <Warning size={14} className="shrink-0" />
+              <span>{avatarError}</span>
+              <button onClick={() => setAvatarError('')} className="ml-auto text-red-700"><X size={14} /></button>
             </div>
           </div>
         )}
 
-        {/* ── Main Content ────────────────────────────────────────── */}
-        <div style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Main Content */}
+        <div className="max-w-xl mx-auto px-6 py-10 space-y-6">
 
-          {/* 1. ACCOUNT DETAILS CARD */}
-          <div style={cardDark}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <User size={15} style={{ color: '#FF6600' }} />
-                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
+          {/* Account Details Card */}
+          <div className="bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] p-7">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2.5">
+                <User size={18} className="text-[#FF6600]" />
+                <h2 className="font-semibold text-base text-[#1D1D1F]">
                   Account Details
                 </h2>
               </div>
               {!editingProfile && (
                 <button
                   onClick={() => setEditingProfile(true)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6E6E73] bg-white border border-[#D2D2D7] rounded-md px-3 py-1 hover:text-[#1D1D1F] hover:border-[#1D1D1F] transition-colors"
                 >
-                  <PencilSimple size={10} /> Edit
+                  <PencilSimple size={12} /> Edit
                 </button>
               )}
             </div>
 
             {editingProfile ? (
-              <form onSubmit={handleProfileSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <form onSubmit={handleProfileSave} className="space-y-4">
                 <TextField
                   label="Name"
                   value={profileForm.name}
@@ -495,42 +378,41 @@ const Profile = () => {
                   autoComplete="username"
                 />
                 <div>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
+                  <p className="text-xs font-medium text-[#6E6E73] mb-1">Email</p>
+                  <p className="text-sm text-[#1D1D1F]">{user.email} <span className="text-xs text-[#86868B]">(cannot be changed)</span></p>
                 </div>
                 {profileError && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
-                    <Warning size={12} style={{ flexShrink: 0 }} />{profileError}
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+                    <Warning size={14} className="shrink-0" />
+                    <span>{profileError}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.25rem' }}>
+                <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
                     disabled={profileLoading}
-                    className="btn-kefir"
-                    style={{ opacity: profileLoading ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    className="btn-apple text-xs"
                   >
-                    <FloppyDisk size={12} />
+                    <FloppyDisk size={14} className="mr-1.5" />
                     {profileLoading ? 'Saving…' : 'Save Changes'}
                   </button>
                   <button
                     type="button"
                     onClick={handleProfileCancel}
-                    className="btn-kefir-outline"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    className="btn-apple-outline text-xs"
                   >
-                    <X size={12} /> Cancel
+                    <X size={14} className="mr-1.5" /> Cancel
                   </button>
                 </div>
               </form>
             ) : (
               <>
                 {profileSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem', marginBottom: '1rem' }}>
-                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
+                  <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg mb-4">
+                    <CheckCircle size={14} className="shrink-0" /> Profile updated successfully.
                   </div>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="grid grid-cols-2 gap-6">
                   {[
                     { label: 'Name',     value: displayName },
                     { label: 'Username', value: user.username || '—' },
@@ -538,8 +420,8 @@ const Profile = () => {
                     { label: 'Status',   value: user.is_super_admin ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Player') },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
-                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all', margin: 0 }}>{value}</p>
+                      <p className="text-xs font-medium text-[#86868B] mb-0.5">{label}</p>
+                      <p className="text-sm font-medium text-[#1D1D1F] break-all">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -547,17 +429,17 @@ const Profile = () => {
             )}
           </div>
 
-          {/* 2. PASSWORD & SECURITY CARD (IN ACCOUNT DETAILS) */}
-          <div style={cardDark}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPasswordChange ? '1.25rem' : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Lock size={15} style={{ color: '#FF6600' }} />
+          {/* Password & Security Card */}
+          <div className="bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] p-7">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <Lock size={18} className="text-[#FF6600]" />
                 <div>
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
+                  <h2 className="font-semibold text-base text-[#1D1D1F]">
                     Password & Security
                   </h2>
                   {!showPasswordChange && (
-                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', margin: 0, marginTop: '0.2rem' }}>
+                    <p className="text-xs text-[#6E6E73] mt-0.5">
                       Keep your account secure by updating your password regularly.
                     </p>
                   )}
@@ -566,47 +448,32 @@ const Profile = () => {
               <button
                 type="button"
                 onClick={() => { setShowPasswordChange(s => !s); setPwError(''); }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: showPasswordChange ? 'rgba(255,255,255,0.5)' : '#FF6600',
-                  border: `1px solid ${showPasswordChange ? 'rgba(255,255,255,0.15)' : 'rgba(255, 102, 0,0.3)'}`,
-                  padding: '0.35rem 0.75rem',
-                  background: 'none',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  marginLeft: '0.75rem',
-                }}
+                className="text-xs font-medium text-[#1D1D1F] bg-white border border-[#D2D2D7] rounded-md px-3 py-1 hover:border-[#1D1D1F] transition-colors shrink-0 ml-4"
               >
                 {showPasswordChange ? 'Cancel' : 'Change Password'}
               </button>
             </div>
 
             {showPasswordChange && (
-              <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '0.5rem' }}>
+              <form onSubmit={handlePasswordChange} className="space-y-4 pt-2">
                 <PasswordField label="Current password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} autoComplete="current-password" placeholder="Your current password" />
                 <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
                 <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
                 {pwError && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
-                    <Warning size={12} style={{ flexShrink: 0 }} />{pwError}
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+                    <Warning size={14} className="shrink-0" />
+                    <span>{pwError}</span>
                   </div>
                 )}
                 {pwSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem' }}>
-                    <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated successfully.
+                  <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg">
+                    <CheckCircle size={14} className="shrink-0" /> Password updated successfully.
                   </div>
                 )}
                 <button
                   type="submit"
                   disabled={pwLoading}
-                  className="btn-kefir"
-                  style={{ opacity: pwLoading ? 0.6 : 1, marginTop: '0.25rem', width: '100%', justifyContent: 'center' }}
+                  className="btn-apple w-full text-xs !py-2.5"
                 >
                   {pwLoading ? 'Updating…' : 'Save New Password'}
                 </button>

@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { HoverPreview } from '../components/HoverPreview';
-import { PublicButton } from '../ui/PublicButton';
 import { getPublicGames } from '../utils/publicCache';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -19,7 +18,6 @@ const PLATFORM_ICONS = {
   web:         { label: 'Web',          svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
   android:     { label: 'Android',      svg: <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.523 15.341c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.474-1.056-1.056-1.056zm-11.046 0c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.473-1.056-1.056-1.056zm11.405-6.02l1.945-3.368c.108-.188.044-.429-.144-.537-.188-.108-.429-.044-.537.144l-1.97 3.41c-1.479-.672-3.14-1.047-4.89-1.047s-3.411.375-4.89 1.047l-1.97-3.41c-.108-.188-.349-.252-.537-.144-.188.108-.252.349-.144.537l1.945 3.368C3.013 11.18.612 14.04.612 17.353h22.776c0-3.313-2.401-6.173-5.506-8.032z"/></svg> },
 };
-
 
 const GamesPage = () => {
   const { user, token } = useAuth();
@@ -99,81 +97,66 @@ const GamesPage = () => {
   const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
+    <div className="bg-white text-[#1D1D1F] min-h-screen">
       <PublicNav />
 
-      {/* ── Page header — sleek dark theme ───────────────────────── */}
-      <div
-        className="relative overflow-hidden"
-        style={{ paddingTop: '60px', backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
-      >
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 dot-grid opacity-35" />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
-          />
-        </div>
-        <div className="relative z-10 max-w-[1100px] mx-auto px-6 py-16 sm:py-20">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
-            <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
-              PRODUCTIONS & CATALOG
-            </span>
-          </div>
-          <h1
-            className="font-black uppercase text-white tracking-tight"
-            style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
-          >
+      {/* ── Page Header — Apple Clean White ──────────────────────── */}
+      <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
+        <div className="max-w-[1120px] mx-auto px-6">
+          <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+            Catalogue
+          </p>
+          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
             Games
           </h1>
-          <p className="mt-4 text-sm max-w-md text-white/60 leading-relaxed">
-            Every title we release. Each one built with care and passion.
+          <p className="mt-3 text-base md:text-lg text-[#6E6E73] max-w-xl">
+            Every title we release. Each one built with deliberate craft and distinct identity.
           </p>
         </div>
       </div>
 
-      {/* ── Games list ──────────────────────────────────────────────── */}
-      <div className="max-w-[1100px] mx-auto px-6 py-16">
+      {/* ── Games List ──────────────────────────────────────────────── */}
+      <div className="max-w-[1120px] mx-auto px-6 py-16">
         {loading ? (
-          <div className="text-center py-20" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <div className="text-center py-24 text-[#86868B]">
             <CircleNotch size={32} className="animate-spin mx-auto mb-4" />
-            Loading…
+            Loading catalogue…
           </div>
         ) : games.length === 0 ? (
-          <div className="text-center py-20">
-            <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
-            <h2 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
+          <div className="bg-[#F5F5F7] rounded-2xl p-16 text-center border border-[#E5E5EA]">
+            <GameController size={48} className="text-[#86868B] mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-[#1D1D1F] mb-2">
               In Development
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.35)' }}>New games are in progress. Check the blog for updates.</p>
+            <p className="text-[#6E6E73] text-sm max-w-sm mx-auto">
+              New games are currently in production. Follow the studio devlog for announcements.
+            </p>
           </div>
         ) : (
-          <div className="space-y-14">
+          <div className="space-y-16">
             {games.map((game, idx) => (
               <div
                 key={game.slug}
-                className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-16 items-center`}
+                className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-14 items-center bg-[#F5F5F7] rounded-3xl p-8 lg:p-12 border border-[#E5E5EA]`}
                 data-testid={`game-card-${game.slug}`}
               >
-                {/* Image */}
-                <div className="lg:w-1/2 relative overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                {/* Visual / Screenshot */}
+                <div className="lg:w-1/2 w-full rounded-2xl overflow-hidden bg-white border border-[#E5E5EA] shadow-sm">
                   {game.logo_url ? (
                     <img
                       src={imgUrl(game.logo_url)}
                       alt={game.name}
-                      className="w-full max-w-md mx-auto"
-                      style={{ display: 'block' }}
+                      className="w-full object-cover"
                     />
                   ) : game.screenshots?.length > 0 ? (
                     <img
                       src={imgUrl(game.screenshots[0])}
                       alt={game.name}
-                      className="w-full"
+                      className="w-full object-cover"
                     />
                   ) : (
-                    <div className="w-full aspect-video flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
-                      <span className="font-black uppercase text-white/20 text-2xl tracking-tight">
+                    <div className="w-full aspect-video flex items-center justify-center bg-[#E5E5EA]">
+                      <span className="font-semibold text-[#86868B] text-xl">
                         {game.name}
                       </span>
                     </div>
@@ -181,26 +164,20 @@ const GamesPage = () => {
                 </div>
 
                 {/* Info */}
-                <div className="lg:w-1/2 space-y-5">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <h2
-                      className="font-black uppercase text-white"
-                      style={{ fontSize: 'clamp(1.8rem, 4vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
-                    >
+                <div className="lg:w-1/2 w-full space-y-5">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-3xl lg:text-4xl font-semibold text-[#1D1D1F] tracking-tight">
                       {game.name}
                     </h2>
                     {game.status === 'coming_soon' && (
-                      <span
-                        className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
-                        style={{ color: '#FF6600', border: '1px solid #FF6600' }}
-                      >
+                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white text-[#FF6600] border border-[#FF6600]/30">
                         Coming Soon
                       </span>
                     )}
                   </div>
 
                   {game.description && (
-                    <p className="leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem' }}>
+                    <p className="text-[#6E6E73] leading-relaxed text-sm md:text-base">
                       {game.description}
                     </p>
                   )}
@@ -214,8 +191,7 @@ const GamesPage = () => {
                             <img
                               src={full}
                               alt=""
-                              className="h-16 sm:h-20 object-cover"
-                              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+                              className="h-16 sm:h-20 rounded-lg object-cover border border-[#E5E5EA]"
                             />
                           </HoverPreview>
                         );
@@ -224,7 +200,7 @@ const GamesPage = () => {
                   )}
 
                   {game.platforms?.length > 0 && game.status !== 'coming_soon' && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {game.platforms.map((p, i) => {
                         const pl = PLATFORM_ICONS[p.name];
                         return pl ? (
@@ -233,44 +209,37 @@ const GamesPage = () => {
                             href={p.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
-                            style={{
-                              color: 'rgba(255,255,255,0.5)',
-                              border: '1px solid rgba(255,255,255,0.12)',
-                              fontSize: '0.8rem',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#FF6600'; e.currentTarget.style.borderColor = 'rgba(255,102,0,0.4)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+                            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-white border border-[#D2D2D7] text-[#1D1D1F] hover:border-[#1D1D1F] transition-colors"
                             data-testid={`platform-${p.name}`}
                           >
-                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>{pl.svg}</span>
+                            <span className="text-[#6E6E73]">{pl.svg}</span>
                             {pl.label}
-                            <ArrowSquareOut size={11} />
+                            <ArrowSquareOut size={12} className="text-[#86868B]" />
                           </a>
                         ) : null;
                       })}
                     </div>
                   )}
 
-                  {/* Buy button — only for published paid games */}
+                  {/* Buy button */}
                   {game.price_cents > 0 && game.status === 'published' && (
-                    <div>
+                    <div className="pt-2">
                       {purchaseError.slug === game.slug && (
-                        <p className="text-xs text-red-400 mb-2">{purchaseError.msg}</p>
+                        <p className="text-xs text-red-500 mb-2">{purchaseError.msg}</p>
                       )}
                       {ownedSlugs.has(game.slug) ? (
-                        <span className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold" style={{ color: '#FF6600', border: '1px solid rgba(255,102,0,0.4)' }}>
-                          <CheckCircle size={14} />
+                        <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#FF6600] bg-white rounded-lg border border-[#FF6600]/30">
+                          <CheckCircle size={16} />
                           Owned
                         </span>
                       ) : buyingSlug === game.slug ? (
-                        <div className="p-4 space-y-3 max-w-xs" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div className="p-5 space-y-3 max-w-sm bg-white rounded-xl border border-[#D2D2D7] shadow-sm">
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold uppercase tracking-wide text-white">
-                              Promo code <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                            <p className="text-xs font-semibold text-[#1D1D1F]">
+                              Promo code <span className="text-[#86868B] font-normal">(optional)</span>
                             </p>
-                            <button onClick={() => setBuyingSlug(null)} style={{ color: 'rgba(255,255,255,0.3)' }} className="hover:text-white">
-                              <X size={13} />
+                            <button onClick={() => setBuyingSlug(null)} className="text-[#86868B] hover:text-[#1D1D1F]">
+                              <X size={14} />
                             </button>
                           </div>
                           <div className="flex gap-2">
@@ -279,35 +248,33 @@ const GamesPage = () => {
                               value={couponCode}
                               onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                               placeholder="VG-XXXXXXXX"
-                              className="flex-1 text-xs px-2.5 py-2 focus:outline-none font-mono tracking-wide"
-                              style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', color: '#FFFFFF' }}
+                              className="flex-1 text-xs px-3 py-2 bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F] font-mono"
                             />
                             <button
                               onClick={() => checkGameCoupon(game.slug)}
                               disabled={!couponCode.trim() || couponChecking}
-                              className="text-xs font-bold uppercase tracking-wide px-3 py-2 transition-colors disabled:opacity-40"
-                              style={{ border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)' }}
+                              className="text-xs font-medium px-3.5 py-2 border border-[#D2D2D7] rounded-md text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors disabled:opacity-40"
                             >
                               {couponChecking ? '…' : 'Apply'}
                             </button>
                           </div>
                           {couponStatus?.valid && (
-                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: '#FF6600' }}>
-                              <Tag size={10} /> {couponStatus.discount_pct}% discount applied
+                            <p className="text-xs font-medium flex items-center gap-1 text-[#FF6600]">
+                              <Tag size={12} /> {couponStatus.discount_pct}% discount applied
                             </p>
                           )}
                           {couponStatus?.valid === false && (
-                            <p className="text-xs text-red-400">{couponStatus.error}</p>
+                            <p className="text-xs text-red-500">{couponStatus.error}</p>
                           )}
                           <button
                             onClick={() => buyGame(game)}
                             disabled={purchasing === game.slug}
-                            className="btn-kefir w-full text-[11px] py-2.5"
+                            className="btn-apple w-full !py-2.5 text-xs font-medium"
                           >
                             {purchasing === game.slug
                               ? <><CircleNotch size={14} className="animate-spin mr-1" /> Processing…</>
                               : <>
-                                  <ShoppingCart size={14} className="mr-1" />
+                                  <ShoppingCart size={14} className="mr-1.5" />
                                   {couponStatus?.valid
                                     ? `Buy — $${(Math.max(50, Math.round(game.price_cents * (1 - couponStatus.discount_pct / 100))) / 100).toFixed(2)}`
                                     : `Buy — $${(game.price_cents / 100).toFixed(2)}`
@@ -317,7 +284,7 @@ const GamesPage = () => {
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => openBuy(game)} className="btn-kefir">
+                        <button onClick={() => openBuy(game)} className="btn-apple">
                           <ShoppingCart size={14} className="mr-2" />
                           {`Buy — $${(game.price_cents / 100).toFixed(2)}`}
                         </button>

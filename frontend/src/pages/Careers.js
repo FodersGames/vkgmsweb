@@ -7,14 +7,6 @@ import { useAuth } from '../context/AuthContext';
 
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
-const inputStyle = {
-  backgroundColor: '#0D0D0D',
-  border: '1px solid rgba(255,255,255,0.12)',
-  color: '#FFFFFF',
-  borderRadius: 0,
-  outline: 'none',
-};
-
 function ApplyModal({ career, onClose, token, user }) {
   const [name, setName] = useState(user ? (user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '') : '');
   const [email, setEmail] = useState(user?.email || '');
@@ -69,29 +61,30 @@ function ApplyModal({ career, onClose, token, user }) {
   const deptColor = departmentColor(career.department);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="animate-appear w-full max-w-lg overflow-hidden bg-[#111111] border border-white/[0.08] shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#141414]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="animate-appear w-full max-w-lg overflow-hidden bg-white rounded-2xl border border-[#E5E5EA] shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5EA] bg-[#F5F5F7]">
           <div>
-            <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1" style={{ color: deptColor }}>{career.department}</p>
-            <h3 className="font-black uppercase text-base text-white tracking-tight">{career.title}</h3>
+            <p className="text-[11px] font-semibold tracking-wider uppercase mb-0.5" style={{ color: deptColor }}>
+              {career.department}
+            </p>
+            <h3 className="font-semibold text-lg text-[#1D1D1F] tracking-tight">{career.title}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 text-[#86868B] hover:text-[#1D1D1F] transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {success ? (
           <div className="px-6 py-12 text-center">
-            <CheckCircle size={40} className="mx-auto mb-4 text-[#FF6600]" />
-            <h4 className="font-black uppercase text-white text-lg tracking-tight mb-2">Application Sent!</h4>
-            <p className="text-sm text-white/50 mb-6 max-w-xs mx-auto">
+            <CheckCircle size={44} className="mx-auto mb-4 text-[#FF6600]" />
+            <h4 className="font-semibold text-xl text-[#1D1D1F] mb-2">Application Sent</h4>
+            <p className="text-sm text-[#6E6E73] mb-6 max-w-xs mx-auto">
               We'll review your application and get back to you by email as soon as possible.
             </p>
             <button
               onClick={onClose}
-              className="btn-kefir"
-              style={{ fontSize: '0.75rem', padding: '0.5rem 1.5rem' }}
+              className="btn-apple"
             >
               Close
             </button>
@@ -99,30 +92,29 @@ function ApplyModal({ career, onClose, token, user }) {
         ) : (
           <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
             {!token && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2 font-medium">
-                <Warning size={14} className="shrink-0 text-amber-400" />
-                <span>You must be signed in to apply. <a href="/login" className="font-bold underline text-white ml-1 hover:text-[#FF6600]">Sign in</a></span>
+              <div className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 rounded-lg flex items-center gap-2 font-medium">
+                <Warning size={15} className="shrink-0 text-amber-600" />
+                <span>You must be signed in to apply. <a href="/login" className="font-semibold underline text-[#1D1D1F] ml-1">Sign in</a></span>
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Name</label>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6E6E73] mb-1.5">Name</label>
                 <input
                   required
-                  className="w-full px-3 py-2 text-sm"
-                  style={inputStyle}
+                  className="w-full px-3 py-2 text-sm bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F]"
                   value={name} onChange={e => setName(e.target.value)}
                   placeholder="Your name"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6E6E73] mb-1.5">Email</label>
                 <input
                   required
                   type="email"
-                  className="w-full px-3 py-2 text-sm"
-                  style={{ ...inputStyle, opacity: user ? 0.6 : 1 }}
+                  className="w-full px-3 py-2 text-sm bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F]"
+                  style={{ opacity: user ? 0.7 : 1 }}
                   value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   readOnly={!!user}
@@ -131,50 +123,48 @@ function ApplyModal({ career, onClose, token, user }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
-                Portfolio / Links <span className="normal-case font-normal text-white/30">(optional)</span>
+              <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6E6E73] mb-1.5">
+                Portfolio / Links <span className="normal-case font-normal text-[#86868B]">(optional)</span>
               </label>
               <input
-                className="w-full px-3 py-2 text-sm"
-                style={inputStyle}
+                className="w-full px-3 py-2 text-sm bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F]"
                 value={portfolio} onChange={e => setPortfolio(e.target.value)}
                 placeholder="https://your-portfolio.com or GitHub / ArtStation"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
+              <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6E6E73] mb-1.5">
                 Cover letter <span className="text-[#FF6600]">*</span>
               </label>
               <textarea
                 required
                 rows={5}
-                className="w-full px-3 py-2 text-sm resize-none"
-                style={inputStyle}
+                className="w-full px-3 py-2 text-sm bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F] resize-none"
                 value={cover} onChange={e => setCover(e.target.value)}
                 placeholder="Tell us about yourself, your experience, and why you want to join Vakar Games..."
               />
             </div>
 
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2">
                 <Warning size={14} className="shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between pt-3 border-t border-[#E5E5EA]">
               <button
                 type="button"
                 onClick={onClose}
-                className="text-xs uppercase tracking-wider text-white/40 hover:text-white transition-colors"
+                className="text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={sending || !token}
-                className="btn-kefir disabled:opacity-40"
+                className="btn-apple disabled:opacity-40"
               >
                 {sending ? <CircleNotch size={14} className="animate-spin mr-2" /> : <PaperPlaneTilt size={14} className="mr-2" />}
                 {sending ? 'Sending…' : 'Send Application'}
@@ -208,50 +198,31 @@ export default function Careers() {
   const available = ['All', ...DEPARTMENTS.filter(d => careers.some(c => c.department === d))];
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="bg-white text-[#1D1D1F] min-h-screen flex flex-col">
       <PublicNav />
 
-      {/* Hero — sleek dark theme */}
-      <section
-        className="relative overflow-hidden"
-        style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingTop: '90px', paddingBottom: '4rem' }}
-      >
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 dot-grid opacity-35" />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
-          />
-        </div>
-        <div className="relative z-10 max-w-[1100px] mx-auto px-6">
+      {/* Hero — Apple Clean White */}
+      <section className="pt-28 pb-12 border-b border-[#E5E5EA]">
+        <div className="max-w-[1120px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
-                <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
-                  TALENT & CULTURE
-                </span>
-              </div>
-              <h1
-                className="font-black uppercase text-white tracking-tight"
-                style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
-              >
+              <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+                Opportunities
+              </p>
+              <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
                 Careers
               </h1>
-              <p className="mt-4 text-sm max-w-md text-white/60 leading-relaxed">
-                Join our compact, autonomous team in France or remotely. We make games we love, with zero compromises on quality.
+              <p className="mt-3 text-base md:text-lg text-[#6E6E73] max-w-xl">
+                Join our compact, autonomous team in France or remotely. We make games we love, with zero compromises on craft.
               </p>
             </div>
 
             {!loading && (
-              <div
-                className="px-5 py-4 flex items-center gap-3 shrink-0 self-start lg:self-auto backdrop-blur-sm"
-                style={{ backgroundColor: 'rgba(22,22,22,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                <Users size={20} style={{ color: '#FF6600' }} />
+              <div className="px-5 py-3.5 flex items-center gap-3 shrink-0 self-start lg:self-auto bg-[#F5F5F7] rounded-xl border border-[#E5E5EA]">
+                <Users size={22} className="text-[#FF6600]" />
                 <div>
-                  <p className="font-black text-2xl text-white leading-none">{careers.length}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <p className="font-semibold text-2xl text-[#1D1D1F] leading-none">{careers.length}</p>
+                  <p className="text-[11px] font-medium text-[#86868B] mt-0.5">
                     Open position{careers.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -262,42 +233,22 @@ export default function Careers() {
       </section>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-[1100px] mx-auto w-full px-6 py-12">
+      <main className="flex-1 max-w-[1120px] mx-auto w-full px-6 py-12">
         {/* Department Filters */}
         {!loading && careers.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-8">
             {available.map(dept => {
               const active = filter === dept;
-              const color = dept === 'All' ? '#FFFFFF' : departmentColor(dept);
               return (
                 <button
                   key={dept}
                   onClick={() => setFilter(dept)}
-                  className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-all"
-                  style={{
-                    backgroundColor: active ? (dept === 'All' ? '#FFFFFF' : color) : '#141414',
-                    color: active ? '#000000' : 'rgba(255,255,255,0.6)',
-                    border: `1px solid ${active ? (dept === 'All' ? '#FFFFFF' : color) : 'rgba(255,255,255,0.08)'}`,
-                  }}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                      e.currentTarget.style.color = '#FFFFFF';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
-                    }
-                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+                    active
+                      ? 'bg-[#1D1D1F] text-white'
+                      : 'bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA] border border-[#E5E5EA]'
+                  }`}
                 >
-                  {dept !== 'All' && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: active ? '#000000' : color }}
-                    />
-                  )}
                   {dept}
                 </button>
               );
@@ -309,26 +260,20 @@ export default function Careers() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-24 bg-[#141414] border border-white/[0.04] animate-pulse" />
+              <div key={i} className="h-24 bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div
-            className="text-center py-20 px-6"
-            style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <div
-              className="w-14 h-14 flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'rgba(255, 102, 0,0.1)' }}
-            >
-              <Users size={26} style={{ color: '#FF6600' }} />
+          <div className="text-center py-20 px-6 bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA]">
+            <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4 rounded-full bg-white text-[#FF6600] shadow-sm">
+              <Users size={24} />
             </div>
-            <h3 className="font-black uppercase text-lg text-white mb-2">
+            <h3 className="font-semibold text-lg text-[#1D1D1F] mb-1">
               {careers.length === 0 ? 'No open positions right now' : 'Nothing in this department'}
             </h3>
-            <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm text-[#6E6E73] max-w-sm mx-auto leading-relaxed">
               {careers.length === 0 ? 'Check back soon, or send an unsolicited application to ' : 'Try another department filter, or reach out at '}
-              <a href="mailto:support@vakargames.com" style={{ color: '#FF6600' }} className="hover:underline">support@vakargames.com</a>
+              <a href="mailto:support@vakargames.com" className="text-[#FF6600] hover:underline font-medium">support@vakargames.com</a>
             </p>
           </div>
         ) : (
@@ -339,42 +284,37 @@ export default function Careers() {
               return (
                 <div
                   key={c._id}
-                  style={{
-                    backgroundColor: '#111111',
-                    border: `1px solid ${isExpanded ? 'rgba(255, 102, 0,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                    transition: 'border-color 0.2s',
-                  }}
+                  className="bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] overflow-hidden transition-all hover:border-[#D2D2D7]"
                 >
                   <button
                     type="button"
-                    className="w-full text-left p-5 sm:p-6"
+                    className="w-full text-left p-6"
                     onClick={() => setExpanded(isExpanded ? null : c._id)}
                   >
                     <div className="flex items-start gap-4">
-                      {/* Left color bar */}
-                      <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: color }} />
+                      <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: color }} />
 
                       <div className="flex-1 min-w-0 flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
+                            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color }}>
                               {c.department}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
-                            <span className="text-[10px] uppercase font-bold text-white/40">
+                            <span className="w-1 h-1 rounded-full bg-[#86868B]" />
+                            <span className="text-[11px] font-medium text-[#86868B]">
                               {c.contract_type}
                             </span>
                           </div>
-                          <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight mb-2">
+                          <h2 className="font-semibold text-lg sm:text-xl text-[#1D1D1F] tracking-tight mb-2">
                             {c.title}
                           </h2>
-                          <div className="flex items-center flex-wrap gap-4 text-xs text-white/40">
+                          <div className="flex items-center flex-wrap gap-4 text-xs text-[#6E6E73]">
                             <span className="flex items-center gap-1.5">
-                              <MapPin size={12} style={{ color: '#FF6600' }} />
+                              <MapPin size={13} className="text-[#FF6600]" />
                               {c.location}
                             </span>
                             <span className="flex items-center gap-1.5">
-                              <Briefcase size={12} style={{ color: '#FF6600' }} />
+                              <Briefcase size={13} className="text-[#FF6600]" />
                               {c.contract_type}
                             </span>
                           </div>
@@ -384,18 +324,18 @@ export default function Careers() {
                           {c.tools?.length > 0 && (
                             <div className="hidden md:flex items-center gap-1.5">
                               {c.tools.slice(0, 4).map(t => (
-                                <span key={t} className="opacity-60 hover:opacity-100 transition-opacity">
+                                <span key={t} className="opacity-70 hover:opacity-100 transition-opacity">
                                   <ToolIcon toolId={t} size={18} />
                                 </span>
                               ))}
                               {c.tools.length > 4 && (
-                                <span className="text-[10px] font-mono text-white/30 ml-1">
+                                <span className="text-[11px] text-[#86868B] ml-1 font-medium">
                                   +{c.tools.length - 4}
                                 </span>
                               )}
                             </div>
                           )}
-                          <div className="text-white/40">
+                          <div className="text-[#86868B]">
                             {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
                           </div>
                         </div>
@@ -405,14 +345,11 @@ export default function Careers() {
 
                   {/* Expanded Position Details */}
                   {isExpanded && (
-                    <div
-                      className="px-6 pb-6 pt-4 space-y-6"
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: '#0E0E0E' }}
-                    >
+                    <div className="px-6 pb-6 pt-4 space-y-6 bg-white border-t border-[#E5E5EA]">
                       {c.description && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">About the Role</h3>
-                          <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-[#86868B] mb-2">About the Role</h3>
+                          <p className="text-sm text-[#1D1D1F]/80 leading-relaxed whitespace-pre-wrap">
                             {c.description}
                           </p>
                         </div>
@@ -420,10 +357,10 @@ export default function Careers() {
 
                       {c.requirements?.length > 0 && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">What we're looking for</h3>
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-[#86868B] mb-3">What we're looking for</h3>
                           <ul className="space-y-2">
                             {c.requirements.map((r, i) => (
-                              <li key={i} className="flex gap-2.5 text-xs text-white/70">
+                              <li key={i} className="flex gap-2.5 text-xs text-[#1D1D1F]/80">
                                 <span className="shrink-0 font-bold" style={{ color }}>—</span>
                                 <span>{r}</span>
                               </li>
@@ -434,13 +371,12 @@ export default function Careers() {
 
                       {c.tools?.length > 0 && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">Tools & Tech</h3>
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-[#86868B] mb-3">Tools & Tech</h3>
                           <div className="flex flex-wrap gap-2">
                             {c.tools.map(t => (
                               <span
                                 key={t}
-                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-white/70"
-                                style={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#1D1D1F] bg-[#F5F5F7] rounded-md border border-[#E5E5EA]"
                               >
                                 <ToolIcon toolId={t} size={14} />
                                 <span>{TOOL_LABELS[t] || t}</span>
@@ -454,7 +390,7 @@ export default function Careers() {
                         <button
                           type="button"
                           onClick={() => setApplying(c)}
-                          className="btn-kefir"
+                          className="btn-apple"
                         >
                           <PaperPlaneTilt size={14} className="mr-2" />
                           Apply for this position

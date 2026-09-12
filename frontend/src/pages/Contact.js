@@ -20,19 +20,12 @@ const CATEGORIES = [
   { value: 'account', label: 'Account' },
 ];
 
-/* Input style shorthand */
-const inputStyle = {
-  backgroundColor: '#0D0D0D',
-  border: '1px solid rgba(255,255,255,0.12)',
-  color: '#FFFFFF',
-  borderRadius: 0,
-  outline: 'none',
-};
+const inputClass = "w-full px-3.5 py-2.5 text-sm bg-[#F5F5F7] border border-[#D2D2D7] rounded-lg text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F] transition-colors";
 
 const Contact = () => {
   const { user, token } = useAuth();
   const [searchParams] = useSearchParams();
-  const [activeView, setActiveView] = useState('new'); // 'new' | 'tickets'
+  const [activeView, setActiveView] = useState('new');
   const [form, setForm] = useState({ subject: '', category: 'general', message: '', email: '' });
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState('');
@@ -97,8 +90,7 @@ const Contact = () => {
       subject:  subject || f.subject,
       message:  message || f.message,
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,80 +132,58 @@ const Contact = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="bg-white text-[#1D1D1F] min-h-screen flex flex-col">
       <PublicNav />
 
-      <div style={{ flex: 1, paddingTop: '60px' }}>
-        {/* Header — sleek studio dark theme */}
-        <div
-          className="relative overflow-hidden"
-          style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '4.5rem 0' }}
-        >
-          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-            <div className="absolute inset-0 dot-grid opacity-35" />
-            <div
-              className="absolute inset-0"
-              style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
-            />
-          </div>
-          <div className="relative z-10 max-w-[1100px] mx-auto px-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
-              <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
-                DIRECT CHANNEL · DESK & TICKETS
-              </span>
-            </div>
-            <h1
-              className="font-black uppercase text-white tracking-tight"
-              style={{ fontSize: 'clamp(2.5rem, 7vw, 4.5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
-            >
+      <div className="flex-1">
+        {/* Header — Apple Clean White */}
+        <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
+          <div className="max-w-[1120px] mx-auto px-6">
+            <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+              Support
+            </p>
+            <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
               Contact & Support
             </h1>
-            <p className="mt-4 text-sm text-white/60 max-w-[46ch] leading-relaxed">
-              We're here to help. Fill out the form below and we'll get back to you as soon as possible.
+            <p className="mt-3 text-base md:text-lg text-[#6E6E73] max-w-xl">
+              We're here to help. Reach out to our team or open a support ticket.
             </p>
           </div>
         </div>
 
-        <div className="max-w-[1100px] mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="max-w-[1120px] mx-auto px-6 py-14 grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Area */}
           <div className="lg:col-span-2">
             {/* View Switcher */}
-            <div className="flex items-center gap-4 mb-6 border-b border-white/[0.08] pb-3">
+            <div className="flex items-center gap-6 mb-8 border-b border-[#E5E5EA] pb-3">
               <button
                 type="button"
                 onClick={() => { setActiveView('new'); setSuccess(''); setError(''); }}
-                className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
-                style={{
-                  color: activeView === 'new' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                  borderBottom: activeView === 'new' ? '2px solid #FF6600' : '2px solid transparent',
-                  marginBottom: '-13px',
-                }}
+                className={`flex items-center gap-2 pb-2 text-sm font-medium transition-colors border-b-2 -mb-[13px] ${
+                  activeView === 'new'
+                    ? 'border-[#1D1D1F] text-[#1D1D1F]'
+                    : 'border-transparent text-[#86868B] hover:text-[#1D1D1F]'
+                }`}
               >
-                <PaperPlaneTilt size={14} />
-                Nouveau Ticket
+                <PaperPlaneTilt size={16} />
+                <span>Nouveau Ticket</span>
               </button>
 
               {token && (
                 <button
                   type="button"
                   onClick={() => { setActiveView('tickets'); setSuccess(''); setError(''); }}
-                  className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
-                  style={{
-                    color: activeView === 'tickets' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                    borderBottom: activeView === 'tickets' ? '2px solid #FF6600' : '2px solid transparent',
-                    marginBottom: '-13px',
-                  }}
+                  className={`flex items-center gap-2 pb-2 text-sm font-medium transition-colors border-b-2 -mb-[13px] ${
+                    activeView === 'tickets'
+                      ? 'border-[#1D1D1F] text-[#1D1D1F]'
+                      : 'border-transparent text-[#86868B] hover:text-[#1D1D1F]'
+                  }`}
                 >
-                  <Ticket size={14} />
+                  <Ticket size={16} />
                   <span>Mes Tickets</span>
-                  <span
-                    className="px-2 py-0.5 text-[10px] font-mono font-bold rounded"
-                    style={{
-                      backgroundColor: limitReached ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 102, 0, 0.15)',
-                      color: limitReached ? '#F87171' : '#FF6600',
-                    }}
-                  >
+                  <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${
+                    limitReached ? 'bg-red-100 text-red-700' : 'bg-[#E5E5EA] text-[#1D1D1F]'
+                  }`}>
                     {openCount}/3
                   </span>
                 </button>
@@ -223,106 +193,90 @@ const Contact = () => {
             {/* View 1: New Ticket */}
             {activeView === 'new' ? (
               success ? (
-                <div
-                  className="p-10 text-center"
-                  style={{ backgroundColor: '#111111', border: '1px solid rgba(255, 102, 0,0.2)' }}
-                >
-                  <CheckCircle size={40} style={{ color: '#FF6600', margin: '0 auto 1rem' }} />
-                  <h2 className="font-black uppercase text-white text-xl tracking-tight mb-2">
-                    Ticket Submitted!
+                <div className="bg-[#F5F5F7] rounded-2xl p-12 text-center border border-[#E5E5EA]">
+                  <CheckCircle size={44} className="mx-auto mb-4 text-[#FF6600]" />
+                  <h2 className="text-2xl font-semibold text-[#1D1D1F] mb-2">
+                    Ticket Submitted
                   </h2>
-                  <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Your reference: <strong className="text-white">{success}</strong>
+                  <p className="text-sm text-[#6E6E73] mb-1">
+                    Your reference: <strong className="text-[#1D1D1F]">{success}</strong>
                   </p>
-                  <p className="text-xs mt-3 mb-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <p className="text-xs text-[#86868B] mt-2 mb-6">
                     We'll reply as soon as possible.
                   </p>
                   {token && (
                     <button
                       type="button"
                       onClick={() => { setActiveView('tickets'); setSuccess(''); }}
-                      className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide mb-4"
-                      style={{ color: '#FF6600', fontSize: '0.7rem' }}
+                      className="btn-apple mr-3"
                     >
-                      <Ticket size={14} /> Voir mes tickets ({openCount}/3)
+                      <Ticket size={14} className="mr-1.5" /> Voir mes tickets ({openCount}/3)
                     </button>
                   )}
                   <button
                     onClick={() => setSuccess('')}
-                    className="block mx-auto mt-3 text-xs uppercase tracking-wide transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}
+                    className="text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] mt-4 block mx-auto transition-colors"
                   >
                     Send another message
                   </button>
                 </div>
               ) : (
-                <div
-                  className="p-8"
-                  style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
-                >
+                <div className="bg-[#F5F5F7] rounded-2xl p-8 sm:p-10 border border-[#E5E5EA]">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="font-black uppercase text-white text-lg tracking-tight">
+                    <h2 className="text-xl font-semibold text-[#1D1D1F]">
                       Send Us a Message
                     </h2>
                     {token && (
-                      <span className="text-xs font-mono" style={{ color: limitReached ? '#F87171' : 'rgba(255,255,255,0.4)' }}>
+                      <span className="text-xs font-medium text-[#86868B]">
                         Tickets ouverts: {openCount}/3
                       </span>
                     )}
                   </div>
 
                   {limitReached && (
-                    <div className="p-4 mb-6 bg-red-500/10 border border-red-500/30 text-red-400">
-                      <div className="flex items-center gap-2 font-bold uppercase text-xs tracking-wider mb-1">
+                    <div className="p-4 mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+                      <div className="flex items-center gap-2 font-semibold text-xs mb-1">
                         <Warning size={16} /> Ticket ouvert maximum atteint ({openCount}/3)
                       </div>
-                      <p className="text-xs text-red-300/80 leading-relaxed">
+                      <p className="text-xs text-red-600 leading-relaxed">
                         Vous avez atteint la limite de 3 tickets ouverts simultanés. Veuillez attendre la résolution d'un de vos tickets avant d'en créer un nouveau.
                       </p>
                       <button
                         type="button"
                         onClick={() => setActiveView('tickets')}
-                        className="mt-3 text-xs font-bold uppercase tracking-wider text-white underline hover:text-[#FF6600]"
+                        className="mt-3 text-xs font-medium underline text-red-700"
                       >
-                        Consulter mes tickets en cours →
+                        Consulter mes tickets en cours &rarr;
                       </button>
                     </div>
                   )}
 
                   {!token ? (
-                    <div className="p-8 sm:p-12 text-center border border-white/10 bg-[#0D0D0D] space-y-5">
-                      <div className="w-14 h-14 mx-auto rounded-full bg-[#FF6600]/10 border border-[#FF6600]/30 flex items-center justify-center text-[#FF6600]">
-                        <LockKey size={26} weight="bold" />
+                    <div className="p-8 sm:p-12 text-center rounded-2xl bg-white border border-[#E5E5EA] space-y-4">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                        <LockKey size={24} weight="bold" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="inline-block px-2.5 py-1 bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-widest text-[#FF6600]">
-                          Authentication Required
-                        </div>
-                        <h3 className="font-black uppercase text-white text-xl tracking-tight">
+                      <div>
+                        <h3 className="text-xl font-semibold text-[#1D1D1F]">
                           Sign In to Open a Ticket
                         </h3>
-                        <p className="text-xs leading-relaxed max-w-md mx-auto text-white/50">
-                          You need to be signed in to open a support ticket. This helps us track your request, assign it to a team member, and reply faster.
+                        <p className="text-sm text-[#6E6E73] max-w-sm mx-auto mt-1">
+                          You need an account to open a support ticket so we can track and notify you of updates.
                         </p>
                       </div>
-                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Link to="/login" className="btn-kefir py-3 px-6 text-xs">
-                          Sign In or Create Account
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <Link to="/login" className="btn-apple">
+                          Sign In or Register
                         </Link>
-                        <a
-                          href={`mailto:${supportEmail}`}
-                          className="btn-kefir-outline py-3 px-6 text-xs"
-                        >
+                        <a href={`mailto:${supportEmail}`} className="btn-apple-outline">
                           Email Directly
                         </a>
                       </div>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                           Your email
                         </label>
                         <input
@@ -330,19 +284,17 @@ const Contact = () => {
                           required
                           value={form.email}
                           readOnly
-                          className="w-full px-3 py-2.5 text-sm"
-                          style={{ ...inputStyle, opacity: 0.5 }}
+                          className={`${inputClass} opacity-60`}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                           Category
                         </label>
                         <select
                           value={form.category}
                           onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                          className="w-full px-3 py-2.5 text-sm"
-                          style={inputStyle}
+                          className={inputClass}
                         >
                           {CATEGORIES.map(c => (
                             <option key={c.value} value={c.value}>{c.label}</option>
@@ -350,7 +302,7 @@ const Contact = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                           Subject
                         </label>
                         <input
@@ -359,31 +311,29 @@ const Contact = () => {
                           maxLength={200}
                           value={form.subject}
                           onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-                          className="w-full px-3 py-2.5 text-sm"
-                          style={inputStyle}
+                          className={inputClass}
                           placeholder="Brief description of your issue"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                           Message
                         </label>
                         <textarea
                           required
                           maxLength={2000}
-                          rows={6}
+                          rows={5}
                           value={form.message}
                           onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                          className="w-full px-3 py-2.5 text-sm resize-none"
-                          style={inputStyle}
+                          className={`${inputClass} resize-none`}
                           placeholder="Describe your issue in detail…"
                         />
                       </div>
-                      {error && <p className="text-xs text-red-400">{error}</p>}
+                      {error && <p className="text-xs text-red-500">{error}</p>}
                       <button
                         type="submit"
                         disabled={sending || limitReached}
-                        className="btn-kefir disabled:opacity-50"
+                        className="btn-apple disabled:opacity-50"
                       >
                         {sending ? <CircleNotch size={14} className="animate-spin mr-2" /> : <PaperPlaneTilt size={14} className="mr-2" />}
                         {limitReached ? 'Ticket ouvert maximum atteint' : (sending ? 'Sending…' : 'Send Message')}
@@ -394,47 +344,46 @@ const Contact = () => {
               )
             ) : (
               /* View 2: Mes Tickets */
-              <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)', padding: '2rem' }}>
+              <div className="bg-[#F5F5F7] rounded-2xl p-8 border border-[#E5E5EA]">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="font-black uppercase text-white text-lg tracking-tight">
+                    <h2 className="text-xl font-semibold text-[#1D1D1F]">
                       Mes Tickets Ouverts
                     </h2>
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      Tickets actifs: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
+                    <p className="text-xs text-[#86868B] mt-0.5">
+                      Tickets actifs: <strong className={limitReached ? 'text-red-500' : 'text-[#1D1D1F]'}>{openCount}/3</strong>
                     </p>
                   </div>
                   <button
                     type="button"
                     disabled={limitReached}
                     onClick={() => setActiveView('new')}
-                    className="btn-kefir disabled:opacity-40"
-                    style={{ fontSize: '0.65rem', padding: '0.45rem 0.8rem' }}
+                    className="btn-apple !py-1.5 !px-3 text-xs disabled:opacity-40"
                   >
                     + Nouveau Ticket
                   </button>
                 </div>
 
                 {limitReached && (
-                  <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+                  <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded-lg">
                     Ticket ouvert maximum atteint ({openCount}/3).
                   </div>
                 )}
 
                 {loadingTickets ? (
-                  <div className="py-12 text-center">
+                  <div className="py-16 text-center text-[#86868B]">
                     <CircleNotch size={24} className="animate-spin text-[#FF6600] mx-auto mb-2" />
-                    <p className="text-xs text-white/40">Chargement des tickets...</p>
+                    <p className="text-xs">Chargement des tickets...</p>
                   </div>
                 ) : tickets.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <Ticket size={32} className="text-white/20 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-white mb-1">Aucun ticket pour l'instant</p>
-                    <p className="text-xs text-white/40 mb-4">Vous n'avez pas de ticket de support.</p>
+                  <div className="py-16 text-center">
+                    <Ticket size={36} className="text-[#86868B] mx-auto mb-3" />
+                    <p className="text-base font-semibold text-[#1D1D1F] mb-1">Aucun ticket pour l'instant</p>
+                    <p className="text-xs text-[#6E6E73] mb-4">Vous n'avez pas de ticket de support actif.</p>
                     <button
                       type="button"
                       onClick={() => setActiveView('new')}
-                      className="btn-kefir"
+                      className="btn-apple"
                     >
                       Ouvrir un ticket
                     </button>
@@ -444,68 +393,64 @@ const Contact = () => {
                     {tickets.map(t => {
                       const isExpanded = expandedTicketNumber === t.ticket_number;
                       const isClosed = t.status === 'closed';
-                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
+                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#86868B';
                       const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
 
                       return (
                         <div
                           key={t.ticket_number}
-                          style={{
-                            backgroundColor: '#0D0D0D',
-                            border: `1px solid ${isExpanded ? 'rgba(255, 102, 0,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                          }}
+                          className="bg-white rounded-xl border border-[#E5E5EA] overflow-hidden transition-all"
                         >
                           <div
                             onClick={() => setExpandedTicketNumber(isExpanded ? null : t.ticket_number)}
-                            className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
+                            className="p-5 flex items-center justify-between cursor-pointer hover:bg-[#FAFAFC] transition-colors"
                           >
                             <div className="flex-1 min-w-0 mr-4">
                               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span className="text-xs font-mono font-bold text-[#FF6600]">{t.ticket_number}</span>
-                                <span className="text-[10px] uppercase font-bold text-white/30">• {t.category}</span>
+                                <span className="text-xs font-mono font-medium text-[#FF6600]">{t.ticket_number}</span>
+                                <span className="text-[11px] uppercase font-medium text-[#86868B]">• {t.category}</span>
                                 <span
-                                  className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
-                                  style={{ backgroundColor: `${statusColor}1A`, color: statusColor }}
+                                  className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full"
+                                  style={{ backgroundColor: `${statusColor}18`, color: statusColor }}
                                 >
                                   {statusLabel}
                                 </span>
-                                <span className="text-[10px] text-white/30 ml-auto">
+                                <span className="text-[11px] text-[#86868B] ml-auto">
                                   {t.created_at ? new Date(t.created_at).toLocaleDateString() : ''}
                                 </span>
                               </div>
-                              <h3 className="text-sm font-bold text-white truncate">
+                              <h3 className="text-sm font-semibold text-[#1D1D1F] truncate">
                                 {t.subject}
                               </h3>
                             </div>
-                            <div className="text-white/40">
+                            <div className="text-[#86868B]">
                               {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
                             </div>
                           </div>
 
                           {isExpanded && (
-                            <div className="p-4 border-t border-white/[0.06] bg-[#0A0A0A] space-y-4">
-                              {/* Messages list */}
+                            <div className="p-5 border-t border-[#E5E5EA] bg-[#FAFAFC] space-y-4">
                               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                                 {(t.messages || []).map((m, idx) => {
                                   const isUser = m.sender === 'user';
                                   return (
                                     <div
                                       key={idx}
-                                      className={`p-3 text-xs ${
+                                      className={`p-3.5 text-xs rounded-xl ${
                                         isUser
-                                          ? 'bg-white/[0.03] border border-white/[0.06] ml-0 mr-8'
-                                          : 'bg-[#FF6600]/[0.08] border border-[#FF6600]/20 mr-0 ml-8'
+                                          ? 'bg-white border border-[#E5E5EA] ml-0 mr-8'
+                                          : 'bg-[#FF6600]/10 border border-[#FF6600]/25 mr-0 ml-8'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="font-bold text-[11px]" style={{ color: isUser ? '#FFFFFF' : '#FF6600' }}>
+                                        <span className="font-semibold text-[11px]" style={{ color: isUser ? '#1D1D1F' : '#FF6600' }}>
                                           {m.author_name || (isUser ? 'Vous' : 'Support')}
                                         </span>
-                                        <span className="text-[10px] text-white/30">
+                                        <span className="text-[10px] text-[#86868B]">
                                           {m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}
                                         </span>
                                       </div>
-                                      <p className="text-white/80 whitespace-pre-wrap leading-relaxed">
+                                      <p className="text-[#1D1D1F]/90 whitespace-pre-wrap leading-relaxed">
                                         {m.content}
                                       </p>
                                     </div>
@@ -513,7 +458,6 @@ const Contact = () => {
                                 })}
                               </div>
 
-                              {/* Reply form */}
                               {!isClosed ? (
                                 <form onSubmit={(e) => handleReply(e, t.ticket_number)} className="space-y-3 pt-2">
                                   <textarea
@@ -522,16 +466,14 @@ const Contact = () => {
                                     value={replyContent}
                                     onChange={e => setReplyContent(e.target.value)}
                                     placeholder="Répondre au ticket..."
-                                    className="w-full px-3 py-2 text-xs resize-none"
-                                    style={inputStyle}
+                                    className={`${inputClass} resize-none`}
                                   />
-                                  {replyError && <p className="text-xs text-red-400">{replyError}</p>}
+                                  {replyError && <p className="text-xs text-red-500">{replyError}</p>}
                                   <div className="flex justify-end">
                                     <button
                                       type="submit"
                                       disabled={sendingReply || !replyContent.trim()}
-                                      className="btn-kefir disabled:opacity-50"
-                                      style={{ fontSize: '0.7rem', padding: '0.45rem 1rem' }}
+                                      className="btn-apple text-xs !py-1.5 !px-3 disabled:opacity-50"
                                     >
                                       {sendingReply ? <CircleNotch size={12} className="animate-spin mr-1.5" /> : <PaperPlaneTilt size={12} className="mr-1.5" />}
                                       {sendingReply ? 'Envoi…' : 'Envoyer la réponse'}
@@ -539,7 +481,7 @@ const Contact = () => {
                                   </div>
                                 </form>
                               ) : (
-                                <p className="text-xs text-white/30 italic text-center py-2">
+                                <p className="text-xs text-[#86868B] italic text-center py-2">
                                   Ce ticket est fermé. Les réponses ne sont plus acceptées.
                                 </p>
                               )}
@@ -555,70 +497,41 @@ const Contact = () => {
           </div>
 
           {/* Sidebar info */}
-          <div className="space-y-3">
-            <div
-              className="p-5 transition-colors border border-white/10 hover:border-white/20 bg-[#111111]"
-            >
-              <div className="flex items-center gap-3 mb-2.5">
-                <div className="w-7 h-7 rounded bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
-                  <EnvelopeSimple size={15} weight="bold" />
+          <div className="space-y-4">
+            <div className="p-6 rounded-2xl border border-[#E5E5EA] bg-[#F5F5F7]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#FF6600]">
+                  <EnvelopeSimple size={16} weight="bold" />
                 </div>
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Direct Email</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Direct Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
-                className="text-xs transition-colors font-medium text-white/60 hover:text-[#FF6600] underline"
+                className="text-sm font-medium text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
               >
                 {supportEmail}
               </a>
             </div>
 
-            <div
-              className="p-5 transition-colors border border-white/10 hover:border-white/20 bg-[#111111]"
-            >
-              <div className="flex items-center gap-3 mb-2.5">
-                <div className="w-7 h-7 rounded bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
-                  <ChatCircle size={15} weight="bold" />
+            <div className="p-6 rounded-2xl border border-[#E5E5EA] bg-[#F5F5F7]">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#FF6600]">
+                  <ChatCircle size={16} weight="bold" />
                 </div>
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Live Support Widget</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Live Support Widget</h3>
               </div>
-              <p className="text-xs leading-relaxed text-white/50">
-                The support launcher at the bottom right of every page lets you submit a ticket or track ongoing requests instantly.
+              <p className="text-xs leading-relaxed text-[#6E6E73]">
+                The floating support launcher at the bottom right allows you to track ongoing tickets or create new ones anytime.
               </p>
             </div>
 
-            {token && (
-              <div
-                className="p-5 cursor-pointer border border-white/10 hover:border-[#FF6600]/60 bg-[#111111] transition-all group"
-                onClick={() => { setActiveView('tickets'); setSuccess(''); }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <Ticket size={16} className="text-[#FF6600]" weight="bold" />
-                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-[#FF6600] transition-colors">Mes Tickets</h3>
-                  </div>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${limitReached ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'}`}>
-                    {openCount}/3
-                  </span>
-                </div>
-                <p className="text-xs text-white/50 mb-2">
-                  Consulter les réponses du studio et l'avancement de vos demandes.
-                </p>
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#FF6600] group-hover:underline">
-                  Voir mes tickets →
-                </span>
+            <div className="p-6 rounded-2xl border border-[#E5E5EA] bg-[#F5F5F7]">
+              <div className="flex items-center gap-2 mb-2 text-[#6E6E73]">
+                <Clock size={16} />
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Response Time</p>
               </div>
-            )}
-
-            <div
-              className="p-5 transition-colors border border-white/10 bg-[#111111]"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={15} className="text-white/40" />
-                <p className="text-[11px] font-bold uppercase tracking-wider text-white">Response Time</p>
-              </div>
-              <p className="text-xs leading-relaxed text-white/50">
-                We typically respond within <strong className="text-white font-medium">24–48 hours</strong> during business days.
+              <p className="text-xs leading-relaxed text-[#6E6E73]">
+                We typically respond within <strong className="text-[#1D1D1F] font-semibold">24–48 hours</strong> during business days.
               </p>
             </div>
           </div>

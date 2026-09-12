@@ -20,7 +20,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
   const isPassword = type === 'password';
   return (
     <div className="relative">
-      <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+      <Icon size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#86868B] pointer-events-none" />
       <input
         id={id}
         type={isPassword && show ? 'text' : type}
@@ -29,16 +29,16 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="w-full pl-10 pr-10 py-2.5 bg-[#181818] border border-white/15 text-white text-sm focus:outline-none focus:border-[#FF6600] transition-all placeholder:text-white/25"
+        className="w-full pl-10 pr-10 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] rounded-lg text-[#1D1D1F] text-sm focus:outline-none focus:border-[#1D1D1F] transition-all placeholder:text-[#86868B]"
       />
       {isPassword && (
         <button
           type="button"
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#86868B] hover:text-[#1D1D1F] transition-colors"
           onClick={() => setShow(s => !s)}
           tabIndex={-1}
         >
-          {show ? <EyeSlash size={14} /> : <Eye size={14} />}
+          {show ? <EyeSlash size={15} /> : <Eye size={15} />}
         </button>
       )}
     </div>
@@ -80,28 +80,25 @@ const ChangePasswordModal = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-md p-7 bg-[#121212] border border-white/15 shadow-2xl">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
-          <h2 className="text-base font-black uppercase text-white tracking-wider">
-            Change Temporary Password
-          </h2>
-        </div>
-        <p className="text-xs text-white/50 mb-5 leading-relaxed">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-md p-8 bg-white rounded-2xl border border-[#E5E5EA] shadow-2xl">
+        <h2 className="text-lg font-semibold text-[#1D1D1F] tracking-tight mb-1">
+          Change Temporary Password
+        </h2>
+        <p className="text-xs text-[#6E6E73] mb-6 leading-relaxed">
           You are using a temporary password. Please choose a new permanent password to continue.
         </p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-            <Warning size={15} className="flex-shrink-0" />
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
+            <Warning size={15} className="flex-shrink-0 text-red-500" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+            <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
               Current Temporary Password
             </label>
             <InputField
@@ -115,7 +112,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+            <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
               New Password
             </label>
             <InputField
@@ -129,7 +126,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+            <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
               Confirm New Password
             </label>
             <InputField
@@ -145,7 +142,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="btn-kefir w-full py-3 text-xs mt-2 disabled:opacity-50"
+            className="btn-apple w-full !py-2.5 text-xs mt-2 disabled:opacity-50"
           >
             {loading ? 'Updating…' : 'Set New Password'}
           </button>
@@ -158,7 +155,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
 export const Login = () => {
   const navigate = useNavigate();
   const { login, register, user, mustChangePassword } = useAuth();
-  const [tab, setTab] = useState('login'); // 'login' | 'register'
+  const [tab, setTab] = useState('login');
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -238,13 +235,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex items-center justify-center p-4 bg-[#0D0D0D]">
-      {/* Dark background styling — No AI images */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 dot-grid opacity-30" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-[#FF6600]/10 blur-[130px]" />
-      </div>
-
+    <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-[#F5F5F7] text-[#1D1D1F]">
       {mustChange && (
         <ChangePasswordModal
           onSuccess={() => {
@@ -257,33 +248,35 @@ export const Login = () => {
         />
       )}
 
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="w-full max-w-sm">
+        {/* Brand header */}
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="inline-flex flex-col items-center gap-2.5 group transition-colors"
+            className="inline-flex flex-col items-center gap-2 group"
           >
-            <img src="/logo.png" alt="Vakar Games" className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
-            <span className="text-[17px] font-black uppercase tracking-wider text-white group-hover:text-[#FF6600] transition-colors">
+            <img src="/logo.png" alt="Vakar Games" className="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
+            <span className="text-lg font-semibold tracking-tight text-[#1D1D1F]">
               Vakar Games
             </span>
           </Link>
-          <p className="mt-2 text-xs font-mono uppercase tracking-wider text-white/50">
-            {tab === 'login' ? 'Authentication / Sign In' : 'New Player Registration'}
+          <p className="mt-1 text-xs text-[#6E6E73]">
+            {tab === 'login' ? 'Sign in with your account' : 'Create your player profile'}
           </p>
         </div>
 
-        <div className="animate-appear bg-[#121212] border border-white/12 shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-white/10">
+        {/* Card */}
+        <div className="bg-white rounded-2xl border border-[#E5E5EA] shadow-sm overflow-hidden">
+          {/* Segmented control tabs */}
+          <div className="flex border-b border-[#E5E5EA] bg-[#FBFBFD] p-1 gap-1">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${
+                className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
                   tab === id
-                    ? 'text-white border-b-2 border-[#FF6600] bg-[#161616]'
-                    : 'text-white/40 hover:text-white bg-[#0F0F0F]'
+                    ? 'bg-white text-[#1D1D1F] shadow-sm font-semibold'
+                    : 'text-[#86868B] hover:text-[#1D1D1F]'
                 }`}
               >
                 {label}
@@ -292,9 +285,9 @@ export const Login = () => {
           </div>
 
           {tab === 'login' ? (
-            <form onSubmit={handleLogin} className="p-6 sm:p-7 space-y-4" data-testid="login-form">
+            <form onSubmit={handleLogin} className="p-7 space-y-4" data-testid="login-form">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
+                <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                   Email
                 </label>
                 <InputField
@@ -308,7 +301,7 @@ export const Login = () => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
+                <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                   Password
                 </label>
                 <InputField
@@ -323,7 +316,7 @@ export const Login = () => {
               </div>
 
               {loginError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2" data-testid="login-error">
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2" data-testid="login-error">
                   <Warning size={15} className="flex-shrink-0" />
                   <span>{loginError}</span>
                 </div>
@@ -332,28 +325,28 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="btn-kefir w-full py-3 text-xs disabled:opacity-50"
+                className="btn-apple w-full !py-2.5 text-xs font-medium mt-2 disabled:opacity-50"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
               </button>
             </form>
           ) : (
-            <div className="p-6 sm:p-7">
+            <div className="p-7">
               {regSuccess ? (
                 <div className="text-center py-4 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-[#FF6600]/15 border border-[#FF6600]/40 flex items-center justify-center mx-auto text-[#FF6600]">
-                    <CheckCircle size={24} weight="bold" />
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                    <CheckCircle size={26} weight="bold" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black uppercase text-white tracking-wider">Account Created</h3>
-                    <p className="text-xs text-white/50 mt-1">
+                    <h3 className="text-base font-semibold text-[#1D1D1F]">Account Created</h3>
+                    <p className="text-xs text-[#6E6E73] mt-1">
                       You can now sign in with your email and password.
                     </p>
                   </div>
                   <button
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="btn-kefir w-full py-2.5 text-xs mt-2"
+                    className="btn-apple w-full !py-2.5 text-xs mt-2"
                   >
                     Proceed to Sign In
                   </button>
@@ -361,7 +354,7 @@ export const Login = () => {
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
+                    <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                       Name
                     </label>
                     <InputField
@@ -374,7 +367,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
+                    <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                       Email
                     </label>
                     <InputField
@@ -387,7 +380,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
+                    <label className="block text-xs font-medium text-[#6E6E73] mb-1.5">
                       Password
                     </label>
                     <InputField
@@ -401,7 +394,7 @@ export const Login = () => {
                   </div>
 
                   {regError && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2" data-testid="register-error">
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg flex items-center gap-2" data-testid="register-error">
                       <Warning size={15} className="flex-shrink-0" />
                       <span>{regError}</span>
                     </div>
@@ -410,7 +403,7 @@ export const Login = () => {
                   <button
                     type="submit"
                     disabled={regLoading}
-                    className="btn-kefir w-full py-3 text-xs disabled:opacity-50"
+                    className="btn-apple w-full !py-2.5 text-xs font-medium mt-2 disabled:opacity-50"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
@@ -421,9 +414,10 @@ export const Login = () => {
           )}
         </div>
 
-        <p className="mt-5 text-center text-[11px] text-white/40">
-          By creating an account you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-white transition-colors">Terms of Service</Link>.
+        <p className="mt-6 text-center text-xs text-[#86868B]">
+          By continuing, you agree to our{' '}
+          <Link to="/terms" className="underline hover:text-[#1D1D1F] transition-colors">Terms of Service</Link> and{' '}
+          <Link to="/privacy" className="underline hover:text-[#1D1D1F] transition-colors">Privacy Policy</Link>.
         </p>
       </div>
     </div>

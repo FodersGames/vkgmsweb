@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X } from '@phosphor-icons/react';
-import { PublicButton } from '../ui/PublicButton';
 
 const CONSENT_KEY = 'vg_cookie_consent';
 
@@ -31,36 +30,33 @@ export const CookieBanner = () => {
 
   return (
     <div
-      // Capped so it never reaches under the support bubble (bottom-right,
-      // ~88px footprint) on narrow phones — anchored bottom-left only,
-      // never spanning the full width like a right-anchored banner would.
-      className="animate-appear fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[60] w-[min(320px,calc(100vw-6.5rem))] rounded-2xl overflow-hidden liquid-glass-dark"
+      className="animate-appear fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[60] w-[min(320px,calc(100vw-6.5rem))] rounded-2xl overflow-hidden bg-white/95 backdrop-blur-xl border border-[#E5E5EA] shadow-xl text-[#1D1D1F]"
       role="dialog"
       aria-label="Cookie consent"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#E5E5EA]">
         <div className="flex items-center gap-2">
-          <Cookie size={14} className="text-[#FF6600]" />
-          <span className="text-sm font-bold text-white tracking-wide">Cookies</span>
+          <Cookie size={16} className="text-[#FF6600]" />
+          <span className="text-sm font-semibold text-[#1D1D1F]">Cookies</span>
         </div>
         <button
           onClick={necessary}
-          className="text-[#6E6E73] hover:text-white transition-colors"
+          className="text-[#86868B] hover:text-[#1D1D1F] transition-colors"
           aria-label="Close and accept necessary only"
         >
-          <X size={14} />
+          <X size={15} />
         </button>
       </div>
 
       {/* Body */}
       <div className="px-5 py-4">
-        <p className="text-xs text-[#A1A1A6] leading-relaxed mb-3">
+        <p className="text-xs text-[#6E6E73] leading-relaxed mb-3">
           We use cookies to improve your experience and analyze traffic.{' '}
           {!expanded && (
             <button
               onClick={() => setExpanded(true)}
-              className="text-[#FF6600] hover:underline"
+              className="text-[#FF6600] font-medium hover:underline"
             >
               Learn more
             </button>
@@ -69,28 +65,31 @@ export const CookieBanner = () => {
 
         {expanded && (
           <div className="mb-3 space-y-2 text-[11px] text-[#6E6E73] leading-relaxed">
-            <div className="border-l-2 border-[#FF6600]/40 pl-3">
-              <p className="font-semibold text-[#A1A1A6] mb-0.5">Necessary cookies</p>
-              <p>Authentication session, security. Always active.</p>
+            <div className="border-l-2 border-[#FF6600] pl-2.5">
+              <p className="font-semibold text-[#1D1D1F] mb-0.5">Necessary cookies</p>
+              <p>Authentication session and security. Always active.</p>
             </div>
-            <div className="border-l-2 border-[#3D3733] pl-3">
-              <p className="font-semibold text-[#A1A1A6] mb-0.5">Analytics cookies</p>
-              <p>Anonymous traffic analysis to improve the site.</p>
+            <div className="border-l-2 border-[#D2D2D7] pl-2.5">
+              <p className="font-semibold text-[#1D1D1F] mb-0.5">Analytics cookies</p>
+              <p>Anonymous metrics to enhance the platform.</p>
             </div>
-            <Link to="/privacy" className="block text-[#FF6600] hover:underline pt-1">
-              Privacy Policy →
+            <Link to="/privacy" className="block text-[#FF6600] font-medium hover:underline pt-1">
+              Privacy Policy &rarr;
             </Link>
           </div>
         )}
 
         {/* Actions */}
         <div className="flex flex-col gap-2">
-          <PublicButton onClick={accept} variant="accent" size="sm" className="w-full">
+          <button
+            onClick={accept}
+            className="btn-apple w-full text-xs !py-2 font-medium"
+          >
             Accept all
-          </PublicButton>
+          </button>
           <button
             onClick={necessary}
-            className="w-full py-2 text-xs font-semibold rounded-lg text-[#D6D3D1] hover:text-white border border-white/15 hover:border-white/30 transition-colors"
+            className="btn-apple-outline w-full text-xs !py-2 font-medium"
           >
             Necessary only
           </button>
@@ -99,5 +98,3 @@ export const CookieBanner = () => {
     </div>
   );
 };
-
-export const getCookieConsent = () => localStorage.getItem(CONSENT_KEY);
