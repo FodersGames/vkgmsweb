@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const EmptyState = ({ icon: Icon, title, description, action, accent = '#4ECDC4', className = '' }) => (
+export const EmptyState = ({ icon: Icon, title, description, action, accent = '#FF6600', className = '' }) => (
   <div className={`animate-appear flex flex-col items-center justify-center py-16 text-center ${className}`}>
     {Icon && (
       <div

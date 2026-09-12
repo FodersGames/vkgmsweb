@@ -83,7 +83,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
         {success ? (
           <div className="px-6 py-12 text-center">
-            <CheckCircle size={40} className="mx-auto mb-4 text-[#4ECDC4]" />
+            <CheckCircle size={40} className="mx-auto mb-4 text-[#FF6600]" />
             <h4 className="font-black uppercase text-white text-lg tracking-tight mb-2">Application Sent!</h4>
             <p className="text-sm text-white/50 mb-6 max-w-xs mx-auto">
               We'll review your application and get back to you by email as soon as possible.
@@ -101,7 +101,7 @@ function ApplyModal({ career, onClose, token, user }) {
             {!token && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2 font-medium">
                 <Warning size={14} className="shrink-0 text-amber-400" />
-                <span>You must be signed in to apply. <a href="/login" className="font-bold underline text-white ml-1 hover:text-[#4ECDC4]">Sign in</a></span>
+                <span>You must be signed in to apply. <a href="/login" className="font-bold underline text-white ml-1 hover:text-[#FF6600]">Sign in</a></span>
               </div>
             )}
 
@@ -144,7 +144,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
-                Cover letter <span className="text-[#4ECDC4]">*</span>
+                Cover letter <span className="text-[#FF6600]">*</span>
               </label>
               <textarea
                 required
@@ -214,7 +214,7 @@ export default function Careers() {
       {/* Hero */}
       <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
-          <p className="kefir-label mb-3" style={{ color: '#4ECDC4' }}>// JOIN THE STUDIO</p>
+          <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// JOIN THE STUDIO</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
@@ -233,7 +233,7 @@ export default function Careers() {
                 className="px-5 py-4 flex items-center gap-3 shrink-0 self-start lg:self-auto"
                 style={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.08)' }}
               >
-                <Users size={20} style={{ color: '#4ECDC4' }} />
+                <Users size={20} style={{ color: '#FF6600' }} />
                 <div>
                   <p className="font-black text-2xl text-white leading-none">{careers.length}</p>
                   <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -304,16 +304,16 @@ export default function Careers() {
           >
             <div
               className="w-14 h-14 flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'rgba(78,205,196,0.1)' }}
+              style={{ backgroundColor: 'rgba(255, 102, 0,0.1)' }}
             >
-              <Users size={26} style={{ color: '#4ECDC4' }} />
+              <Users size={26} style={{ color: '#FF6600' }} />
             </div>
             <h3 className="font-black uppercase text-lg text-white mb-2">
               {careers.length === 0 ? 'No open positions right now' : 'Nothing in this department'}
             </h3>
             <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {careers.length === 0 ? 'Check back soon, or send an unsolicited application to ' : 'Try another department filter, or reach out at '}
-              <a href="mailto:support@vakargames.com" style={{ color: '#4ECDC4' }} className="hover:underline">support@vakargames.com</a>
+              <a href="mailto:support@vakargames.com" style={{ color: '#FF6600' }} className="hover:underline">support@vakargames.com</a>
             </p>
           </div>
         ) : (
@@ -326,7 +326,7 @@ export default function Careers() {
                   key={c._id}
                   style={{
                     backgroundColor: '#111111',
-                    border: `1px solid ${isExpanded ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    border: `1px solid ${isExpanded ? 'rgba(255, 102, 0,0.3)' : 'rgba(255,255,255,0.06)'}`,
                     transition: 'border-color 0.2s',
                   }}
                 >
@@ -355,11 +355,11 @@ export default function Careers() {
                           </h2>
                           <div className="flex items-center flex-wrap gap-4 text-xs text-white/40">
                             <span className="flex items-center gap-1.5">
-                              <MapPin size={12} style={{ color: '#4ECDC4' }} />
+                              <MapPin size={12} style={{ color: '#FF6600' }} />
                               {c.location}
                             </span>
                             <span className="flex items-center gap-1.5">
-                              <Briefcase size={12} style={{ color: '#4ECDC4' }} />
+                              <Briefcase size={12} style={{ color: '#FF6600' }} />
                               {c.contract_type}
                             </span>
                           </div>

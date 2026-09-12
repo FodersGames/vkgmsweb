@@ -41,7 +41,7 @@ export const CookieBanner = () => {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <Cookie size={14} className="text-[#4ECDC4]" />
+          <Cookie size={14} className="text-[#FF6600]" />
           <span className="text-sm font-bold text-white tracking-wide">Cookies</span>
         </div>
         <button
@@ -60,7 +60,7 @@ export const CookieBanner = () => {
           {!expanded && (
             <button
               onClick={() => setExpanded(true)}
-              className="text-[#4ECDC4] hover:underline"
+              className="text-[#FF6600] hover:underline"
             >
               Learn more
             </button>
@@ -69,7 +69,7 @@ export const CookieBanner = () => {
 
         {expanded && (
           <div className="mb-3 space-y-2 text-[11px] text-[#6E6E73] leading-relaxed">
-            <div className="border-l-2 border-[#4ECDC4]/40 pl-3">
+            <div className="border-l-2 border-[#FF6600]/40 pl-3">
               <p className="font-semibold text-[#A1A1A6] mb-0.5">Necessary cookies</p>
               <p>Authentication session, security. Always active.</p>
             </div>
@@ -77,7 +77,7 @@ export const CookieBanner = () => {
               <p className="font-semibold text-[#A1A1A6] mb-0.5">Analytics cookies</p>
               <p>Anonymous traffic analysis to improve the site.</p>
             </div>
-            <Link to="/privacy" className="block text-[#4ECDC4] hover:underline pt-1">
+            <Link to="/privacy" className="block text-[#FF6600] hover:underline pt-1">
               Privacy Policy →
             </Link>
           </div>

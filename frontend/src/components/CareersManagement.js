@@ -230,7 +230,7 @@ export default function CareersManagement() {
               <div>
                 <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Job Title *</label>
                 <input
-                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600]"
                   value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. TurboWarp Developer"
                 />
@@ -238,7 +238,7 @@ export default function CareersManagement() {
               <div>
                 <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Department</label>
                 <select
-                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520]"
+                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520]"
                   value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
                 >
                   {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
@@ -247,7 +247,7 @@ export default function CareersManagement() {
               <div>
                 <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Contract</label>
                 <select
-                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520]"
+                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520]"
                   value={form.contract_type} onChange={e => setForm(f => ({ ...f, contract_type: e.target.value }))}
                 >
                   {CONTRACT_TYPES.map(c => <option key={c}>{c}</option>)}
@@ -256,7 +256,7 @@ export default function CareersManagement() {
               <div>
                 <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Location</label>
                 <input
-                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600]"
                   value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="Remote, Paris, etc."
                 />
@@ -267,7 +267,7 @@ export default function CareersManagement() {
               <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Description</label>
               <textarea
                 rows={4}
-                className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4] resize-none"
+                className="rounded-lg w-full border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600] resize-none"
                 value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Describe the role, missions, context..."
               />
@@ -277,7 +277,7 @@ export default function CareersManagement() {
               <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Requirements</label>
               <div className="flex gap-2 mb-2">
                 <input
-                  className="rounded-lg flex-1 border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4]"
+                  className="rounded-lg flex-1 border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 py-2 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600]"
                   value={newReq} onChange={e => setNewReq(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addReq())}
                   placeholder="Add a requirement and press Enter"
@@ -307,7 +307,7 @@ export default function CareersManagement() {
                     onClick={() => toggleTool(t.id)}
                     className={`rounded-lg flex items-center gap-1.5 px-2.5 py-1.5 border text-xs font-medium transition-all ${
                       form.tools.includes(t.id)
-                        ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#1D1D1F] dark:text-white'
+                        ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#1D1D1F] dark:text-white'
                         : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                     }`}
                   >
@@ -323,7 +323,7 @@ export default function CareersManagement() {
             <div className="flex items-center gap-3 pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <div
-                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
+                  className={`w-10 h-5 rounded-full relative transition-colors ${form.is_open ? 'bg-[#FF6600]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
                   onClick={() => setForm(f => ({ ...f, is_open: !f.is_open }))}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${form.is_open ? 'left-5' : 'left-0.5'}`} />
@@ -349,13 +349,13 @@ export default function CareersManagement() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search by title, location, department…"
-                className="rounded-lg w-full h-9 border border-[#D2D2D7] dark:border-[#2a2a3c] pl-9 pr-3 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4]"
+                className="rounded-lg w-full h-9 border border-[#D2D2D7] dark:border-[#2a2a3c] pl-9 pr-3 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600]"
               />
             </div>
             <select
               value={deptFilter}
               onChange={e => setDeptFilter(e.target.value)}
-              className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 h-9 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#4ECDC4]"
+              className="rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] px-3 h-9 text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#151520] focus:outline-none focus:border-[#FF6600]"
             >
               {availableDepts.map(d => <option key={d} value={d}>{d === 'All' ? 'All departments' : d}</option>)}
             </select>
@@ -366,7 +366,7 @@ export default function CareersManagement() {
                   onClick={() => setStatusFilter(s)}
                   className={`px-2.5 h-8 rounded-md text-xs font-medium transition-colors ${
                     statusFilter === s
-                      ? 'bg-[#1D1D1F] dark:bg-[#4ECDC4] text-white dark:text-[#0a0a0f]'
+                      ? 'bg-[#1D1D1F] dark:bg-[#FF6600] text-white dark:text-[#0a0a0f]'
                       : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
                   }`}
                 >
@@ -406,7 +406,7 @@ export default function CareersManagement() {
                       <button
                         onClick={e => { e.stopPropagation(); toggleOpen(c); }}
                         title={c.is_open ? 'Open — click to close' : 'Closed — click to reopen'}
-                        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 disabled:opacity-50 ${c.is_open ? 'bg-[#4ECDC4]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 disabled:opacity-50 ${c.is_open ? 'bg-[#FF6600]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
                         disabled={togglingId === c._id}
                       >
                         <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${c.is_open ? 'left-4' : 'left-0.5'}`} />
@@ -502,7 +502,7 @@ export default function CareersManagement() {
                             {appsByCareer[c._id].map(a => (
                               <div key={a.ticket_number} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F5F5F7]/50 dark:bg-[#111118]/50 text-xs">
                                 <div className="min-w-0 flex items-center gap-2">
-                                  <span className="font-mono text-[#4ECDC4] shrink-0">{a.ticket_number}</span>
+                                  <span className="font-mono text-[#FF6600] shrink-0">{a.ticket_number}</span>
                                   <span className="font-medium text-[#1D1D1F] dark:text-[#e4e4e7] truncate">{a.username}</span>
                                   <span className="text-[#A1A1A6] dark:text-[#71717a] hidden sm:flex items-center gap-1 truncate">
                                     <Mail size={10} />{a.user_email}
@@ -512,7 +512,7 @@ export default function CareersManagement() {
                                   a.status === 'closed' ? 'bg-zinc-100 dark:bg-[#2a2a3c] text-zinc-500' :
                                   a.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-500' :
                                   a.status === 'in_progress' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
-                                  'bg-[#4ECDC4]/10 text-[#4ECDC4]'
+                                  'bg-[#FF6600]/10 text-[#FF6600]'
                                 }`}>
                                   {a.status.replace('_', ' ')}
                                 </span>

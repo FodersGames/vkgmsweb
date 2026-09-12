@@ -76,9 +76,9 @@ export const CommandPalette = ({ open, onClose, destinations }) => {
                   key={`${d.group}-${d.label}`}
                   onMouseEnter={() => setHighlighted(i)}
                   onClick={() => runSelected(d)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${active ? 'bg-[#4ECDC4]/10' : ''}`}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${active ? 'bg-[#FF6600]/10' : ''}`}
                 >
-                  <Icon size={15} className={active ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'} />
+                  <Icon size={15} className={active ? 'text-[#FF6600]' : 'text-[#A1A1A6] dark:text-[#71717a]'} />
                   <span className={`flex-1 text-sm truncate ${active ? 'text-[#1D1D1F] dark:text-white font-medium' : 'text-[#1D1D1F] dark:text-[#e4e4e7]'}`}>{d.label}</span>
                   <span className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] shrink-0">{d.group}</span>
                 </button>

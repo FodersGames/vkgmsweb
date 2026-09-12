@@ -65,7 +65,7 @@ module.exports = {
   			'ink-tertiary': '#A1A1A6',
   			hairline: '#D2D2D7',
   			'surface-alt': '#F5F5F7',
-  			brand: '#4ECDC4',
+  			brand: '#FF6600',
   		},
   		keyframes: {
   			'accordion-down': {

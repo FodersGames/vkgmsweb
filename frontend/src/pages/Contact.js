@@ -171,7 +171,7 @@ const Contact = () => {
                 className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
                 style={{
                   color: activeView === 'new' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                  borderBottom: activeView === 'new' ? '2px solid #4ECDC4' : '2px solid transparent',
+                  borderBottom: activeView === 'new' ? '2px solid #FF6600' : '2px solid transparent',
                   marginBottom: '-13px',
                 }}
               >
@@ -186,7 +186,7 @@ const Contact = () => {
                   className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
                   style={{
                     color: activeView === 'tickets' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                    borderBottom: activeView === 'tickets' ? '2px solid #4ECDC4' : '2px solid transparent',
+                    borderBottom: activeView === 'tickets' ? '2px solid #FF6600' : '2px solid transparent',
                     marginBottom: '-13px',
                   }}
                 >
@@ -195,8 +195,8 @@ const Contact = () => {
                   <span
                     className="px-2 py-0.5 text-[10px] font-mono font-bold rounded"
                     style={{
-                      backgroundColor: limitReached ? 'rgba(239, 68, 68, 0.2)' : 'rgba(78, 205, 196, 0.15)',
-                      color: limitReached ? '#F87171' : '#4ECDC4',
+                      backgroundColor: limitReached ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 102, 0, 0.15)',
+                      color: limitReached ? '#F87171' : '#FF6600',
                     }}
                   >
                     {openCount}/3
@@ -210,9 +210,9 @@ const Contact = () => {
               success ? (
                 <div
                   className="p-10 text-center"
-                  style={{ backgroundColor: '#111111', border: '1px solid rgba(78,205,196,0.2)' }}
+                  style={{ backgroundColor: '#111111', border: '1px solid rgba(255, 102, 0,0.2)' }}
                 >
-                  <CheckCircle size={40} style={{ color: '#4ECDC4', margin: '0 auto 1rem' }} />
+                  <CheckCircle size={40} style={{ color: '#FF6600', margin: '0 auto 1rem' }} />
                   <h2 className="font-black uppercase text-white text-xl tracking-tight mb-2">
                     Ticket Submitted!
                   </h2>
@@ -227,7 +227,7 @@ const Contact = () => {
                       type="button"
                       onClick={() => { setActiveView('tickets'); setSuccess(''); }}
                       className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide mb-4"
-                      style={{ color: '#4ECDC4', fontSize: '0.7rem' }}
+                      style={{ color: '#FF6600', fontSize: '0.7rem' }}
                     >
                       <Ticket size={14} /> Voir mes tickets ({openCount}/3)
                     </button>
@@ -269,7 +269,7 @@ const Contact = () => {
                       <button
                         type="button"
                         onClick={() => setActiveView('tickets')}
-                        className="mt-3 text-xs font-bold uppercase tracking-wider text-white underline hover:text-[#4ECDC4]"
+                        className="mt-3 text-xs font-bold uppercase tracking-wider text-white underline hover:text-[#FF6600]"
                       >
                         Consulter mes tickets en cours →
                       </button>
@@ -390,7 +390,7 @@ const Contact = () => {
 
                 {loadingTickets ? (
                   <div className="py-12 text-center">
-                    <CircleNotch size={24} className="animate-spin text-[#4ECDC4] mx-auto mb-2" />
+                    <CircleNotch size={24} className="animate-spin text-[#FF6600] mx-auto mb-2" />
                     <p className="text-xs text-white/40">Chargement des tickets...</p>
                   </div>
                 ) : tickets.length === 0 ? (
@@ -411,7 +411,7 @@ const Contact = () => {
                     {tickets.map(t => {
                       const isExpanded = expandedTicketNumber === t.ticket_number;
                       const isClosed = t.status === 'closed';
-                      const statusColor = t.status === 'open' ? '#4ECDC4' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
+                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
                       const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
 
                       return (
@@ -419,7 +419,7 @@ const Contact = () => {
                           key={t.ticket_number}
                           style={{
                             backgroundColor: '#0D0D0D',
-                            border: `1px solid ${isExpanded ? 'rgba(78,205,196,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                            border: `1px solid ${isExpanded ? 'rgba(255, 102, 0,0.3)' : 'rgba(255,255,255,0.08)'}`,
                           }}
                         >
                           <div
@@ -428,7 +428,7 @@ const Contact = () => {
                           >
                             <div className="flex-1 min-w-0 mr-4">
                               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span className="text-xs font-mono font-bold text-[#4ECDC4]">{t.ticket_number}</span>
+                                <span className="text-xs font-mono font-bold text-[#FF6600]">{t.ticket_number}</span>
                                 <span className="text-[10px] uppercase font-bold text-white/30">• {t.category}</span>
                                 <span
                                   className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
@@ -461,11 +461,11 @@ const Contact = () => {
                                       className={`p-3 text-xs ${
                                         isUser
                                           ? 'bg-white/[0.03] border border-white/[0.06] ml-0 mr-8'
-                                          : 'bg-[#4ECDC4]/[0.08] border border-[#4ECDC4]/20 mr-0 ml-8'
+                                          : 'bg-[#FF6600]/[0.08] border border-[#FF6600]/20 mr-0 ml-8'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="font-bold text-[11px]" style={{ color: isUser ? '#FFFFFF' : '#4ECDC4' }}>
+                                        <span className="font-bold text-[11px]" style={{ color: isUser ? '#FFFFFF' : '#FF6600' }}>
                                           {m.author_name || (isUser ? 'Vous' : 'Support')}
                                         </span>
                                         <span className="text-[10px] text-white/30">
@@ -528,14 +528,14 @@ const Contact = () => {
               style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div className="flex items-center gap-3 mb-3">
-                <EnvelopeSimple size={14} style={{ color: '#4ECDC4' }} />
+                <EnvelopeSimple size={14} style={{ color: '#FF6600' }} />
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
                 className="text-sm transition-colors"
                 style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#4ECDC4'}
+                onMouseEnter={e => e.currentTarget.style.color = '#FF6600'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
               >
                 {supportEmail}
@@ -547,7 +547,7 @@ const Contact = () => {
               style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div className="flex items-center gap-3 mb-3">
-                <ChatCircle size={14} style={{ color: '#4ECDC4' }} />
+                <ChatCircle size={14} style={{ color: '#FF6600' }} />
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Chat Support</h3>
               </div>
               <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -562,7 +562,7 @@ const Contact = () => {
                 onClick={() => { setActiveView('tickets'); setSuccess(''); }}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <Ticket size={14} style={{ color: '#4ECDC4' }} />
+                  <Ticket size={14} style={{ color: '#FF6600' }} />
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Mes Tickets</h3>
                 </div>
                 <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -571,7 +571,7 @@ const Contact = () => {
                 <button
                   type="button"
                   className="text-[10px] font-bold uppercase tracking-wide transition-colors"
-                  style={{ color: '#4ECDC4', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  style={{ color: '#FF6600', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
                   Voir mes tickets →
                 </button>

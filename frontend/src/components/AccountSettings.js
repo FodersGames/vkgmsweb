@@ -182,7 +182,7 @@ export const AccountSettings = () => {
               value={name}
               disabled={nameDaysLeft > 0}
               onChange={e => setName(e.target.value)}
-              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="Your display name"
             />
             {nameDaysLeft > 0 && (
@@ -201,7 +201,7 @@ export const AccountSettings = () => {
               value={username}
               disabled={pseudoDaysLeft > 0}
               onChange={e => setUsername(e.target.value)}
-              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">
               {pseudoDaysLeft > 0 ? `Changeable again in ${pseudoDaysLeft} day${pseudoDaysLeft !== 1 ? 's' : ''}.` : '5–14 characters, letters, numbers and underscores only.'}
@@ -228,7 +228,7 @@ export const AccountSettings = () => {
       <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg w-9 h-9 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center text-[#4ECDC4]">
+            <div className="rounded-lg w-9 h-9 bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center text-[#FF6600]">
               <Lock size={16} />
             </div>
             <div>
@@ -239,7 +239,7 @@ export const AccountSettings = () => {
           <button
             type="button"
             onClick={() => { setShowPasswordChange(s => !s); setPwError(''); }}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4] text-[#1D1D1F] dark:text-[#e4e4e7] hover:text-[#4ECDC4] transition-colors"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600] text-[#1D1D1F] dark:text-[#e4e4e7] hover:text-[#FF6600] transition-colors"
           >
             {showPasswordChange ? 'Cancel' : 'Change Password'}
           </button>
@@ -255,7 +255,7 @@ export const AccountSettings = () => {
                   required
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   placeholder="Your current password"
                 />
                 <button
@@ -278,7 +278,7 @@ export const AccountSettings = () => {
                   minLength={8}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                  className="rounded-lg w-full pl-3 pr-9 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   placeholder="Min. 8 characters"
                 />
                 <button
@@ -299,7 +299,7 @@ export const AccountSettings = () => {
                 required
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                 placeholder="Repeat new password"
               />
             </div>
@@ -321,7 +321,7 @@ export const AccountSettings = () => {
             <button
               type="submit"
               disabled={pwSaving}
-              className="rounded-lg flex items-center justify-center gap-2 bg-[#4ECDC4] hover:bg-[#3db8af] text-[#0D0D0D] font-bold px-4 py-2 text-xs transition-colors disabled:opacity-50"
+              className="rounded-lg flex items-center justify-center gap-2 bg-[#FF6600] hover:bg-[#3db8af] text-[#0D0D0D] font-bold px-4 py-2 text-xs transition-colors disabled:opacity-50"
             >
               {pwSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
               {pwSaving ? 'Updating…' : 'Update Password'}

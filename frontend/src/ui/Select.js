@@ -59,8 +59,8 @@ export const Select = React.forwardRef(function Select(
           type="button"
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
-          className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white dark:bg-[#151520] text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 ${SIZES[size] ?? SIZES.md} ${
-            error ? 'border-red-500/50' : open ? 'border-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
+          className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-white dark:bg-[#151520] text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 ${SIZES[size] ?? SIZES.md} ${
+            error ? 'border-red-500/50' : open ? 'border-[#FF6600]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
           } ${className}`}
           {...props}
         >
@@ -80,7 +80,7 @@ export const Select = React.forwardRef(function Select(
                   type="button"
                   onClick={() => pick(opt)}
                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors ${
-                    isSelected ? 'text-[#4ECDC4] font-medium bg-[#4ECDC4]/[0.06]' : 'text-[#1D1D1F] dark:text-[#e4e4e7] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]'
+                    isSelected ? 'text-[#FF6600] font-medium bg-[#FF6600]/[0.06]' : 'text-[#1D1D1F] dark:text-[#e4e4e7] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06]'
                   }`}
                 >
                   <span className="truncate">{opt.label}</span>

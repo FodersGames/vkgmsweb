@@ -123,53 +123,61 @@ const NavItem = ({ item, activeTab, onSelect, draggable, onDragStart, onDragOver
 
   return (
     <button
-      onClick={() => onSelect(item.id)}
-      data-testid={`sidebar-nav-${item.id}`}
-      draggable={draggable}
+      onClick={onClick}
+      draggable={Boolean(onDragStart)}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`group w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 ${
-        dragOver ? 'ring-2 ring-inset ring-[#4ECDC4]' : ''
+      data-testid={`nav-${id}`}
+      className={`group w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 ${
+        dragOver ? 'ring-2 ring-inset ring-[#FF6600]' : ''
       } ${
         isActive
-          ? 'bg-[#4ECDC4]/10 text-[#4ECDC4] font-medium'
+          ? 'bg-[#FF6600]/10 text-[#FF6600] font-medium'
           : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.045] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white'
       }`}
     >
       <Icon
-        size={15}
-        className={`shrink-0 transition-colors ${isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'}`}
+        size={16}
+        className={`shrink-0 transition-colors ${isActive ? 'text-[#FF6600]' : 'text-[#A1A1A6] dark:text-[#71717a]'}`}
       />
-      <span className="flex-1 text-[13px] leading-none truncate">{item.label}</span>
-      {draggable && (
+      <span className="flex-1 text-[13px] truncate">{label}</span>
+      {badge !== undefined && (
+        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.06] dark:bg-white/[0.08] text-[#6E6E73] dark:text-[#a1a1aa] tabular-nums">
+          {badge}
+        </span>
+      )}
+      {draggable && !badge && (
         <GripVertical size={12} className="shrink-0 text-[#D2D2D7] dark:text-[#3a3a4c] opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity" />
       )}
     </button>
   );
 };
 
-const WorkspaceTabs = ({ tabs, active, onChange }) => (
-  <div className="flex items-center gap-1 border-b border-[#D2D2D7] dark:border-[#2a2a3c] mb-6 overflow-x-auto">
-    {tabs.map(t => {
-      const Icon = t.icon;
-      const isActive = t.id === active;
-      return (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 focus-visible:rounded-md ${
-            isActive ? 'border-[#4ECDC4] text-[#1D1D1F] dark:text-white' : 'border-transparent text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
-          }`}
-        >
-          <Icon size={14} className={isActive ? 'text-[#4ECDC4]' : 'text-[#A1A1A6] dark:text-[#71717a]'} />
-          {t.label}
-        </button>
-      );
-    })}
-  </div>
-);
+const WorkspaceTabs = ({ tabs, active, onChange }) => {
+  if (!tabs || tabs.length <= 1) return null;
+  return (
+    <div className="flex items-center gap-1 border-b border-[#D2D2D7] dark:border-[#2a2a3c] mb-6 overflow-x-auto -mx-1 px-1">
+      {tabs.map(({ id, label, icon: Icon }) => {
+        const isActive = id === active;
+        return (
+          <button
+            key={id}
+            onClick={() => onChange(id)}
+            data-testid={`workspace-tab-${id}`}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 focus-visible:rounded-md ${
+              isActive ? 'border-[#FF6600] text-[#1D1D1F] dark:text-white' : 'border-transparent text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
+            }`}
+          >
+            <Icon size={14} className={isActive ? 'text-[#FF6600]' : 'text-[#A1A1A6] dark:text-[#71717a]'} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 const subtabVisible = (t, hasPermission, isSuperAdmin) => {
   if (t.superAdminOnly) return !!isSuperAdmin;
@@ -212,6 +220,7 @@ const SidebarContent = ({
   <div className="flex flex-col h-full bg-[#F5F5F7] dark:bg-[#151520] border-r border-[#D2D2D7] dark:border-[#2a2a3c]">
     {/* Logo */}
     <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
+      <img src="/logo.png" alt="Vakar Games" className="h-6 w-auto object-contain shrink-0" />
       <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white truncate">
         Vakar Games
       </p>
@@ -226,7 +235,7 @@ const SidebarContent = ({
     <div className="px-3 pt-3">
       <button
         onClick={onOpenPalette}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-left outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-colors"
       >
         <Search size={13} className="text-[#A1A1A6] dark:text-[#71717a] shrink-0" />
         <span className="flex-1 text-[12px] text-[#A1A1A6] dark:text-[#71717a]">Jump to…</span>
@@ -270,7 +279,7 @@ const SidebarContent = ({
     {/* User card */}
     <div className="shrink-0 border-t border-[#D2D2D7] dark:border-[#2a2a3c] p-3">
       <div className="flex items-center gap-3 px-2 py-2">
-        <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#FF6600]/15 flex items-center justify-center text-[11px] font-bold text-[#FF6600] shrink-0">
           {initials}
         </div>
         <div className="min-w-0 flex-1">
@@ -335,7 +344,7 @@ class TabErrorBoundary extends React.Component {
           </p>
           <button
             onClick={() => { this.setState({ hasError: false }); this.props.onReset(); }}
-            className="px-4 py-2 bg-[#4ECDC4] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#FF6600] hover:bg-[#e05a00] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
           >
             Back to Overview
           </button>
@@ -537,13 +546,14 @@ const DashboardContent = () => {
         {/* Header */}
         <header className="sticky top-0 z-20 h-14 shrink-0 bg-white/75 dark:bg-[#151520]/75 backdrop-blur-xl backdrop-saturate-150 border-b border-[#D2D2D7] dark:border-[#2a2a3c] flex items-center px-5 gap-4">
           <button
-            className="lg:hidden w-8 h-8 flex items-center justify-center -ml-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
+            className="lg:hidden w-8 h-8 flex items-center justify-center -ml-1.5 rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-colors"
             onClick={() => setMobileOpen(true)}
           >
             <Menu size={18} />
           </button>
 
-          <span className="lg:hidden text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
+          <span className="lg:hidden flex items-center gap-2 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
+            <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain" />
             Vakar Games
           </span>
 
@@ -552,7 +562,7 @@ const DashboardContent = () => {
               onClick={goBack}
               disabled={!canGoBack}
               title="Back (Alt+←)"
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-colors"
             >
               <ChevronLeft size={15} />
             </button>
@@ -560,7 +570,7 @@ const DashboardContent = () => {
               onClick={goForward}
               disabled={!canGoForward}
               title="Forward (Alt+→)"
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:pointer-events-none outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-colors"
             >
               <ChevronRight size={15} />
             </button>
@@ -590,7 +600,7 @@ const DashboardContent = () => {
             <button
               onClick={() => setPaletteOpen(true)}
               title="Jump to… (⌘K)"
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
             >
               <Search size={13} />
               Jump to…
@@ -599,20 +609,20 @@ const DashboardContent = () => {
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
             >
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <Link
               to="/"
               title="View site"
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
             >
               <Home size={13} />
               View site
             </Link>
             <div className="flex items-center gap-2.5 pl-0.5">
-              <div className="w-8 h-8 rounded-full bg-[#4ECDC4]/15 flex items-center justify-center text-[11px] font-bold text-[#4ECDC4] shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-[#FF6600]/15 flex items-center justify-center text-[11px] font-bold text-[#FF6600] shrink-0 overflow-hidden">
                 {user?.avatar_url ? (
                   <img
                     src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}

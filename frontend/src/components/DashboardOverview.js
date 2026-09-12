@@ -93,7 +93,7 @@ export const DashboardOverview = ({ goTo }) => {
 
   const statCards = applySavedOrder([
     canManageUsers ? { label: 'Staff Members', value: globalStats.users, accent: '#F2994A', icon: Users, loading: globalLoading && globalStats.users === null } : null,
-    { label: 'Published Games', value: globalStats.games, accent: '#4ECDC4', icon: Gamepad2, loading: globalLoading && globalStats.games === null },
+    { label: 'Published Games', value: globalStats.games, accent: '#FF6600', icon: Gamepad2, loading: globalLoading && globalStats.games === null },
     { label: 'Blog Posts', value: globalStats.blog, accent: '#9B51E0', icon: PenTool, loading: globalLoading && globalStats.blog === null },
     canManageTickets ? { label: 'Open Tickets', value: globalStats.tickets, accent: '#EB5757', icon: Ticket, loading: globalLoading && globalStats.tickets === null } : null,
   ].filter(Boolean));
@@ -132,7 +132,7 @@ export const DashboardOverview = ({ goTo }) => {
       label: 'Games Catalog',
       desc: 'Add, edit or feature game releases',
       icon: Gamepad2,
-      color: '#4ECDC4',
+      color: '#FF6600',
       action: () => goTo('website-games'),
     } : null,
     hasPermission('create_blog') ? {
@@ -239,7 +239,7 @@ export const DashboardOverview = ({ goTo }) => {
                   onDrop={() => handleDrop(i)}
                   onDragEnd={handleDragEnd}
                   className={`group relative bg-white dark:bg-[#151520] p-5 min-w-0 cursor-grab active:cursor-grabbing transition-opacity ${
-                    dragOverIndex === i ? 'ring-2 ring-inset ring-[#4ECDC4]' : ''
+                    dragOverIndex === i ? 'ring-2 ring-inset ring-[#FF6600]' : ''
                   }`}
                 >
                   <GripVertical size={13} className="absolute top-3 right-3 text-[#D2D2D7] dark:text-[#2a2a3c] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -278,13 +278,13 @@ export const DashboardOverview = ({ goTo }) => {
                 key={action.id}
                 type="button"
                 onClick={action.action}
-                className="group relative text-left rounded-xl p-4 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50 dark:hover:border-[#4ECDC4]/40 transition-all hover:shadow-sm"
+                className="group relative text-left rounded-xl p-4 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600]/50 dark:hover:border-[#FF6600]/40 transition-all hover:shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: `${action.color}15`, color: action.color }}>
                     <Icon size={16} />
                   </div>
-                  <ArrowUpRight size={14} className="text-[#A1A1A6] dark:text-[#71717a] group-hover:text-[#4ECDC4] transition-colors" />
+                  <ArrowUpRight size={14} className="text-[#A1A1A6] dark:text-[#71717a] group-hover:text-[#FF6600] transition-colors" />
                 </div>
                 <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-white mb-0.5">{action.label}</h3>
                 <p className="text-[11px] text-[#6E6E73] dark:text-[#a1a1aa] line-clamp-2 leading-relaxed">{action.desc}</p>
@@ -308,7 +308,7 @@ export const DashboardOverview = ({ goTo }) => {
               </div>
               <button
                 onClick={() => goTo('support')}
-                className="text-[11px] font-semibold text-[#4ECDC4] hover:underline"
+                className="text-[11px] font-semibold text-[#FF6600] hover:underline"
               >
                 View all →
               </button>
@@ -360,7 +360,7 @@ export const DashboardOverview = ({ goTo }) => {
         {/* Studio Info Card (1 col) */}
         <div className={`rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-5 ${canManageTickets ? '' : 'lg:col-span-3'}`}>
           <div className="flex items-center gap-2 pb-3 mb-3 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
-            <Sparkles size={15} className="text-[#4ECDC4]" />
+            <Sparkles size={15} className="text-[#FF6600]" />
             <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-[#1D1D1F] dark:text-white">
               Studio Environment
             </h3>
@@ -375,7 +375,7 @@ export const DashboardOverview = ({ goTo }) => {
             </div>
             <div className="flex items-center justify-between py-1 border-t border-[#D2D2D7]/40 dark:border-[#2a2a3c]/40">
               <span className="text-[#6E6E73] dark:text-[#a1a1aa]">Permissions</span>
-              <span className="font-mono font-semibold text-[#4ECDC4]">
+              <span className="font-mono font-semibold text-[#FF6600]">
                 {user?.is_super_admin ? 'ALL (Super)' : `${user?.permissions?.length || 0} active`}
               </span>
             </div>

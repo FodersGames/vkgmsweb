@@ -9,7 +9,7 @@ import {
 import { API_URL } from '../utils/api';
 
 const PRESET_COLORS = [
-  '#4ECDC4', '#3B82F6', '#10B981', '#F59E0B',
+  '#FF6600', '#3B82F6', '#10B981', '#F59E0B',
   '#EC4899', '#8B5CF6', '#EF4444', '#14B8A6',
   '#6366F1', '#D97706', '#A855F7', '#E11D48',
 ];
@@ -93,7 +93,7 @@ export const RoleManagement = () => {
   // Form state
   const [form, setForm] = useState({
     name: '',
-    color: '#4ECDC4',
+    color: '#FF6600',
     icon: 'Shield',
     description: '',
     permissions: [],
@@ -123,7 +123,7 @@ export const RoleManagement = () => {
     setEditingRole(null);
     setForm({
       name: '',
-      color: '#4ECDC4',
+      color: '#FF6600',
       icon: 'Shield',
       description: '',
       permissions: [],
@@ -135,7 +135,7 @@ export const RoleManagement = () => {
     setEditingRole(role);
     setForm({
       name: role.name,
-      color: role.color || '#4ECDC4',
+      color: role.color || '#FF6600',
       icon: role.icon || 'Shield',
       description: role.description || '',
       permissions: role.permissions || [],
@@ -228,7 +228,7 @@ export const RoleManagement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#2a2a3c]">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Shield className="text-[#4ECDC4]" size={20} />
+            <Shield className="text-[#FF6600]" size={20} />
             Role & Permission Management
           </h1>
           <p className="text-xs text-[#a1a1aa] mt-1">
@@ -246,7 +246,7 @@ export const RoleManagement = () => {
           </button>
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#4ECDC4] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3.5 py-2 bg-[#FF6600] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors"
           >
             <Plus size={15} />
             Create Role
@@ -263,14 +263,14 @@ export const RoleManagement = () => {
         </div>
       ) : roles.length === 0 ? (
         <div className="text-center py-16 bg-[#16161f] border border-[#2a2a3c] rounded-xl p-8">
-          <Shield size={36} className="mx-auto text-[#4ECDC4]/40 mb-3" />
+          <Shield size={36} className="mx-auto text-[#FF6600]/40 mb-3" />
           <h3 className="text-base font-semibold text-white">No Custom Roles Configured</h3>
           <p className="text-xs text-[#a1a1aa] mt-1 max-w-sm mx-auto mb-4">
             Click "Create Role" above to set up community roles like Moderator, Developer, or VIP.
           </p>
           <button
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#4ECDC4] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#FF6600] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg"
           >
             <Plus size={14} /> Create First Role
           </button>
@@ -386,7 +386,7 @@ export const RoleManagement = () => {
           <div className="bg-[#14141c] border border-[#2a2a3c] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between p-5 border-b border-[#242432]">
               <div className="flex items-center gap-2">
-                <Shield size={18} className="text-[#4ECDC4]" />
+                <Shield size={18} className="text-[#FF6600]" />
                 <h2 className="text-base font-bold text-white">
                   {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}
                 </h2>
@@ -411,7 +411,7 @@ export const RoleManagement = () => {
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Lead Moderator, Senior Game Dev"
-                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#4ECDC4] rounded-lg text-sm text-white outline-none"
+                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#FF6600] rounded-lg text-sm text-white outline-none"
                 />
               </div>
 
@@ -425,7 +425,7 @@ export const RoleManagement = () => {
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Responsibilities and purpose of this role"
-                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#4ECDC4] rounded-lg text-sm text-white outline-none"
+                  className="w-full px-3.5 py-2.5 bg-[#0e0e14] border border-[#2a2a3c] focus:border-[#FF6600] rounded-lg text-sm text-white outline-none"
                 />
               </div>
 
@@ -480,7 +480,7 @@ export const RoleManagement = () => {
                           title={i.label}
                           className={`p-2.5 rounded-lg flex items-center justify-center border transition-all ${
                             isSelected
-                              ? 'bg-[#4ECDC4]/20 border-[#4ECDC4] text-[#4ECDC4]'
+                              ? 'bg-[#FF6600]/20 border-[#FF6600] text-[#FF6600]'
                               : 'bg-[#0e0e14] border-[#2a2a3c] text-[#a1a1aa] hover:text-white hover:border-[#38384a]'
                           }`}
                         >
@@ -534,7 +534,7 @@ export const RoleManagement = () => {
                           <button
                             type="button"
                             onClick={() => handleToggleCategory(cat.perms)}
-                            className="text-[10px] font-mono text-[#4ECDC4] hover:underline"
+                            className="text-[10px] font-mono text-[#FF6600] hover:underline"
                           >
                             {allSelected ? 'Deselect All' : 'Select All'}
                           </button>
@@ -547,7 +547,7 @@ export const RoleManagement = () => {
                                 key={p.id}
                                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-xs cursor-pointer select-none transition-colors ${
                                   isChecked
-                                    ? 'bg-[#4ECDC4]/10 text-white border border-[#4ECDC4]/30'
+                                    ? 'bg-[#FF6600]/10 text-white border border-[#FF6600]/30'
                                     : 'text-[#a1a1aa] hover:bg-white/5 border border-transparent'
                                 }`}
                               >
@@ -555,7 +555,7 @@ export const RoleManagement = () => {
                                   type="checkbox"
                                   checked={isChecked}
                                   onChange={() => handleTogglePerm(p.id)}
-                                  className="accent-[#4ECDC4] rounded"
+                                  className="accent-[#FF6600] rounded"
                                 />
                                 <span className="truncate">{p.label}</span>
                               </label>
@@ -580,7 +580,7 @@ export const RoleManagement = () => {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 bg-[#4ECDC4] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors disabled:opacity-50"
+                  className="px-5 py-2 bg-[#FF6600] hover:bg-[#3dbdb5] text-[#0D0D0D] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving…' : editingRole ? 'Update Role' : 'Create Role'}
                 </button>

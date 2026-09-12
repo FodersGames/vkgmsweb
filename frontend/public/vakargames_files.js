@@ -91,7 +91,7 @@
       return {
         id:     'vakargamesfiles',
         name:   'VakarGames Files',
-        color1: '#4ECDC4',
+        color1: '#FF6600',
         color2: '#3BB8B0',
         color3: '#2AA9A1',
         blocks: [

@@ -5,7 +5,7 @@ const V = {
   success:  'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400',
   warning:  'bg-amber-500/10   text-amber-600  dark:text-amber-400',
   error:    'bg-red-500/10     text-red-500    dark:text-red-400',
-  info:     'bg-[#4ECDC4]/10   text-[#4ECDC4]',
+  info:     'bg-[#FF6600]/10   text-[#FF6600]',
   purple:   'bg-[#6C5CE7]/10   text-[#6C5CE7]',
   orange:   'bg-[#F2994A]/10   text-[#F2994A]',
   blue:     'bg-[#2F80ED]/10   text-[#2F80ED]',

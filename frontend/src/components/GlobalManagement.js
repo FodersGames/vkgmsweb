@@ -276,7 +276,7 @@ export const GlobalManagement = () => {
       {/* Announcement banner */}
       <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
-          <Megaphone size={18} className="text-[#4ECDC4]" />
+          <Megaphone size={18} className="text-[#FF6600]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Announcement Banner</h4>
             <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">A site-wide banner independent of maintenance mode — for "we're aware of an issue" or promo callouts.</p>
@@ -303,7 +303,7 @@ export const GlobalManagement = () => {
       {/* Support email */}
       <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
-          <Mail size={18} className="text-[#4ECDC4]" />
+          <Mail size={18} className="text-[#FF6600]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Support Contact Email</h4>
             <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Shown on the Contact page and the site footer.</p>
@@ -325,7 +325,7 @@ export const GlobalManagement = () => {
       {/* Social links */}
       <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
-          <Link2 size={18} className="text-[#4ECDC4]" />
+          <Link2 size={18} className="text-[#FF6600]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Social Links</h4>
             <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Shown in the site footer. Leave blank to hide a platform.</p>
@@ -354,7 +354,7 @@ export const GlobalManagement = () => {
       {/* SEO description */}
       <div className="rounded-xl p-5 border border-[#D2D2D7] dark:border-[#2a2a3c] bg-white dark:bg-[#0d0d14]">
         <div className="flex items-center gap-3 mb-4">
-          <Settings size={18} className="text-[#4ECDC4]" />
+          <Settings size={18} className="text-[#FF6600]" />
           <div>
             <h4 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Default SEO Description</h4>
             <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Used as the meta description on public pages that don't set their own.</p>

@@ -14,7 +14,7 @@ api.interceptors.request.use(cfg => {
 });
 
 const STATUS_COLORS = {
-  open: 'bg-[#4ECDC4]/10 text-[#4ECDC4] border-[#4ECDC4]/30',
+  open: 'bg-[#FF6600]/10 text-[#FF6600] border-[#FF6600]/30',
   in_progress: 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/30',
   resolved: 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/30',
   closed: 'bg-[#A1A1A6]/10 text-[#A1A1A6] border-[#A1A1A6]/30',
@@ -24,7 +24,7 @@ const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', resolved: 'Res
 // be read by recharts' `fill` prop, so the donut slices need the same colors
 // spelled out literally to stay visually consistent with the status/priority
 // pills elsewhere on this screen.
-const STATUS_HEX = { open: '#4ECDC4', in_progress: '#F59E0B', resolved: '#22C55E', closed: '#A1A1A6' };
+const STATUS_HEX = { open: '#FF6600', in_progress: '#F59E0B', resolved: '#22C55E', closed: '#A1A1A6' };
 const PRIORITY_HEX = { normal: '#6E6E73', high: '#F59E0B', urgent: '#EF4444' };
 
 const PRIORITY_COLORS = {
@@ -171,7 +171,7 @@ const TicketManagement = () => {
         <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold text-[#4ECDC4] tracking-widest uppercase mb-1">{activeTicket.ticket_number}</p>
+              <p className="text-xs font-semibold text-[#FF6600] tracking-widest uppercase mb-1">{activeTicket.ticket_number}</p>
               <h2 className="text-xl font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">{activeTicket.subject}</h2>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">From: <strong className="text-[#6E6E73] dark:text-[#a1a1aa]">{activeTicket.username}</strong> ({activeTicket.user_email})</span>
@@ -213,7 +213,7 @@ const TicketManagement = () => {
             {(activeTicket.messages || []).map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-start' : 'justify-end'}`}>
                 <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.sender === 'user' ? 'bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7]' : 'bg-[#1D1D1F] dark:bg-[#e4e4e7] text-white dark:text-[#0e0e15]'}`}>
-                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A1A1A6] dark:text-[#71717a]' : 'text-[#4ECDC4]'}`}>
+                  <p className={`text-[10px] font-bold mb-1 ${msg.sender === 'user' ? 'text-[#A1A1A6] dark:text-[#71717a]' : 'text-[#FF6600]'}`}>
                     {msg.sender === 'support' ? `⚡ ${msg.author_name} (Support)` : msg.author_name}
                     <span className="ml-2 font-normal opacity-60">{fmtDate(msg.timestamp)}</span>
                   </p>
@@ -232,7 +232,7 @@ const TicketManagement = () => {
                 rows={3}
                 value={reply}
                 onChange={e => setReply(e.target.value)}
-                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] resize-none mb-2"
+                className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] resize-none mb-2"
                 placeholder="Type your reply…"
               />
               {replyError && <p className="text-xs text-red-500 mb-2">{replyError}</p>}
@@ -309,7 +309,7 @@ const TicketManagement = () => {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Search tickets…"
-            className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
+            className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
           />
           {!searchInput && (
             <kbd className="hidden sm:block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 pointer-events-none">/</kbd>

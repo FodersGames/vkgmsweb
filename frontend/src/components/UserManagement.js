@@ -51,7 +51,7 @@ const STATIC_GROUPS = [
     permissions: [{ id: 'view_vps', label: 'View VPS Stats' }]
   },
   {
-    label: 'Website', icon: Code, color: '#4ECDC4',
+    label: 'Website', icon: Code, color: '#FF6600',
     permissions: [
       { id: 'manage_website', label: 'Website Settings' },
       { id: 'create_blog', label: 'Create Blog' },
@@ -80,7 +80,7 @@ const STATIC_GROUPS = [
     ]
   },
   {
-    label: 'Studio', icon: AppWindow, color: '#4ECDC4',
+    label: 'Studio', icon: AppWindow, color: '#FF6600',
     permissions: [
       { id: 'manage_studio_apps', label: 'App Builder' },
       { id: 'review_studio_apps', label: 'Review App Submissions' },
@@ -473,7 +473,7 @@ export const UserManagement = () => {
                   key={perm.id}
                   className={`rounded-lg flex items-center gap-2 px-3 py-2 border cursor-pointer transition-all text-sm ${
                     selectedPerms.includes(perm.id)
-                      ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]'
+                      ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#FF6600]'
                       : 'border-[#D2D2D7] dark:border-[#2a2a3c] bg-[#F5F5F7] dark:bg-[#111118] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] hover:text-[#1D1D1F] dark:hover:text-white'
                   }`}
                 >
@@ -519,7 +519,7 @@ export const UserManagement = () => {
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 flex items-center justify-center text-lg font-semibold shrink-0 ${u.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'}`}>
+                <div className={`w-14 h-14 flex items-center justify-center text-lg font-semibold shrink-0 ${u.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#FF6600]/10 text-[#FF6600]'}`}>
                   {initials}
                 </div>
                 <div>
@@ -527,13 +527,13 @@ export const UserManagement = () => {
                     <h2 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">
                       {displayName}
                     </h2>
-                    {isSuperAdmin && !currentUser?.is_super_admin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
+                    {isSuperAdmin && !currentUser?.is_super_admin && <span className="text-[10px] font-semibold text-[#FF6600] bg-[#FF6600]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
                     {u.role === 'admin' && !currentUser?.is_super_admin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
                     {currentUser?.is_super_admin && !isSelf && (
                       <select
                         value={u.role || 'user'}
                         onChange={(e) => handleRoleChange(e.target.value)}
-                        className="text-[10px] font-semibold rounded bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] px-2 py-0.5 outline-none focus:border-[#4ECDC4]"
+                        className="text-[10px] font-semibold rounded bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] px-2 py-0.5 outline-none focus:border-[#FF6600]"
                         title="Change system role"
                       >
                         <option value="user">Role: User</option>
@@ -542,14 +542,14 @@ export const UserManagement = () => {
                       </select>
                     )}
                     {currentUser?.is_super_admin && isSelf && (
-                      <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>
+                      <span className="text-[10px] font-semibold text-[#FF6600] bg-[#FF6600]/10 px-1.5 py-0.5 rounded">Super Admin</span>
                     )}
                     {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
                     {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
                     {(u.custom_roles || []).map(rId => {
                       const rIdStr = String(rId);
                       const rObj = customRolesList.find(r => r.id === rIdStr || r._id === rIdStr);
-                      const color = rObj?.color || '#4ECDC4';
+                      const color = rObj?.color || '#FF6600';
                       const rName = typeof rObj?.name === 'string' ? rObj.name : rIdStr;
                       return (
                         <span key={rIdStr} className="text-[10px] font-semibold px-1.5 py-0.5 rounded border" style={{ backgroundColor: `${color}15`, color, borderColor: `${color}35` }}>
@@ -592,7 +592,7 @@ export const UserManagement = () => {
                     <label className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase">Name</label>
                     {nameDaysLeft > 0 && (
                       <button type="button" onClick={() => resetCooldown('name')} disabled={resettingField === 'name'}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">
+                        className="flex items-center gap-1 text-[10px] font-semibold text-[#FF6600] hover:underline disabled:opacity-50">
                         <RotateCcw size={10} className={resettingField === 'name' ? 'animate-spin' : ''} />
                         Reset cooldown ({nameDaysLeft}d left)
                       </button>
@@ -601,7 +601,7 @@ export const UserManagement = () => {
                   <input
                     type="text" maxLength={70} value={profileForm.name}
                     onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                     placeholder="Display name"
                   />
                 </div>
@@ -610,7 +610,7 @@ export const UserManagement = () => {
                     <label className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] uppercase">Pseudo</label>
                     {pseudoDaysLeft > 0 && (
                       <button type="button" onClick={() => resetCooldown('username')} disabled={resettingField === 'username'}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-[#4ECDC4] hover:underline disabled:opacity-50">
+                        className="flex items-center gap-1 text-[10px] font-semibold text-[#FF6600] hover:underline disabled:opacity-50">
                         <RotateCcw size={10} className={resettingField === 'username' ? 'animate-spin' : ''} />
                         Reset cooldown ({pseudoDaysLeft}d left)
                       </button>
@@ -619,7 +619,7 @@ export const UserManagement = () => {
                   <input
                     type="text" minLength={5} maxLength={14} pattern="[a-zA-Z0-9_]+" value={profileForm.username}
                     onChange={e => setProfileForm(f => ({ ...f, username: e.target.value }))}
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   />
                   <p className="text-[10px] text-[#A1A1A6] dark:text-[#71717a] mt-1">5-14 characters, letters, numbers and underscores only.</p>
                 </div>
@@ -643,7 +643,7 @@ export const UserManagement = () => {
                     <span className="text-[#A1A1A6] dark:text-[#71717a]">purchase{(activity.game_purchases?.length || 0) !== 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Ticket size={13} className="text-[#4ECDC4]" />
+                    <Ticket size={13} className="text-[#FF6600]" />
                     <span className="text-[#1D1D1F] dark:text-[#e4e4e7] font-semibold">{activity.support_tickets?.length || 0}</span>
                     <span className="text-[#A1A1A6] dark:text-[#71717a]">support ticket{(activity.support_tickets?.length || 0) !== 1 ? 's' : ''}</span>
                   </div>
@@ -666,9 +666,9 @@ export const UserManagement = () => {
           <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] flex items-center gap-2">
-                <Shield size={14} className="text-[#4ECDC4]" /> Assigned Roles
+                <Shield size={14} className="text-[#FF6600]" /> Assigned Roles
               </h3>
-              {customRolesSaving && <Loader2 size={14} className="animate-spin text-[#4ECDC4]" />}
+              {customRolesSaving && <Loader2 size={14} className="animate-spin text-[#FF6600]" />}
             </div>
             <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-4">
               Toggle roles to grant specific permissions and badges to this user.
@@ -717,7 +717,7 @@ export const UserManagement = () => {
               )}
             </div>
             {isSuperAdmin ? (
-              <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[#4ECDC4]/10 text-[#4ECDC4]">All permissions</span>
+              <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[#FF6600]/10 text-[#FF6600]">All permissions</span>
             ) : editingPerms ? (
               <div>
                 {renderPermissionGrid(permsDraft, (id) => setPermsDraft(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]))}
@@ -744,12 +744,12 @@ export const UserManagement = () => {
           {(!isSuperAdmin || isSelf) && (
             <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4 flex items-center gap-1.5">
-                <Crown size={14} className="text-[#4ECDC4]" /> Vakar+
+                <Crown size={14} className="text-[#FF6600]" /> Vakar+
               </h3>
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                    u.vakar_plus_status === 'active' ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'bg-[#F5F5F7] dark:bg-[#111118] text-[#A1A1A6] dark:text-[#71717a]'
+                    u.vakar_plus_status === 'active' ? 'bg-[#FF6600]/10 text-[#FF6600]' : 'bg-[#F5F5F7] dark:bg-[#111118] text-[#A1A1A6] dark:text-[#71717a]'
                   }`}>
                     {u.vakar_plus_status === 'active' ? 'Active' : 'Not subscribed'}
                   </span>
@@ -762,7 +762,7 @@ export const UserManagement = () => {
                 {u.vakar_plus_status === 'active' ? (
                   <Button variant="secondary" size="sm" loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(false)}>Revoke Vakar+</Button>
                 ) : (
-                  <Button size="sm" icon={Crown} loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(true)} className="!bg-[#4ECDC4] hover:!bg-[#3DBDB4] !text-white">Grant Vakar+</Button>
+                  <Button size="sm" icon={Crown} loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(true)} className="!bg-[#FF6600] hover:!bg-[#e05a00] !text-white">Grant Vakar+</Button>
                 )}
               </div>
               {u.vakar_plus_plan === 'manual' && u.vakar_plus_status === 'active' && (
@@ -818,7 +818,7 @@ export const UserManagement = () => {
                     {createResult.generated_password && (
                       <p className="text-[#6E6E73] dark:text-[#a1a1aa]">Generated password: <strong className="text-[#1D1D1F] dark:text-[#e4e4e7] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
                     )}
-                    <button onClick={() => setCreateResult(null)} className="text-[#4ECDC4] hover:underline mt-1">Create another</button>
+                    <button onClick={() => setCreateResult(null)} className="text-[#FF6600] hover:underline mt-1">Create another</button>
                   </div>
                 ) : (
                   <form onSubmit={handleCreateUser} className="space-y-3">
@@ -827,35 +827,35 @@ export const UserManagement = () => {
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Email *</label>
                         <input type="email" required value={createForm.email}
                           onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="user@example.com" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Password (leave blank = auto-generate)</label>
                         <input type="text" value={createForm.password}
                           onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] font-mono"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7] font-mono"
                           placeholder="auto-generated" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Name</label>
                         <input type="text" maxLength={70} value={createForm.name}
                           onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="Display name (optional)" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Pseudo (leave blank = auto)</label>
                         <input type="text" minLength={5} maxLength={14} value={createForm.username}
                           onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]"
                           placeholder="auto-generated" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] mb-1">Role</label>
                         <select value={createForm.role}
                           onChange={e => setCreateForm(f => ({ ...f, role: e.target.value }))}
-                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]">
+                          className="rounded-lg w-full px-2 py-1.5 text-xs border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#151520] text-[#1D1D1F] dark:text-[#e4e4e7]">
                           <option value="user">User</option>
                           <option value="admin">Admin</option>
                         </select>
@@ -900,7 +900,7 @@ export const UserManagement = () => {
                             onClick={() => toggleCreatePermission(p.id)}
                             className={`rounded text-[10px] px-2 py-0.5 border transition-colors ${
                               createForm.permissions.includes(p.id)
-                                ? 'bg-[#4ECDC4]/10 border-[#4ECDC4]/40 text-[#4ECDC4]'
+                                ? 'bg-[#FF6600]/10 border-[#FF6600]/40 text-[#FF6600]'
                                 : 'bg-white dark:bg-[#111118] border-[#D2D2D7] dark:border-[#2a2a3c] text-[#A1A1A6] dark:text-[#71717a] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c]'
                             }`}>
                             {p.label}
@@ -929,7 +929,7 @@ export const UserManagement = () => {
                   placeholder="Search by name, pseudo, or email…"
                   value={searchInput}
                   onChange={e => setSearchInput(e.target.value)}
-                  className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
+                  className="rounded-lg w-full pl-9 pr-8 py-2 text-sm bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-[#e4e4e7] focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all placeholder:text-[#A1A1A6] dark:placeholder:text-[#52525b]"
                 />
                 {!searchInput && (
                   <kbd className="hidden sm:block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] border border-[#D2D2D7] dark:border-[#2a2a3c] rounded px-1.5 py-0.5 pointer-events-none">/</kbd>
@@ -951,7 +951,7 @@ export const UserManagement = () => {
 
             {/* Bulk action bar */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center gap-3 mb-4 px-3 py-2 rounded-lg bg-[#4ECDC4]/10 border border-[#4ECDC4]/30">
+              <div className="flex items-center gap-3 mb-4 px-3 py-2 rounded-lg bg-[#FF6600]/10 border border-[#FF6600]/30">
                 <span className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{selectedIds.size} selected</span>
                 <div className="flex-1" />
                 <Button size="sm" variant="secondary" icon={CheckCircle} onClick={() => bulkSuspend(false)}>Reactivate</Button>
@@ -1002,7 +1002,7 @@ export const UserManagement = () => {
                             className="w-3.5 h-3.5 rounded shrink-0"
                           />
                         ) : <div className="w-3.5 shrink-0" />}
-                        <div className={`flex items-center justify-center text-sm font-semibold shrink-0 ${density === 'compact' ? 'w-7 h-7' : 'w-9 h-9'} ${u.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#4ECDC4]/10 text-[#4ECDC4]'}`}>
+                        <div className={`flex items-center justify-center text-sm font-semibold shrink-0 ${density === 'compact' ? 'w-7 h-7' : 'w-9 h-9'} ${u.isSuspended ? 'bg-red-50 text-red-400' : 'bg-[#FF6600]/10 text-[#FF6600]'}`}>
                           {initials}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -1011,14 +1011,14 @@ export const UserManagement = () => {
                               {displayName}
                             </span>
                             <span className="text-xs text-[#A1A1A6] dark:text-[#71717a]">@{u.username}</span>
-                            {isSuperAdmin && <span className="text-[10px] font-semibold text-[#4ECDC4] bg-[#4ECDC4]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
+                            {isSuperAdmin && <span className="text-[10px] font-semibold text-[#FF6600] bg-[#FF6600]/10 px-1.5 py-0.5 rounded">Super Admin</span>}
                             {u.role === 'admin' && !isSuperAdmin && <span className="text-[10px] font-semibold text-[#6C5CE7] bg-[#6C5CE7]/10 px-1.5 py-0.5 rounded">Admin</span>}
                             {u.isSuspended && <span className="text-[10px] font-semibold text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">Suspended</span>}
                             {isSelf && <span className="text-[10px] font-semibold text-[#A1A1A6] dark:text-[#71717a] bg-[#F5F5F7] dark:bg-[#111118] px-1.5 py-0.5 rounded">You</span>}
                             {(u.custom_roles || []).map(rId => {
                               const rIdStr = String(rId);
                               const rObj = customRolesList.find(r => r.id === rIdStr || r._id === rIdStr);
-                              const color = rObj?.color || '#4ECDC4';
+                              const color = rObj?.color || '#FF6600';
                               const rName = typeof rObj?.name === 'string' ? rObj.name : rIdStr;
                               return (
                                 <span

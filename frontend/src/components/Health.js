@@ -76,8 +76,8 @@ export const Health = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
-            <Activity size={20} className="text-[#4ECDC4]" />
+          <div className="rounded-lg w-10 h-10 bg-[#FF6600]/10 flex items-center justify-center">
+            <Activity size={20} className="text-[#FF6600]" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-[#1D1D1F] dark:text-[#e4e4e7]">System Health</h1>
@@ -94,7 +94,7 @@ export const Health = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-          <Section icon={Database} color="#4ECDC4" title="Database" subtitle="MongoDB connectivity and storage">
+          <Section icon={Database} color="#FF6600" title="Database" subtitle="MongoDB connectivity and storage">
             <Row label="Connectivity"><StatusBadge ok={data.database.connected} okLabel="Connected" badLabel="Unreachable" /></Row>
             <Row label="Topology">{data.database.replica_set}</Row>
             {data.database.stats ? (

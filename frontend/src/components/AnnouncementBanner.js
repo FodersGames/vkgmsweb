@@ -48,7 +48,7 @@ export const AnnouncementBanner = () => {
       className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 bg-[#1D1D1F] text-white px-10 text-center"
       style={{ height: BANNER_HEIGHT }}
     >
-      <Megaphone size={12} className="shrink-0 text-[#4ECDC4]" />
+      <Megaphone size={12} className="shrink-0 text-[#FF6600]" />
       <p className="text-[11.5px] font-medium truncate">{text}</p>
       <button
         onClick={dismiss}

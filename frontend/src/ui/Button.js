@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 const V = {
   primary:     'bg-[#1D1D1F] hover:bg-[#3A3A3C] text-white dark:bg-[#e4e4e7] dark:text-[#0e0e15] dark:hover:bg-white',
-  accent:      'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]',
+  accent:      'bg-[#FF6600] hover:bg-[#e05a00] text-white',
   purple:      'bg-[#6C5CE7] hover:bg-[#5b4dd6] text-white',
   secondary:   'border border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] hover:text-[#1D1D1F] dark:hover:text-white bg-white dark:bg-[#151520]',
   ghost:       'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.06] hover:text-[#1D1D1F] dark:hover:text-white',
@@ -38,7 +38,7 @@ export const Button = ({
   return (
     <Tag
       {...tagProps}
-      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-[#4ECDC4]/50 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#151520] ${pill ? 'rounded-full' : 'rounded-lg'} ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
+      className={`inline-flex items-center justify-center font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#151520] ${pill ? 'rounded-full' : 'rounded-lg'} ${V[variant] ?? V.primary} ${S[size] ?? S.md} ${className}`}
       {...props}
     >
       {loading
