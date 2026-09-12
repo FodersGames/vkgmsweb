@@ -7,39 +7,68 @@ from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from fastapi import HTTPException, Request, Depends
 
-from .config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_HOURS
+import logging
+
+from .config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_HOURS, SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD
 from .database import db
 
+logger = logging.getLogger(__name__)
+
 # ============== PERMISSIONS ==============
-# Static permissions (project:slug permissions are dynamic, not listed here)
 ALL_PERMISSIONS = [
-    "view_all_projects", "create_projects", "delete_projects",
-    "send_items", "delete_items",
-    "change_status",
-    "view_variables", "create_variables", "edit_variables", "delete_variables",
-    "view_logs",
-    "manage_users",
-    "view_vps",
     "manage_website",
     "create_games", "edit_games", "delete_games",
     "create_blog", "edit_blog", "delete_blog",
-    "manage_chat",
-    "manage_shop",
-    "manage_files",
-    "create_missions", "claim_missions", "manage_missions",
-    "manage_tickets",
-    "manage_play",
-    "manager_careers",
-    "game_dev_panel",
-    "game_logs_panel",
-    "manage_studio_apps",
-    "review_studio_apps",
-    "manage_vakar_block",
     "manage_surveys",
+    "manage_tickets",
+    "manager_careers",
+    "manage_users",
+    "view_vps",
 ]
 
 def is_valid_permission(p: str) -> bool:
-    return p in ALL_PERMISSIONS or bool(re.match(r'^project:[a-z0-9_-]+$', p))
+    return p in ALL_PERMISSIONS
+
+async def _ensure_super_admin():
+    if not SUPER_ADMIN_EMAIL or not SUPER_ADMIN_PASSWORD:
+        return
+    try:
+        existing = await db.users.find_one({"email": SUPER_ADMIN_EMAIL.lower().strip()})
+        if existing:
+            if existing.get("role") != "super_admin":
+                await db.users.update_one(
+                    {"_id": existing["_id"]},
+                    {"$set": {"role": "super_admin", "permissions": ALL_PERMISSIONS}}
+                )
+                logger.info("Upgraded existing account to super_admin")
+            else:
+                logger.info(f"Super admin already exists: {SUPER_ADMIN_EMAIL}")
+            return
+
+        base_username = "superadmin"
+        username = base_username
+        counter = 1
+        while await db.users.find_one({"username": username}):
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        await db.users.insert_one({
+            "email": SUPER_ADMIN_EMAIL.lower().strip(),
+            "password_hash": hash_key(SUPER_ADMIN_PASSWORD),
+            "firstName": "Admin",
+            "lastName": "Vakar",
+            "username": username,
+            "role": "super_admin",
+            "permissions": ALL_PERMISSIONS,
+            "isVerified": True,
+            "isSuspended": False,
+            "mustChangePassword": True,
+            "createdAt": datetime.now(timezone.utc),
+            "lastLogin": None,
+        })
+        logger.info(f"Super admin created: {SUPER_ADMIN_EMAIL} (username: {username})")
+    except Exception as e:
+        logger.error(f"Super admin init error: {e}")
 
 # ============== PSEUDO (username) RULES ==============
 # The field is still called "username" in the DB/JWT : it's embedded in the

@@ -188,27 +188,6 @@ export const GamesManagement = () => {
                   </div>
                 </div>
 
-                {/* Price */}
-                <div>
-                  <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-1.5">Game Price</p>
-                  <div className="relative max-w-[180px]">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] dark:text-[#71717a] text-sm font-medium">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.price_cents === 0 ? '' : (form.price_cents / 100).toFixed(2)}
-                      onChange={e => {
-                        const val = parseFloat(e.target.value);
-                        setForm(p => ({ ...p, price_cents: isNaN(val) ? 0 : Math.round(val * 100) }));
-                      }}
-                      placeholder="0.00 (free)"
-                      className="rounded-lg w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#FF6600]"
-                    />
-                  </div>
-                  <p className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
-                </div>
-
                 <label className="rounded-xl flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#FF6600]/30 transition-colors" data-testid="featured-toggle">
                   <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#FF6600]" />
                   <div>
@@ -248,9 +227,8 @@ export const GamesManagement = () => {
                       <Badge variant={statusVariant[g.status] || 'default'}>{statusLabel[g.status] || g.status}</Badge>
                       <Badge variant="default">{typeLabel[g.product_type] || 'Game'}</Badge>
                       {g.featured && <Badge variant="orange">Featured</Badge>}
-                      {g.price_cents > 0 && <Badge variant="default">${(g.price_cents / 100).toFixed(2)}</Badge>}
-                      {(g.price_cents === 0 || !g.price_cents) && <Badge variant="success">Free</Badge>}
                     </div>
+
                     <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] truncate mt-0.5">{g.description}</p>
                     {g.platforms?.length > 0 && (
                       <div className="flex gap-1 mt-1.5 flex-wrap">

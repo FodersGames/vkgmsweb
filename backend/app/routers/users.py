@@ -16,7 +16,7 @@ from ..utils import log_action, _create_notification
 from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     AdminCreateUserRequest, SuspendUserRequest, UpdateUserPermissionsRequest,
-    AdminUpdateUserProfileRequest, ResetCooldownRequest, AdminVakarPlusRequest,
+    AdminUpdateUserProfileRequest, ResetCooldownRequest,
     UpdateUserCustomRolesRequest, UpdateUserRoleRequest,
 )
 
@@ -42,9 +42,8 @@ def _user_summary(u: dict) -> dict:
         "firstNameChangedAt": _iso(u.get("firstNameChangedAt")),
         "nameChangedAt": _iso(u.get("nameChangedAt")),
         "usernameChangedAt": _iso(u.get("usernameChangedAt")),
-        "vakar_plus_status": u.get("vakar_plus_status", "none"),
-        "vakar_plus_plan": u.get("vakar_plus_plan"),
     }
+
 
 # ============== USERS ==============
 @router.post("/admin/users/create")
@@ -312,35 +311,6 @@ async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=D
     await log_action("user_action", f"Admin '{admin['username']}' reset {body.field} cooldown for '{target.get('username', user_id)}'", user=admin["username"])
     return {"success": True}
 
-@router.patch("/admin/users/{user_id}/vakar-plus")
-async def admin_set_vakar_plus(user_id: str, req: AdminVakarPlusRequest, admin=Depends(require_permission("manage_users"))):
-    """Manual comp/revoke of Vakar+, independent of Stripe : for support
-    cases (compensation, promos) rather than a real subscription. Marked
-    with plan "manual" so it's distinguishable from a Stripe-billed one at a
-    glance; granting doesn't touch stripe_customer_id, and if the account
-    also has a real subscription, the next Stripe webhook event for it will
-    overwrite this (this endpoint doesn't fight Stripe, it's a point-in-time
-    override)."""
-    try:
-        target = await db.users.find_one({"_id": ObjectId(user_id)})
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid user ID")
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-    if req.grant:
-        update = {"vakar_plus_status": "active", "vakar_plus_plan": "manual", "vakar_plus_current_period_end": None, "vakar_plus_cancel_at_period_end": False}
-        message = "🎉 You've been granted Vakar+ by an admin!"
-        notif_type = "vakar_plus_started"
-    else:
-        update = {"vakar_plus_status": "none", "vakar_plus_plan": None}
-        message = "Your Vakar+ access was revoked by an admin."
-        notif_type = "vakar_plus_ended"
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
-    action = "granted" if req.grant else "revoked"
-    await log_action("user_action", f"Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', user_id)}'", user=admin["username"])
-    await _create_notification(user_id=user_id, message=message, notif_type=notif_type)
-    return {"success": True, "granted": req.grant}
-
 @router.get("/admin/users/{user_id}/export")
 async def export_user_data(user_id: str, admin=Depends(require_permission("manage_users"))):
     try:
@@ -350,7 +320,6 @@ async def export_user_data(user_id: str, admin=Depends(require_permission("manag
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
     email = target.get("email", "")
-    purchases = await db.game_purchases.find({"email": email}).to_list(500)
     tickets = await db.support_tickets.find({"user_email": email}).to_list(500)
 
     def _serialize_date(v):
@@ -370,15 +339,7 @@ async def export_user_data(user_id: str, admin=Depends(require_permission("manag
             "created_at": _serialize_date(target.get("created_at")),
             "isSuspended": target.get("isSuspended", False),
         },
-        "game_purchases": [
-            {
-                "game_slug": p.get("game_slug"),
-                "game_name": p.get("game_name"),
-                "purchased_at": _serialize_date(p.get("purchased_at")),
-                "amount_paid_cents": p.get("amount_paid_cents"),
-            }
-            for p in purchases
-        ],
+
         "support_tickets": [
             {
                 "ticket_number": t.get("ticket_number"),

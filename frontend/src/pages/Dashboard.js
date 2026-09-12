@@ -24,8 +24,8 @@ import { SurveysManagement }    from '../components/SurveysManagement';
 import { DinoDevPanel }        from '../components/DinoDevPanel';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
-import CriticalActionBanner   from '../components/CriticalActionBanner';
 import { API_URL }            from '../utils/api';
+
 
 // ── Navigation groups ─────────────────────────────────────────────────────────
 const NAV_GROUPS = [
@@ -630,9 +630,8 @@ const DashboardContent = () => {
           </div>
         </header>
 
-        {isSuperAdmin && <CriticalActionBanner />}
-
         <main>
+
           <TabErrorBoundary tabKey={activeTab} onReset={() => setActiveTab('overview')}>
             <div key={`${activeTab}:${activeTab === 'system' ? systemTab : activeTab === 'website-settings' ? websiteSettingsTab : ''}`} className={`p-6 md:p-8 ${navDirection === 'back' ? 'animate-nav-back' : 'animate-nav-forward'}`}>
               {activeTab === 'overview' && <DashboardOverview goTo={goTo} />}

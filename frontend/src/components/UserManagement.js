@@ -2,105 +2,57 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import {
-  Users, Edit2, Trash2, Save, X, Gamepad2, Package, Activity, Database,
+  Users, Edit2, Trash2, Save, X, Gamepad2,
   FileText, Code, Shield, ClipboardList, Ban, CheckCircle, Mail,
   Search, Loader2, MessageCircle, Clipboard, ClipboardCheck,
-  FolderOpen, Server, Terminal, ChevronLeft, RotateCcw, Ticket, ShoppingCart, AppWindow, Crown,
+  Terminal, ChevronLeft, RotateCcw,
 } from 'lucide-react';
+
 import api from '../utils/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Button, Card, CardHeader, CardBody, EmptyState, Skeleton, Select, DensityToggle, useDensity } from '../ui';
 
-const STATIC_GROUPS = [
+const PERMISSION_GROUPS = [
   {
-    label: 'Items', icon: Package, color: '#F2994A',
+    label: 'Users & Roles', icon: Shield, color: '#EB5757',
+    permissions: [{ id: 'manage_users', label: 'Manage Users & Permissions' }]
+  },
+  {
+    label: 'Website CMS', icon: Code, color: '#FF6600',
     permissions: [
-      { id: 'send_items', label: 'Send Items' },
-      { id: 'delete_items', label: 'Delete Items' },
+      { id: 'manage_website', label: 'Website Settings & Games' },
+      { id: 'create_blog', label: 'Create Blog Post' },
+      { id: 'edit_blog', label: 'Edit Blog Post' },
+      { id: 'delete_blog', label: 'Delete Blog Post' },
     ]
   },
   {
-    label: 'Server', icon: Activity, color: '#27AE60',
-    permissions: [{ id: 'change_status', label: 'Change Status' }]
-  },
-  {
-    label: 'Variables', icon: Database, color: '#2F80ED',
-    permissions: [
-      { id: 'view_variables', label: 'View Variables' },
-      { id: 'create_variables', label: 'Create Variables' },
-      { id: 'edit_variables', label: 'Edit Variables' },
-      { id: 'delete_variables', label: 'Delete Variables' },
-    ]
-  },
-  {
-    label: 'Logs & Docs', icon: FileText, color: '#9B51E0',
-    permissions: [
-      { id: 'view_logs', label: 'View Logs' },
-    ]
-  },
-  {
-    label: 'Users', icon: Shield, color: '#EB5757',
-    permissions: [{ id: 'manage_users', label: 'Manage Users' }]
-  },
-  {
-    label: 'Files', icon: FolderOpen, color: '#E67E22',
-    permissions: [{ id: 'manage_files', label: 'Manage Project Files' }]
-  },
-  {
-    label: 'Infrastructure', icon: Server, color: '#16A085',
-    permissions: [{ id: 'view_vps', label: 'View VPS Stats' }]
-  },
-  {
-    label: 'Website', icon: Code, color: '#FF6600',
-    permissions: [
-      { id: 'manage_website', label: 'Website Settings' },
-      { id: 'create_blog', label: 'Create Blog' },
-      { id: 'edit_blog', label: 'Edit Blog' },
-      { id: 'delete_blog', label: 'Delete Blog' },
-      { id: 'manage_chat', label: 'Manage Game Chat' },
-    ]
-  },
-  {
-    label: 'Support', icon: MessageCircle, color: '#F59E0B',
+    label: 'Support Tickets', icon: MessageCircle, color: '#F59E0B',
     permissions: [{ id: 'manage_tickets', label: 'Manage Support Tickets' }]
   },
   {
-    label: 'Missions', icon: ClipboardList, color: '#A29BFE',
+    label: 'Surveys & Feedback', icon: ClipboardList, color: '#3B82F6',
+    permissions: [{ id: 'manage_surveys', label: 'Manage Surveys' }]
+  },
+  {
+    label: 'Careers / Jobs', icon: FileText, color: '#10B981',
+    permissions: [{ id: 'manage_careers', label: 'Manage Careers' }]
+  },
+  {
+    label: 'System & Security', icon: Terminal, color: '#9B51E0',
     permissions: [
-      { id: 'create_missions', label: 'Post Missions' },
-      { id: 'claim_missions', label: 'Claim Missions' },
-      { id: 'manage_missions', label: 'Manage Missions' },
+      { id: 'view_logs', label: 'View Audit Logs' },
+      { id: 'use_cli', label: 'Access CLI Terminal' },
     ]
   },
   {
-    label: 'In-Game Tools', icon: Terminal, color: '#16A085',
+    label: 'In-Game Tools', icon: Gamepad2, color: '#16A085',
     permissions: [
-      { id: 'game_dev_panel', label: 'Game Dev Panel (in-game)' },
-      { id: 'game_logs_panel', label: 'Game Logs Panel (in-game)' },
-    ]
-  },
-  {
-    label: 'Studio', icon: AppWindow, color: '#FF6600',
-    permissions: [
-      { id: 'manage_studio_apps', label: 'App Builder' },
-      { id: 'review_studio_apps', label: 'Review App Submissions' },
-      { id: 'manage_vakar_block', label: 'Vakar Block' },
+      { id: 'game_dev_panel', label: 'In-Game Dev Panel (Dino Tycoon)' },
     ]
   },
 ];
 
-const buildPermissionGroups = (projects = []) => [
-  {
-    label: 'Projects', icon: Gamepad2, color: '#6C5CE7',
-    permissions: [
-      { id: 'view_all_projects', label: 'All Projects' },
-      ...projects.map(p => ({ id: `project:${p.slug}`, label: p.name })),
-      { id: 'create_projects', label: 'Create Projects' },
-      { id: 'delete_projects', label: 'Delete Projects' },
-    ]
-  },
-  ...STATIC_GROUPS,
-];
 
 // Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/NAME_COOLDOWN_DAYS :
 // client-side only for the "days remaining" hint; the backend is authoritative,
@@ -124,7 +76,6 @@ export const UserManagement = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-  const [projectsList, setProjectsList] = useState([]);
   const [customRolesList, setCustomRolesList] = useState([]);
   const [customRolesSaving, setCustomRolesSaving] = useState(false);
 
@@ -156,14 +107,11 @@ export const UserManagement = () => {
   const [profileError, setProfileError] = useState('');
   const [resettingField, setResettingField] = useState('');
 
-  const [vakarPlusLoading, setVakarPlusLoading] = useState(false);
-
   const [copied, setCopied] = useState(false);
   const [activity, setActivity] = useState(null);
   const [activityLoading, setActivityLoading] = useState(false);
 
-  const permissionGroups = buildPermissionGroups(projectsList);
-  const ALL_PERMISSIONS = permissionGroups.flatMap(g => g.permissions.map(p => p.id));
+  const ALL_PERMISSIONS = PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => p.id));
 
   // ── List fetch ────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
@@ -185,9 +133,9 @@ export const UserManagement = () => {
   useEffect(() => { setSelectedIds(new Set()); }, [users]);
 
   useEffect(() => {
-    api.get('/api/projects').then(r => setProjectsList(r.data.projects || [])).catch(() => {});
     api.get('/api/admin/roles').then(r => setCustomRolesList(r.data.roles || [])).catch(() => {});
   }, []);
+
 
   // Debounce the search box so it doesn't fire a request on every keystroke.
   useEffect(() => {
@@ -366,24 +314,6 @@ export const UserManagement = () => {
     });
   };
 
-  const handleVakarPlusToggle = async (grant) => {
-    if (!activeUser) return;
-    setVakarPlusLoading(true);
-    try {
-      await api.patch(`/api/admin/users/${activeUser.id}/vakar-plus`, { grant });
-      setActiveUser(u => ({ ...u, vakar_plus_status: grant ? 'active' : 'none', vakar_plus_plan: grant ? 'manual' : null }));
-      // Toggling your OWN Vakar+ status needs to reach AuthContext too : it's
-      // what actually gates premium features (allowPremium) everywhere else
-      // in the app, not this admin panel's local state.
-      if (currentUser?.id === activeUser.id) refreshUser();
-      toast.success(grant ? 'Vakar+ granted' : 'Vakar+ revoked');
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to update Vakar+ status');
-    } finally {
-      setVakarPlusLoading(false);
-    }
-  };
-
   const copyUserData = async () => {
     try {
       const data = activity || (await api.get(`/api/admin/users/${activeUser.id}/export`)).data;
@@ -430,12 +360,7 @@ export const UserManagement = () => {
   };
 
   const getPermLabel = (permId) => {
-    if (permId.startsWith('project:')) {
-      const slug = permId.split(':')[1];
-      const proj = projectsList.find(p => p.slug === slug);
-      return { label: proj ? proj.name : slug, color: '#6C5CE7' };
-    }
-    for (const group of permissionGroups) {
+    for (const group of PERMISSION_GROUPS) {
       const p = group.permissions.find(pp => pp.id === permId);
       if (p) return { label: p.label, color: group.color };
     }
@@ -444,7 +369,8 @@ export const UserManagement = () => {
 
   const renderPermissionGrid = (selectedPerms, onToggle) => (
     <div className="space-y-3">
-      {permissionGroups.map((group) => {
+      {PERMISSION_GROUPS.map((group) => {
+
         const Icon = group.icon;
         const allSelected = group.permissions.every(p => selectedPerms.includes(p.id));
         return (
@@ -738,41 +664,7 @@ export const UserManagement = () => {
             )}
           </div>
 
-          {/* Vakar+ : manual comp/revoke, independent of Stripe. Shown on a
-              super admin's OWN profile too (e.g. to test premium features)
-              even though it's hidden when viewing another super admin. */}
-          {(!isSuperAdmin || isSelf) && (
-            <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 mb-4">
-              <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4 flex items-center gap-1.5">
-                <Crown size={14} className="text-[#FF6600]" /> Vakar+
-              </h3>
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                    u.vakar_plus_status === 'active' ? 'bg-[#FF6600]/10 text-[#FF6600]' : 'bg-[#F5F5F7] dark:bg-[#111118] text-[#A1A1A6] dark:text-[#71717a]'
-                  }`}>
-                    {u.vakar_plus_status === 'active' ? 'Active' : 'Not subscribed'}
-                  </span>
-                  {u.vakar_plus_plan && (
-                    <span className="text-xs text-[#A1A1A6] dark:text-[#71717a] capitalize">
-                      {u.vakar_plus_plan === 'manual' ? 'manually granted' : `${u.vakar_plus_plan} : via Stripe`}
-                    </span>
-                  )}
-                </div>
-                {u.vakar_plus_status === 'active' ? (
-                  <Button variant="secondary" size="sm" loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(false)}>Revoke Vakar+</Button>
-                ) : (
-                  <Button size="sm" icon={Crown} loading={vakarPlusLoading} onClick={() => handleVakarPlusToggle(true)} className="!bg-[#FF6600] hover:!bg-[#e05a00] !text-white">Grant Vakar+</Button>
-                )}
-              </div>
-              {u.vakar_plus_plan === 'manual' && u.vakar_plus_status === 'active' && (
-                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Granted manually : doesn't renew or charge; revoke here whenever it should end.</p>
-              )}
-              {u.vakar_plus_plan && u.vakar_plus_plan !== 'manual' && u.vakar_plus_status === 'active' && (
-                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Billed via Stripe : revoking here overrides it until the next billing event syncs status again.</p>
-              )}
-            </div>
-          )}
+
 
         </div>
 

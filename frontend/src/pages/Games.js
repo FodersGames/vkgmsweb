@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowSquareOut, CircleNotch, CheckCircle, ShoppingCart, Tag, X, GameController } from '@phosphor-icons/react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { ArrowSquareOut, CircleNotch, GameController } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { HoverPreview } from '../components/HoverPreview';
@@ -21,17 +18,8 @@ const PLATFORM_ICONS = {
 };
 
 const GamesPage = () => {
-  const { user, token } = useAuth();
-  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(null);
-  const [purchaseError, setPurchaseError] = useState({ slug: '', msg: '' });
-  const [ownedSlugs, setOwnedSlugs] = useState(new Set());
-  const [buyingSlug, setBuyingSlug] = useState(null);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponStatus, setCouponStatus] = useState(null);
-  const [couponChecking, setCouponChecking] = useState(false);
 
   useEffect(() => {
     document.title = 'Games | Vakar Games';
@@ -39,61 +27,6 @@ const GamesPage = () => {
       .then(gamesList => { setGames(gamesList || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!token || games.length === 0) return;
-    const paidPublished = games.filter(g => g.price_cents > 0 && g.status === 'published');
-    if (paidPublished.length === 0) return;
-    Promise.all(
-      paidPublished.map(g =>
-        axios.get(`${API_URL}/api/games/${g.slug}/purchased`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.data.purchased ? g.slug : null)
-          .catch(() => null)
-      )
-    ).then(results => setOwnedSlugs(new Set(results.filter(Boolean))));
-  }, [token, games]);
-
-  const openBuy = (game) => {
-    if (!user) { navigate('/login'); return; }
-    setBuyingSlug(game.slug);
-    setCouponCode('');
-    setCouponStatus(null);
-    setPurchaseError({ slug: '', msg: '' });
-  };
-
-  const checkGameCoupon = async (gameSlug) => {
-    if (!couponCode.trim()) return;
-    setCouponChecking(true);
-    setCouponStatus(null);
-    try {
-      const r = await axios.post(
-        `${API_URL}/api/coupons/validate`,
-        { code: couponCode.trim(), game_slug: gameSlug },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCouponStatus({ valid: true, discount_pct: r.data.discount_pct });
-    } catch (e) {
-      setCouponStatus({ valid: false, error: e.response?.data?.detail || 'Invalid coupon code.' });
-    } finally {
-      setCouponChecking(false);
-    }
-  };
-
-  const buyGame = async (game) => {
-    setPurchasing(game.slug);
-    setPurchaseError({ slug: '', msg: '' });
-    try {
-      const r = await axios.post(
-        `${API_URL}/api/games/${game.slug}/checkout`,
-        { coupon_code: couponStatus?.valid ? couponCode.trim() : '' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      window.location.href = r.data.checkout_url;
-    } catch (e) {
-      setPurchaseError({ slug: game.slug, msg: e.response?.data?.detail || 'Purchase failed. Please try again.' });
-      setPurchasing(null);
-    }
-  };
 
   const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
@@ -188,11 +121,16 @@ const GamesPage = () => {
                       {game.screenshots.slice(1, 4).map((s, i) => {
                         const full = imgUrl(s);
                         return (
-                          <HoverPreview key={i} src={full} alt="" className="shrink-0" glass>
+                          <HoverPreview
+                            key={i}
+                            previewSrc={full}
+                            previewType="image"
+                            className="flex-shrink-0"
+                          >
                             <img
                               src={full}
                               alt=""
-                              className="h-16 sm:h-20 rounded-lg object-cover border border-[#E5E5EA]"
+                              className="h-14 w-24 object-cover rounded-lg border border-[#E5E5EA] opacity-80 hover:opacity-100 transition-opacity"
                             />
                           </HoverPreview>
                         );
@@ -219,77 +157,6 @@ const GamesPage = () => {
                           </a>
                         ) : null;
                       })}
-                    </div>
-                  )}
-
-                  {/* Buy button */}
-                  {game.price_cents > 0 && game.status === 'published' && (
-                    <div className="pt-2">
-                      {purchaseError.slug === game.slug && (
-                        <p className="text-xs text-red-500 mb-2">{purchaseError.msg}</p>
-                      )}
-                      {ownedSlugs.has(game.slug) ? (
-                        <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#FF6600] bg-white rounded-lg border border-[#FF6600]/30">
-                          <CheckCircle size={16} />
-                          Owned
-                        </span>
-                      ) : buyingSlug === game.slug ? (
-                        <div className="p-5 space-y-3 max-w-sm bg-white rounded-xl border border-[#D2D2D7] shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-[#1D1D1F]">
-                              Promo code <span className="text-[#86868B] font-normal">(optional)</span>
-                            </p>
-                            <button onClick={() => setBuyingSlug(null)} className="text-[#86868B] hover:text-[#1D1D1F]">
-                              <X size={14} />
-                            </button>
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={couponCode}
-                              onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
-                              placeholder="VG-XXXXXXXX"
-                              className="flex-1 text-xs px-3 py-2 bg-[#F5F5F7] border border-[#D2D2D7] rounded-md text-[#1D1D1F] focus:outline-none focus:border-[#1D1D1F] font-mono"
-                            />
-                            <button
-                              onClick={() => checkGameCoupon(game.slug)}
-                              disabled={!couponCode.trim() || couponChecking}
-                              className="text-xs font-medium px-3.5 py-2 border border-[#D2D2D7] rounded-md text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors disabled:opacity-40"
-                            >
-                              {couponChecking ? '…' : 'Apply'}
-                            </button>
-                          </div>
-                          {couponStatus?.valid && (
-                            <p className="text-xs font-medium flex items-center gap-1 text-[#FF6600]">
-                              <Tag size={12} /> {couponStatus.discount_pct}% discount applied
-                            </p>
-                          )}
-                          {couponStatus?.valid === false && (
-                            <p className="text-xs text-red-500">{couponStatus.error}</p>
-                          )}
-                          <button
-                            onClick={() => buyGame(game)}
-                            disabled={purchasing === game.slug}
-                            className="btn-apple w-full !py-2.5 text-xs font-medium"
-                          >
-                            {purchasing === game.slug
-                              ? <><CircleNotch size={14} className="animate-spin mr-1" /> Processing…</>
-                              : <>
-                                  <ShoppingCart size={14} className="mr-1.5" />
-                                  {couponStatus?.valid
-                                    ? `Buy $${(Math.max(50, Math.round(game.price_cents * (1 - couponStatus.discount_pct / 100))) / 100).toFixed(2)}`
-                                    : `Buy $${(game.price_cents / 100).toFixed(2)}`
-                                  }
-                                </>
-                            }
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={() => openBuy(game)} className="btn-apple">
-                          <ShoppingCart size={14} className="mr-2" />
-                          {`Buy $${(game.price_cents / 100).toFixed(2)}`}
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>

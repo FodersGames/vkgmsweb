@@ -15,10 +15,9 @@ from ..deps import (
     ALL_PERMISSIONS, create_access_token, get_current_user, verify_key, hash_key,
     async_hash_key, async_verify_key,
     validate_password_strength, PSEUDO_REGEX, PSEUDO_COOLDOWN_DAYS,
-    FIRSTNAME_COOLDOWN_DAYS,
+    FIRSTNAME_COOLDOWN_DAYS, _ensure_super_admin,
 )
 from ..utils import log_action, serialize_doc, _validate_file, _IMAGE_MIMES
-from ..play_auth import _ensure_super_admin
 from ..chat_common import get_banned_words, contains_banned_word
 from ..schemas import (
     LoginEmailRequest, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest,

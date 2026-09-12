@@ -91,15 +91,6 @@ const AppRoutes = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<ProtectedRoute requiresAdmin><Dashboard /></ProtectedRoute>} />
 
-        {/* Legacy redirects */}
-        <Route path="/applications" element={<Navigate to="/games" replace />} />
-        <Route path="/apps/:appId" element={<Navigate to="/games" replace />} />
-        <Route path="/play" element={<Navigate to="/games" replace />} />
-        <Route path="/shop" element={<Navigate to="/games" replace />} />
-        <Route path="/shop/*" element={<Navigate to="/games" replace />} />
-        <Route path="/vakar-plus" element={<Navigate to="/" replace />} />
-        <Route path="/my-apps" element={<Navigate to="/" replace />} />
-        <Route path="/choose-pseudo" element={<Navigate to="/" replace />} />
 
         {/* Catch-all 404 */}
         <Route path="*" element={<NotFound />} />

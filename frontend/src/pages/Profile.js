@@ -251,15 +251,8 @@ const Profile = () => {
                   <ShieldCheck size={16} weight="bold" />
                 </div>
               )}
-              {user.is_vakar_plus && (
-                <div
-                  title="Vakar+ Member"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-amber-500 shadow-sm"
-                >
-                  <Sparkle size={16} weight="fill" />
-                </div>
-              )}
               {customRoles.map(role => {
+
                 const IconComponent = getRoleIcon(role.icon);
                 return (
                   <div
