@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconContext } from '@phosphor-icons/react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -15,7 +15,9 @@ import TermsOfService from './pages/TermsOfService';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
-import MaintenancePage, { useMaintenanceCheck, MaintenanceCountdownBanner } from './pages/Maintenance';
+import StatusPage from './pages/StatusPage';
+import MaintenancePage, { useMaintenanceCheck } from './pages/Maintenance';
+import { SiteTopBanner } from './components/SiteTopBanner';
 import { Toaster } from './components/ui/sonner';
 import { CookieBanner } from './components/CookieBanner';
 import './App.css';
@@ -34,24 +36,28 @@ const NotFound = () => (
 );
 
 const AppRoutes = () => {
-  const { maintenance, scheduledAt, announcement } = useMaintenanceCheck();
+  const { maintenance, announcement } = useMaintenanceCheck();
+  const location = useLocation();
 
   const isAdminSubdomain = typeof window !== 'undefined' && (
     window.location.hostname === 'admin.vakargames.com' ||
     window.location.hostname.startsWith('admin.')
   );
 
-  if (maintenance && !isAdminSubdomain) {
+  const isStatusPage = location.pathname === '/status' || location.pathname.startsWith('/status');
+
+  if (maintenance && !isAdminSubdomain && !isStatusPage) {
     return <MaintenancePage announcement={announcement} />;
   }
 
   return (
     <>
-      <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
+      <SiteTopBanner />
       <Routes>
         {/* Main studio showcase routes */}
         <Route path="/" element={isAdminSubdomain ? <Navigate to="/dashboard" replace /> : <Home />} />
         <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/status" element={<StatusPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/:slug" element={<BlogPost />} />

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
-import { AnnouncementBanner } from './AnnouncementBanner';
 import { API_URL } from '../utils/api';
 
 export const PublicNav = ({ onAbout }) => {
@@ -28,7 +27,6 @@ export const PublicNav = ({ onAbout }) => {
 
   return (
     <>
-      <AnnouncementBanner />
       <nav
         className="fixed left-0 right-0 z-50 transition-all duration-300"
         style={{
