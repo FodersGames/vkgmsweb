@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { getPublicGames } from '../utils/publicCache';
-import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
+import heroCoastSunset from '../assets/photos/hero-coast-sunset.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -49,22 +49,22 @@ const Home = () => {
         {/* Background Image with Dark Atmospheric Overlay */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <img
-            src={seaStackDusk}
+            src={heroCoastSunset}
             alt="Vakar Games Hero Background"
             className="w-full h-full object-cover object-center"
             style={{
-              filter: 'brightness(0.35) contrast(1.2) saturate(0.85)',
-              transform: 'scale(1.05)',
+              filter: 'brightness(0.55) contrast(1.15) saturate(1.1)',
+              transform: 'scale(1.04)',
             }}
           />
           {/* Gradients for text contrast and seamless bottom fade */}
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 40%, rgba(13,13,13,0.85) 85%, #0D0D0D 100%)',
+              background: 'linear-gradient(180deg, rgba(13,13,13,0.55) 0%, rgba(13,13,13,0.2) 40%, rgba(13,13,13,0.85) 85%, #0D0D0D 100%)',
             }}
           />
-          {/* Radial teal glow centered behind title */}
+          {/* Radial orange glow centered behind title */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
