@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Check } from 'lucide-react';
 
-// Small inline "Saved" confirmation for settings forms — flashes next to the
+// Small inline "Saved" confirmation for settings forms : flashes next to the
 // save action for a couple seconds instead of firing a toast for every minor edit.
 export const useSavedFlash = (duration = 2000) => {
   const [visible, setVisible] = useState(false);

@@ -148,7 +148,7 @@ async def register(request: Request, body: RegisterRequest):
         raise HTTPException(status_code=400, detail="Name is required")
     if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
         raise HTTPException(status_code=400, detail="Invalid email address")
-    # Auto-generate a placeholder username from the email prefix — this is never
+    # Auto-generate a placeholder username from the email prefix : this is never
     # treated as a deliberate pseudo choice (pseudo_set stays False), the user is
     # required to pick their own real pseudo via /auth/set-pseudo right after
     # registering (see the mandatory onboarding gate on the frontend).
@@ -318,7 +318,7 @@ async def update_profile(body: UpdateProfileRequest, user=Depends(get_current_us
 @limiter.limit("10/minute")
 async def set_pseudo(request: Request, body: SetPseudoRequest, user=Depends(get_current_user)):
     """First-time mandatory pseudo pick (see the onboarding gate on the frontend).
-    No cooldown — this is the user's first deliberate choice, not a change."""
+    No cooldown : this is the user's first deliberate choice, not a change."""
     username = body.username.strip()
     await _validate_pseudo(username, exclude_user_id=user["id"])
     await db.users.update_one(

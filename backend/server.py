@@ -1,4 +1,4 @@
-# Thin entrypoint — kept so the existing systemd unit / local dev command
+# Thin entrypoint : kept so the existing systemd unit / local dev command
 # (`uvicorn server:app`) keeps working unchanged. All real application code
 # lives in the `app/` package (see app/main.py for the FastAPI instance,
 # app/routers/ for the per-domain route modules).

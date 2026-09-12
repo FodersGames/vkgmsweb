@@ -454,7 +454,7 @@ async def list_game_files_client(slug: str, request: Request, version: Optional[
     result = []
     for f in files:
         doc = serialize_doc(f)
-        # Stable asset ID — identical across all cloned versions of the asset
+        # Stable asset ID : identical across all cloned versions of the asset
         asset_id = doc.get("stable_id") or doc["id"]
         doc["asset_id"] = asset_id
         doc["download_url"] = f"{base_url}/api/game/{slug}/files/{asset_id}/download?version={resolved_version}"
@@ -499,7 +499,7 @@ async def download_game_file_client(slug: str, file_id: str, request: Request, v
         "$and": [{"$or": version_or}, {"$or": stable_or}],
     })
     if not doc:
-        doc = exact  # no counterpart in the resolved version — serve the exact file
+        doc = exact  # no counterpart in the resolved version : serve the exact file
     if not doc:
         raise HTTPException(status_code=404, detail="File not found")
 

@@ -92,7 +92,7 @@ export const VpsStats = () => {
           {lastUpdate && (
             <p className="text-[11px] text-[#A1A1A6] dark:text-[#71717a] mt-0.5 flex items-center gap-1">
               <Clock size={10} />
-              Mis à jour à {lastUpdate.toLocaleTimeString('fr-FR')} — actualisation auto toutes les 10s
+              Mis à jour à {lastUpdate.toLocaleTimeString('fr-FR')} (actualisation auto toutes les 10s)
             </p>
           )}
         </div>
@@ -132,13 +132,13 @@ export const VpsStats = () => {
               label="RAM"
               icon={Database}
               percent={stats.ram.percent}
-              detail={`${fmt(stats.ram.used)} / ${fmt(stats.ram.total)} — ${fmt(stats.ram.free)} libre`}
+              detail={`${fmt(stats.ram.used)} / ${fmt(stats.ram.total)} (${fmt(stats.ram.free)} libre)`}
             />
             <Gauge
               label="Stockage"
               icon={HardDrive}
               percent={stats.disk.percent}
-              detail={`${fmt(stats.disk.used)} / ${fmt(stats.disk.total)} — ${fmt(stats.disk.free)} libre`}
+              detail={`${fmt(stats.disk.used)} / ${fmt(stats.disk.total)} (${fmt(stats.disk.free)} libre)`}
             />
           </div>
 

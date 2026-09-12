@@ -19,7 +19,7 @@ _JWT_EPHEMERAL = not bool(_jwt_secret_env)  # True = no env var set → tokens d
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-# Initial setup key — only works ONCE to bootstrap the Super Admin
+# Initial setup key : only works ONCE to bootstrap the Super Admin
 SETUP_KEY = os.environ.get('MASTER_KEY', '')
 
 # Super admin credentials from environment (never hardcode in source)
@@ -49,44 +49,44 @@ def _price_cents_env(name: str, default: str) -> int:
     except ValueError:
         return 0
 
-# Vakar+ subscription pricing — priced inline at checkout (Stripe
+# Vakar+ subscription pricing : priced inline at checkout (Stripe
 # `price_data` with `recurring` set) rather than referencing a pre-created
 # Stripe Price ID, so subscriptions work with only the base Stripe API keys
 # configured, no separate "create a Product + Price in the Dashboard" step.
 # Owner-confirmed monthly price is $7.99; overridable via env without a code
-# change. Yearly is 0 (not offered) until a price is set — both pricing.py's
+# change. Yearly is 0 (not offered) until a price is set : both pricing.py's
 # public endpoint and checkout gracefully treat 0 as "not available yet",
 # same UX as the old Price-ID-missing case.
 VAKAR_PLUS_MONTHLY_PRICE_CENTS = _price_cents_env('VAKAR_PLUS_MONTHLY_PRICE_CENTS', '799')
 VAKAR_PLUS_YEARLY_PRICE_CENTS = _price_cents_env('VAKAR_PLUS_YEARLY_PRICE_CENTS', '0')
 
 # This server's own publicly-reachable base URL (e.g. https://api.vakargames.com
-# or https://www.vakargames.com/api, whatever nginx actually exposes) — distinct
+# or https://www.vakargames.com/api, whatever nginx actually exposes) : distinct
 # from FRONTEND_URL above. Needed so an external GitHub Actions runner can fetch
 # an app's exported bundle and POST the finished APK back to this backend.
 BACKEND_PUBLIC_URL = os.environ.get('BACKEND_PUBLIC_URL', '')
 
-# APK export (Phase E) — triggers a GitHub Actions workflow in this repo to build
+# APK export (Phase E) : triggers a GitHub Actions workflow in this repo to build
 # a debug APK via Capacitor, entirely off the production VPS. Requires a GitHub
 # Personal Access Token with `actions:write` (classic PAT: `repo` scope) on the
-# repo below. Left blank until configured — the trigger endpoint fails closed
+# repo below. Left blank until configured : the trigger endpoint fails closed
 # (503) rather than erroring confusingly deep in a GitHub API call.
 GITHUB_PAT = os.environ.get('GITHUB_PAT', '')
 GITHUB_REPO = os.environ.get('GITHUB_REPO', 'FodersGames/vkgmsweb')
 GITHUB_WORKFLOW_FILE = os.environ.get('GITHUB_WORKFLOW_FILE', 'build-apk.yml')
 GITHUB_WORKFLOW_REF = os.environ.get('GITHUB_WORKFLOW_REF', 'version_006')
 
-# .vakarstudio export/import (Studio App Builder) — the file is Fernet-encrypted
+# .vakarstudio export/import (Studio App Builder) : the file is Fernet-encrypted
 # so it's opaque to anyone but this backend; the key is deterministically
 # derived from JWT_SECRET (SHA-256, urlsafe-base64) rather than a brand-new env
 # var, so it stays STABLE across restarts whenever JWT_SECRET is actually set
-# (same requirement production already has for sessions to survive a restart) —
+# (same requirement production already has for sessions to survive a restart) :
 # a fresh random key every boot would make previously-exported files
 # permanently undecryptable, which JWT ephemerality never risked (a logged-out
 # user just logs back in; a corrupted export file is unrecoverable data loss).
 VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-file-v1:{JWT_SECRET}".encode()).digest())
 
-# Android app-signing keystores (Studio App Builder .aab/Google Play export) —
+# Android app-signing keystores (Studio App Builder .aab/Google Play export) :
 # same derivation pattern as VAKARSTUDIO_FILE_KEY above, distinct label so the
 # two never collide. This is materially more sensitive than a project export:
 # whoever holds the plaintext key can sign updates impersonating the
@@ -94,7 +94,7 @@ VAKARSTUDIO_FILE_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"vakarstudio-fil
 # server-only key and only ever decrypted transiently (see apk_builds.py).
 STUDIO_SIGNING_KEY = base64.urlsafe_b64encode(hashlib.sha256(f"studio-signing-key-v1:{JWT_SECRET}".encode()).digest())
 
-# Web Push (Studio App Builder push notifications) — one VAPID identity for
+# Web Push (Studio App Builder push notifications) : one VAPID identity for
 # this whole backend (correct scope for VAPID: it identifies the SERVER
 # sending pushes to browser push services, not any individual app), derived
 # deterministically from JWT_SECRET like the two keys above rather than
@@ -117,11 +117,11 @@ except Exception:
     VAPID_PUBLIC_KEY_B64 = ""
 VAPID_CONTACT_EMAIL = os.environ.get("VAPID_CONTACT_EMAIL", "support@vakargames.com")
 
-# Studio App Builder "Integrations" tab — named API keys/tokens (e.g. a
+# Studio App Builder "Integrations" tab : named API keys/tokens (e.g. a
 # Firebase project config) an app's blocks can reference by name instead of
 # being pasted raw into a block field. Encrypted at rest with the same
 # derivation pattern as the two keys above, purely as hygiene for our own
-# database (nobody browsing Mongo directly sees them in plain text) — NOT a
+# database (nobody browsing Mongo directly sees them in plain text) : NOT a
 # genuine secret vault: once an app is published or exported, its compiled
 # script embeds the real values same as any client app (see studio_apps.py's
 # get_public_studio_app), so this never hides a value from that app's own

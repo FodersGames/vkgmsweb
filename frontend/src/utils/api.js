@@ -32,9 +32,9 @@ api.interceptors.response.use(
     // Network / timeout (no response at all)
     if (!error.response) {
       if (error.code === 'ECONNABORTED') {
-        toast.error('Request timed out — check your connection');
+        toast.error('Request timed out: check your connection');
       } else {
-        toast.error('Network error — check your internet connection');
+        toast.error('Network error: check your internet connection');
       }
       return Promise.reject(error);
     }
@@ -43,33 +43,33 @@ api.interceptors.response.use(
     const url = error.config?.url ?? '';
     const isAuthRoute = url.includes('/auth/');
 
-    // 401 — session expired (skip on auth routes to avoid login-redirect loops)
+    // 401: session expired (skip on auth routes to avoid login-redirect loops)
     if (status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
-      toast.error('Session expired — please log in again');
+      toast.error('Session expired: please log in again');
       window.location.hash = '/login';
       return Promise.reject(error);
     }
 
-    // 403 — permission denied
+    // 403: permission denied
     if (status === 403) {
       toast.error('You don\'t have permission to perform this action');
       return Promise.reject(error);
     }
 
-    // 429 — rate limited
+    // 429: rate limited
     if (status === 429) {
-      toast.error('Too many requests — please wait a moment');
+      toast.error('Too many requests: please wait a moment');
       return Promise.reject(error);
     }
 
-    // 5xx — server error
+    // 5xx: server error
     if (status >= 500) {
-      toast.error('Server error — please try again or contact support');
+      toast.error('Server error: please try again or contact support');
       return Promise.reject(error);
     }
 
-    // 400, 404, 422 etc. — let the component handle with error.response.data.detail
+    // 400, 404, 422 etc. : let the component handle with error.response.data.detail
     return Promise.reject(error);
   }
 );

@@ -61,7 +61,7 @@ export const ConfirmDialog = ({
 
   return createPortal(
     // Portaled straight to <body>, outside the Dashboard's own `dark`-scoped
-    // root div — reapply it here from ThemeContext (which crosses portals
+    // root div : reapply it here from ThemeContext (which crosses portals
     // fine, since React context follows the component tree, not the DOM tree)
     // or every dialog would render light no matter the admin theme.
     <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 ${isDark ? 'dark' : ''}`}>

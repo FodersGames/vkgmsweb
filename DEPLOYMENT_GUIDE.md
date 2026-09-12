@@ -1,4 +1,4 @@
-# Vakar Games — Deployment Guide (VPS Ubuntu + Domain)
+# Vakar Games : Deployment Guide (VPS Ubuntu + Domain)
 
 ## Prerequisites
 - A VPS with Ubuntu 22.04+ (ex: OVH, Hetzner, DigitalOcean)
@@ -7,13 +7,13 @@
 
 ---
 
-## Step 1 — Connect to your VPS
+## Step 1 : Connect to your VPS
 
 ```bash
 ssh root@YOUR_VPS_IP
 ```
 
-## Step 2 — Install dependencies
+## Step 2 : Install dependencies
 
 ```bash
 # Update system
@@ -43,7 +43,7 @@ apt install -y certbot python3-certbot-nginx
 npm install -g yarn
 ```
 
-## Step 3 — Clone your project
+## Step 3 : Clone your project
 
 ```bash
 cd /opt
@@ -51,7 +51,7 @@ git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git vakargames
 cd vakargames
 ```
 
-## Step 4 — Setup Backend
+## Step 4 : Setup Backend
 
 ```bash
 cd /opt/vakargames/backend
@@ -78,7 +78,7 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 mkdir -p uploads
 ```
 
-## Step 5 — Build Frontend
+## Step 5 : Build Frontend
 
 ```bash
 cd /opt/vakargames/frontend
@@ -93,7 +93,7 @@ yarn install
 yarn build
 ```
 
-## Step 6 — Setup Systemd Service for Backend
+## Step 6 : Setup Systemd Service for Backend
 
 ```bash
 cat > /etc/systemd/system/vakargames-api.service << 'EOF'
@@ -122,7 +122,7 @@ systemctl enable vakargames-api
 systemctl status vakargames-api
 ```
 
-## Step 7 — Configure Nginx
+## Step 7 : Configure Nginx
 
 ```bash
 cat > /etc/nginx/sites-available/vakargames << 'EOF'
@@ -160,7 +160,7 @@ nginx -t
 systemctl reload nginx
 ```
 
-## Step 8 — Configure your Domain
+## Step 8 : Configure your Domain
 
 In your domain registrar (OVH, Cloudflare, etc.), add these DNS records:
 
@@ -171,25 +171,25 @@ In your domain registrar (OVH, Cloudflare, etc.), add these DNS records:
 
 Wait for DNS propagation (can take up to 24h, usually 5-30 min).
 
-## Step 9 — Setup HTTPS (SSL)
+## Step 9 : Setup HTTPS (SSL)
 
 ```bash
 certbot --nginx -d vakargames.com -d www.vakargames.com
 ```
 
-Follow the prompts — Certbot will automatically configure HTTPS on Nginx.
+Follow the prompts : Certbot will automatically configure HTTPS on Nginx.
 
 Auto-renewal is automatic, but verify:
 ```bash
 certbot renew --dry-run
 ```
 
-## Step 10 — First Login
+## Step 10 : First Login
 
 1. Open `https://vakargames.com/login` in your browser
 2. Enter the initial setup key: `#fje&)m)fea-4_t97&^%xp@a+*nxab4bf_7!2$6^xpwf1m(ayd`
 3. A popup "FIRST CONNECTION" will appear with your **new secure key**
-4. **COPY AND SAVE THIS KEY** — it will never be shown again
+4. **COPY AND SAVE THIS KEY** : it will never be shown again
 5. The initial setup key is now permanently invalidated
 6. From now on, use your new key to login
 

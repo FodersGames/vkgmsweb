@@ -19,7 +19,7 @@ try:
 except ImportError:
     _MAGIC_AVAILABLE = False
     logger.error(
-        "python-magic not installed — MIME content validation disabled. "
+        "python-magic not installed : MIME content validation disabled. "
         "Install: pip install python-magic && apt-get install libmagic1"
     )
 
@@ -76,7 +76,7 @@ def _is_mp3(content: bytes) -> bool:
 
 # Raw magic-byte checkers, keyed by extension. Covers every standard image
 # format with well-known, stable signatures so uploads never depend on the
-# `libmagic` system library being installed — only PDF/ZIP/RAR/7z/AI/MP4/MOV
+# `libmagic` system library being installed : only PDF/ZIP/RAR/7z/AI/MP4/MOV
 # (delivery-only formats without a simple fixed signature) still fall back to
 # libmagic when available, or fail closed (503) if it isn't.
 _FORMAT_MAGIC_BYTES: dict = {
@@ -90,7 +90,7 @@ _FORMAT_MAGIC_BYTES: dict = {
     ".tiff":  _has_prefix(b"II*\x00", b"MM\x00*"),
     ".tif":   _has_prefix(b"II*\x00", b"MM\x00*"),
     ".webp":  _is_webp,
-    # APKs and AABs are ZIP archives — same signature family as regular ZIPs.
+    # APKs and AABs are ZIP archives : same signature family as regular ZIPs.
     ".apk":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
     ".aab":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
     ".zip":   _has_prefix(b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
@@ -127,7 +127,7 @@ def _sanitize_svg(content: bytes) -> bytes:
       4. Strip javascript: and data: protocols from href/src/action/xlink:href.
       5. Strip protocol-relative and external http(s) URLs from href/src/xlink:href.
       6. Strip style attributes that embed url() or javascript expressions.
-      7. Final XML well-formedness check — rejects encoding tricks that survive regex.
+      7. Final XML well-formedness check : rejects encoding tricks that survive regex.
     Raises ValueError on anything that cannot be safely cleaned.
     """
     try:
@@ -138,7 +138,7 @@ def _sanitize_svg(content: bytes) -> bytes:
     if not re.search(r"<svg[\s>/]|<svg$", text, re.IGNORECASE):
         raise ValueError("File does not appear to be a valid SVG")
 
-    # Step 1 — reject constructs that can hide payloads before sanitization
+    # Step 1 : reject constructs that can hide payloads before sanitization
     if re.search(r"<!\[CDATA\[", text, re.IGNORECASE):
         raise ValueError("SVG with CDATA sections is not allowed")
     if re.search(r"<!DOCTYPE", text, re.IGNORECASE):
@@ -146,27 +146,27 @@ def _sanitize_svg(content: bytes) -> bytes:
     if re.search(r"<\?(?!xml[\s?])", text, re.IGNORECASE):
         raise ValueError("SVG with non-XML processing instructions is not allowed")
 
-    # Step 2 — strip dangerous block elements (paired + self-closing).
+    # Step 2 : strip dangerous block elements (paired + self-closing).
     # Includes SMIL animation tags (animate/set/animateTransform/animateMotion/
     # animateColor): these can indirectly assign a javascript: value to href/
     # xlink:href over time (e.g. <animate attributeName="xlink:href"
     # values="javascript:..." begin="0"/>), bypassing the static href="..."
-    # regex checks in steps 4-5 entirely — a known SVG-sanitizer bypass class.
+    # regex checks in steps 4-5 entirely : a known SVG-sanitizer bypass class.
     for _tag in ("script", "foreignObject", "iframe", "object", "embed",
                  "animate", "set", "animateTransform", "animateMotion", "animateColor"):
         text = re.sub(rf"<{_tag}[\s\S]*?</{_tag}\s*>", "", text, flags=re.IGNORECASE)
         text = re.sub(rf"<{_tag}\b[^>]*/?>", "", text, flags=re.IGNORECASE)
 
-    # Step 2.5 — strip <style> blocks entirely (can contain @import, url() exfiltration)
+    # Step 2.5 : strip <style> blocks entirely (can contain @import, url() exfiltration)
     text = re.sub(r"<style[\s\S]*?</style\s*>", "", text, flags=re.IGNORECASE)
     text = re.sub(r"<style\b[^>]*/?>", "", text, flags=re.IGNORECASE)  # self-closing <style/>
 
-    # Step 3 — strip all on* event handlers
+    # Step 3 : strip all on* event handlers
     text = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+on\w+\s*=\s*'[^']*'", "", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+on\w+\s*=[^\s>\"']*", "", text, flags=re.IGNORECASE)  # unquoted
 
-    # Step 4 — strip javascript: and data: protocols from link/src attributes
+    # Step 4 : strip javascript: and data: protocols from link/src attributes
     for _attr in ("href", "xlink:href", "src", "action"):
         text = re.sub(
             rf'{_attr}\s*=\s*"(?:javascript|data):[^"]*"', "", text, flags=re.IGNORECASE
@@ -175,12 +175,12 @@ def _sanitize_svg(content: bytes) -> bytes:
             rf"{_attr}\s*=\s*'(?:javascript|data):[^']*'", "", text, flags=re.IGNORECASE
         )
 
-    # Step 5 — strip external URLs (http/https and protocol-relative) from link attributes
+    # Step 5 : strip external URLs (http/https and protocol-relative) from link attributes
     for _attr in ("href", "xlink:href", "src"):
         text = re.sub(rf'{_attr}\s*=\s*"(?:https?:)?//[^"]*"', "", text, flags=re.IGNORECASE)
         text = re.sub(rf"{_attr}\s*=\s*'(?:https?:)?//[^']*'", "", text, flags=re.IGNORECASE)
 
-    # Step 6 — strip style attributes that embed url() or javascript expressions
+    # Step 6 : strip style attributes that embed url() or javascript expressions
     text = re.sub(
         r'style\s*=\s*"[^"]*(?:url\s*\(|javascript\s*:)[^"]*"', "", text, flags=re.IGNORECASE
     )
@@ -188,7 +188,7 @@ def _sanitize_svg(content: bytes) -> bytes:
         r"style\s*=\s*'[^']*(?:url\s*\(|javascript\s*:)[^']*'", "", text, flags=re.IGNORECASE
     )
 
-    # Step 7 — XML well-formedness check (catches encoding tricks that survive regex)
+    # Step 7 : XML well-formedness check (catches encoding tricks that survive regex)
     try:
         import xml.etree.ElementTree as _ET
         _ET.fromstring(text)
@@ -233,7 +233,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
                 allowed = allowed | {"application/octet-stream"}
             if detected not in allowed:
                 logger.warning(
-                    "MIME mismatch — ext=%s detected=%s allowed=%s", ext, detected, allowed
+                    "MIME mismatch : ext=%s detected=%s allowed=%s", ext, detected, allowed
                 )
                 raise HTTPException(
                     status_code=400,
@@ -243,7 +243,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
         # Fail closed: python-magic unavailable and no magic-byte fallback for this format.
         # Refusing is safer than silently accepting based on extension alone.
         logger.error(
-            "Upload rejected — python-magic unavailable for ext=%s. "
+            "Upload rejected : python-magic unavailable for ext=%s. "
             "Install: pip install python-magic && apt-get install libmagic1",
             ext,
         )
@@ -251,7 +251,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
             status_code=503,
             detail="La validation du fichier est temporairement indisponible. Veuillez réessayer.",
         )
-    # else: has_magic_check passed above, magic-byte verified — accept even without libmagic
+    # else: has_magic_check passed above, magic-byte verified : accept even without libmagic
 
     return content
 
@@ -296,5 +296,5 @@ async def _create_notification(user_id: str, message: str, notif_type: str = "in
     pass
 
 def _get_origin(request=None) -> str:
-    # Always prefer server-side env var — never trust client Origin/Referer for Stripe URLs
+    # Always prefer server-side env var : never trust client Origin/Referer for Stripe URLs
     return os.environ.get("FRONTEND_URL", "").rstrip("/")

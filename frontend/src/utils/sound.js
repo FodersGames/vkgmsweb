@@ -1,4 +1,4 @@
-// Tiny, dependency-free UI sounds generated via the Web Audio API — no asset
+// Tiny, dependency-free UI sounds generated via the Web Audio API : no asset
 // files needed. Only ever triggered from a real user gesture (a click), so
 // browser autoplay policies never block it. Fails silently if AudioContext
 // is unavailable; never throws into caller code.
@@ -31,13 +31,13 @@ const tone = (freq, duration, when = 0, volume = 0.05) => {
   }
 };
 
-// Soft descending tick — used right before a destructive action executes.
+// Soft descending tick : used right before a destructive action executes.
 export const playConfirmTick = () => {
   tone(720, 0.05, 0, 0.04);
   tone(480, 0.07, 0.05, 0.035);
 };
 
-// Short bright tap — used for lighter confirmations / success moments.
+// Short bright tap : used for lighter confirmations / success moments.
 export const playTapTick = () => {
   tone(880, 0.045, 0, 0.03);
 };

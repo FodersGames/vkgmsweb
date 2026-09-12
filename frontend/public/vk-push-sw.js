@@ -1,6 +1,6 @@
 // Site-wide Web Push service worker for Studio App Builder apps (see
 // frontend/src/components/AppRuntime.js's pushSubscribe). Generic on
-// purpose — one file handles every app hosted under vakargames.com, since
+// purpose : one file handles every app hosted under vakargames.com, since
 // the notification's title/body/icon come from the push payload itself,
 // not from any per-app logic here.
 

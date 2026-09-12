@@ -124,7 +124,7 @@ app.add_middleware(
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(PlayCORSMiddleware)  # must be last — runs first, intercepts /api/play/* before CORSMiddleware
+app.add_middleware(PlayCORSMiddleware)  # must be last : runs first, intercepts /api/play/* before CORSMiddleware
 
 
 async def _init_db_indexes_and_migrations():
@@ -255,11 +255,11 @@ async def _init_db_indexes_and_migrations():
 async def startup_event():
     # Security warnings for missing env vars
     if config._JWT_EPHEMERAL:
-        logger.warning("⚠ JWT_SECRET not set in environment — using ephemeral random secret. All tokens will be invalidated on every restart!")
+        logger.warning("⚠ JWT_SECRET not set in environment : using ephemeral random secret. All tokens will be invalidated on every restart!")
     if not config.SUPER_ADMIN_EMAIL or not config.SUPER_ADMIN_PASSWORD:
-        logger.warning("⚠ SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD not set in .env — super admin auto-creation disabled")
+        logger.warning("⚠ SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD not set in .env : super admin auto-creation disabled")
     if not config.SETUP_KEY:
-        logger.warning("⚠ MASTER_KEY not set in environment — /auth/init-superadmin endpoint is disabled")
+        logger.warning("⚠ MASTER_KEY not set in environment : /auth/init-superadmin endpoint is disabled")
 
     # In serverless environments (e.g. Vercel), do not block HTTP request startup
     # by running 40+ MongoDB index checks and data migrations synchronously.

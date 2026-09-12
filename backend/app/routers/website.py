@@ -190,7 +190,7 @@ def _serialize_settings(doc: dict) -> dict:
     updated_at = doc.get("updated_at")
     scheduled_at = doc.get("maintenance_scheduled_at")
     # Effective mode is computed on every read, not written by a background
-    # job — a scheduled window can span far longer than a single process's
+    # job : a scheduled window can span far longer than a single process's
     # lifetime, so this stays correct across a manual VPS restart with zero
     # extra infrastructure. Once the scheduled time is reached the schedule
     # itself is left in place (not cleared here) so the response still says
@@ -222,7 +222,7 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
     log_parts = []
     if req.maintenance_mode is not None:
         updates["maintenance_mode"] = req.maintenance_mode
-        # An explicit manual on/off always wins over a pending/past schedule —
+        # An explicit manual on/off always wins over a pending/past schedule :
         # otherwise a stale schedule could silently re-trigger maintenance
         # (or fight an admin who just turned it back off) on a later read.
         updates["maintenance_scheduled_at"] = None
@@ -230,7 +230,7 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
         log_parts.append(f"maintenance {'enabled' if req.maintenance_mode else 'disabled'}")
     if req.maintenance_scheduled_at is not None:
         if req.maintenance_scheduled_at == "":
-            # Empty string is the explicit "clear the schedule" signal — a
+            # Empty string is the explicit "clear the schedule" signal : a
             # bare `null`/omitted field is indistinguishable from "not
             # provided" once it round-trips through JSON, so it can't carry
             # that meaning instead.
@@ -262,7 +262,7 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
         updates["announcement_active"] = req.announcement_active
         log_parts.append(f"announcement {'activated' if req.announcement_active else 'deactivated'}")
     if req.social_links is not None:
-        # Small fixed set of known keys — avoids storing arbitrary attacker-controlled
+        # Small fixed set of known keys : avoids storing arbitrary attacker-controlled
         # key names if this endpoint's permission were ever misconfigured.
         allowed_keys = {"discord", "twitter", "youtube", "tiktok", "instagram"}
         updates["social_links"] = {k: str(v)[:300] for k, v in req.social_links.items() if k in allowed_keys and v}

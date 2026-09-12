@@ -66,7 +66,7 @@ async def get_system_stats(user=Depends(require_permission("view_vps"))):
     }
 
 # ── Deep system health ───────────────────────────────────────────────────────
-# Collections indexed at startup (backend/app/main.py) — used only to report a
+# Collections indexed at startup (backend/app/main.py) : used only to report a
 # per-collection custom-index count, not to enforce/recreate anything here.
 _INDEXED_COLLECTIONS = [
     "users", "projects", "items", "logs", "variables",
@@ -108,7 +108,7 @@ def _categorize_requirements(lines):
 async def get_system_health_detailed(user=Depends(require_permission("view_vps"))):
     stripe_key = os.environ.get('STRIPE_SECRET_KEY', '')
 
-    # Database — connectivity, size stats, replica-set status (best-effort).
+    # Database : connectivity, size stats, replica-set status (best-effort).
     db_section = {"connected": False, "stats": None, "replica_set": "standalone"}
     try:
         await client.admin.command("ping")
@@ -131,9 +131,9 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
         await client.admin.command("replSetGetStatus")
         db_section["replica_set"] = "replica set"
     except Exception:
-        pass  # standalone instances reject this command — expected, not an error
+        pass  # standalone instances reject this command : expected, not an error
 
-    # Configuration status — presence only, never values.
+    # Configuration status : presence only, never values.
     cors_raw = os.environ.get("CORS_ORIGINS", "").strip()
     config_section = {
         "jwt_persistent": not _JWT_EPHEMERAL,
@@ -146,13 +146,13 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
         "frontend_url_configured": bool(os.environ.get("FRONTEND_URL", "").strip()),
     }
 
-    # Rate limiting — flag the in-memory backend as an explicit operational caveat.
+    # Rate limiting : flag the in-memory backend as an explicit operational caveat.
     rate_limit_section = {
         "backend": "in-memory",
-        "caveat": "Per-process — limits reset on restart and are not shared across multiple worker processes.",
+        "caveat": "Per-process : limits reset on restart and are not shared across multiple worker processes.",
     }
 
-    # Storage — game file totals via the same $group/$sum aggregation shape already used in files.py.
+    # Storage : game file totals via the same $group/$sum aggregation shape already used in files.py.
     storage_section = {"uploads_dir": str(ROOT_DIR / "uploads")}
     try:
         agg = await db.game_files.aggregate([
@@ -163,7 +163,7 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
     except Exception as e:
         storage_section["error"] = str(e)
 
-    # Indexes — per-collection custom index count (excludes the default _id_ index).
+    # Indexes : per-collection custom index count (excludes the default _id_ index).
     index_section = []
     for coll_name in _INDEXED_COLLECTIONS:
         try:
@@ -173,7 +173,7 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
         except Exception:
             index_section.append({"collection": coll_name, "custom_indexes": 0, "ok": False})
 
-    # Dependencies — echo requirements.txt, grouped for readability.
+    # Dependencies : echo requirements.txt, grouped for readability.
     dependencies_section = {}
     try:
         req_path = ROOT_DIR / "requirements.txt"
@@ -182,7 +182,7 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
     except Exception as e:
         dependencies_section = {"error": str(e)}
 
-    # Resources — same payload as /admin/system/stats, folded in so Health is one-stop.
+    # Resources : same payload as /admin/system/stats, folded in so Health is one-stop.
     if psutil:
         cpu_percent = psutil.cpu_percent(interval=None)
         ram = psutil.virtual_memory()
@@ -223,7 +223,7 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
 # SUPER ADMIN CLI
 # ============================================================
 # Closed whitelist of commands only. Every verb below wraps the SAME database
-# operations already used by their equivalent dashboard endpoints — no raw
+# operations already used by their equivalent dashboard endpoints : no raw
 # Mongo queries, no code evaluation. Destructive verbs are two-phase: the
 # first call (confirm=False) returns a preview only; the actual write only
 # happens when the client resends the identical command with confirm=True.
@@ -310,7 +310,7 @@ _CLI_HELP_TEXT = [
 ]
 
 # ── CLI catalog ───────────────────────────────────────────────────────────────
-# Read-only metadata describing every command above — powers GET /admin/cli/commands,
+# Read-only metadata describing every command above : powers GET /admin/cli/commands,
 # used by the frontend for autocomplete and for generating the "$command" popup
 # form. It does NOT execute anything; it's purely descriptive data that mirrors
 # _cli_dispatch's branches. type is one of: text | number | select | textarea.
@@ -354,10 +354,10 @@ _CLI_CATALOG = [
     ], "confirm": False},
     {"path": ["project", "files"], "category": "Projects", "description": "Latest uploaded build files.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
     {"path": ["project", "keys"], "category": "Projects", "description": "Show a project's chat/files API keys.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    # CRITICAL — routed through the dedicated confirmation modal, same as
+    # CRITICAL : routed through the dedicated confirmation modal, same as
     # app delete-all (see CRITICAL ACTIONS above _cli_dispatch). Listed
     # here purely for discoverability via 'help'/the command catalog popup.
-    {"path": ["project", "delete-all"], "category": "Projects", "description": "⚠ CRITICAL — permanently delete every hosted game project on the platform.", "args": [], "confirm": True},
+    {"path": ["project", "delete-all"], "category": "Projects", "description": "⚠ CRITICAL : permanently delete every hosted game project on the platform.", "args": [], "confirm": True},
     {"path": ["var", "get"], "category": "Projects", "description": "Read a project variable.", "args": [
         {"name": "slug", "label": "Project", "type": _T, "required": True},
         {"name": "name", "label": "Variable name", "type": _T, "required": True},
@@ -384,12 +384,12 @@ _CLI_CATALOG = [
         {"name": "slug", "label": "Slug", "type": _T, "required": True},
         {"name": "reason", "label": "Reason", "type": _TA, "required": True},
     ], "confirm": False},
-    # CRITICAL — routed through the dedicated confirmation modal
+    # CRITICAL : routed through the dedicated confirmation modal
     # (CriticalActionBanner.js/CriticalActionModal.js), never executed
-    # directly from typed CLI text — see the CRITICAL ACTIONS section
+    # directly from typed CLI text : see the CRITICAL ACTIONS section
     # above _cli_dispatch. Listed here purely so it's discoverable via
     # 'help'/the command catalog popup.
-    {"path": ["app", "delete-all"], "category": "Studio", "description": "⚠ CRITICAL — permanently delete every Studio App on the platform, from every user.", "args": [], "confirm": True},
+    {"path": ["app", "delete-all"], "category": "Studio", "description": "⚠ CRITICAL : permanently delete every Studio App on the platform, from every user.", "args": [], "confirm": True},
     {"path": ["vakarplus", "show"], "category": "Studio", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
     {"path": ["vakarplus", "grant"], "category": "Studio", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
     {"path": ["vakarplus", "revoke"], "category": "Studio", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
@@ -467,28 +467,28 @@ class _CliError(Exception):
     pass
 
 # ============================================================
-# CRITICAL ACTIONS — a small, deliberately generic framework for the rare
+# CRITICAL ACTIONS : a small, deliberately generic framework for the rare
 # handful of operations that are one accidental confirmation away from
 # being catastrophic and irreversible (first and currently only member:
 # wiping every Studio App on the platform). Meant to be reused for any
-# future action of the same severity — just register a new entry in
+# future action of the same severity : just register a new entry in
 # CRITICAL_ACTIONS below.
 #
 # Unlike the CLI's ordinary y/n confirm (_cli_dispatch's `needs_confirm`),
 # confirming a critical action doesn't run it immediately: it schedules it
 # CRITICAL_ACTION_COUNTDOWN_SECONDS in the future and every super admin
-# (not just whoever triggered it) sees a live countdown they can cancel —
+# (not just whoever triggered it) sees a live countdown they can cancel :
 # see /admin/critical-actions/pending, polled by every admin session's
 # outer shell (frontend/src/components/CriticalActionBanner.js). The
 # "type this code back" friction in the frontend's confirmation modal is
-# an anti-fat-finger measure, not a security boundary — the real boundary
+# an anti-fat-finger measure, not a security boundary : the real boundary
 # is require_super_admin below; nothing here needs to round-trip a code
 # to the server.
 # ============================================================
 CRITICAL_ACTION_COUNTDOWN_SECONDS = 30
 
 async def _execute_delete_all_studio_apps(payload: dict) -> str:
-    # Every collection that stores data belonging to a studio_apps doc —
+    # Every collection that stores data belonging to a studio_apps doc :
     # deleted in this order so nothing is left dangling if the process
     # were somehow interrupted partway through (studio_apps itself last).
     counts = {}
@@ -503,9 +503,9 @@ async def _execute_delete_all_studio_apps(payload: dict) -> str:
 
 async def _execute_delete_all_projects(payload: dict) -> str:
     # Mirrors DELETE /api/projects/{slug} (projects.py) exactly, just
-    # without the per-slug filter — same collection list, so "delete all"
+    # without the per-slug filter : same collection list, so "delete all"
     # cascades exactly as far as deleting one project already does today
-    # (notably: does NOT touch missions/guilds/chat/players — that's a
+    # (notably: does NOT touch missions/guilds/chat/players : that's a
     # pre-existing scope of the single-project delete too, not something
     # introduced here).
     counts = {}
@@ -518,11 +518,11 @@ async def _execute_delete_all_projects(payload: dict) -> str:
 
 CRITICAL_ACTIONS = {
     "delete_all_studio_apps": {
-        "label": "Delete ALL Studio Apps — every app, every user, platform-wide",
+        "label": "Delete ALL Studio Apps : every app, every user, platform-wide",
         "handler": _execute_delete_all_studio_apps,
     },
     "delete_all_projects": {
-        "label": "Delete ALL Projects — every hosted game project, platform-wide",
+        "label": "Delete ALL Projects : every hosted game project, platform-wide",
         "handler": _execute_delete_all_projects,
     },
 }
@@ -534,7 +534,7 @@ async def _run_critical_action_after_delay(hold_id):
     delay = (hold["execute_at"] - datetime.now(timezone.utc)).total_seconds()
     if delay > 0:
         await asyncio.sleep(delay)
-    # Re-read AFTER sleeping — it may have been cancelled while we waited.
+    # Re-read AFTER sleeping : it may have been cancelled while we waited.
     hold = await db.critical_action_holds.find_one({"_id": hold_id})
     if not hold or hold["status"] != "pending":
         return
@@ -556,7 +556,7 @@ async def _run_critical_action_after_delay(hold_id):
 
 # ── CLI anomaly detection / lockout ──────────────────────────────────────────
 # A destructive action is any command that actually mutated data (recorded only
-# after the confirm=True path executes — the confirmation prompt itself never counts).
+# after the confirm=True path executes : the confirmation prompt itself never counts).
 # Too many in a short window looks like a compromised session or a fat-fingered
 # loop, so the CLI locks itself for that admin rather than logging quietly.
 _CLI_ANOMALY_WINDOW_MIN = 2
@@ -568,7 +568,7 @@ async def _cli_check_lockout(username: str):
     if lock and lock.get("locked_until") and lock["locked_until"] > datetime.now(timezone.utc):
         remaining = int((lock["locked_until"] - datetime.now(timezone.utc)).total_seconds() // 60) + 1
         raise _CliError(
-            f"CLI locked for ~{remaining} more minute{'s' if remaining != 1 else ''} — unusual activity was "
+            f"CLI locked for ~{remaining} more minute{'s' if remaining != 1 else ''} : unusual activity was "
             f"detected ({lock.get('reason', 'anomaly')}). Ask another super admin to check the logs if this wasn't you."
         )
 
@@ -597,7 +597,7 @@ async def _cli_record_destructive(admin: dict, command: str) -> Optional[str]:
     })
     await log_action(
         "cli_security",
-        f"[CLI SECURITY] '{admin['username']}' auto-locked out of the CLI for {lockout_minutes} min — {reason}",
+        f"[CLI SECURITY] '{admin['username']}' auto-locked out of the CLI for {lockout_minutes} min : {reason}",
         user=admin["username"],
     )
 
@@ -609,7 +609,7 @@ async def _cli_record_destructive(admin: dict, command: str) -> Optional[str]:
                     f"after {reason}. Review the logs if this wasn't expected.",
             notif_type="cli_security",
         )
-    return f"⚠ Anomaly detected ({reason}) — your CLI access is locked for {lockout_minutes} minute(s)."
+    return f"⚠ Anomaly detected ({reason}) : your CLI access is locked for {lockout_minutes} minute(s)."
 
 async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
     """Returns (lines, needs_confirm, destructive). Raises _CliError with a user-facing message on bad input."""
@@ -660,7 +660,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             "maintenance_mode": want_on, "maintenance_scheduled_at": None, "maintenance_announcement": "",
         }}, upsert=True)
         await log_action("website", f"[CLI] Maintenance mode {'enabled' if want_on else 'disabled'}", user=admin["username"])
-        return [f"OK — maintenance mode {'enabled' if want_on else 'disabled'}."], False, True
+        return [f"OK : maintenance mode {'enabled' if want_on else 'disabled'}."], False, True
 
     if verb == "maintenance" and len(tokens) >= 3 and tokens[1].lower() == "schedule":
         try:
@@ -681,7 +681,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             "maintenance_scheduled_at": scheduled_at, "maintenance_announcement": message,
         }}, upsert=True)
         await log_action("website", f"[CLI] Maintenance scheduled for {scheduled_at.isoformat()} ({minutes:g} min from now)", user=admin["username"])
-        return [f"OK — maintenance scheduled to start in {minutes:g} minute(s)."], False, True
+        return [f"OK : maintenance scheduled to start in {minutes:g} minute(s)."], False, True
 
     if verb == "maintenance" and len(tokens) == 2 and tokens[1].lower() == "cancel-schedule":
         existing = await db.website_settings.find_one({})
@@ -691,7 +691,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return ["Cancel the pending scheduled maintenance?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.website_settings.update_one({}, {"$set": {"maintenance_scheduled_at": None, "maintenance_announcement": ""}})
         await log_action("website", "[CLI] Scheduled maintenance cancelled", user=admin["username"])
-        return ["OK — scheduled maintenance cancelled."], False, True
+        return ["OK : scheduled maintenance cancelled."], False, True
 
     if verb == "broadcast" and len(tokens) >= 2:
         message = " ".join(tokens[1:])
@@ -706,7 +706,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
                 for u in all_users
             ])
         await log_action("cli_security", f"[CLI] Broadcast sent to {len(all_users)} users: {message}", user=admin["username"])
-        return [f"OK — broadcast sent to {len(all_users)} user(s)."], False, True
+        return [f"OK : broadcast sent to {len(all_users)} user(s)."], False, True
 
     if verb == "user" and len(tokens) >= 2 and tokens[1].lower() == "list":
         role_filter = tokens[2].lower() if len(tokens) > 2 else None
@@ -744,14 +744,14 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             await db.users.update_one({"_id": target["_id"]}, {"$set": {"isSuspended": want_suspended}})
             action = "suspended" if want_suspended else "reactivated"
             await log_action("user_action", f"[CLI] User '{target.get('username')}' {action}", user=admin["username"])
-            return [f"OK — user '{target.get('username')}' {action}."], False, True
+            return [f"OK : user '{target.get('username')}' {action}."], False, True
 
         if sub == "role":
             if len(tokens) < 4:
                 raise _CliError("Usage: user role <email|username> <user|admin>")
             new_role = tokens[3].lower()
             if new_role not in ("user", "admin"):
-                raise _CliError("Role must be 'user' or 'admin' — promoting to super_admin isn't supported via the CLI.")
+                raise _CliError("Role must be 'user' or 'admin' : promoting to super_admin isn't supported via the CLI.")
             if target.get("role") == "super_admin":
                 raise _CliError("Cannot change the role of a super admin account.")
             if str(target["_id"]) == admin["id"]:
@@ -764,7 +764,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
                 update["permissions"] = []
             await db.users.update_one({"_id": target["_id"]}, {"$set": update})
             await log_action("user_action", f"[CLI] User '{target.get('username')}' role changed to '{new_role}'", user=admin["username"])
-            return [f"OK — '{target.get('username')}' is now role '{new_role}'."], False, True
+            return [f"OK : '{target.get('username')}' is now role '{new_role}'."], False, True
 
         if sub == "reset-password":
             if not confirm:
@@ -777,9 +777,9 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             )
             await log_action("user_action", f"[CLI] Password reset for '{target.get('username')}'", user=admin["username"])
             return [
-                f"OK — temporary password for '{target.get('username')}':",
+                f"OK : temporary password for '{target.get('username')}':",
                 f"  {temp_password}",
-                "Shown only once — relay it securely. They'll be asked to change it on next login.",
+                "Shown only once : relay it securely. They'll be asked to change it on next login.",
             ], False, True
 
         if sub == "delete":
@@ -792,7 +792,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
                         "Type 'y' to confirm, or anything else to cancel."], True, False
             await db.users.delete_one({"_id": target["_id"]})
             await log_action("user_action", f"[CLI] User '{target.get('username')}' ({target.get('email')}) permanently deleted", user=admin["username"])
-            return [f"OK — account '{target.get('username')}' permanently deleted."], False, True
+            return [f"OK : account '{target.get('username')}' permanently deleted."], False, True
 
     if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "status":
         if len(tokens) < 4:
@@ -812,7 +812,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             upsert=True,
         )
         await log_action("status", f"[CLI] Project '{slug}' status set to '{new_status}'", project_slug=slug, user=admin["username"])
-        return [f"OK — project '{slug}' status set to '{new_status}'."], False, True
+        return [f"OK : project '{slug}' status set to '{new_status}'."], False, True
 
     if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "stats":
         slug = tokens[2]
@@ -861,7 +861,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc)}},
         )
         await log_action("support", f"[CLI] Ticket '{tn}' closed", user=admin["username"])
-        return [f"OK — ticket '{tn}' closed."], False, True
+        return [f"OK : ticket '{tn}' closed."], False, True
 
     # ── Retired app builder commands ──────────────────────────────────────────
     if verb in ("app", "apps"):
@@ -877,7 +877,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             f"email:  {email}",
             f"active: {status == 'active'}",
             f"status: {status}",
-            f"plan:   {target.get('vakar_plus_plan') or '—'}",
+            f"plan:   {target.get('vakar_plus_plan') or ':'}",
         ], False, False
 
     if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() in ("grant", "revoke"):
@@ -901,7 +901,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         action = "granted" if grant else "revoked"
         await log_action("user_action", f"[CLI] Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', email)}'", user=admin["username"])
         await _create_notification(user_id=str(target["_id"]), message=message, notif_type=notif_type)
-        return [f"OK — Vakar+ {action} for '{email}'."], False, True
+        return [f"OK : Vakar+ {action} for '{email}'."], False, True
 
     # ── Blog ─────────────────────────────────────────────────────────────────
     if verb == "blog" and len(tokens) >= 2 and tokens[1].lower() == "list":
@@ -927,7 +927,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"{'Publish' if want_published else 'Unpublish'} '{slug}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.blog_posts.update_one({"slug": slug}, {"$set": {"published": want_published}})
         await log_action("website", f"[CLI] Blog post '{slug}' {'published' if want_published else 'unpublished'}", user=admin["username"])
-        return [f"OK — '{slug}' is now {'published' if want_published else 'a draft'}."], False, True
+        return [f"OK : '{slug}' is now {'published' if want_published else 'a draft'}."], False, True
 
     if verb == "blog" and len(tokens) >= 3 and tokens[1].lower() == "delete":
         slug = tokens[2]
@@ -938,7 +938,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"PERMANENTLY delete blog post '{slug}'? This cannot be undone.", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.blog_posts.delete_one({"slug": slug})
         await log_action("website", f"[CLI] Blog post '{slug}' deleted", user=admin["username"])
-        return [f"OK — '{slug}' permanently deleted."], False, True
+        return [f"OK : '{slug}' permanently deleted."], False, True
 
     # ── Careers ──────────────────────────────────────────────────────────────
     if verb == "career" and len(tokens) >= 2 and tokens[1].lower() == "list":
@@ -967,7 +967,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"{'Open' if want_open else 'Close'} posting '{c.get('title')}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.careers.update_one({"_id": oid}, {"$set": {"is_open": want_open, "updated_at": datetime.now(timezone.utc)}})
         await log_action("careers", f"[CLI] Posting '{c.get('title')}' {'opened' if want_open else 'closed'}", user=admin["username"])
-        return [f"OK — '{c.get('title')}' is now {'open' if want_open else 'closed'}."], False, True
+        return [f"OK : '{c.get('title')}' is now {'open' if want_open else 'closed'}."], False, True
 
     # ── Variables & items ────────────────────────────────────────────────────
     if verb == "var" and len(tokens) >= 4 and tokens[1].lower() == "get":
@@ -986,7 +986,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"Set variable '{name}' in '{slug}' to '{value}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.variables.update_one({"_id": v["_id"]}, {"$set": {"value": value}})
         await log_action("variable_action", f"[CLI] Variable '{name}' set to '{value}'", project_slug=slug, user=admin["username"], variable=name)
-        return [f"OK — '{name}' set to '{value}' in '{slug}'."], False, True
+        return [f"OK : '{name}' set to '{value}' in '{slug}'."], False, True
 
     if verb == "item" and len(tokens) >= 3 and tokens[1].lower() == "list":
         slug = tokens[2]
@@ -1015,7 +1015,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         })
         await log_action("send", f"[CLI] Sent {amount}x {item_name} to {query}", project_slug=slug, user=admin["username"],
                           uid=query, variable=item_name, amount=amount)
-        return [f"OK — {amount}x '{item_name}' sent to '{query}' in '{slug}'."], False, True
+        return [f"OK : {amount}x '{item_name}' sent to '{query}' in '{slug}'."], False, True
 
     # ── Project ops (logs / files / keys) ───────────────────────────────────
     if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "logs":
@@ -1055,7 +1055,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         ], False, False
 
     if verb == "project" and len(tokens) >= 2 and tokens[1].lower() == "delete-all":
-        # Same pattern as app delete-all — never executes here, only
+        # Same pattern as app delete-all : never executes here, only
         # discoverable via 'help'/the catalog popup; the real flow is the
         # dedicated confirmation modal (POST /admin/critical-actions/
         # delete_all_projects/schedule).
@@ -1094,7 +1094,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
              "$set": {"updated_at": datetime.now(timezone.utc)}},
         )
         await log_action("support", f"[CLI] Replied to ticket '{tn}'", user=admin["username"])
-        return [f"OK — reply sent on ticket '{tn}'."], False, True
+        return [f"OK : reply sent on ticket '{tn}'."], False, True
 
     # ── Notifications ────────────────────────────────────────────────────────
     if verb == "notify" and len(tokens) >= 4 and tokens[1].lower() == "user":
@@ -1107,7 +1107,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"Send notification to '{target.get('username')}': \"{message}\"?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await _create_notification(user_id=str(target["_id"]), message=message, notif_type="cli_message")
         await log_action("user_action", f"[CLI] Notification sent to '{target.get('username')}'", user=admin["username"])
-        return [f"OK — notification sent to '{target.get('username')}'."], False, True
+        return [f"OK : notification sent to '{target.get('username')}'."], False, True
 
     if verb == "notify" and len(tokens) >= 3 and tokens[1].lower() == "list":
         query = tokens[2]
@@ -1167,7 +1167,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"Set website setting '{key}' to '{value}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.website_settings.update_one({}, {"$set": {key: value}}, upsert=True)
         await log_action("website", f"[CLI] Setting '{key}' set to '{value}'", user=admin["username"])
-        return [f"OK — '{key}' set to '{value}'."], False, True
+        return [f"OK : '{key}' set to '{value}'."], False, True
 
     # ── Accounts: pseudo / cooldown (mirrors auth.py & users.py admin logic) ──
     if verb == "user" and len(tokens) >= 4 and tokens[1].lower() == "set-pseudo":
@@ -1188,7 +1188,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             {"$set": {"username": new_pseudo, "usernameChangedAt": datetime.now(timezone.utc), "pseudo_set": True}},
         )
         await log_action("user_action", f"[CLI] Pseudo of '{target.get('username')}' set to '{new_pseudo}'", user=admin["username"])
-        return [f"OK — pseudo set to '{new_pseudo}'."], False, True
+        return [f"OK : pseudo set to '{new_pseudo}'."], False, True
 
     if verb == "user" and len(tokens) >= 4 and tokens[1].lower() == "reset-cooldown":
         query, field = tokens[2], tokens[3].lower()
@@ -1202,13 +1202,13 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"Reset {field} cooldown for '{target.get('username')}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
         await db.users.update_one({"_id": target["_id"]}, {"$set": {field_key: None}})
         await log_action("user_action", f"[CLI] {field} cooldown reset for '{target.get('username')}'", user=admin["username"])
-        return [f"OK — {field} cooldown reset for '{target.get('username')}'."], False, True
+        return [f"OK : {field} cooldown reset for '{target.get('username')}'."], False, True
 
     raise _CliError(f"Unknown command '{' '.join(tokens)}'. Type 'help' for the command list.")
 
 @router.get("/admin/cli/commands")
 async def cli_commands(admin=Depends(require_super_admin)):
-    """Read-only catalog of every CLI command — powers frontend autocomplete
+    """Read-only catalog of every CLI command : powers frontend autocomplete
     and the '$command' popup form generator. Never executes anything."""
     return {"commands": _CLI_CATALOG}
 
@@ -1238,9 +1238,9 @@ async def cli_execute(request: Request, body: CliExecuteRequest, admin=Depends(r
     except _CliError as e:
         return {"output": [str(e)], "needs_confirm": False, "error": True}
 
-# ── Critical actions — see the CRITICAL ACTIONS section above _cli_dispatch
+# ── Critical actions : see the CRITICAL ACTIONS section above _cli_dispatch
 # for the full model (30s cancellable countdown, visible to every super
-# admin). All three routes require nothing beyond require_super_admin —
+# admin). All three routes require nothing beyond require_super_admin :
 # the frontend's warning/type-the-code/confirm popup is UX friction, not a
 # second security boundary. ──────────────────────────────────────────────
 
@@ -1264,7 +1264,7 @@ async def schedule_critical_action(request: Request, action_type: str, admin=Dep
         raise HTTPException(404, "Unknown critical action")
     existing = await db.critical_action_holds.find_one({"action_type": action_type, "status": "pending"})
     if existing:
-        raise HTTPException(409, "This action is already pending — cancel it first if you want to restart the countdown.")
+        raise HTTPException(409, "This action is already pending : cancel it first if you want to restart the countdown.")
     now = datetime.now(timezone.utc)
     execute_at = now + timedelta(seconds=CRITICAL_ACTION_COUNTDOWN_SECONDS)
     result = await db.critical_action_holds.insert_one({
@@ -1277,7 +1277,7 @@ async def schedule_critical_action(request: Request, action_type: str, admin=Dep
     asyncio.create_task(_run_critical_action_after_delay(hold_id))
     await log_action(
         "critical_action",
-        f"[CRITICAL] '{action_type}' SCHEDULED by '{admin['username']}' — executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s unless cancelled.",
+        f"[CRITICAL] '{action_type}' SCHEDULED by '{admin['username']}' : executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s unless cancelled.",
         user=admin["username"],
     )
     others = await db.users.find({"role": "super_admin", "username": {"$ne": admin["username"]}}).to_list(50)
@@ -1285,7 +1285,7 @@ async def schedule_critical_action(request: Request, action_type: str, admin=Dep
         await _create_notification(
             user_id=str(o["_id"]),
             message=f"🚨 '{admin['username']}' triggered a CRITICAL action: {CRITICAL_ACTIONS[action_type]['label']}. "
-                    f"It executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s — cancel it now if this wasn't expected.",
+                    f"It executes in {CRITICAL_ACTION_COUNTDOWN_SECONDS}s : cancel it now if this wasn't expected.",
             notif_type="critical_action",
         )
     return {"id": str(hold_id), "execute_at": execute_at.isoformat()}

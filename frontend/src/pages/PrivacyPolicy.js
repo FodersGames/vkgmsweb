@@ -147,7 +147,7 @@ const PrivacyPolicy = () => {
   const [activeSection, setActiveSection] = useState('who');
 
   useEffect(() => {
-    document.title = 'Privacy Policy — Vakar Games';
+    document.title = 'Privacy Policy | Vakar Games';
   }, []);
 
   const scrollTo = (id) => {

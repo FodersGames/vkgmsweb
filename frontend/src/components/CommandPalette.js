@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 
-// Apple/Spotlight-style global "jump to" palette. Purely presentational — the
+// Apple/Spotlight-style global "jump to" palette. Purely presentational : the
 // caller supplies `destinations` ({ label, group, icon, onSelect }) already
 // filtered to what the current user is allowed to see.
 export const CommandPalette = ({ open, onClose, destinations }) => {

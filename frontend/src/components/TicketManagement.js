@@ -20,7 +20,7 @@ const STATUS_COLORS = {
   closed: 'bg-[#A1A1A6]/10 text-[#A1A1A6] border-[#A1A1A6]/30',
 };
 const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
-// Plain hex twins of the maps above — Tailwind arbitrary-value classes can't
+// Plain hex twins of the maps above : Tailwind arbitrary-value classes can't
 // be read by recharts' `fill` prop, so the donut slices need the same colors
 // spelled out literally to stay visually consistent with the status/priority
 // pills elsewhere on this screen.
@@ -60,7 +60,7 @@ const TicketManagement = () => {
       const r = await api.get('/api/admin/tickets/stats');
       setStats(r.data);
     } catch {
-      // silent — the list itself still works without the charts
+      // silent : the list itself still works without the charts
     }
   }, []);
 
@@ -92,7 +92,7 @@ const TicketManagement = () => {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // "/" focuses the search box, same convention as the other dense tables —
+  // "/" focuses the search box, same convention as the other dense tables :
   // ignored while the user is already typing somewhere else.
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -278,7 +278,7 @@ const TicketManagement = () => {
               .map(([key, count]) => ({ key, name: labels[key] || key, value: count }));
             return (
               <div key={title} className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-4">
-                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">{title} — {stats.total} total</p>
+                <p className="text-xs font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-2">{title} : {stats.total} total</p>
                 <div style={{ width: '100%', height: 180 }}>
                   <ResponsiveContainer>
                     <PieChart>

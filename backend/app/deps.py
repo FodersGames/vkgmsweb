@@ -41,7 +41,7 @@ def is_valid_permission(p: str) -> bool:
     return p in ALL_PERMISSIONS or bool(re.match(r'^project:[a-z0-9_-]+$', p))
 
 # ============== PSEUDO (username) RULES ==============
-# The field is still called "username" in the DB/JWT — it's embedded in the
+# The field is still called "username" in the DB/JWT : it's embedded in the
 # play-token contract consumed by the external TurboWarp game-client extension,
 # so only the rules and the user-facing label ("Pseudo") changed, not the field
 # name. Shared here since both auth.py (self-service) and users.py (admin)

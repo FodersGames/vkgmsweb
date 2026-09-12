@@ -186,7 +186,7 @@ export default function Careers() {
   const [applying, setApplying] = useState(null);
 
   useEffect(() => {
-    document.title = 'Careers — Vakar Games';
+    document.title = 'Careers | Vakar Games';
     fetch(`${API}/api/careers`)
       .then(r => r.json())
       .then(d => setCareers(d.careers || []))
@@ -201,7 +201,7 @@ export default function Careers() {
     <div className="bg-white text-[#1D1D1F] min-h-screen flex flex-col">
       <PublicNav />
 
-      {/* Hero — Apple Clean White */}
+      {/* Hero: Apple Clean White */}
       <section className="pt-28 pb-12 border-b border-[#E5E5EA]">
         <div className="max-w-[1120px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
@@ -361,7 +361,7 @@ export default function Careers() {
                           <ul className="space-y-2">
                             {c.requirements.map((r, i) => (
                               <li key={i} className="flex gap-2.5 text-xs text-[#1D1D1F]/80">
-                                <span className="shrink-0 font-bold" style={{ color }}>—</span>
+                                <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />
                                 <span>{r}</span>
                               </li>
                             ))}

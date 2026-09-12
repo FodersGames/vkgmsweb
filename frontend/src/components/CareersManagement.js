@@ -405,7 +405,7 @@ export default function CareersManagement() {
                     <div className="flex items-center gap-4 min-w-0">
                       <button
                         onClick={e => { e.stopPropagation(); toggleOpen(c); }}
-                        title={c.is_open ? 'Open — click to close' : 'Closed — click to reopen'}
+                        title={c.is_open ? 'Open : click to close' : 'Closed : click to reopen'}
                         className={`w-9 h-5 rounded-full relative transition-colors shrink-0 disabled:opacity-50 ${c.is_open ? 'bg-[#FF6600]' : 'bg-[#D2D2D7] dark:bg-[#2a2a3c]'}`}
                         disabled={togglingId === c._id}
                       >
@@ -469,7 +469,7 @@ export default function CareersManagement() {
                         <div>
                           <p className="text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] uppercase tracking-wider mb-2">Requirements</p>
                           <ul className="space-y-1">
-                            {c.requirements.map((r, i) => <li key={i} className="text-sm text-[#3A3A3C] dark:text-[#d4d4d8] flex gap-2"><span style={{ color }}>—</span>{r}</li>)}
+                            {c.requirements.map((r, i) => <li key={i} className="text-sm text-[#3A3A3C] dark:text-[#d4d4d8] flex gap-2"><span style={{ color }}>•</span>{r}</li>)}
                           </ul>
                         </div>
                       )}

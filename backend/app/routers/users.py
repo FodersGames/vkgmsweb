@@ -209,7 +209,7 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
             if perm in _SUPER_ADMIN_ONLY_PERMS:
                 raise HTTPException(status_code=403, detail=f"'{perm}' can only be granted by a super admin")
             if perm not in admin_perms:
-                raise HTTPException(status_code=403, detail=f"Cannot grant permission '{perm}' — you do not hold it yourself")
+                raise HTTPException(status_code=403, detail=f"Cannot grant permission '{perm}' : you do not hold it yourself")
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": req.permissions}})
     await log_action("user_action", f"User '{target.get('username', user_id)}' permissions updated", user=admin["username"])
     return {"success": True, "id": user_id, "permissions": req.permissions}
@@ -241,8 +241,8 @@ async def update_user_system_role(user_id: str, req: UpdateUserRoleRequest, admi
 @router.patch("/admin/users/{user_id}/profile")
 async def admin_update_user_profile(user_id: str, body: AdminUpdateUserProfileRequest, admin=Depends(require_permission("manage_users"))):
     """Admin direct-edit of a user's identity fields. Unlike the self-service
-    PATCH /auth/profile, this bypasses the firstName/pseudo cooldowns entirely —
-    an admin action isn't a self-service change — but still enforces the same
+    PATCH /auth/profile, this bypasses the firstName/pseudo cooldowns entirely :
+    an admin action isn't a self-service change : but still enforces the same
     length/regex/uniqueness/banned-word rules, and still records the change
     timestamp so a subsequent self-service change still respects its cooldown
     starting from here."""
@@ -299,7 +299,7 @@ async def update_user_custom_roles(user_id: str, req: UpdateUserCustomRolesReque
 @router.post("/admin/users/{user_id}/reset-cooldown")
 async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=Depends(require_permission("manage_users"))):
     """Clears the change-cooldown timestamp for one field so the USER's own next
-    self-service change is unblocked immediately — the alternative to an admin
+    self-service change is unblocked immediately : the alternative to an admin
     picking the new value directly via admin_update_user_profile above."""
     try:
         target = await db.users.find_one({"_id": ObjectId(user_id)})
@@ -314,7 +314,7 @@ async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=D
 
 @router.patch("/admin/users/{user_id}/vakar-plus")
 async def admin_set_vakar_plus(user_id: str, req: AdminVakarPlusRequest, admin=Depends(require_permission("manage_users"))):
-    """Manual comp/revoke of Vakar+, independent of Stripe — for support
+    """Manual comp/revoke of Vakar+, independent of Stripe : for support
     cases (compensation, promos) rather than a real subscription. Marked
     with plan "manual" so it's distinguishable from a Stripe-billed one at a
     glance; granting doesn't touch stripe_customer_id, and if the account

@@ -102,7 +102,7 @@ const buildPermissionGroups = (projects = []) => [
   ...STATIC_GROUPS,
 ];
 
-// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/NAME_COOLDOWN_DAYS —
+// Mirrors backend/app/deps.py's PSEUDO_COOLDOWN_DAYS/NAME_COOLDOWN_DAYS :
 // client-side only for the "days remaining" hint; the backend is authoritative,
 // and admin edits/resets here bypass it anyway.
 const NAME_COOLDOWN_DAYS = 30;
@@ -113,7 +113,7 @@ const cooldownDaysLeft = (changedAt, cooldownDays) => {
   return Math.max(0, cooldownDays - Math.floor(elapsedMs / 86400000));
 };
 
-const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
 export const UserManagement = () => {
   const { user: currentUser, refreshUser } = useAuth();
@@ -195,7 +195,7 @@ export const UserManagement = () => {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // "/" focuses the search box — ignored while typing elsewhere, a dialog is
+  // "/" focuses the search box : ignored while typing elsewhere, a dialog is
   // open, or the detail view is showing (it has no search box of its own).
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -372,7 +372,7 @@ export const UserManagement = () => {
     try {
       await api.patch(`/api/admin/users/${activeUser.id}/vakar-plus`, { grant });
       setActiveUser(u => ({ ...u, vakar_plus_status: grant ? 'active' : 'none', vakar_plus_plan: grant ? 'manual' : null }));
-      // Toggling your OWN Vakar+ status needs to reach AuthContext too — it's
+      // Toggling your OWN Vakar+ status needs to reach AuthContext too : it's
       // what actually gates premium features (allowPremium) everywhere else
       // in the app, not this admin panel's local state.
       if (currentUser?.id === activeUser.id) refreshUser();
@@ -494,7 +494,7 @@ export const UserManagement = () => {
   );
 
   // ═══════════════════════════════════════════════════════════════════════
-  // DETAIL VIEW — full-screen swap, same pattern as TicketManagement.js
+  // DETAIL VIEW : full-screen swap, same pattern as TicketManagement.js
   // ═══════════════════════════════════════════════════════════════════════
   if (activeUser) {
     const u = activeUser;
@@ -584,7 +584,7 @@ export const UserManagement = () => {
             <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-1">Identity</h3>
               <p className="text-xs text-[#A1A1A6] dark:text-[#71717a] mb-4">
-                Editing here bypasses the user's own cooldown — it's an admin action, not a self-service change.
+                Editing here bypasses the user's own cooldown : it's an admin action, not a self-service change.
               </p>
               <form onSubmit={saveProfileField} className="space-y-3">
                 <div>
@@ -628,7 +628,7 @@ export const UserManagement = () => {
               </form>
             </div>
 
-            {/* Activity — purchases & tickets, lazy-loaded from the export endpoint */}
+            {/* Activity : purchases & tickets, lazy-loaded from the export endpoint */}
             <div className="rounded-xl bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6">
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7] mb-4">Activity</h3>
               {activityLoading ? (
@@ -738,7 +738,7 @@ export const UserManagement = () => {
             )}
           </div>
 
-          {/* Vakar+ — manual comp/revoke, independent of Stripe. Shown on a
+          {/* Vakar+ : manual comp/revoke, independent of Stripe. Shown on a
               super admin's OWN profile too (e.g. to test premium features)
               even though it's hidden when viewing another super admin. */}
           {(!isSuperAdmin || isSelf) && (
@@ -755,7 +755,7 @@ export const UserManagement = () => {
                   </span>
                   {u.vakar_plus_plan && (
                     <span className="text-xs text-[#A1A1A6] dark:text-[#71717a] capitalize">
-                      {u.vakar_plus_plan === 'manual' ? 'manually granted' : `${u.vakar_plus_plan} — via Stripe`}
+                      {u.vakar_plus_plan === 'manual' ? 'manually granted' : `${u.vakar_plus_plan} : via Stripe`}
                     </span>
                   )}
                 </div>
@@ -766,10 +766,10 @@ export const UserManagement = () => {
                 )}
               </div>
               {u.vakar_plus_plan === 'manual' && u.vakar_plus_status === 'active' && (
-                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Granted manually — doesn't renew or charge; revoke here whenever it should end.</p>
+                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Granted manually : doesn't renew or charge; revoke here whenever it should end.</p>
               )}
               {u.vakar_plus_plan && u.vakar_plus_plan !== 'manual' && u.vakar_plus_status === 'active' && (
-                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Billed via Stripe — revoking here overrides it until the next billing event syncs status again.</p>
+                <p className="mt-2 text-[10px] text-[#A1A1A6] dark:text-[#71717a]">Billed via Stripe : revoking here overrides it until the next billing event syncs status again.</p>
               )}
             </div>
           )}
@@ -814,7 +814,7 @@ export const UserManagement = () => {
                 <p className="text-xs font-bold text-[#1D1D1F] dark:text-[#e4e4e7] mb-3">Create user account</p>
                 {createResult?.success ? (
                   <div className="text-xs space-y-1">
-                    <p className="font-semibold text-[#22C55E]">✓ User created — @{createResult.username}</p>
+                    <p className="font-semibold text-[#22C55E]">✓ User created : @{createResult.username}</p>
                     {createResult.generated_password && (
                       <p className="text-[#6E6E73] dark:text-[#a1a1aa]">Generated password: <strong className="text-[#1D1D1F] dark:text-[#e4e4e7] font-mono">{createResult.generated_password}</strong> (send to user securely)</p>
                     )}

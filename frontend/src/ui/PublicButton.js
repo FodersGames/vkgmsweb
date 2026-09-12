@@ -2,7 +2,7 @@ import React from 'react';
 
 // Shared button for the public site. Square corners + wide-tracked small
 // caps read as drafting-table/editorial rather than the rounded-xl "SaaS
-// landing page" default — matched to the Fraunces/mono type system used
+// landing page" default : matched to the Fraunces/mono type system used
 // throughout the public site. Real depth + a press-scale micro-interaction
 // keep it feeling like a considered product control, not a flat pill.
 const SIZES = {

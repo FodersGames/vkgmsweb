@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List, X, SquaresFour, User } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
-import { SupportWidget } from './SupportWidget';
 import { AnnouncementBanner } from './AnnouncementBanner';
 import { API_URL } from '../utils/api';
 
@@ -198,7 +197,6 @@ export const PublicNav = ({ onAbout }) => {
           </div>
         )}
       </nav>
-      <SupportWidget user={user} />
     </>
   );
 };

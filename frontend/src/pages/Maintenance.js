@@ -41,7 +41,7 @@ const MaintenancePage = ({ announcement }) => (
             </h1>
 
             <p className="text-[#6E6E73] leading-relaxed text-sm">
-              {announcement || "We're currently performing system improvements. We'll be back very soon — thank you for your patience!"}
+              {announcement || "We're currently performing system improvements. We'll be back very soon. Thank you for your patience!"}
             </p>
 
             <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-4">

@@ -57,7 +57,7 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
-  			// Public-site palette — namespaced so it never collides with the
+  			// Public-site palette : namespaced so it never collides with the
   			// shadcn/admin-dashboard tokens above (e.g. `secondary`/`accent`
   			// already mean something else there).
   			ink: '#1D1D1F',

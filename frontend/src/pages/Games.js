@@ -33,7 +33,7 @@ const GamesPage = () => {
   const [couponChecking, setCouponChecking] = useState(false);
 
   useEffect(() => {
-    document.title = 'Games — Vakar Games';
+    document.title = 'Games | Vakar Games';
     getPublicGames()
       .then(gamesList => { setGames(gamesList || []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -100,7 +100,7 @@ const GamesPage = () => {
     <div className="bg-white text-[#1D1D1F] min-h-screen">
       <PublicNav />
 
-      {/* ── Page Header — Apple Clean White ──────────────────────── */}
+      {/* Page Header: Apple Clean White */}
       <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
         <div className="max-w-[1120px] mx-auto px-6">
           <p className="text-[13px] font-medium text-[#FF6600] mb-2">
@@ -276,8 +276,8 @@ const GamesPage = () => {
                               : <>
                                   <ShoppingCart size={14} className="mr-1.5" />
                                   {couponStatus?.valid
-                                    ? `Buy — $${(Math.max(50, Math.round(game.price_cents * (1 - couponStatus.discount_pct / 100))) / 100).toFixed(2)}`
-                                    : `Buy — $${(game.price_cents / 100).toFixed(2)}`
+                                    ? `Buy $${(Math.max(50, Math.round(game.price_cents * (1 - couponStatus.discount_pct / 100))) / 100).toFixed(2)}`
+                                    : `Buy $${(game.price_cents / 100).toFixed(2)}`
                                   }
                                 </>
                             }
@@ -286,7 +286,7 @@ const GamesPage = () => {
                       ) : (
                         <button onClick={() => openBuy(game)} className="btn-apple">
                           <ShoppingCart size={14} className="mr-2" />
-                          {`Buy — $${(game.price_cents / 100).toFixed(2)}`}
+                          {`Buy $${(game.price_cents / 100).toFixed(2)}`}
                         </button>
                       )}
                     </div>

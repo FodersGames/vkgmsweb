@@ -4,7 +4,7 @@ const STORAGE_KEY = 'vg_admin_theme';
 
 const ThemeContext = createContext({ isDark: false, toggleTheme: () => {} });
 
-// Dark mode is scoped to the admin dashboard only — the public site stays
+// Dark mode is scoped to the admin dashboard only : the public site stays
 // Apple-light. Toggling adds/removes the literal "dark" class on the
 // dashboard's own root element (Tailwind darkMode: "class"), it never
 // touches <html>/<body>, so nothing outside /dashboard is affected.

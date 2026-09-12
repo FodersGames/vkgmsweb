@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ShieldAlert, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 
-// Site-wide (every Dashboard tab, every super admin session — see
+// Site-wide (every Dashboard tab, every super admin session : see
 // Dashboard.js) live alert for any critical action currently counting down
 // (backend: admin_system.py's /admin/critical-actions/*). Polls for new/
 // cancelled/completed actions every few seconds; the countdown itself ticks
 // locally between polls so it reads as genuinely live rather than jumping
 // in 3s steps. Cancelling here works for ANY super admin, not just whoever
-// triggered it — that's the whole point.
+// triggered it : that's the whole point.
 const POLL_MS = 3000;
 
 function secondsLeft(executeAtIso) {
@@ -62,7 +62,7 @@ export default function CriticalActionBanner() {
             <div className="flex items-center gap-2 min-w-0">
               <ShieldAlert size={16} className="shrink-0 animate-pulse" />
               <span className="text-xs font-semibold truncate">
-                CRITICAL ACTION PENDING — {a.label}
+                CRITICAL ACTION PENDING : {a.label}
               </span>
             </div>
             <span className="text-xs text-red-100">
