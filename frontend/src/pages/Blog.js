@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, User, CircleNotch, Lock, ShieldCheck, SignIn } from '@phosphor-icons/react';
+import { ArrowLeft, Calendar, CircleNotch, Lock, ShieldCheck, SignIn } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
@@ -134,9 +134,6 @@ export const BlogList = () => {
                       </div>
                       <div className="flex items-center gap-5 mt-5 text-xs text-[#86868B]">
                         <span className="flex items-center gap-1.5 font-medium">
-                          <User size={12} />{post.author}
-                        </span>
-                        <span className="flex items-center gap-1.5 font-medium">
                           <Calendar size={12} />
                           {new Date(post.created_at).toLocaleDateString('en-US', {
                             month: 'short', day: 'numeric', year: 'numeric',
@@ -237,9 +234,6 @@ export const BlogPost = () => {
           </h1>
 
           <div className="flex items-center gap-5 text-xs text-[#86868B] mb-8 pb-6 border-b border-[#E5E5EA]">
-            <span className="flex items-center gap-1.5 font-medium">
-              <User size={12} />{post.author}
-            </span>
             <span className="flex items-center gap-1.5 font-medium">
               <Calendar size={12} />
               {new Date(post.created_at).toLocaleDateString('en-US', {
