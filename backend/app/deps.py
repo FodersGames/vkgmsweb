@@ -16,15 +16,29 @@ logger = logging.getLogger(__name__)
 
 # ============== PERMISSIONS ==============
 ALL_PERMISSIONS = [
-    "manage_website",
-    "create_games", "edit_games", "delete_games",
-    "create_blog", "edit_blog", "delete_blog",
-    "manage_surveys",
-    "manage_tickets",
-    "manager_careers",
+    # Users & Roles
     "manage_users",
+    # Website CMS & Games
+    "manage_website",
+    "create_games",
+    "edit_games",
+    "delete_games",
+    "create_blog",
+    "edit_blog",
+    "delete_blog",
+    # Support & Careers & Surveys
+    "manage_tickets",
+    "manage_surveys",
+    "manage_careers",
+    "manager_careers",  # compatibility alias
+    # System & Logs & VPS
+    "view_logs",
+    "use_cli",
     "view_vps",
+    # In-Game Dev
+    "game_dev_panel",
 ]
+
 
 def is_valid_permission(p: str) -> bool:
     return p in ALL_PERMISSIONS

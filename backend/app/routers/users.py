@@ -214,13 +214,19 @@ async def update_perms(user_id: str, req: UpdateUserPermissionsRequest, admin=De
     return {"success": True, "id": user_id, "permissions": req.permissions}
 
 @router.put("/admin/users/{user_id}/role")
-async def update_user_system_role(user_id: str, req: UpdateUserRoleRequest, admin=Depends(require_super_admin)):
+async def update_user_system_role(user_id: str, req: UpdateUserRoleRequest, admin=Depends(require_permission("manage_users"))):
     try:
         target = await db.users.find_one({"_id": ObjectId(user_id)})
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
+
+    is_super = admin.get("is_super_admin") or admin.get("role") == "super_admin"
+
+    # Only super admins can grant or revoke the super_admin role
+    if (req.role == "super_admin" or target.get("role") == "super_admin") and not is_super:
+        raise HTTPException(status_code=403, detail="Only super administrators can manage the super_admin role")
 
     # Prevent demoting the last super admin
     if target.get("role") == "super_admin" and req.role != "super_admin":
@@ -291,9 +297,11 @@ async def update_user_custom_roles(user_id: str, req: UpdateUserCustomRolesReque
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"custom_roles": req.custom_roles}})
-    await log_action("user_action", f"Admin '{admin['username']}' updated custom roles of '{target.get('username', user_id)}' to {req.custom_roles}", user=admin["username"])
-    return {"success": True, "id": user_id, "custom_roles": req.custom_roles}
+    normalized_roles = [str(r).strip() for r in req.custom_roles if str(r).strip()]
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"custom_roles": normalized_roles}})
+    await log_action("user_action", f"Admin '{admin['username']}' updated custom roles of '{target.get('username', user_id)}' to {normalized_roles}", user=admin["username"])
+    return {"success": True, "id": user_id, "custom_roles": normalized_roles}
+
 
 @router.post("/admin/users/{user_id}/reset-cooldown")
 async def admin_reset_cooldown(user_id: str, body: ResetCooldownRequest, admin=Depends(require_permission("manage_users"))):
