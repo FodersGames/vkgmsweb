@@ -70,9 +70,8 @@ CATALOG_ITEMS = [
 ]
 
 
-# ====================================================================
-# PLAYFAB HELPERS
-# ====================================================================
+DEFAULT_TITLE_ID = "1C8E49"
+DEFAULT_SECRET_KEY = "SZKQXSKYW1H9Y3TQKT6DWJY5TRFF3NFAUXD1OX8SJYIF9XGFMA"
 
 async def get_playfab_credentials():
     title_id = os.environ.get("PLAYFAB_TITLE_ID") or DEFAULT_TITLE_ID
@@ -82,6 +81,8 @@ async def get_playfab_credentials():
         doc = await db.settings.find_one({"key": "playfab_secret_key"})
         if doc and doc.get("value"):
             secret_key = doc["value"]
+        else:
+            secret_key = DEFAULT_SECRET_KEY
 
     doc_tid = await db.settings.find_one({"key": "playfab_title_id"})
     if doc_tid and doc_tid.get("value"):
@@ -411,3 +412,4 @@ async def set_dino_maintenance(req: DinoMaintenanceRequest, user=Depends(require
 async def get_dino_history(user=Depends(require_super_admin)):
     logs = await db.logs.find({"type": "dino_dev"}).sort("timestamp", -1).limit(60).to_list(60)
     return {"logs": [serialize_doc(l) for l in logs]}
+
