@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Calendar, CircleNotch, Lock, ShieldCheck, SignIn } from '@phosphor-icons/react';
+import { ArrowLeft, Calendar, CircleNotch, Lock, ShieldCheck, SignIn, ShareNetwork, Check } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
@@ -24,6 +24,30 @@ export const BlogList = () => {
   const [posts, setPosts] = useState([]);
   const [rolesMap, setRolesMap] = useState(DEFAULT_ROLES_MAP);
   const [loading, setLoading] = useState(true);
+  const [copiedSlug, setCopiedSlug] = useState(null);
+
+  const handleShare = async (e, post) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/blog/${post.slug}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: `Check out this post from Vakar Games: ${post.title}`,
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopiedSlug(post.slug);
+      setTimeout(() => setCopiedSlug(null), 2500);
+    }
+  };
 
   useEffect(() => {
     document.title = 'Blog | Vakar Games';
@@ -132,13 +156,31 @@ export const BlogList = () => {
                           )}
                         </p>
                       </div>
-                      <div className="flex items-center gap-5 mt-5 text-xs text-[#86868B]">
+                      <div className="flex items-center justify-between mt-5 text-xs text-[#86868B]">
                         <span className="flex items-center gap-1.5 font-medium">
                           <Calendar size={12} />
                           {new Date(post.created_at).toLocaleDateString('en-US', {
                             month: 'short', day: 'numeric', year: 'numeric',
                           })}
                         </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleShare(e, post)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-[#E5E5EA] border border-[#E5E5EA] text-[#1D1D1F] transition-colors font-medium text-xs shadow-xs"
+                          title="Share this post"
+                        >
+                          {copiedSlug === post.slug ? (
+                            <>
+                              <Check size={13} className="text-emerald-600" weight="bold" />
+                              <span className="text-emerald-600">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShareNetwork size={13} />
+                              <span>Share</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -160,6 +202,28 @@ export const BlogPost = () => {
   const [post, setPost] = useState(null);
   const [rolesMap, setRolesMap] = useState(DEFAULT_ROLES_MAP);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post?.title || 'Vakar Games Blog',
+          text: `Check out this post from Vakar Games: ${post?.title}`,
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
 
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -233,13 +297,31 @@ export const BlogPost = () => {
             {post.title}
           </h1>
 
-          <div className="flex items-center gap-5 text-xs text-[#86868B] mb-8 pb-6 border-b border-[#E5E5EA]">
+          <div className="flex items-center justify-between text-xs text-[#86868B] mb-8 pb-6 border-b border-[#E5E5EA]">
             <span className="flex items-center gap-1.5 font-medium">
               <Calendar size={12} />
               {new Date(post.created_at).toLocaleDateString('en-US', {
                 month: 'long', day: 'numeric', year: 'numeric',
               })}
             </span>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F5F5F7] hover:bg-[#E5E5EA] border border-[#E5E5EA] text-[#1D1D1F] transition-colors font-medium text-xs shadow-xs"
+              title="Share this post"
+            >
+              {copied ? (
+                <>
+                  <Check size={14} className="text-emerald-600" weight="bold" />
+                  <span className="text-emerald-600 font-medium">Link copied!</span>
+                </>
+              ) : (
+                <>
+                  <ShareNetwork size={14} />
+                  <span>Share</span>
+                </>
+              )}
+            </button>
           </div>
 
           {isLocked ? (

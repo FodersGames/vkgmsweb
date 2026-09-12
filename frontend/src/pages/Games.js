@@ -17,6 +17,7 @@ const PLATFORM_ICONS = {
   pc:          { label: 'PC',           svg: <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg> },
   web:         { label: 'Web',          svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
   android:     { label: 'Android',      svg: <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.523 15.341c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.474-1.056-1.056-1.056zm-11.046 0c-.583 0-1.055.473-1.055 1.056s.473 1.055 1.055 1.055c.583 0 1.056-.473 1.056-1.055s-.473-1.056-1.056-1.056zm11.405-6.02l1.945-3.368c.108-.188.044-.429-.144-.537-.188-.108-.429-.044-.537.144l-1.97 3.41c-1.479-.672-3.14-1.047-4.89-1.047s-3.411.375-4.89 1.047l-1.97-3.41c-.108-.188-.349-.252-.537-.144-.188.108-.252.349-.144.537l1.945 3.368C3.013 11.18.612 14.04.612 17.353h22.776c0-3.313-2.401-6.173-5.506-8.032z"/></svg> },
+  mobile:      { label: 'Mobile',       svg: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg> },
 };
 
 const GamesPage = () => {
@@ -170,7 +171,7 @@ const GamesPage = () => {
                       {game.name}
                     </h2>
                     {game.status === 'coming_soon' && (
-                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white text-[#FF6600] border border-[#FF6600]/30">
+                      <span className="text-xs font-semibold text-[#FF6600]">
                         Coming Soon
                       </span>
                     )}

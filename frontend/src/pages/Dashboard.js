@@ -8,7 +8,7 @@ import {
   Menu, X, LayoutDashboard,
   Home, Ticket, UserCircle, Server, Shield,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
-  ArrowUpRight, ExternalLink,
+  ArrowUpRight, ExternalLink, ClipboardList,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { RoleManagement }     from '../components/RoleManagement';
@@ -21,6 +21,7 @@ import { VpsStats }            from '../components/VpsStats';
 import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
 import CareersManagement      from '../components/CareersManagement';
+import { SurveysManagement }    from '../components/SurveysManagement';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import CriticalActionBanner   from '../components/CriticalActionBanner';
@@ -48,6 +49,7 @@ const NAV_GROUPS = [
     label: 'Support',
     items: [
       { id: 'support', label: 'Tickets', icon: Ticket, permission: 'manage_tickets' },
+      { id: 'surveys', label: 'Surveys & Forms', icon: ClipboardList, anyPermission: ['manage_surveys', 'manage_website'] },
     ],
   },
   {
@@ -73,7 +75,7 @@ const WEBSITE_SETTINGS_SUBTABS = [
 
 const VALID_TAB_IDS = new Set([
   'overview', 'account', 'website-games', 'website-blog',
-  'careers', 'website-settings', 'support', 'users', 'roles', 'system',
+  'careers', 'website-settings', 'support', 'surveys', 'users', 'roles', 'system',
 ]);
 
 const NAV_ORDER_KEY = 'vg_admin_nav_order';
@@ -637,6 +639,7 @@ const DashboardContent = () => {
                 <WebsiteSettingsWorkspace tab={websiteSettingsTab} setTab={setWebsiteSettingsTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
               )}
               {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
+              {activeTab === 'surveys'          && (hasPermission('manage_surveys') || hasPermission('manage_website') || isSuperAdmin) && <SurveysManagement />}
               {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
               {activeTab === 'system'           && (
                 <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
@@ -651,6 +654,7 @@ const DashboardContent = () => {
                activeTab !== 'website-blog' &&
                activeTab !== 'website-settings' &&
                !(activeTab === 'support' && hasPermission('manage_tickets')) &&
+               !(activeTab === 'surveys' && (hasPermission('manage_surveys') || hasPermission('manage_website') || isSuperAdmin)) &&
                !(activeTab === 'careers' && hasPermission('manager_careers')) &&
                activeTab !== 'system' &&
                activeTab !== 'account' && (
