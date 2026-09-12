@@ -13,7 +13,7 @@ export const PublicNav = ({ onAbout }) => {
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -21,170 +21,184 @@ export const PublicNav = ({ onAbout }) => {
   const links = [
     { to: '/games', label: 'Games' },
     { to: '/blog',  label: 'Blog'  },
+    { to: '/contact', label: 'Contact' },
   ];
 
+  const isHomeHero = pathname === '/' && !scrolled;
   const active = (to) => pathname === to || pathname.startsWith(to + '/');
 
   return (
     <>
-    <AnnouncementBanner />
-    <nav
-      className="fixed left-0 right-0 z-50 transition-[top,background] duration-200"
-      style={{
-        top: 'var(--vkg-banner-h, 0px)',
-        backgroundColor: scrolled ? '#0D0D0D' : 'rgba(13,13,13,0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
-      }}
-    >
-      <div className="max-w-[1100px] mx-auto px-6 h-[60px] flex items-center justify-between">
-        <div className="flex items-center gap-10">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 group transition-colors"
-          >
-            <img
-              src="/logo.png"
-              alt="Vakar Games"
-              className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
-            />
-            <span className="font-black text-white tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
-              Vakar Games
-            </span>
-          </Link>
+      <AnnouncementBanner />
+      <nav
+        className="fixed left-0 right-0 z-50 transition-all duration-300"
+        style={{
+          top: 'var(--vkg-banner-h, 0px)',
+          backgroundColor: isHomeHero
+            ? 'rgba(0, 0, 0, 0.25)'
+            : 'rgba(255, 255, 255, 0.82)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: isHomeHero
+            ? '1px solid rgba(255, 255, 255, 0.08)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <div className="max-w-[1120px] mx-auto px-6 h-[54px] flex items-center justify-between">
+          <div className="flex items-center gap-10">
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 group transition-opacity hover:opacity-80"
+            >
+              <img
+                src="/logo.png"
+                alt="Vakar Games"
+                className="h-5 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+              <span
+                className={`font-semibold tracking-tight text-[15px] transition-colors ${
+                  isHomeHero ? 'text-white' : 'text-[#1D1D1F]'
+                }`}
+              >
+                Vakar Games
+              </span>
+            </Link>
 
-          <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-7">
+              {links.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`text-[13px] font-normal transition-colors ${
+                    active(to)
+                      ? 'text-[#FF6600] font-medium'
+                      : isHomeHero
+                      ? 'text-white/80 hover:text-white'
+                      : 'text-[#1D1D1F]/80 hover:text-[#1D1D1F]'
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop right side */}
+          <div className="hidden md:flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-3">
+                {isAdmin && isAdmin() && (
+                  <Link
+                    to="/dashboard"
+                    className={`inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-1 rounded transition-colors ${
+                      isHomeHero
+                        ? 'text-white/70 hover:text-white border border-white/20 hover:border-white/40'
+                        : 'text-[#1D1D1F]/70 hover:text-[#1D1D1F] border border-[#D2D2D7] hover:border-[#1D1D1F]'
+                    }`}
+                  >
+                    <SquaresFour size={13} />
+                    Admin
+                  </Link>
+                )}
+                <Link
+                  to="/profile"
+                  className={`inline-flex items-center gap-2 text-[13px] font-normal transition-colors ${
+                    isHomeHero ? 'text-white/90 hover:text-white' : 'text-[#1D1D1F]/90 hover:text-[#1D1D1F]'
+                  }`}
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#FF6600]/15 border border-[#FF6600]/30 flex items-center justify-center text-[11px] font-medium text-[#FF6600] overflow-hidden">
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      user.name?.charAt(0)?.toUpperCase() || user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={11} />
+                    )}
+                  </div>
+                  <span>{user.name || user.firstName || user.username}</span>
+                </Link>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className={isHomeHero ? 'btn-apple-light !py-1.5 !px-3.5 !text-[12px]' : 'btn-apple !py-1.5 !px-3.5 !text-[12px]'}
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            className={`md:hidden p-1.5 transition-colors ${
+              isHomeHero ? 'text-white' : 'text-[#1D1D1F]'
+            }`}
+            onClick={() => setOpen(!open)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X size={20} /> : <List size={20} />}
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        {open && (
+          <div
+            className="md:hidden px-6 py-5 space-y-2 border-t"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#E5E5EA',
+              boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+            }}
+          >
             {links.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                  active(to) ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
+                onClick={() => setOpen(false)}
+                className={`block text-[14px] py-2 transition-colors ${
+                  active(to) ? 'text-[#FF6600] font-medium' : 'text-[#1D1D1F]/80 hover:text-[#1D1D1F]'
                 }`}
               >
                 {label}
               </Link>
             ))}
-            <Link
-              to="/contact"
-              className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                active('/contact') ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Contact
-            </Link>
-          </div>
-        </div>
 
-        {/* Desktop right side */}
-        <div className="hidden md:flex items-center gap-4">
-          {user ? (
-            <div className="flex items-center gap-3">
-              {isAdmin && isAdmin() && (
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 hover:text-white border border-white/15 hover:border-white/40 px-3 py-1.5 transition-colors"
-                >
-                  <SquaresFour size={11} />
-                  Admin
-                </Link>
-              )}
-              <Link
-                to="/profile"
-                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#FF6600]/20 border border-[#FF6600]/40 flex items-center justify-center text-[10px] font-bold text-[#FF6600] overflow-hidden">
-                  {user.avatar_url ? (
-                    <img
-                      src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    user.name?.charAt(0)?.toUpperCase() || user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || <User size={10} />
+            <div className="pt-3 border-t border-[#E5E5EA]">
+              {user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={() => setOpen(false)}
+                    className="block text-[14px] text-[#1D1D1F] py-2"
+                  >
+                    My Account ({user.name || user.firstName || user.username})
+                  </Link>
+                  {isAdmin && isAdmin() && (
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setOpen(false)}
+                      className="block text-[14px] text-[#1D1D1F]/70 hover:text-[#1D1D1F] py-2"
+                    >
+                      Admin Dashboard
+                    </Link>
                   )}
-                </div>
-                <span>{user.name || user.firstName || user.username}</span>
-              </Link>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="btn-kefir text-[10px] py-2 px-4"
-            >
-              Sign In
-            </Link>
-          )}
-        </div>
-
-        <button
-          className="md:hidden p-2 -mr-1 text-white/70 hover:text-white transition-colors"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X size={20} /> : <List size={20} />}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {open && (
-        <div
-          className="md:hidden px-6 py-4 space-y-1"
-          style={{ backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.07)' }}
-        >
-          {links.map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setOpen(false)}
-              className={`block text-[11px] font-bold uppercase tracking-[0.12em] py-3 transition-colors ${
-                active(to) ? 'text-[#FF6600]' : 'text-white/60 hover:text-white'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-          <Link
-            to="/contact"
-            onClick={() => setOpen(false)}
-            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
-          >
-            Contact
-          </Link>
-
-          {user ? (
-            <>
-              <Link
-                to="/profile"
-                onClick={() => setOpen(false)}
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
-              >
-                My Account ({user.name || user.firstName || user.username})
-              </Link>
-              {isAdmin && isAdmin() && (
+                </>
+              ) : (
                 <Link
-                  to="/dashboard"
+                  to="/login"
                   onClick={() => setOpen(false)}
-                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+                  className="btn-apple w-full text-center mt-2 !py-2.5"
                 >
-                  Admin Dashboard
+                  Sign In
                 </Link>
               )}
-            </>
-          ) : (
-            <Link
-              to="/login"
-              onClick={() => setOpen(false)}
-              className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white py-3 transition-colors"
-            >
-              Sign In
-            </Link>
-          )}
-        </div>
-      )}
-    </nav>
-    <SupportWidget user={user} />
+            </div>
+          </div>
+        )}
+      </nav>
+      <SupportWidget user={user} />
     </>
   );
 };

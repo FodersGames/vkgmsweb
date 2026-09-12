@@ -21,12 +21,12 @@ import { CookieBanner } from './components/CookieBanner';
 import './App.css';
 
 const NotFound = () => (
-  <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center p-6 text-center text-white">
+  <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center text-[#1D1D1F]">
     <div>
-      <p className="text-8xl font-black text-white/20 mb-2">404</p>
-      <h1 className="text-xl font-bold uppercase tracking-wide text-white mb-2">Page not found</h1>
-      <p className="text-sm text-white/40 mb-8">This page doesn't exist or has been moved.</p>
-      <a href="/" className="btn-kefir">
+      <p className="text-8xl font-black text-[#1D1D1F]/15 mb-2">404</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] mb-2">Page not found</h1>
+      <p className="text-sm text-[#6E6E73] mb-8">This page doesn't exist or has been moved.</p>
+      <a href="/" className="btn-apple">
         Back to homepage
       </a>
     </div>
@@ -47,7 +47,6 @@ const AppRoutes = () => {
 
   return (
     <>
-      <div className="film-grain" aria-hidden="true" />
       <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
         {/* Main studio showcase routes */}
