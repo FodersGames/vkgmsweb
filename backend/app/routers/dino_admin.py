@@ -3,7 +3,7 @@ import json
 import asyncio
 import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -18,55 +18,60 @@ router = APIRouter()
 DEFAULT_TITLE_ID = "1C8E49"
 
 CATALOG_DINOS = [
-    {"id": "Allosaurus", "name": "Allosaurus", "tier": "Carnivore"},
-    {"id": "Ankylosaurus", "name": "Ankylosaurus", "tier": "Herbivore"},
-    {"id": "Brachiosaurus", "name": "Brachiosaurus", "tier": "Giant"},
-    {"id": "Carnotaurus", "name": "Carnotaurus", "tier": "Carnivore"},
-    {"id": "Ceratosaurus", "name": "Ceratosaurus", "tier": "Carnivore"},
-    {"id": "Compsognathus", "name": "Compsognathus", "tier": "Small"},
-    {"id": "Corythosaurus", "name": "Corythosaurus", "tier": "Herbivore"},
-    {"id": "Dilophosaurus", "name": "Dilophosaurus", "tier": "Carnivore"},
-    {"id": "Diplodocus", "name": "Diplodocus", "tier": "Giant"},
-    {"id": "Gallimimus", "name": "Gallimimus", "tier": "Speed"},
-    {"id": "Iguallosaurus", "name": "Iguallosaurus", "tier": "Hybrid"},
-    {"id": "Iguanodon", "name": "Iguanodon", "tier": "Herbivore"},
-    {"id": "Megalodon", "name": "Megalodon", "tier": "Aquatic Predator"},
-    {"id": "Oviraptor", "name": "Oviraptor", "tier": "Small"},
-    {"id": "Pachycephalosaurus", "name": "Pachycephalosaurus", "tier": "Herbivore"},
-    {"id": "Parasaurolophus", "name": "Parasaurolophus", "tier": "Herbivore"},
-    {"id": "Pteranodon", "name": "Pteranodon", "tier": "Flying"},
-    {"id": "Spinosaurus", "name": "Spinosaurus", "tier": "Apex Predator"},
-    {"id": "Stegosaurus", "name": "Stegosaurus", "tier": "Herbivore"},
-    {"id": "T-Rex", "name": "T-Rex", "tier": "Apex Predator"},
-    {"id": "Tarascosaurus", "name": "Tarascosaurus", "tier": "Carnivore"},
-    {"id": "Telmatosaurus", "name": "Telmatosaurus", "tier": "Herbivore"},
-    {"id": "Triceratops", "name": "Triceratops", "tier": "Herbivore"},
-    {"id": "Velociraptor", "name": "Velociraptor", "tier": "Pack Hunter"},
+    {"id": "Allosaurus", "name": "Allosaurus", "tier": "Carnivore", "icon": "/dino-assets/dinos/Allosaurus.png"},
+    {"id": "Ankylosaurus", "name": "Ankylosaurus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Ankylosaurus.png"},
+    {"id": "Brachiosaurus", "name": "Brachiosaurus", "tier": "Giant", "icon": "/dino-assets/dinos/Brachiosaurus.png"},
+    {"id": "Carnotaurus", "name": "Carnotaurus", "tier": "Carnivore", "icon": "/dino-assets/dinos/Carnotaurus.png"},
+    {"id": "Ceratosaurus", "name": "Ceratosaurus", "tier": "Carnivore", "icon": "/dino-assets/dinos/Ceratosaurus.png"},
+    {"id": "Compsognathus", "name": "Compsognathus", "tier": "Small", "icon": "/dino-assets/dinos/Compsognathus.png"},
+    {"id": "Corythosaurus", "name": "Corythosaurus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Corythosaurus.png"},
+    {"id": "Dilophosaurus", "name": "Dilophosaurus", "tier": "Carnivore", "icon": "/dino-assets/dinos/Dilophosaurus.png"},
+    {"id": "Diplodocus", "name": "Diplodocus", "tier": "Giant", "icon": "/dino-assets/dinos/Diplodocus.png"},
+    {"id": "Gallimimus", "name": "Gallimimus", "tier": "Speed", "icon": "/dino-assets/dinos/Gallimimus.png"},
+    {"id": "Iguallosaurus", "name": "Iguallosaurus", "tier": "Hybrid", "icon": "/dino-assets/dinos/Iguallosaurus.png"},
+    {"id": "Iguanodon", "name": "Iguanodon", "tier": "Herbivore", "icon": "/dino-assets/dinos/Iguanodon.png"},
+    {"id": "Megalodon", "name": "Megalodon", "tier": "Aquatic Predator", "icon": "/dino-assets/dinos/Megalodon.png"},
+    {"id": "Oviraptor", "name": "Oviraptor", "tier": "Small", "icon": "/dino-assets/dinos/Oviraptor.png"},
+    {"id": "Pachycephalosaurus", "name": "Pachycephalosaurus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Pachycephalosaurus.png"},
+    {"id": "Parasaurolophus", "name": "Parasaurolophus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Parasaurolophus.png"},
+    {"id": "Pteranodon", "name": "Pteranodon", "tier": "Flying", "icon": "/dino-assets/dinos/Pteranodon.png"},
+    {"id": "Spinosaurus", "name": "Spinosaurus", "tier": "Apex Predator", "icon": "/dino-assets/dinos/Spinosaurus.png"},
+    {"id": "Stegosaurus", "name": "Stegosaurus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Stegosaurus.png"},
+    {"id": "T-Rex", "name": "T-Rex", "tier": "Apex Predator", "icon": "/dino-assets/dinos/T-Rex.png"},
+    {"id": "Tarascosaurus", "name": "Tarascosaurus", "tier": "Carnivore", "icon": "/dino-assets/dinos/Tarascosaurus.png"},
+    {"id": "Telmatosaurus", "name": "Telmatosaurus", "tier": "Herbivore", "icon": "/dino-assets/dinos/Telmatosaurus.png"},
+    {"id": "Triceratops", "name": "Triceratops", "tier": "Herbivore", "icon": "/dino-assets/dinos/Triceratops.png"},
+    {"id": "Velociraptor", "name": "Velociraptor", "tier": "Pack Hunter", "icon": "/dino-assets/dinos/Velociraptor.png"},
 ]
 
 CATALOG_EGGS = [
-    {"id": "T1-EGG", "name": "Egg Tier 1 (Common)", "tier": 1},
-    {"id": "T2-EGG", "name": "Egg Tier 2 (Uncommon)", "tier": 2},
-    {"id": "T3-EGG", "name": "Egg Tier 3 (Rare)", "tier": 3},
-    {"id": "T4-EGG", "name": "Egg Tier 4 (Epic)", "tier": 4},
-    {"id": "T5-EGG", "name": "Egg Tier 5 (Legendary)", "tier": 5},
-    {"id": "T6-EGG", "name": "Egg Tier 6 (Mythic)", "tier": 6},
-    {"id": "T7-EGG", "name": "Egg Tier 7 (Primordial)", "tier": 7},
+    {"id": "T1-EGG", "name": "Egg Tier 1 (Common)", "tier": 1, "icon": "/dino-assets/eggs/T1-EGG.png"},
+    {"id": "T2-EGG", "name": "Egg Tier 2 (Uncommon)", "tier": 2, "icon": "/dino-assets/eggs/T2-EGG.png"},
+    {"id": "T3-EGG", "name": "Egg Tier 3 (Rare)", "tier": 3, "icon": "/dino-assets/eggs/T3-EGG.png"},
+    {"id": "T4-EGG", "name": "Egg Tier 4 (Epic)", "tier": 4, "icon": "/dino-assets/eggs/T4-EGG.png"},
+    {"id": "T5-EGG", "name": "Egg Tier 5 (Legendary)", "tier": 5, "icon": "/dino-assets/eggs/T5-EGG.png"},
+    {"id": "T6-EGG", "name": "Egg Tier 6 (Mythic)", "tier": 6, "icon": "/dino-assets/eggs/T6-EGG.png"},
+    {"id": "T7-EGG", "name": "Egg Tier 7 (Primordial)", "tier": 7, "icon": "/dino-assets/eggs/T7-EGG.png"},
 ]
 
 CATALOG_CHESTS = [
-    {"id": "ChestT1", "name": "Wooden Supply Chest (T1)"},
-    {"id": "ChestT2", "name": "Reinforced Dino Chest (T2)"},
+    {"id": "ChestT1", "name": "Wooden Supply Chest (T1)", "icon": "/dino-assets/chests/ChestT1.png"},
+    {"id": "ChestT2", "name": "Reinforced Dino Chest (T2)", "icon": "/dino-assets/chests/ChestT2.png"},
+    {"id": "ChestT3", "name": "Mythic Dino Chest (T3)", "icon": "/dino-assets/chests/ChestT3.png"},
 ]
 
 CATALOG_ITEMS = [
-    {"id": "Item_AmberStone", "name": "Raw Amber Stone", "desc": "Prehistoric fossilized amber"},
-    {"id": "Item_AmberVial", "name": "Purified Amber Vial", "desc": "Refined genetic catalyst"},
-    {"id": "Item_BlueprintT1", "name": "Habitat Blueprint T1", "desc": "Enclosure upgrade schematic"},
-    {"id": "Item_BlueprintT2", "name": "Habitat Blueprint T2", "desc": "Reinforced fencing blueprint"},
-    {"id": "Item_BlueprintT3", "name": "Habitat Blueprint T3", "desc": "High-tech biome containment"},
-    {"id": "Item_BlueprintLab", "name": "Genetic Lab Blueprint", "desc": "Facility expansion blueprint"},
-    {"id": "Item_SandCementBag", "name": "Reinforced Cement Bag", "desc": "Industrial building supply"},
+    {"id": "Item_AmberStone", "name": "Raw Amber Stone", "desc": "Prehistoric fossilized amber", "icon": "/dino-assets/items/Amber.png"},
+    {"id": "Item_AmberVial", "name": "Purified Amber Vial", "desc": "Refined genetic catalyst", "icon": "/dino-assets/items/AmberVial.png"},
+    {"id": "Item_BlueprintT1", "name": "Habitat Blueprint T1", "desc": "Enclosure upgrade schematic", "icon": "/dino-assets/items/PlanT1.png"},
+    {"id": "Item_BlueprintT2", "name": "Habitat Blueprint T2", "desc": "Reinforced fencing blueprint", "icon": "/dino-assets/items/PlanT2.png"},
+    {"id": "Item_BlueprintT3", "name": "Habitat Blueprint T3", "desc": "High-tech biome containment", "icon": "/dino-assets/items/PlanT3.png"},
+    {"id": "Item_BlueprintLab", "name": "Genetic Lab Blueprint", "desc": "Facility expansion blueprint", "icon": "/dino-assets/items/Item_LabMicroscope.png"},
+    {"id": "Item_SandCementBag", "name": "Reinforced Cement Bag", "desc": "Industrial building supply", "icon": "/dino-assets/items/Item_SandCementBag.png"},
+    {"id": "Item_TitaniumIngot", "name": "Titanium Ingot", "desc": "Refined structural metal", "icon": "/dino-assets/items/Item_TitaniumIngot.png"},
+    {"id": "Item_ReinforcedBone", "name": "Reinforced Bone", "desc": "Prehistoric bone frame", "icon": "/dino-assets/items/Item_ReinforcedBone.png"},
+    {"id": "Item_MeteoriteShard", "name": "Meteorite Shard", "desc": "Cosmic mineral fragment", "icon": "/dino-assets/items/Item_MeteoriteShard.png"},
+    {"id": "Item_VolcanicBasalt", "name": "Volcanic Basalt", "desc": "Hardened magma block", "icon": "/dino-assets/items/Item_VolcanicBasalt.png"},
 ]
 
 
@@ -148,9 +153,11 @@ class DinoBanRequest(BaseModel):
     reason: str
 
 class DinoMaintenanceRequest(BaseModel):
-    is_maintenance: bool
-    maintenance_message: Optional[str] = "Maintenance in progress. Please check back shortly!"
+    action: Optional[str] = None  # "cancel", "immediate", "schedule"
+    is_maintenance: Optional[bool] = None
+    maintenance_message: Optional[str] = "Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée."
     scheduled_maintenance_utc: Optional[str] = "none"
+    delay_minutes: Optional[float] = None
 
 
 # ====================================================================
@@ -371,41 +378,134 @@ async def get_dino_maintenance(user=Depends(require_super_admin)):
     )
 
     data = res.get("data", {}).get("Data", {})
-    is_maint = data.get("is_maintenance", "").lower() in ("true", "1")
-    message = data.get("maintenance_message") or "Nos serveurs sont actuellement en maintenance."
-    sched = data.get("scheduled_maintenance_utc") or "none"
+    raw_maint_str = data.get("is_maintenance", "false")
+    raw_maint = raw_maint_str.lower() in ("true", "1")
+    message = data.get("maintenance_message") or ""
+    sched_raw = (data.get("scheduled_maintenance_utc") or "").strip()
+
+    now_utc = datetime.now(timezone.utc)
+    is_scheduled = False
+    effective_active = raw_maint
+    seconds_until_scheduled = None
+    sched_dt = None
+
+    if sched_raw and sched_raw.lower() not in ("none", "null", ""):
+        try:
+            parsed = datetime.fromisoformat(sched_raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            sched_dt = parsed
+
+            if now_utc >= sched_dt:
+                effective_active = True
+                is_scheduled = False
+                seconds_until_scheduled = 0
+            else:
+                is_scheduled = True
+                seconds_until_scheduled = max(0.0, (sched_dt - now_utc).total_seconds())
+        except Exception:
+            sched_raw = "none"
+    else:
+        sched_raw = "none"
+
+    if raw_maint:
+        effective_active = True
 
     return {
-        "is_maintenance": is_maint,
-        "maintenance_message": message,
-        "scheduled_maintenance_utc": sched,
+        "is_maintenance": effective_active,
+        "effective_active": effective_active,
+        "raw_is_maintenance": raw_maint,
+        "is_scheduled": is_scheduled,
+        "scheduled_maintenance_utc": sched_raw,
+        "maintenance_message": message or "Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée.",
+        "seconds_until_scheduled": seconds_until_scheduled,
+        "target_iso": sched_dt.strftime("%Y-%m-%dT%H:%M:%SZ") if sched_dt else None,
     }
 
 
 @router.post("/admin/dino/maintenance")
 async def set_dino_maintenance(req: DinoMaintenanceRequest, user=Depends(require_super_admin)):
     title_id, secret_key = await get_playfab_credentials()
+    now_utc = datetime.now(timezone.utc)
 
-    # Set TitleData keys
-    payload_keys = {
-        "is_maintenance": "true" if req.is_maintenance else "false",
-        "maintenance_message": req.maintenance_message.strip() if req.maintenance_message else "Maintenance in progress",
-        "scheduled_maintenance_utc": req.scheduled_maintenance_utc.strip() if req.scheduled_maintenance_utc else "none",
-    }
+    msg = (req.maintenance_message or "").strip()
+    if not msg:
+        msg = "Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée."
 
-    # Set each key in TitleData
+    # Determine intent: cancel/reopen, immediate, or schedule
+    is_cancel = False
+    is_immediate = False
+    is_schedule = False
+
+    if req.action == "cancel" or (req.is_maintenance is False and not req.scheduled_maintenance_utc and not req.delay_minutes):
+        is_cancel = True
+    elif req.action == "immediate" or (req.is_maintenance is True and not req.scheduled_maintenance_utc and not req.delay_minutes):
+        is_immediate = True
+    elif req.action == "schedule" or (req.delay_minutes and req.delay_minutes > 0) or (req.scheduled_maintenance_utc and req.scheduled_maintenance_utc not in ("none", "")):
+        is_schedule = True
+
+    if is_cancel:
+        payload_keys = {
+            "is_maintenance": "false",
+            "scheduled_maintenance_utc": "none",
+            "maintenance_message": "",
+        }
+        status_str = "REOPENED / ONLINE"
+    elif is_immediate:
+        payload_keys = {
+            "is_maintenance": "true",
+            "scheduled_maintenance_utc": "none",
+            "maintenance_message": msg,
+        }
+        status_str = "IMMEDIATE CUT (ACTIVE)"
+    elif is_schedule:
+        target_iso = "none"
+        if req.delay_minutes and req.delay_minutes > 0:
+            target_dt = now_utc + timedelta(minutes=req.delay_minutes)
+            target_iso = target_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        elif req.scheduled_maintenance_utc and req.scheduled_maintenance_utc not in ("none", ""):
+            try:
+                clean_str = req.scheduled_maintenance_utc.replace("Z", "+00:00")
+                parsed_dt = datetime.fromisoformat(clean_str)
+                if parsed_dt.tzinfo is None:
+                    parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
+                target_iso = parsed_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid scheduled date format. Use ISO 8601 format.")
+
+        payload_keys = {
+            "is_maintenance": "false",
+            "scheduled_maintenance_utc": target_iso,
+            "maintenance_message": msg,
+        }
+        status_str = f"SCHEDULED for {target_iso}"
+    else:
+        payload_keys = {
+            "is_maintenance": "false",
+            "scheduled_maintenance_utc": "none",
+            "maintenance_message": "",
+        }
+        status_str = "REOPENED / ONLINE"
+
+    # Set each key in PlayFab TitleData using Server/SetTitleData (with Admin fallback)
     for k, v in payload_keys.items():
-        await call_playfab(
-            "Admin/SetTitleData",
-            {"Key": k, "Value": v},
-            secret_key,
-            title_id
-        )
+        try:
+            await call_playfab(
+                "Server/SetTitleData",
+                {"Key": k, "Value": v},
+                secret_key,
+                title_id
+            )
+        except Exception:
+            await call_playfab(
+                "Admin/SetTitleData",
+                {"Key": k, "Value": v},
+                secret_key,
+                title_id
+            )
 
-    status_str = "ACTIVE" if req.is_maintenance else "OFF"
-    await log_action("dino_dev", f"Game Maintenance toggled to {status_str}", user=user["username"])
-
-    return {"success": True, "is_maintenance": req.is_maintenance}
+    await log_action("dino_dev", f"Game Maintenance: {status_str}", user=user["username"])
+    return await get_dino_maintenance(user=user)
 
 
 @router.get("/admin/dino/history")
