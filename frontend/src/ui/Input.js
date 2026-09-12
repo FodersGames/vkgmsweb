@@ -6,7 +6,7 @@ const BASE_INPUT =
 const borderClass = (error) =>
   error
     ? 'border-red-500/50 focus:border-red-500'
-    : 'border-zinc-200 dark:border-[#2a2a3c] focus:border-[#4ECDC4]';
+    : 'border-zinc-200 dark:border-[#2a2a3c] focus:border-[#FF6600]';
 
 const Label = ({ children }) =>
   children ? (

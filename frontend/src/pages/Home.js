@@ -68,7 +68,7 @@ const Home = () => {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(78,205,196,0.09) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 102, 0,0.09) 0%, transparent 70%)',
             }}
           />
         </div>
@@ -151,7 +151,7 @@ const Home = () => {
                     border: '1px solid rgba(255,255,255,0.06)',
                     transition: 'border-color 0.3s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(78,205,196,0.3)'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255, 102, 0,0.3)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
                   data-testid={`game-card-${game.slug}`}
                 >
@@ -169,7 +169,7 @@ const Home = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
-                          <GameController size={40} style={{ color: '#4ECDC4', opacity: 0.4 }} />
+                          <GameController size={40} style={{ color: '#FF6600', opacity: 0.4 }} />
                         </div>
                       )}
                     </div>
@@ -179,7 +179,7 @@ const Home = () => {
                       <div>
                         <div className="flex items-center gap-4 mb-3">
                           <h3
-                            className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors"
+                            className="font-black uppercase text-white group-hover:text-[#FF6600] transition-colors"
                             style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '-0.01em', lineHeight: 1 }}
                           >
                             {game.name}
@@ -187,7 +187,7 @@ const Home = () => {
                           {game.status === 'coming_soon' && (
                             <span
                               className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
-                              style={{ color: '#4ECDC4', border: '1px solid #4ECDC4', opacity: 0.8 }}
+                              style={{ color: '#FF6600', border: '1px solid #FF6600', opacity: 0.8 }}
                             >
                               Coming Soon
                             </span>
@@ -214,7 +214,7 @@ const Home = () => {
               className="text-center py-20"
               style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <GameController size={48} style={{ color: 'rgba(78,205,196,0.3)', margin: '0 auto 1rem' }} />
+              <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
               <h3 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
                 New Titles In Production
               </h3>
@@ -251,7 +251,7 @@ const Home = () => {
                 style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
               >
                 We Make<br />
-                <span style={{ color: '#4ECDC4' }}>Games</span><br />
+                <span style={{ color: '#FF6600' }}>Games</span><br />
                 We Love.
               </h2>
               <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '42ch' }}>
@@ -277,7 +277,7 @@ const Home = () => {
                 <div
                   key={item.label}
                   className="px-6 py-5 flex items-start gap-4"
-                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(78,205,196,0.3)' }}
+                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(255,102,0,0.5)' }}
                 >
                   <div>
                     <p className="font-bold uppercase text-white text-sm tracking-[0.08em] mb-1">{item.label}</p>
@@ -301,7 +301,7 @@ const Home = () => {
             className="font-black uppercase text-white"
             style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
           >
-            Let's Talk <span style={{ color: '#4ECDC4' }}>Games.</span>
+            Let's Talk <span style={{ color: '#FF6600' }}>Games.</span>
           </h2>
           <p className="mt-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', maxWidth: '38ch' }}>
             Press inquiries, publishing opportunities, or general questions — we read every message.

@@ -32,7 +32,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="rounded-lg w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/20 focus:border-[#4ECDC4] transition-all placeholder:text-[#A1A1A6]"
+        className="rounded-lg w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all placeholder:text-[#A1A1A6]"
       />
       {isPassword && (
         <button
@@ -243,9 +243,10 @@ export const Login = () => {
             scrim and instead give the two text elements sitting directly on it
             (subtitle, legal line) a strong halo via text-shadow, which stays
             legible over both the bright sky and the dark mountain silhouette. */}
+        {/* Background glow — Brand Orange */}
         <div className="absolute inset-0 bg-[#F5F5F7]/55" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#4ECDC4]/25 blur-[110px]" />
-        <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#6C5CE7]/15 blur-[110px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#FF6600]/20 blur-[110px]" />
+        <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#FF6600]/10 blur-[110px]" />
       </div>
 
       {mustChange && (
@@ -262,9 +263,12 @@ export const Login = () => {
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F] hover:text-[#3A3A3C] transition-colors [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]"
+            className="inline-flex flex-col items-center gap-2 group transition-colors"
           >
-            Vakar Games
+            <img src="/logo.png" alt="Vakar Games" className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
+            <span className="font-display text-[18px] font-bold tracking-tight text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+              Vakar Games
+            </span>
           </Link>
           <p className="mt-1.5 text-sm font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
@@ -339,8 +343,8 @@ export const Login = () => {
             <div className="px-7 py-7">
               {regSuccess ? (
                 <div className="text-center py-4">
-                  <div className="rounded-lg w-11 h-11 bg-[#4ECDC4]/10 border border-[#4ECDC4]/20 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={18} className="text-[#4ECDC4]" />
+                  <div className="rounded-lg w-11 h-11 bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle size={18} className="text-[#FF6600]" />
                   </div>
                   <h3 className="font-display text-lg font-medium text-[#1D1D1F] mb-1">Account created</h3>
                   <p className="text-sm text-[#6E6E73] mb-5">

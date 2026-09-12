@@ -94,7 +94,7 @@ export const BlogList = () => {
                     border: isLocked ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(255,255,255,0.06)',
                     transition: 'border-color 0.3s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.5)' : 'rgba(78,205,196,0.3)'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.5)' : 'rgba(255, 102, 0,0.3)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)'}
                   data-testid={`blog-post-${post.slug}`}
                 >
@@ -128,7 +128,7 @@ export const BlogList = () => {
                           </div>
                         )}
                         <h2
-                          className="font-black uppercase text-white group-hover:text-[#4ECDC4] transition-colors mb-3 leading-tight"
+                          className="font-black uppercase text-white group-hover:text-[#FF6600] transition-colors mb-3 leading-tight"
                           style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', letterSpacing: '-0.01em' }}
                         >
                           {post.title}
@@ -298,7 +298,7 @@ export const BlogPost = () => {
 
               <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
                 {allowed.map(r => {
-                  const roleInfo = rolesMap[r] || { name: r, color: '#4ECDC4' };
+                  const roleInfo = rolesMap[r] || { name: r, color: '#FF6600' };
                   return (
                     <span
                       key={r}
@@ -320,7 +320,7 @@ export const BlogPost = () => {
                 <div className="space-y-4">
                   <Link
                     to={`/login?redirect=/blog/${post.slug}`}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#4ECDC4] text-black hover:bg-[#45b7af] transition-colors shadow-lg shadow-[#4ECDC4]/10"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#FF6600] text-white hover:bg-[#e05a00] transition-colors shadow-lg shadow-[#FF6600]/10"
                   >
                     <SignIn size={16} weight="bold" />
                     Log in to access

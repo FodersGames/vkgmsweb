@@ -129,7 +129,7 @@ const GamesPage = () => {
           </div>
         ) : games.length === 0 ? (
           <div className="text-center py-20">
-            <GameController size={48} style={{ color: 'rgba(78,205,196,0.3)', margin: '0 auto 1rem' }} />
+            <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
             <h2 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
               In Development
             </h2>
@@ -179,7 +179,7 @@ const GamesPage = () => {
                     {game.status === 'coming_soon' && (
                       <span
                         className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
-                        style={{ color: '#4ECDC4', border: '1px solid #4ECDC4' }}
+                        style={{ color: '#FF6600', border: '1px solid #FF6600' }}
                       >
                         Coming Soon
                       </span>
@@ -226,7 +226,7 @@ const GamesPage = () => {
                               border: '1px solid rgba(255,255,255,0.12)',
                               fontSize: '0.8rem',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#4ECDC4'; e.currentTarget.style.borderColor = 'rgba(78,205,196,0.4)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#FF6600'; e.currentTarget.style.borderColor = 'rgba(255,102,0,0.4)'; }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                             data-testid={`platform-${p.name}`}
                           >
@@ -246,7 +246,7 @@ const GamesPage = () => {
                         <p className="text-xs text-red-400 mb-2">{purchaseError.msg}</p>
                       )}
                       {ownedSlugs.has(game.slug) ? (
-                        <span className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold" style={{ color: '#4ECDC4', border: '1px solid rgba(78,205,196,0.3)' }}>
+                        <span className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold" style={{ color: '#FF6600', border: '1px solid rgba(255,102,0,0.4)' }}>
                           <CheckCircle size={14} />
                           Owned
                         </span>
@@ -279,7 +279,7 @@ const GamesPage = () => {
                             </button>
                           </div>
                           {couponStatus?.valid && (
-                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: '#4ECDC4' }}>
+                            <p className="text-xs font-semibold flex items-center gap-1" style={{ color: '#FF6600' }}>
                               <Tag size={10} /> {couponStatus.discount_pct}% discount applied
                             </p>
                           )}

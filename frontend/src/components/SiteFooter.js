@@ -22,12 +22,19 @@ export const SiteFooter = ({ onAbout }) => {
           <div>
             <Link
               to="/"
-              className="font-black text-white tracking-[0.08em] uppercase text-[18px] hover:text-[#4ECDC4] transition-colors block mb-3"
+              className="flex items-center gap-2.5 group mb-3"
             >
-              Vakar Games
+              <img
+                src="/logo.png"
+                alt="Vakar Games"
+                className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+              <span className="font-black text-white tracking-[0.08em] uppercase text-[18px] group-hover:text-[#FF6600] transition-colors">
+                Vakar Games
+              </span>
             </Link>
             <p className="text-white/35 text-xs leading-relaxed max-w-[22ch]">
-              Independent video game studio.<br />Based in France.
+              Independent video game studio.<br />Play a brighter tomorrow.
             </p>
           </div>
 
@@ -62,7 +69,7 @@ export const SiteFooter = ({ onAbout }) => {
                 <li>
                   <a
                     href={`mailto:${supportEmail}`}
-                    className="text-xs text-white/50 hover:text-[#4ECDC4] transition-colors"
+                    className="text-xs text-white/50 hover:text-[#FF6600] transition-colors"
                   >
                     {supportEmail}
                   </a>

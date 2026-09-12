@@ -26,7 +26,7 @@ const inputDark = {
   padding: '0.6rem 0.75rem',
   fontSize: '0.875rem',
 };
-const inputFocusDark = { borderColor: '#4ECDC4' };
+const inputFocusDark = { borderColor: '#FF6600' };
 
 const cardDark = {
   backgroundColor: '#111111',
@@ -286,9 +286,9 @@ const Profile = () => {
                     width: '30px',
                     height: '30px',
                     borderRadius: '6px',
-                    backgroundColor: 'rgba(78,205,196,0.12)',
-                    border: '1px solid rgba(78,205,196,0.3)',
-                    color: '#4ECDC4',
+                    backgroundColor: 'rgba(255, 102, 0,0.12)',
+                    border: '1px solid rgba(255, 102, 0,0.3)',
+                    color: '#FF6600',
                     cursor: 'default',
                     transition: 'transform 0.15s',
                   }}
@@ -381,7 +381,7 @@ const Profile = () => {
                 width: '86px', height: '86px',
                 border: '2px solid rgba(255,255,255,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.75rem', fontWeight: 900, color: '#4ECDC4',
+                fontSize: '1.75rem', fontWeight: 900, color: '#FF6600',
                 backgroundColor: '#1A1A1A', overflow: 'hidden',
               }}>
                 {avatarPreview || user.avatar_url ? (
@@ -459,7 +459,7 @@ const Profile = () => {
           <div style={cardDark}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <User size={15} style={{ color: '#4ECDC4' }} />
+                <User size={15} style={{ color: '#FF6600' }} />
                 <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                   Account Details
                 </h2>
@@ -526,7 +526,7 @@ const Profile = () => {
             ) : (
               <>
                 {profileSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem', marginBottom: '1rem' }}>
                     <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
                   </div>
                 )}
@@ -551,7 +551,7 @@ const Profile = () => {
           <div style={cardDark}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPasswordChange ? '1.25rem' : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Lock size={15} style={{ color: '#4ECDC4' }} />
+                <Lock size={15} style={{ color: '#FF6600' }} />
                 <div>
                   <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                     Password & Security
@@ -574,8 +574,8 @@ const Profile = () => {
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: showPasswordChange ? 'rgba(255,255,255,0.5)' : '#4ECDC4',
-                  border: `1px solid ${showPasswordChange ? 'rgba(255,255,255,0.15)' : 'rgba(78,205,196,0.3)'}`,
+                  color: showPasswordChange ? 'rgba(255,255,255,0.5)' : '#FF6600',
+                  border: `1px solid ${showPasswordChange ? 'rgba(255,255,255,0.15)' : 'rgba(255, 102, 0,0.3)'}`,
                   padding: '0.35rem 0.75rem',
                   background: 'none',
                   cursor: 'pointer',
@@ -598,7 +598,7 @@ const Profile = () => {
                   </div>
                 )}
                 {pwSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(78,205,196,0.08)', border: '1px solid rgba(78,205,196,0.2)', color: '#4ECDC4', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem' }}>
                     <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated successfully.
                   </div>
                 )}

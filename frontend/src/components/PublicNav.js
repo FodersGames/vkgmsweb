@@ -42,9 +42,16 @@ export const PublicNav = ({ onAbout }) => {
         <div className="flex items-center gap-10">
           <Link
             to="/"
-            className="font-black text-white tracking-[0.08em] uppercase text-[17px] hover:text-[#4ECDC4] transition-colors"
+            className="flex items-center gap-2.5 group transition-colors"
           >
-            Vakar Games
+            <img
+              src="/logo.png"
+              alt="Vakar Games"
+              className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+            <span className="font-black text-white tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
+              Vakar Games
+            </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -53,7 +60,7 @@ export const PublicNav = ({ onAbout }) => {
                 key={to}
                 to={to}
                 className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                  active(to) ? 'text-[#4ECDC4]' : 'text-white/70 hover:text-white'
+                  active(to) ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
                 }`}
               >
                 {label}
@@ -62,7 +69,7 @@ export const PublicNav = ({ onAbout }) => {
             <Link
               to="/contact"
               className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                active('/contact') ? 'text-[#4ECDC4]' : 'text-white/70 hover:text-white'
+                active('/contact') ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
               }`}
             >
               Contact
@@ -87,7 +94,7 @@ export const PublicNav = ({ onAbout }) => {
                 to="/profile"
                 className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
               >
-                <div className="w-6 h-6 rounded-full bg-[#4ECDC4]/20 border border-[#4ECDC4]/40 flex items-center justify-center text-[10px] font-bold text-[#4ECDC4] overflow-hidden">
+                <div className="w-6 h-6 rounded-full bg-[#FF6600]/20 border border-[#FF6600]/40 flex items-center justify-center text-[10px] font-bold text-[#FF6600] overflow-hidden">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
@@ -132,7 +139,7 @@ export const PublicNav = ({ onAbout }) => {
               to={to}
               onClick={() => setOpen(false)}
               className={`block text-[11px] font-bold uppercase tracking-[0.12em] py-3 transition-colors ${
-                active(to) ? 'text-[#4ECDC4]' : 'text-white/60 hover:text-white'
+                active(to) ? 'text-[#FF6600]' : 'text-white/60 hover:text-white'
               }`}
             >
               {label}

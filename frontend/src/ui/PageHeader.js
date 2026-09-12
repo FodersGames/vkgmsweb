@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const PageHeader = ({ icon: Icon, iconColor = '#4ECDC4', title, description, children, className = '' }) => (
+export const PageHeader = ({ icon: Icon, iconColor = '#FF6600', title, description, children, className = '' }) => (
   <div className={`flex items-center justify-between gap-3 ${className}`}>
     <div className="flex items-center gap-3 min-w-0">
       {Icon && (

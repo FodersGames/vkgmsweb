@@ -25,7 +25,7 @@ const fmtUptime = (seconds) => {
 const colorFor = (pct) => {
   if (pct >= 90) return { bar: '#EB5757', text: 'text-red-500' };
   if (pct >= 70) return { bar: '#F2994A', text: 'text-orange-400' };
-  return { bar: '#4ECDC4', text: 'text-[#4ECDC4]' };
+  return { bar: '#FF6600', text: 'text-[#FF6600]' };
 };
 
 const Gauge = ({ label, icon: Icon, percent, detail }) => {
@@ -114,7 +114,7 @@ export const VpsStats = () => {
 
       {!stats && loading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-[#4ECDC4]" />
+          <Loader2 size={24} className="animate-spin text-[#FF6600]" />
         </div>
       )}
 

@@ -33,7 +33,7 @@ const Toaster = ({
           success: "[&_[data-icon]]:text-[#2FA84F]",
           error: "[&_[data-icon]]:text-[#D64545]",
           warning: "[&_[data-icon]]:text-[#C08A1E]",
-          info: "[&_[data-icon]]:text-[#4ECDC4]",
+          info: "[&_[data-icon]]:text-[#FF6600]",
         },
         style: {
           width: '300px',

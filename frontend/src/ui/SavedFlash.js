@@ -18,7 +18,7 @@ export const useSavedFlash = (duration = 2000) => {
 
 export const SavedFlash = ({ show, label = 'Saved', className = '' }) => (
   <span
-    className={`inline-flex items-center gap-1 text-xs font-medium text-[#4ECDC4] transition-opacity duration-300 ${show ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${className}`}
+    className={`inline-flex items-center gap-1 text-xs font-medium text-[#FF6600] transition-opacity duration-300 ${show ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${className}`}
     aria-live="polite"
   >
     <Check size={12} />

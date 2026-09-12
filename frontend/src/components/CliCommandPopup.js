@@ -65,8 +65,8 @@ export const CliCommandPopup = ({ command, prefill = [], onClose, onSubmit }) =>
         className="animate-appear rounded-2xl relative z-10 bg-white dark:bg-[#151520] border border-[#D2D2D7] dark:border-[#2a2a3c] p-6 w-full max-w-md shadow-2xl"
       >
         <div className="flex items-start gap-3 mb-5">
-          <div className="rounded-lg w-9 h-9 bg-[#4ECDC4]/10 flex items-center justify-center shrink-0">
-            <Terminal size={16} className="text-[#4ECDC4]" />
+          <div className="rounded-lg w-9 h-9 bg-[#FF6600]/10 flex items-center justify-center shrink-0">
+            <Terminal size={16} className="text-[#FF6600]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">{command.path.join(' ')}</p>
@@ -96,14 +96,14 @@ export const CliCommandPopup = ({ command, prefill = [], onClose, onSubmit }) =>
                     rows={3}
                     value={values[a.name] || ''}
                     onChange={e => setField(a.name, e.target.value)}
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7] resize-none"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7] resize-none"
                   />
                 ) : (
                   <input
                     type={a.type === 'number' ? 'number' : 'text'}
                     value={values[a.name] || ''}
                     onChange={e => setField(a.name, e.target.value)}
-                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#4ECDC4] bg-white dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7]"
+                    className="rounded-lg w-full px-3 py-2 text-sm border border-[#D2D2D7] dark:border-[#2a2a3c] focus:outline-none focus:border-[#FF6600] bg-white dark:bg-[#111118] text-[#1D1D1F] dark:text-[#e4e4e7]"
                   />
                 )}
               </div>
@@ -117,7 +117,7 @@ export const CliCommandPopup = ({ command, prefill = [], onClose, onSubmit }) =>
           <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-medium text-[#3A3A3C] dark:text-[#a1a1aa] bg-[#EDEDEF] dark:bg-[#2a2a3c] hover:bg-[#D2D2D7] dark:hover:bg-[#3a3a50] transition-all">
             Cancel
           </button>
-          <button type="submit" className="rounded-full px-4 py-2 text-sm font-semibold bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f] transition-all">
+          <button type="submit" className="rounded-full px-4 py-2 text-sm font-semibold bg-[#FF6600] hover:bg-[#45b8b0] text-[#0a0a0f] transition-all">
             {command.confirm ? 'Preview' : 'Run'}
           </button>
         </div>

@@ -27,7 +27,7 @@ export const DensityToggle = ({ density, onChange, className = '' }) => (
       onClick={() => onChange('comfortable')}
       className={`h-8 w-8 flex items-center justify-center transition-colors ${
         density === 'comfortable'
-          ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
+          ? 'bg-[#FF6600]/10 text-[#FF6600]'
           : 'text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06]'
       }`}
     >
@@ -39,7 +39,7 @@ export const DensityToggle = ({ density, onChange, className = '' }) => (
       onClick={() => onChange('compact')}
       className={`h-8 w-8 flex items-center justify-center border-l border-[#D2D2D7] dark:border-[#2a2a3c] transition-colors ${
         density === 'compact'
-          ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]'
+          ? 'bg-[#FF6600]/10 text-[#FF6600]'
           : 'text-[#A1A1A6] dark:text-[#71717a] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/[0.045] dark:hover:bg-white/[0.06]'
       }`}
     >

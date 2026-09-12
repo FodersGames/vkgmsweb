@@ -50,7 +50,7 @@ const SECTIONS = [
             'Acknowledge that banned words are automatically filtered and replaced with asterisks',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4ECDC4] mt-2 shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600] mt-2 shrink-0" />
               <span>{item}</span>
             </li>
           ))}
@@ -142,7 +142,7 @@ const SECTIONS = [
         <p className="mb-2">If you have questions about these Terms of Service, please reach out to our legal and support team:</p>
         <a
           href="mailto:support@vakargames.com"
-          className="inline-flex items-center gap-1.5 text-[#4ECDC4] hover:underline font-mono text-sm"
+          className="inline-flex items-center gap-1.5 text-[#FF6600] hover:underline font-mono text-sm"
         >
           <EnvelopeSimple size={15} />
           support@vakargames.com
@@ -174,7 +174,7 @@ const TermsOfService = () => {
       {/* Hero */}
       <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
-          <p className="kefir-label mb-3" style={{ color: '#4ECDC4' }}>// LEGAL & COMPLIANCE</p>
+          <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// LEGAL & COMPLIANCE</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
@@ -192,7 +192,7 @@ const TermsOfService = () => {
               className="px-5 py-4 flex items-center gap-3.5 shrink-0 self-start lg:self-auto"
               style={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <Scales size={22} style={{ color: '#4ECDC4' }} />
+              <Scales size={22} style={{ color: '#FF6600' }} />
               <div>
                 <p className="font-mono text-xs text-white font-bold tracking-wider uppercase">Last Revision</p>
                 <p className="text-[11px] font-mono text-white/40 mt-0.5">September 2026 · France</p>
@@ -210,7 +210,7 @@ const TermsOfService = () => {
           <aside className="lg:col-span-4 hidden lg:block">
             <div className="sticky top-28 space-y-1 p-4 bg-[#111111] border border-white/[0.06]">
               <div className="flex items-center gap-2 pb-3 mb-2 border-b border-white/[0.06]">
-                <BookOpen size={15} className="text-[#4ECDC4]" />
+                <BookOpen size={15} className="text-[#FF6600]" />
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-white/80">Table of Contents</span>
               </div>
               <nav className="space-y-0.5 max-h-[calc(100vh-220px)] overflow-y-auto">
@@ -222,7 +222,7 @@ const TermsOfService = () => {
                       onClick={() => scrollTo(s.id)}
                       className={`w-full text-left px-2.5 py-1.5 text-xs font-mono transition-colors flex items-center gap-2 ${
                         isActive
-                          ? 'text-[#4ECDC4] bg-[#4ECDC4]/10 font-bold'
+                          ? 'text-[#FF6600] bg-[#FF6600]/10 font-bold'
                           : 'text-white/40 hover:text-white hover:bg-white/[0.03]'
                       }`}
                     >
@@ -244,7 +244,7 @@ const TermsOfService = () => {
                 className="scroll-mt-28 p-6 sm:p-8 bg-[#111111] border border-white/[0.06] transition-all hover:border-white/[0.12]"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-[#4ECDC4]/10 text-[#4ECDC4] border border-[#4ECDC4]/20">
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-[#FF6600]/10 text-[#FF6600] border border-[#FF6600]/20">
                     // {s.num}
                   </span>
                   <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight">
@@ -260,13 +260,13 @@ const TermsOfService = () => {
             {/* Quick links to Privacy Policy */}
             <div className="p-6 bg-[#141414] border border-white/[0.08] flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-[#4ECDC4]">// PRIVACY</p>
+                <p className="text-xs font-mono uppercase tracking-wider text-[#FF6600]">// PRIVACY</p>
                 <p className="text-sm font-bold text-white mt-0.5">Looking for our Privacy Policy?</p>
                 <p className="text-xs text-white/40 mt-0.5">Learn how we process, store, and protect your data.</p>
               </div>
               <a
                 href="/privacy"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-black bg-[#4ECDC4] hover:bg-[#3DBDB4] transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-black bg-[#FF6600] hover:bg-[#e05a00] transition-colors"
               >
                 <span>Read Policy</span>
                 <ArrowUpRight size={13} />

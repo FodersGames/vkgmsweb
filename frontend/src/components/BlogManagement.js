@@ -223,8 +223,8 @@ export const BlogManagement = () => {
                       onClick={() => setForm(p => ({ ...p, allowed_roles: [] }))}
                       className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all ${
                         form.allowed_roles.length === 0
-                          ? 'bg-[#4ECDC4]/15 text-[#4ECDC4] border-[#4ECDC4]/40 shadow-sm'
-                          : 'bg-white dark:bg-[#181822] text-[#6E6E73] dark:text-[#a1a1aa] border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/30'
+                          ? 'bg-[#FF6600]/15 text-[#FF6600] border-[#FF6600]/40 shadow-sm'
+                          : 'bg-white dark:bg-[#181822] text-[#6E6E73] dark:text-[#a1a1aa] border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600]/30'
                       }`}
                     >
                       <Globe size={14} />
@@ -256,7 +256,7 @@ export const BlogManagement = () => {
                           <button
                             type="button"
                             onClick={() => setForm(p => ({ ...p, allowed_roles: availableRoles.map(r => r.id) }))}
-                            className="text-[11px] font-medium text-[#4ECDC4] hover:underline"
+                            className="text-[11px] font-medium text-[#FF6600] hover:underline"
                           >
                             Select all
                           </button>
@@ -264,7 +264,7 @@ export const BlogManagement = () => {
                           <button
                             type="button"
                             onClick={() => setForm(p => ({ ...p, allowed_roles: ['admin', 'moderator'] }))}
-                            className="text-[11px] font-medium text-[#4ECDC4] hover:underline"
+                            className="text-[11px] font-medium text-[#FF6600] hover:underline"
                           >
                             Staff only
                           </button>
@@ -281,16 +281,16 @@ export const BlogManagement = () => {
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 border transition-all ${
                                 isSelected
                                   ? 'text-white shadow-sm'
-                                  : 'text-[#6E6E73] dark:text-[#71717a] border-[#D2D2D7] dark:border-[#2a2a3c] hover:text-white hover:border-[#4ECDC4]/40'
+                                  : 'text-[#6E6E73] dark:text-[#71717a] border-[#D2D2D7] dark:border-[#2a2a3c] hover:text-white hover:border-[#FF6600]/40'
                               }`}
                               style={{
-                                backgroundColor: isSelected ? `${role.color || '#4ECDC4'}25` : 'transparent',
-                                borderColor: isSelected ? role.color || '#4ECDC4' : undefined,
+                                backgroundColor: isSelected ? `${role.color || '#FF6600'}25` : 'transparent',
+                                borderColor: isSelected ? role.color || '#FF6600' : undefined,
                               }}
                             >
                               <div
                                 className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: role.color || '#4ECDC4' }}
+                                style={{ backgroundColor: role.color || '#FF6600' }}
                               />
                               <span>{role.name}</span>
                               {isSelected && <Check size={12} className="text-white ml-0.5" />}
@@ -303,7 +303,7 @@ export const BlogManagement = () => {
                 </div>
 
                 <label className="flex items-center gap-2.5 text-sm text-[#3A3A3C] dark:text-[#a1a1aa] cursor-pointer select-none">
-                  <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
+                  <input type="checkbox" checked={form.published} onChange={e => setForm(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 rounded accent-[#FF6600]" />
                   Publish immediately
                 </label>
                 <Button type="submit" loading={loading} icon={editing ? Save : Plus} data-testid="submit-blog-button">

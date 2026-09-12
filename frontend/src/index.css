@@ -23,24 +23,24 @@
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 7%;
     --popover-foreground: 0 0% 95%;
-    /* Brand teal — #4ECDC4 */
-    --primary: 176 57% 55%;
-    --primary-foreground: 0 0% 5%;
+    /* Brand Orange — #FF6600 */
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 10%;
     --secondary-foreground: 0 0% 85%;
     --muted: 0 0% 9%;
     --muted-foreground: 0 0% 50%;
-    --accent: 176 57% 55%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 24 100% 50%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 14%;
     --input: 0 0% 14%;
-    --ring: 176 57% 55%;
+    --ring: 24 100% 50%;
     --radius: 0.5rem;
   }
 
-  /* Admin dashboard keeps its own dark variant — unchanged */
+  /* Admin dashboard keeps its own dark variant */
   .dark {
     --background: 244 25% 7%;
     --foreground: 240 5% 91%;
@@ -48,19 +48,19 @@
     --card-foreground: 240 5% 91%;
     --popover: 244 20% 10%;
     --popover-foreground: 240 5% 91%;
-    --primary: 176 57% 55%;
-    --primary-foreground: 244 25% 7%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 242 22% 15%;
     --secondary-foreground: 240 5% 91%;
     --muted: 244 22% 9%;
     --muted-foreground: 240 4% 46%;
-    --accent: 176 57% 55%;
-    --accent-foreground: 244 25% 7%;
+    --accent: 24 100% 50%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 243 20% 20%;
     --input: 243 20% 20%;
-    --ring: 176 57% 55%;
+    --ring: 24 100% 50%;
     --radius: 0.5rem;
   }
 }
@@ -220,7 +220,7 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 20% 50%, rgba(78,205,196,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 20% 50%, rgba(255,102,0,0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(255,255,255,0.02) 0%, transparent 40%);
   pointer-events: none;
 }

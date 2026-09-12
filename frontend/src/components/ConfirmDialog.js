@@ -128,7 +128,7 @@ export const ConfirmDialog = ({
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-2 min-w-[90px] justify-center ${
               variant === 'destructive'
                 ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-[#4ECDC4] hover:bg-[#45b8b0] text-[#0a0a0f]'
+                : 'bg-[#FF6600] hover:bg-[#45b8b0] text-[#0a0a0f]'
             }`}
           >
             {loading ? (

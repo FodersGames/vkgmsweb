@@ -28,7 +28,7 @@
         shield: '🛡️', sword: '⚔️', flame: '🔥', star: '⭐', wolf: '🐺', dragon: '🐉',
         crown: '👑', skull: '💀', eagle: '🦅', lion: '🦁', anchor: '⚓', leaf: '🍃',
     };
-    const GUILD_COLORS = ['#4ECDC4', '#F2994A', '#EB5757', '#9B51E0', '#2F80ED', '#27AE60', '#F2C94C', '#BB6BD9'];
+    const GUILD_COLORS = ['#FF6600', '#F2994A', '#EB5757', '#9B51E0', '#2F80ED', '#27AE60', '#F2C94C', '#BB6BD9'];
     const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
     const GUILD_MAX_MEMBERS = 10;
 
@@ -119,7 +119,7 @@
 
             // VakarGames Play
             this._playSlug        = '';
-            this._playAccent      = '#4ECDC4';
+            this._playAccent      = '#FF6600';
             this._playTitle       = 'VakarGames Play';
             this._playAccessToken = null;
             this._playPlayer      = null;
@@ -182,7 +182,7 @@
             return {
                 id:     'vakargames',
                 name:   'Vakar Games',
-                color1: '#4ECDC4',
+                color1: '#FF6600',
                 color2: '#2CB5AC',
                 color3: '#1aada6',
                 menus: {
@@ -655,7 +655,7 @@
                         blockType: Scratch.BlockType.COMMAND,
                         text:      'personnaliser popup couleur [COULEUR] titre [TITRE]',
                         arguments: {
-                            COULEUR: { type: Scratch.ArgumentType.STRING, defaultValue: '#4ECDC4' },
+                            COULEUR: { type: Scratch.ArgumentType.STRING, defaultValue: '#FF6600' },
                             TITRE:   { type: Scratch.ArgumentType.STRING, defaultValue: 'VakarGames Play' }
                         }
                     },
@@ -1080,7 +1080,7 @@
                 const mine = r.user_ids.indexOf(myId) !== -1;
                 const pill = document.createElement('button');
                 pill.textContent = r.emoji + ' ' + r.user_ids.length;
-                pill.style.cssText = `font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${mine ? '#4ECDC4' : '#2a2b34'};background:${mine ? '#4ECDC422' : '#22232b'};color:#d6d7de;cursor:pointer`;
+                pill.style.cssText = `font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid ${mine ? '#FF6600' : '#2a2b34'};background:${mine ? '#FF660022' : '#22232b'};color:#d6d7de;cursor:pointer`;
                 pill.addEventListener('click', async () => {
                     const ok = await this._chatReact(msg.id, r.emoji);
                     if (ok) this._refreshChatMessages(this._chatChannel, false);
@@ -1229,7 +1229,7 @@
                 `<span style="font-size:10px;color:#8f909c;margin-right:6px">${g.member_count}/${GUILD_MAX_MEMBERS}</span>`;
             const infoBtn = document.createElement('button');
             infoBtn.textContent = 'Info';
-            infoBtn.style.cssText = 'font-size:11px;font-weight:700;color:#4ECDC4;background:none;border:1px solid #2a2b34;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0';
+            infoBtn.style.cssText = 'font-size:11px;font-weight:700;color:#FF6600;background:none;border:1px solid #2a2b34;border-radius:5px;padding:3px 8px;cursor:pointer;flex-shrink:0';
             infoBtn.addEventListener('click', () => this._showGuildInfoView());
             this._guildStripEl.appendChild(infoBtn);
         }
@@ -1286,7 +1286,7 @@
             const globalTab = document.createElement('button');
             const guildTab  = document.createElement('button');
             const tabStyle = (active) =>
-                `flex:1;padding:9px 0;border:none;background:${active ? '#22232b' : 'transparent'};color:${active ? '#4ECDC4' : '#8f909c'};font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid ${active ? '#4ECDC4' : 'transparent'}`;
+                `flex:1;padding:9px 0;border:none;background:${active ? '#22232b' : 'transparent'};color:${active ? '#FF6600' : '#8f909c'};font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid ${active ? '#FF6600' : 'transparent'}`;
             globalTab.textContent = 'Global';
             guildTab.textContent  = 'Guild';
             globalTab.style.cssText = tabStyle(true);
@@ -1326,7 +1326,7 @@
             input.placeholder = 'Type a message…';
             input.style.cssText = 'flex:1;background:#22232b;border:1px solid #2a2b34;border-radius:6px;color:#f2f2f5;font-size:13px;padding:8px 10px;outline:none';
             const sendBtn = this._panelIconBtn('Send', 'Send message');
-            sendBtn.style.cssText += ';background:#4ECDC4;color:#0d1f1d;font-weight:700';
+            sendBtn.style.cssText += ';background:#FF6600;color:#0d1f1d;font-weight:700';
             const doSend = async () => {
                 const text = input.value.trim();
                 if (!text) return;
@@ -1459,12 +1459,12 @@
             Object.keys(GUILD_LOGO_EMOJI).forEach(id => {
                 const b = document.createElement('button');
                 b.textContent = GUILD_LOGO_EMOJI[id];
-                b.style.cssText = `width:30px;height:30px;font-size:15px;border-radius:6px;background:${id === selectedLogo ? '#4ECDC422' : '#22232b'};border:1px solid ${id === selectedLogo ? '#4ECDC4' : '#2a2b34'};cursor:pointer`;
+                b.style.cssText = `width:30px;height:30px;font-size:15px;border-radius:6px;background:${id === selectedLogo ? '#FF660022' : '#22232b'};border:1px solid ${id === selectedLogo ? '#FF6600' : '#2a2b34'};cursor:pointer`;
                 b.addEventListener('click', () => {
                     selectedLogo = id;
                     logoBtns.forEach(entry => {
-                        entry.btn.style.background   = entry.id === selectedLogo ? '#4ECDC422' : '#22232b';
-                        entry.btn.style.borderColor  = entry.id === selectedLogo ? '#4ECDC4' : '#2a2b34';
+                        entry.btn.style.background   = entry.id === selectedLogo ? '#FF660022' : '#22232b';
+                        entry.btn.style.borderColor  = entry.id === selectedLogo ? '#FF6600' : '#2a2b34';
                     });
                 });
                 logoBtns.push({ btn: b, id });
@@ -1477,7 +1477,7 @@
             const btnRow = document.createElement('div');
             btnRow.style.cssText = 'display:flex;gap:8px';
             const submitBtn = this._panelIconBtn(existing ? 'Save' : 'Create', '');
-            submitBtn.style.cssText += ';flex:1;background:#4ECDC4;color:#0d1f1d;font-weight:700;justify-content:center';
+            submitBtn.style.cssText += ';flex:1;background:#FF6600;color:#0d1f1d;font-weight:700;justify-content:center';
             submitBtn.addEventListener('click', async () => {
                 errEl.textContent = '';
                 submitBtn.disabled = true;
@@ -1651,7 +1651,7 @@
             members.forEach(m => {
                 const row = document.createElement('div');
                 row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;background:#22232b;border-radius:6px';
-                const roleBadgeColor = m.role === 'owner' ? '#F2C94C' : m.role === 'officer' ? '#4ECDC4' : '#8f909c';
+                const roleBadgeColor = m.role === 'owner' ? '#F2C94C' : m.role === 'officer' ? '#FF6600' : '#8f909c';
                 row.innerHTML =
                     `<span style="font-size:12px;font-weight:600;color:#f2f2f5;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this._escapeHtml(m.username)}</span>` +
                     `<span style="font-size:9px;font-weight:700;color:${roleBadgeColor};text-transform:uppercase;letter-spacing:0.04em">${this._escapeHtml(m.role)}</span>`;
@@ -2393,7 +2393,7 @@
         }
 
         playPersonnaliser({ COULEUR, TITRE }) {
-            this._playAccent = String(COULEUR).trim() || '#4ECDC4';
+            this._playAccent = String(COULEUR).trim() || '#FF6600';
             this._playTitle  = String(TITRE).trim()   || 'VakarGames Play';
         }
 
@@ -2431,7 +2431,7 @@
                 '<div style="font-size:13px;color:#666;margin-bottom:18px">' + this._escapeHtml(String(amount)) + 'x ' + this._escapeHtml(productName || variableName) + '</div>';
             const okBtn = document.createElement('button');
             okBtn.textContent = 'Nice!';
-            okBtn.style.cssText = `width:100%;padding:10px;background:${this._playAccent || '#4ECDC4'};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer`;
+            okBtn.style.cssText = `width:100%;padding:10px;background:${this._playAccent || '#FF6600'};color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer`;
             okBtn.addEventListener('click', () => overlay.remove());
             card.appendChild(okBtn);
             overlay.appendChild(card);
@@ -2781,7 +2781,7 @@
         _showBannedPopup(uid) {
             this._freezeForBan();
             if (this._playPopup) { this._playPopup.remove(); this._playPopup = null; }
-            const accent = this._playAccent || '#4ECDC4';
+            const accent = this._playAccent || '#FF6600';
 
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif';
@@ -3103,7 +3103,7 @@
             }
             this._devPanelOnClose = onClose || null;
             this._pauseRuntimeForDevPanel();
-            const accent = this._playAccent || '#4ECDC4';
+            const accent = this._playAccent || '#FF6600';
             const categories = ['inventory', 'stats', 'craft', 'tech', 'others'];
             this._devCatState = {};
             for (const c of categories) this._devCatState[c] = { value: null, original: null, loaded: false };

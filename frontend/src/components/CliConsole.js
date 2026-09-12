@@ -192,7 +192,7 @@ export const CliConsole = () => {
 
   const colorFor = (type) => {
     switch (type) {
-      case 'input':  return 'text-[#4ECDC4]';
+      case 'input':  return 'text-[#FF6600]';
       case 'error':  return 'text-red-400';
       case 'system': return 'text-[#6E6E73]';
       default:       return 'text-[#D6D3D1]';
@@ -205,8 +205,8 @@ export const CliConsole = () => {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="rounded-lg w-10 h-10 bg-[#4ECDC4]/10 flex items-center justify-center">
-          <Terminal size={20} className="text-[#4ECDC4]" />
+        <div className="rounded-lg w-10 h-10 bg-[#FF6600]/10 flex items-center justify-center">
+          <Terminal size={20} className="text-[#FF6600]" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className={`text-lg font-bold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>CLI</h1>
@@ -298,9 +298,9 @@ export const CliConsole = () => {
                     key={c.path.join(' ')}
                     onMouseEnter={() => setDropdownIdx(i)}
                     onClick={() => applyCompletion(c)}
-                    className={`w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors ${i === dropdownIdx ? 'bg-[#4ECDC4]/15' : ''}`}
+                    className={`w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors ${i === dropdownIdx ? 'bg-[#FF6600]/15' : ''}`}
                   >
-                    <span className={`font-mono text-[12px] ${i === dropdownIdx ? 'text-[#4ECDC4]' : 'text-[#D6D3D1]'}`}>{c.path.join(' ')}</span>
+                    <span className={`font-mono text-[12px] ${i === dropdownIdx ? 'text-[#FF6600]' : 'text-[#D6D3D1]'}`}>{c.path.join(' ')}</span>
                     <span className="text-[11px] text-[#7a7a7a] truncate">{c.description}</span>
                   </button>
                 ))}
@@ -308,7 +308,7 @@ export const CliConsole = () => {
             )}
 
             <form onSubmit={submit} className="flex items-center gap-2 mt-0.5">
-              <span className="font-mono text-[13px] text-[#4ECDC4] shrink-0">
+              <span className="font-mono text-[13px] text-[#FF6600] shrink-0">
                 {pending ? 'confirm>' : 'vakargames-cli>'}
               </span>
               <input

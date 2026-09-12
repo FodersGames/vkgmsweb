@@ -100,8 +100,8 @@ export const GamesManagement = () => {
       <Card className="overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#4ECDC418' }}>
-              <Gamepad2 size={16} style={{ color: '#4ECDC4' }} />
+            <div className="rounded-lg w-9 h-9 flex items-center justify-center" style={{ backgroundColor: '#FF660018' }}>
+              <Gamepad2 size={16} style={{ color: '#FF6600' }} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#1D1D1F] dark:text-[#e4e4e7]">Applications Management</h3>
@@ -160,7 +160,7 @@ export const GamesManagement = () => {
                         </button>
                       </div>
                     ))}
-                    <label className="cursor-pointer w-20 h-14 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/50 flex items-center justify-center transition-colors">
+                    <label className="cursor-pointer w-20 h-14 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-dashed border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600]/50 flex items-center justify-center transition-colors">
                       <ImageIcon size={16} className="text-[#6E6E73] dark:text-[#a1a1aa]" />
                       <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
                     </label>
@@ -174,7 +174,7 @@ export const GamesManagement = () => {
                       const active = form.platforms.find(pl => pl.name === p.id);
                       return (
                         <div key={p.id} className="flex items-center gap-3">
-                          <label className={`flex items-center gap-2 px-3 h-9 border cursor-pointer transition-colors text-sm shrink-0 ${active ? 'border-[#4ECDC4] bg-[#4ECDC4]/10 text-[#4ECDC4]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73]'}`}>
+                          <label className={`flex items-center gap-2 px-3 h-9 border cursor-pointer transition-colors text-sm shrink-0 ${active ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#FF6600]' : 'border-[#D2D2D7] dark:border-[#2a2a3c] text-[#6E6E73]'}`}>
                             <input type="checkbox" checked={!!active} onChange={() => togglePlatform(p.id)} className="w-3.5 h-3.5 rounded" />
                             {p.label}
                           </label>
@@ -202,14 +202,14 @@ export const GamesManagement = () => {
                         setForm(p => ({ ...p, price_cents: isNaN(val) ? 0 : Math.round(val * 100) }));
                       }}
                       placeholder="0.00 (free)"
-                      className="rounded-lg w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#4ECDC4]"
+                      className="rounded-lg w-full pl-7 pr-3 py-2 border border-[#D2D2D7] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-[#e4e4e7] bg-white dark:bg-[#111118] focus:outline-none focus:border-[#FF6600]"
                     />
                   </div>
                   <p className="text-[10px] text-[#6E6E73] dark:text-[#a1a1aa] mt-1">Leave empty or 0 for a free game. Price used for Stripe checkout.</p>
                 </div>
 
-                <label className="rounded-xl flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#4ECDC4]/30 transition-colors" data-testid="featured-toggle">
-                  <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#4ECDC4]" />
+                <label className="rounded-xl flex items-center gap-3 px-4 py-3 bg-[#EDEDEF] dark:bg-[#0d0d14] border border-[#D2D2D7] dark:border-[#2a2a3c] cursor-pointer hover:border-[#FF6600]/30 transition-colors" data-testid="featured-toggle">
+                  <input type="checkbox" checked={form.featured} onChange={e => setForm(p => ({ ...p, featured: e.target.checked }))} className="w-4 h-4 rounded accent-[#FF6600]" />
                   <div>
                     <span className="text-sm text-[#1D1D1F] dark:text-[#e4e4e7] font-medium">Featured Game</span>
                     <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">Display this game on the homepage</p>
@@ -233,7 +233,7 @@ export const GamesManagement = () => {
           ) : (
             <div className="space-y-2" data-testid="games-list">
               {games.map(g => (
-                <div key={g.slug} className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#4ECDC4]/20 transition-colors">
+                <div key={g.slug} className="rounded-xl flex items-center gap-4 p-4 bg-[#F5F5F7] dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#FF6600]/20 transition-colors">
                   {g.logo_url
                     ? (
                       <HoverPreview src={g.logo_url.startsWith('/') ? `${API_URL}${g.logo_url}` : g.logo_url} alt={g.name} className="shrink-0">
