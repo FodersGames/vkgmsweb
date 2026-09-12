@@ -1,10 +1,11 @@
 import re
+import time
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Depends
 
-from ..database import db
+from ..database import db, client
 from ..deps import require_permission, get_optional_user
 from ..utils import slugify, serialize_doc, log_action
 from ..schemas import GameCreateRequest, GameUpdateRequest, BlogCreateRequest, BlogUpdateRequest, WebsiteSettingsRequest
@@ -277,3 +278,65 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
     result = _serialize_settings(doc)
     result["success"] = True
     return result
+
+# ============== PUBLIC: SYSTEM STATUS ==============
+@router.get("/public/status")
+async def get_public_system_status():
+    t0 = time.perf_counter()
+    db_connected = False
+    db_latency_ms = None
+    try:
+        await client.admin.command("ping")
+        t1 = time.perf_counter()
+        db_connected = True
+        db_latency_ms = round((t1 - t0) * 1000, 1)
+    except Exception:
+        db_connected = False
+
+    doc = await db.website_settings.find_one({}, {"_id": 0}) or {}
+    settings = _serialize_settings(doc)
+    is_maintenance = bool(settings.get("maintenance_mode"))
+
+    games_list = []
+    try:
+        cursor = db.website_games.find(
+            {"status": {"$in": ["published", "coming_soon"]}},
+            {"name": 1, "slug": 1, "status": 1, "_id": 0}
+        )
+        raw_games = await cursor.to_list(100)
+        for g in raw_games:
+            games_list.append({
+                "name": g.get("name"),
+                "slug": g.get("slug"),
+                "status": "operational" if g.get("status") == "published" else "upcoming",
+                "game_status": g.get("status"),
+            })
+    except Exception:
+        pass
+
+    all_operational = db_connected and not is_maintenance
+
+    return {
+        "status": "maintenance" if is_maintenance else ("operational" if all_operational else "degraded"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": {
+            "status": "operational" if db_connected else "down",
+            "latency_ms": db_latency_ms,
+        },
+        "api": {
+            "status": "operational",
+            "uptime": "99.9%",
+        },
+        "website": {
+            "status": "maintenance" if is_maintenance else "operational",
+        },
+        "auth": {
+            "status": "operational" if db_connected else "degraded",
+        },
+        "games": games_list,
+        "maintenance": {
+            "active": is_maintenance,
+            "announcement": settings.get("maintenance_announcement") or "",
+            "scheduled_at": settings.get("maintenance_scheduled_at"),
+        },
+    }

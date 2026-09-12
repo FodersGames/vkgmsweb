@@ -8,6 +8,7 @@ import {
   Menu, X, LayoutDashboard,
   Home, Ticket, UserCircle, Server, Shield,
   ChevronRight, ChevronLeft, Briefcase, Terminal, Search, Sun, Moon, GripVertical,
+  ArrowUpRight, ExternalLink,
 } from 'lucide-react';
 import { UserManagement }     from '../components/UserManagement';
 import { RoleManagement }     from '../components/RoleManagement';
@@ -277,6 +278,24 @@ const SidebarContent = ({
       })}
     </nav>
 
+    {/* Live Status Chip */}
+    <div className="px-3 pb-2">
+      <Link
+        to="/status"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] text-xs font-medium text-[#1D1D1F] dark:text-white shadow-2xs transition-all group"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse shrink-0" />
+          <span className="truncate text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] group-hover:text-[#1D1D1F] dark:group-hover:text-white">
+            Statut Systèmes Live
+          </span>
+        </div>
+        <ArrowUpRight size={12} className="text-[#86868B] group-hover:text-[#FF6600] shrink-0" />
+      </Link>
+    </div>
+
     {/* User card */}
     <div className="shrink-0 border-t border-[#D2D2D7] dark:border-[#2a2a3c] p-3">
       <div className="flex items-center gap-3 px-2 py-2">
@@ -518,7 +537,10 @@ const DashboardContent = () => {
   };
 
   return (
-    <div className={`flex h-screen overflow-hidden ${isDark ? 'dark bg-[#0e0e15]' : 'bg-[#F5F5F7]'}`}>
+    <div
+      className={`flex overflow-hidden ${isDark ? 'dark bg-[#0e0e15]' : 'bg-[#F5F5F7]'}`}
+      style={{ height: 'calc(100vh - var(--vkg-banner-h, 0px))' }}
+    >
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-[240px] shrink-0 h-full">
@@ -616,12 +638,23 @@ const DashboardContent = () => {
               {isDark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <Link
-              to="/"
-              title="View site"
-              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 outline-none focus-visible:ring-2 focus-visible:ring-[#FF6600]/50 transition-all"
+              to="/status"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Vakar Games System Status"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#1D1D1F] dark:text-white bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 shadow-2xs transition-all"
             >
-              <Home size={13} />
-              View site
+              <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
+              <span>Status</span>
+              <ArrowUpRight size={12} className="text-[#86868B]" />
+            </Link>
+            <Link
+              to="/"
+              title="Voir le site public"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#1D1D1F] dark:text-white bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 shadow-2xs transition-all"
+            >
+              <span>Site public</span>
+              <ArrowUpRight size={12} className="text-[#86868B]" />
             </Link>
             <div className="flex items-center gap-2.5 pl-0.5">
               <div className="w-8 h-8 rounded-full bg-[#FF6600]/15 flex items-center justify-center text-[11px] font-bold text-[#FF6600] shrink-0 overflow-hidden">

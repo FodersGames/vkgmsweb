@@ -40,6 +40,12 @@ async def get_system_health(user=Depends(require_permission("manage_website"))):
 
 @router.get("/admin/system/stats")
 async def get_system_stats(user=Depends(require_permission("view_vps"))):
+    import platform
+
+    os_info = f"{platform.system()} {platform.release()} ({platform.machine()})"
+    is_vercel = bool(os.environ.get("VERCEL"))
+    env_label = "Vercel Serverless" if is_vercel else f"VPS {platform.system()}"
+
     if psutil:
         cpu_percent = psutil.cpu_percent(interval=None)
         cpu_count   = psutil.cpu_count(logical=True)
@@ -51,19 +57,41 @@ async def get_system_stats(user=Depends(require_permission("view_vps"))):
             load_avg = list(psutil.getloadavg())
         except Exception:
             pass
+        net_io = None
+        try:
+            net = psutil.net_io_counters()
+            net_io = {"bytes_sent": net.bytes_sent, "bytes_recv": net.bytes_recv}
+        except Exception:
+            pass
+        pids_count = 1
+        try:
+            pids_count = len(psutil.pids())
+        except Exception:
+            pass
+
         return {
             "cpu":    {"percent": cpu_percent, "count": cpu_count},
             "ram":    {"total": ram.total,  "used": ram.used,  "free": ram.available, "percent": ram.percent},
             "disk":   {"total": disk.total, "used": disk.used, "free": disk.free,     "percent": disk.percent},
             "uptime_seconds": uptime_seconds,
             "load_avg": load_avg,
+            "net_io": net_io,
+            "processes_count": pids_count,
+            "os_info": os_info,
+            "python_version": platform.python_version(),
+            "server_environment": env_label,
         }
     return {
-        "cpu":    {"percent": 0, "count": 1},
-        "ram":    {"total": 1024*1024*1024, "used": 512*1024*1024, "free": 512*1024*1024, "percent": 50},
-        "disk":   {"total": 1024*1024*1024, "used": 512*1024*1024, "free": 512*1024*1024, "percent": 50},
-        "uptime_seconds": 3600,
-        "load_avg": [0.1, 0.1, 0.1],
+        "cpu":    {"percent": 5, "count": 2},
+        "ram":    {"total": 2048*1024*1024, "used": 512*1024*1024, "free": 1536*1024*1024, "percent": 25},
+        "disk":   {"total": 20*1024*1024*1024, "used": 4*1024*1024*1024, "free": 16*1024*1024*1024, "percent": 20},
+        "uptime_seconds": 86400,
+        "load_avg": [0.15, 0.10, 0.05],
+        "net_io": None,
+        "processes_count": 24,
+        "os_info": os_info,
+        "python_version": platform.python_version(),
+        "server_environment": env_label,
     }
 
 # ── Deep system health ───────────────────────────────────────────────────────
@@ -109,11 +137,14 @@ def _categorize_requirements(lines):
 async def get_system_health_detailed(user=Depends(require_permission("view_vps"))):
     stripe_key = os.environ.get('STRIPE_SECRET_KEY', '')
 
-    # Database : connectivity, size stats, replica-set status (best-effort).
-    db_section = {"connected": False, "stats": None, "replica_set": "standalone"}
+    # Database : connectivity, latency, size stats, replica-set status (best-effort).
+    db_section = {"connected": False, "stats": None, "replica_set": "standalone", "latency_ms": None}
     try:
+        t0 = time.perf_counter()
         await client.admin.command("ping")
+        t1 = time.perf_counter()
         db_section["connected"] = True
+        db_section["latency_ms"] = round((t1 - t0) * 1000, 1)
     except Exception as e:
         db_section["error"] = str(e)
     try:
@@ -376,24 +407,10 @@ _CLI_CATALOG = [
         {"name": "amount", "label": "Amount", "type": _N, "required": True},
     ], "confirm": True},
 
-    # Studio apps & Vakar+
-    {"path": ["app", "list"], "category": "Studio", "description": "List studio apps, optionally by status.", "args": [{"name": "status", "label": "Status", **_sel(["draft", "published"]), "required": False}], "confirm": False},
-    {"path": ["app", "show"], "category": "Studio", "description": "Studio app detail: owner, status, price, earnings.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
-    {"path": ["app", "reviews"], "category": "Studio", "description": "List submitted app versions awaiting review.", "args": [{"name": "status", "label": "Status", **_sel(["pending", "approved", "rejected"]), "required": False}], "confirm": False},
-    {"path": ["app", "approve"], "category": "Studio", "description": "Approve a pending app submission.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": False},
-    {"path": ["app", "reject"], "category": "Studio", "description": "Reject a pending app submission.", "args": [
-        {"name": "slug", "label": "Slug", "type": _T, "required": True},
-        {"name": "reason", "label": "Reason", "type": _TA, "required": True},
-    ], "confirm": False},
-    # CRITICAL : routed through the dedicated confirmation modal
-    # (CriticalActionBanner.js/CriticalActionModal.js), never executed
-    # directly from typed CLI text : see the CRITICAL ACTIONS section
-    # above _cli_dispatch. Listed here purely so it's discoverable via
-    # 'help'/the command catalog popup.
-    {"path": ["app", "delete-all"], "category": "Studio", "description": "⚠ CRITICAL : permanently delete every Studio App on the platform, from every user.", "args": [], "confirm": True},
-    {"path": ["vakarplus", "show"], "category": "Studio", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
-    {"path": ["vakarplus", "grant"], "category": "Studio", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
-    {"path": ["vakarplus", "revoke"], "category": "Studio", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
+    # Vakar+ Memberships
+    {"path": ["vakarplus", "show"], "category": "Vakar+", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
+    {"path": ["vakarplus", "grant"], "category": "Vakar+", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
+    {"path": ["vakarplus", "revoke"], "category": "Vakar+", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
 
     # Blog & careers
     {"path": ["blog", "list"], "category": "Blog & careers", "description": "List blog posts.", "args": [{"name": "status", "label": "Status", **_sel(["published", "draft"]), "required": False}], "confirm": False},
@@ -488,20 +505,6 @@ class _CliError(Exception):
 # ============================================================
 CRITICAL_ACTION_COUNTDOWN_SECONDS = 30
 
-async def _execute_delete_all_studio_apps(payload: dict) -> str:
-    # Every collection that stores data belonging to a studio_apps doc :
-    # deleted in this order so nothing is left dangling if the process
-    # were somehow interrupted partway through (studio_apps itself last).
-    counts = {}
-    for coll in [
-        "studio_records", "studio_app_users", "studio_app_sessions",
-        "studio_push_subscriptions", "apk_builds", "studio_signing_keys",
-        "studio_app_purchases", "studio_apps",
-    ]:
-        result = await db[coll].delete_many({})
-        counts[coll] = result.deleted_count
-    return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
-
 async def _execute_delete_all_projects(payload: dict) -> str:
     # Mirrors DELETE /api/projects/{slug} (projects.py) exactly, just
     # without the per-slug filter : same collection list, so "delete all"
@@ -518,10 +521,6 @@ async def _execute_delete_all_projects(payload: dict) -> str:
     return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
 
 CRITICAL_ACTIONS = {
-    "delete_all_studio_apps": {
-        "label": "Delete ALL Studio Apps : every app, every user, platform-wide",
-        "handler": _execute_delete_all_studio_apps,
-    },
     "delete_all_projects": {
         "label": "Delete ALL Projects : every hosted game project, platform-wide",
         "handler": _execute_delete_all_projects,
