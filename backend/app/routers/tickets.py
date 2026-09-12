@@ -34,7 +34,7 @@ async def create_ticket(request: Request, req: TicketCreateRequest, user=Depends
     if open_count >= 3:
         raise HTTPException(
             status_code=400,
-            detail="Ticket ouvert maximum atteint (3/3). Veuillez attendre la résolution de vos tickets existants."
+            detail="Maximum open tickets reached (3/3). Please wait for your existing tickets to be resolved."
         )
 
     ticket_number = "TKT-" + secrets.token_hex(3).upper()

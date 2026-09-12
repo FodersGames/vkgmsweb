@@ -20,22 +20,22 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
           <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-4 text-amber-600 text-lg font-bold">
             !
           </div>
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-2">Connexion au serveur interrompue</h2>
+          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-2">Server Connection Interrupted</h2>
           <p className="text-xs text-[#6E6E73] mb-6 leading-relaxed">
-            Impossible de vérifier votre session suite à une coupure de réseau. Votre session est toujours active sur cet appareil.
+            Unable to verify your session due to a network interruption. Your session remains active on this device.
           </p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => refreshUser()}
               className="btn-apple text-xs !py-2.5 px-5"
             >
-              Réessayer
+              Retry
             </button>
             <button
               onClick={() => logout()}
               className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] py-2.5 px-4 border border-[#D2D2D7] rounded-lg transition-colors"
             >
-              Se déconnecter
+              Sign Out
             </button>
           </div>
         </div>
@@ -54,19 +54,19 @@ export const ProtectedRoute = ({ children, permission, requiresAdmin }) => {
           <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 text-amber-400 text-lg font-bold">
             !
           </div>
-          <h2 className="text-xl font-bold mb-2">Accès Administrateur Requis</h2>
+          <h2 className="text-xl font-bold mb-2">Administrator Access Required</h2>
           <p className="text-xs text-white/50 mb-6 leading-relaxed">
-            Votre compte actuel ({user?.email}) ne dispose pas des droits administrateur nécessaires pour accéder à l'admin panel.
+            Your current account ({user?.email}) does not have the administrative privileges required to access the admin panel.
           </p>
           <div className="flex gap-3 justify-center">
             <a href="#/profile" className="btn-apple text-xs py-2 px-4">
-              Mon Profil
+              My Profile
             </a>
             <button
               onClick={() => logout()}
               className="text-xs text-white/60 hover:text-white py-2 px-4 border border-white/15 rounded transition-colors"
             >
-              Changer de compte
+              Switch Account
             </button>
           </div>
         </div>

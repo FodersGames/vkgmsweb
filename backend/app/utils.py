@@ -220,7 +220,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
     if has_magic_check and not _check_magic_bytes(content, ext):
         raise HTTPException(
             status_code=400,
-            detail="Le contenu du fichier ne correspond pas au type de fichier autorisé.",
+            detail="File content does not match the allowed file type.",
         )
 
     if _MAGIC_AVAILABLE:
@@ -237,7 +237,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
                 )
                 raise HTTPException(
                     status_code=400,
-                    detail="Le contenu du fichier ne correspond pas au type de fichier autorisé.",
+                    detail="File content does not match the allowed file type.",
                 )
     elif not has_magic_check:
         # Fail closed: python-magic unavailable and no magic-byte fallback for this format.
@@ -249,7 +249,7 @@ def _validate_file(content: bytes, ext: str, mime_table: dict) -> bytes:
         )
         raise HTTPException(
             status_code=503,
-            detail="La validation du fichier est temporairement indisponible. Veuillez réessayer.",
+            detail="File validation is temporarily unavailable. Please try again.",
         )
     # else: has_magic_check passed above, magic-byte verified : accept even without libmagic
 

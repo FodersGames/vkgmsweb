@@ -122,38 +122,38 @@ export const DashboardOverview = ({ goTo }) => {
     [
       canManageUsers
         ? {
-            label: 'Membres du Studio',
+            label: 'Studio Members',
             value: globalStats.users,
             accent: '#FF6600',
             icon: Users,
             loading: globalLoading && globalStats.users === null,
-            sub: 'Admins & Staff accrédités',
+            sub: 'Authorized admins & staff',
           }
         : null,
       {
-        label: 'Jeux Répertoriés',
+        label: 'Catalog Games',
         value: globalStats.games,
         accent: '#1D1D1F',
         icon: Gamepad2,
         loading: globalLoading && globalStats.games === null,
-        sub: 'Titres publiés & à venir',
+        sub: 'Published & upcoming titles',
       },
       {
-        label: 'Articles de Devlog',
+        label: 'Devlog Articles',
         value: globalStats.blog,
         accent: '#5856D6',
         icon: PenTool,
         loading: globalLoading && globalStats.blog === null,
-        sub: 'Publications studio',
+        sub: 'Studio publications',
       },
       canManageTickets
         ? {
-            label: 'Tickets Support',
+            label: 'Support Tickets',
             value: globalStats.tickets,
             accent: '#EB5757',
             icon: Ticket,
             loading: globalLoading && globalStats.tickets === null,
-            sub: 'Demandes ouvertes',
+            sub: 'Open requests',
           }
         : null,
     ].filter(Boolean)
@@ -194,14 +194,14 @@ export const DashboardOverview = ({ goTo }) => {
     setDragOverIndex(null);
   };
 
-  const displayName = user?.name || user?.firstName || user?.username || 'Équipe Vakar';
+  const displayName = user?.name || user?.firstName || user?.username || 'Vakar Team';
 
   const quickActions = [
     canManageWebsite
       ? {
           id: 'games',
-          label: 'Catalogue des Jeux',
-          desc: 'Ajouter, éditer et mettre en avant les titres du studio',
+          label: 'Game Catalog',
+          desc: 'Add, edit, and feature studio game titles',
           icon: Gamepad2,
           color: '#FF6600',
           action: () => goTo('website-games'),
@@ -210,8 +210,8 @@ export const DashboardOverview = ({ goTo }) => {
     hasPermission('create_blog')
       ? {
           id: 'blog',
-          label: 'Devlog & Journal',
-          desc: 'Rédiger les annonces studio et devlogs de développement',
+          label: 'Devlog & News',
+          desc: 'Write studio announcements and development devlogs',
           icon: PenTool,
           color: '#1D1D1F',
           action: () => goTo('website-blog'),
@@ -220,8 +220,8 @@ export const DashboardOverview = ({ goTo }) => {
     canManageTickets
       ? {
           id: 'support',
-          label: 'Support Joueurs',
-          desc: 'Répondre aux tickets et traiter les retours de bugs',
+          label: 'Player Support',
+          desc: 'Answer tickets and resolve bug reports',
           icon: Ticket,
           color: '#EB5757',
           action: () => goTo('support'),
@@ -230,8 +230,8 @@ export const DashboardOverview = ({ goTo }) => {
     canViewVps
       ? {
           id: 'system',
-          label: 'Santé & Serveur VPS',
-          desc: 'Sondes CPU, RAM, latence MongoDB et télémétrie',
+          label: 'Health & VPS Server',
+          desc: 'CPU, RAM telemetry, MongoDB latency, and system probes',
           icon: Activity,
           color: '#30D158',
           action: () => goTo('system', 'health'),
@@ -240,8 +240,8 @@ export const DashboardOverview = ({ goTo }) => {
     canManageUsers
       ? {
           id: 'users',
-          label: 'Gestion Utilisateurs',
-          desc: 'Comptes, staff, réinitialisations et permissions',
+          label: 'User Management',
+          desc: 'Accounts, staff credentials, password resets, and permissions',
           icon: Users,
           color: '#007AFF',
           action: () => goTo('users'),
@@ -250,8 +250,8 @@ export const DashboardOverview = ({ goTo }) => {
     canManageUsers
       ? {
           id: 'roles',
-          label: 'Rôles & Accréditations',
-          desc: 'Définition des privilèges et niveaux de sécurité',
+          label: 'Roles & Permissions',
+          desc: 'Define role privileges and security clearance levels',
           icon: Shield,
           color: '#5856D6',
           action: () => goTo('roles'),
@@ -260,8 +260,8 @@ export const DashboardOverview = ({ goTo }) => {
     canManageCareers
       ? {
           id: 'careers',
-          label: 'Carrières & Recrutement',
-          desc: 'Offres demploi et candidatures au studio',
+          label: 'Careers & Recruiting',
+          desc: 'Job openings and candidate applications',
           icon: Briefcase,
           color: '#FF9500',
           action: () => goTo('careers'),
@@ -270,8 +270,8 @@ export const DashboardOverview = ({ goTo }) => {
     canManageWebsite
       ? {
           id: 'settings',
-          label: 'Paramètres du Site',
-          desc: 'Mode maintenance, bannière publique, SEO et support',
+          label: 'Website Settings',
+          desc: 'Maintenance mode, announcements, SEO, and support config',
           icon: Settings,
           color: '#8E8E93',
           action: () => goTo('website-settings', 'global'),
@@ -304,7 +304,7 @@ export const DashboardOverview = ({ goTo }) => {
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[11px] font-bold uppercase tracking-[0.12em] px-2.5 py-0.5 rounded-full bg-white/10 text-white/90 border border-white/15">
-                Centre de Contrôle Studio
+                Studio Control Center
               </span>
               <span className="text-xs text-white/60 capitalize">
                 {dateStr}
@@ -312,10 +312,10 @@ export const DashboardOverview = ({ goTo }) => {
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-semibold tracking-tight text-white mb-2.5">
-              Bonjour, {displayName}.
+              Welcome, {displayName}.
             </h1>
             <p className="text-sm sm:text-[15px] text-white/75 leading-relaxed font-normal">
-              Pilotez les titres en production, administrez la plateforme Vakar Games et surveillez les systèmes en temps réel.
+              Manage production titles, administer the Vakar Games platform, and monitor systems in real time.
             </p>
           </div>
 
@@ -328,7 +328,7 @@ export const DashboardOverview = ({ goTo }) => {
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] shadow-sm transition-all group"
             >
               <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse" />
-              <span>Systèmes opérationnels</span>
+              <span>Systems Operational</span>
               <ArrowUpRight size={13} className="text-[#86868B] group-hover:text-[#1D1D1F] transition-colors" />
             </Link>
 
@@ -343,7 +343,7 @@ export const DashboardOverview = ({ goTo }) => {
               to="/"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all"
             >
-              <span>Site public</span>
+              <span>Public Site</span>
               <ArrowUpRight size={12} />
             </Link>
           </div>
@@ -355,9 +355,9 @@ export const DashboardOverview = ({ goTo }) => {
         <div>
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-[#6E6E73]">
-              Indicateurs Clés
+              Key Metrics
             </h2>
-            <span className="text-[11px] text-[#86868B]">Glisser pour réorganiser</span>
+            <span className="text-[11px] text-[#86868B]">Drag to reorder</span>
           </div>
 
           <div
@@ -419,9 +419,9 @@ export const DashboardOverview = ({ goTo }) => {
       <div>
         <div className="flex items-center justify-between mb-3 px-1">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[#6E6E73]">
-            Espaces Studio & Outils
+            Studio Workspaces & Tools
           </h2>
-          <span className="text-[11px] text-[#86868B]">Accès rapide</span>
+          <span className="text-[11px] text-[#86868B]">Quick access</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -472,24 +472,24 @@ export const DashboardOverview = ({ goTo }) => {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-[#1D1D1F]">
-                    File de Support Joueurs
+                    Player Support Queue
                   </h3>
-                  <p className="text-[11px] text-[#86868B]">Dernières demandes enregistrées</p>
+                  <p className="text-[11px] text-[#86868B]">Recent submitted requests</p>
                 </div>
               </div>
               <button
                 onClick={() => goTo('support')}
                 className="text-xs font-semibold text-[#FF6600] hover:text-[#E05A00] transition-colors"
               >
-                Voir tout →
+                View all →
               </button>
             </div>
 
             {recentTickets.length === 0 ? (
               <div className="py-12 text-center text-xs text-[#86868B]">
                 <CheckCircle size={24} className="mx-auto text-[#30D158] mb-2" />
-                <p className="font-medium text-[#1D1D1F]">Aucun ticket en attente</p>
-                <p className="mt-0.5">Toutes les demandes ont été traitées.</p>
+                <p className="font-medium text-[#1D1D1F]">No pending tickets</p>
+                <p className="mt-0.5">All player requests have been resolved.</p>
               </div>
             ) : (
               <div className="divide-y divide-[#F5F5F7]">
@@ -512,7 +512,7 @@ export const DashboardOverview = ({ goTo }) => {
                           </span>
                         </div>
                         <p className="text-[11px] text-[#86868B] truncate">
-                          {t.user_email || t.username || 'Joueur'}
+                          {t.user_email || t.username || 'Player'}
                         </p>
                       </div>
                       <span
@@ -548,9 +548,9 @@ export const DashboardOverview = ({ goTo }) => {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-white">
-                    Infrastructure Live
+                    Live Infrastructure
                   </h3>
-                  <p className="text-[11px] text-white/60">Télémétrie de production</p>
+                  <p className="text-[11px] text-white/60">Production telemetry</p>
                 </div>
               </div>
               <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse" />
@@ -558,31 +558,31 @@ export const DashboardOverview = ({ goTo }) => {
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-white/60">Votre Accréditation</span>
+                <span className="text-white/60">Your Clearance</span>
                 <span className="font-semibold text-white text-[11px] uppercase tracking-wide">
                   {user?.is_super_admin ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : 'Staff'}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-white/60">Permissions Actives</span>
+                <span className="text-white/60">Active Permissions</span>
                 <span className="font-mono text-[#FF6600] font-semibold text-[11px]">
                   {user?.is_super_admin ? 'TOTAL (Super Admin)' : `${user?.permissions?.length || 0} permissions`}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-white/60">Statut Maintenance</span>
+                <span className="text-white/60">Maintenance Status</span>
                 <span
                   className={`font-semibold text-[11px] ${
                     maintenanceMode ? 'text-[#FF6600]' : 'text-[#30D158]'
                   }`}
                 >
-                  {maintenanceMode ? 'Active (Restreint)' : 'Désactivée (Public)'}
+                  {maintenanceMode ? 'Active (Restricted)' : 'Disabled (Public)'}
                 </span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-white/60">Passerelle API</span>
+                <span className="text-white/60">API Gateway</span>
                 <span className="text-[#30D158] font-medium flex items-center gap-1 text-[11px]">
-                  <CheckCircle size={12} /> FastAPI En Ligne
+                  <CheckCircle size={12} /> FastAPI Online
                 </span>
               </div>
             </div>
@@ -595,7 +595,7 @@ export const DashboardOverview = ({ goTo }) => {
               rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] text-xs font-semibold shadow-sm transition-all"
             >
-              <span>Ouvrir la Page Statut Public</span>
+              <span>Open Public Status Page</span>
               <ExternalLink size={13} />
             </Link>
           </div>

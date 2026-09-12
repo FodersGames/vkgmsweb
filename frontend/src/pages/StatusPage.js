@@ -17,7 +17,7 @@ export default function StatusPage() {
   const [data, setData] = useState(null);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
-  const [hoveredDay, setHoveredDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
   const { isAdmin } = useAuth();
 
   const fetchStatus = async () => {
@@ -26,16 +26,18 @@ export default function StatusPage() {
       const res = await axios.get(`${API_URL}/api/public/status`);
       setData(res.data);
     } catch (err) {
-      // Fallback in case of network issue
+      // Offline / network fallback
       const now = new Date();
       const fallbackHistory = [];
-      const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(now.getDate() - i);
         fallbackHistory.push({
           date: d.toISOString().slice(0, 10),
-          label: i === 0 ? "Aujourd'hui" : i === 1 ? 'Hier' : days[d.getDay()],
+          label: i === 0 ? 'Today' : i === 1 ? 'Yesterday' : days[d.getDay()],
+          short_label: i === 0 ? 'Today' : i === 1 ? 'Yest' : shortDays[d.getDay()],
           status: 'operational',
           uptime_percent: 100.0,
         });
@@ -70,17 +72,17 @@ export default function StatusPage() {
   };
 
   const getStatusLabel = (status) => {
-    if (status === 'incident') return 'Incident';
-    if (status === 'maintenance') return 'Maintenance';
-    if (status === 'degraded') return 'Dégradé';
-    return '100% Opérationnel';
+    if (status === 'incident') return 'Service Disruption';
+    if (status === 'maintenance') return 'Scheduled Maintenance';
+    if (status === 'degraded') return 'Degraded Performance';
+    return '100% Operational';
   };
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] flex flex-col antialiased">
       {/* Top minimal header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-[#E5E5EA]">
-        <div className="max-w-[820px] mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-[820px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
             <img
               src="/logo.png"
@@ -90,20 +92,20 @@ export default function StatusPage() {
             <span className="font-semibold text-[15px] tracking-tight text-[#1D1D1F]">
               Vakar Games
             </span>
-            <span className="text-[11px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full bg-[#1D1D1F]/5 text-[#6E6E73] ml-1">
+            <span className="text-[11px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full bg-[#1D1D1F]/5 text-[#6E6E73] ml-0.5 sm:ml-1">
               Status
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={fetchStatus}
               disabled={refreshing}
-              title="Rafraîchir"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E5E5EA] text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:border-[#D2D2D7] shadow-sm transition-all disabled:opacity-50"
+              title="Refresh status"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E5E5EA] text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:border-[#D2D2D7] shadow-xs transition-all disabled:opacity-50"
             >
               <RefreshCw size={12} className={refreshing ? 'animate-spin text-[#FF6600]' : ''} />
-              <span className="hidden sm:inline">Actualiser</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
 
             {isAdmin && (
@@ -111,7 +113,7 @@ export default function StatusPage() {
                 to="/dashboard"
                 className="inline-flex items-center gap-1 text-xs font-medium text-[#FF6600] hover:text-[#E05A00] transition-colors"
               >
-                <span>Admin Board</span>
+                <span>Dashboard</span>
                 <ChevronRight size={13} />
               </Link>
             )}
@@ -120,20 +122,20 @@ export default function StatusPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-[820px] w-full mx-auto px-6 py-10 sm:py-14">
+      <main className="flex-1 max-w-[820px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Title */}
-        <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#1D1D1F] mb-2">
-            Disponibilité du Site
+        <div className="mb-6 sm:mb-8 text-center sm:text-left">
+          <h1 className="text-2xl sm:text-4xl font-semibold tracking-tight text-[#1D1D1F] mb-1.5 sm:mb-2">
+            System Status
           </h1>
-          <p className="text-[#6E6E73] text-sm sm:text-base">
-            Uptime et état en direct du site web Vakar Games.
+          <p className="text-[#6E6E73] text-xs sm:text-base">
+            Live uptime and availability metrics for the Vakar Games platform.
           </p>
         </div>
 
         {/* Global Status Banner Card */}
         <div
-          className={`rounded-3xl p-6 sm:p-7 mb-6 border transition-all ${
+          className={`rounded-2xl sm:rounded-3xl p-4 sm:p-7 mb-5 sm:mb-6 border transition-all ${
             isIncident
               ? 'bg-[#FF453A]/10 border-[#FF453A]/30 text-[#1D1D1F]'
               : isMaint
@@ -142,9 +144,9 @@ export default function StatusPage() {
           }`}
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
                   isIncident
                     ? 'bg-[#FF453A] text-white'
                     : isMaint
@@ -153,163 +155,168 @@ export default function StatusPage() {
                 }`}
               >
                 {isIncident ? (
-                  <XCircle size={24} />
+                  <XCircle size={22} />
                 ) : isMaint ? (
-                  <AlertTriangle size={24} />
+                  <AlertTriangle size={22} />
                 ) : (
-                  <CheckCircle size={24} />
+                  <CheckCircle size={22} />
                 )}
               </div>
 
-              <div>
-                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-2xl font-semibold tracking-tight leading-snug">
                   {isIncident
-                    ? 'Incident en cours sur le site'
+                    ? 'Active Service Interruption'
                     : isMaint
-                    ? 'Maintenance programmée en cours'
-                    : 'Site web 100% opérationnel'}
+                    ? 'Scheduled Maintenance in Progress'
+                    : 'All Systems Fully Operational'}
                 </h2>
                 <p
-                  className={`text-xs sm:text-sm mt-1 ${
+                  className={`text-xs sm:text-sm mt-0.5 sm:mt-1 leading-relaxed ${
                     isOperational ? 'text-white/70' : 'text-[#6E6E73]'
                   }`}
                 >
                   {isIncident
-                    ? 'Nos équipes interviennent activement pour rétablir la situation.'
+                    ? 'Engineers are actively investigating and restoring affected services.'
                     : isMaint
                     ? data?.maintenance?.announcement ||
-                      'Des opérations techniques sont actuellement en cours.'
-                    : 'Tous les services du site web fonctionnent à plein régime.'}
+                      'Scheduled system improvements are currently taking place.'
+                    : 'All web platforms, services, and studio systems are performing normally.'}
                 </p>
               </div>
             </div>
 
             <div
-              className={`text-xs px-3.5 py-1.5 rounded-full shrink-0 font-medium ${
+              className={`text-xs px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full shrink-0 font-medium self-start sm:self-center ${
                 isOperational
                   ? 'bg-white/10 text-white/90 border border-white/15'
                   : 'bg-white border border-[#E5E5EA] text-[#1D1D1F]'
               }`}
             >
-              Uptime 7 jours : {data?.uptime_7d || '99.98%'}
+              7-Day Uptime: {data?.uptime_7d || '99.98%'}
             </div>
           </div>
         </div>
 
         {/* 7 Days History Card */}
-        <div className="bg-white rounded-3xl border border-[#E5E5EA] p-6 sm:p-8 shadow-sm mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E5E5EA] p-4 sm:p-8 shadow-xs mb-5 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 sm:mb-6">
             <div>
-              <h3 className="font-semibold text-[17px] text-[#1D1D1F]">
-                Historique des 7 derniers jours
+              <h3 className="font-semibold text-base sm:text-[17px] text-[#1D1D1F]">
+                7-Day Availability History
               </h3>
               <p className="text-xs text-[#86868B] mt-0.5">
-                Surveillance de la disponibilité quotidienne
+                Daily uptime performance telemetry
               </p>
             </div>
-            <div className="text-xs font-semibold text-[#30D158] bg-[#30D158]/10 px-3 py-1 rounded-full self-start sm:self-auto">
+            <div className="text-xs font-semibold text-[#30D158] bg-[#30D158]/10 px-2.5 sm:px-3 py-1 rounded-full self-start sm:self-auto">
               {data?.uptime_7d || '99.98%'} uptime
             </div>
           </div>
 
-          {/* 7 Interactive Bars Grid */}
-          <div className="grid grid-cols-7 gap-2 sm:gap-3 py-2">
+          {/* 7 Interactive Bars Grid - Mobile-Optimized */}
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-3 py-2">
             {(data?.history || []).map((day, idx) => {
-              const isHovered = hoveredDay === idx;
+              const isSelected = selectedDay === idx;
               const barColor = getBarColor(day.status);
+              const shortLabel = day.short_label || (idx === (data?.history?.length || 7) - 1 ? 'Today' : idx === (data?.history?.length || 7) - 2 ? 'Yest' : day.label?.slice(0, 3));
+              const fullLabel = day.label || (idx === (data?.history?.length || 7) - 1 ? 'Today' : idx === (data?.history?.length || 7) - 2 ? 'Yesterday' : day.label);
+
               return (
-                <div
+                <button
                   key={day.date || idx}
-                  className="flex flex-col items-center cursor-pointer group"
-                  onMouseEnter={() => setHoveredDay(idx)}
-                  onMouseLeave={() => setHoveredDay(null)}
+                  type="button"
+                  onClick={() => setSelectedDay(isSelected ? null : idx)}
+                  onMouseEnter={() => setSelectedDay(idx)}
+                  className="flex flex-col items-center cursor-pointer group focus:outline-none min-w-0"
                 >
                   {/* Bar */}
                   <div className="w-full relative flex flex-col items-center">
                     <div
-                      className={`w-full h-14 sm:h-16 rounded-xl sm:rounded-2xl transition-all duration-200 ${barColor} ${
-                        isHovered ? 'scale-105 shadow-md brightness-110' : 'opacity-90 hover:opacity-100'
+                      className={`w-full h-11 sm:h-16 rounded-lg sm:rounded-2xl transition-all duration-200 ${barColor} ${
+                        isSelected
+                          ? 'scale-105 shadow-md brightness-110 ring-2 ring-[#1D1D1F]'
+                          : 'opacity-90 hover:opacity-100'
                       }`}
                     />
                   </div>
 
                   {/* Day Label */}
-                  <div className="mt-2.5 text-center">
-                    <span className="block text-[11px] sm:text-xs font-medium text-[#1D1D1F] truncate max-w-full">
-                      {idx === (data?.history?.length || 7) - 1
-                        ? "Aujourd'hui"
-                        : idx === (data?.history?.length || 7) - 2
-                        ? 'Hier'
-                        : day.label}
+                  <div className="mt-2 text-center w-full min-w-0">
+                    <span className="block sm:hidden text-[10px] font-medium text-[#1D1D1F] truncate">
+                      {shortLabel}
                     </span>
-                    <span className="block text-[10px] text-[#86868B] mt-0.5">
+                    <span className="hidden sm:block text-xs font-medium text-[#1D1D1F] truncate">
+                      {fullLabel}
+                    </span>
+                    <span className="block text-[9px] sm:text-[10px] text-[#86868B] font-mono mt-0.5">
                       {day.uptime_percent ? `${day.uptime_percent}%` : '100%'}
                     </span>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
 
-          {/* Tooltip info box when a day is hovered */}
-          <div className="mt-4 p-3 rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-center min-h-[44px] flex items-center justify-center transition-all">
-            {hoveredDay !== null && data?.history?.[hoveredDay] ? (
+          {/* Inspection / Tooltip box */}
+          <div className="mt-3 sm:mt-4 p-3 rounded-xl sm:rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-center min-h-[44px] flex items-center justify-center transition-all">
+            {selectedDay !== null && data?.history?.[selectedDay] ? (
               <div className="text-xs text-[#1D1D1F]">
-                <span className="font-semibold">{data.history[hoveredDay].label}</span> ({data.history[hoveredDay].date}) :{' '}
-                <span className="font-medium">{getStatusLabel(data.history[hoveredDay].status)}</span> ·{' '}
-                <span className="text-[#6E6E73]">{data.history[hoveredDay].uptime_percent}% de disponibilité</span>
+                <span className="font-semibold">{data.history[selectedDay].label}</span> ({data.history[selectedDay].date}) :{' '}
+                <span className="font-medium">{getStatusLabel(data.history[selectedDay].status)}</span> ·{' '}
+                <span className="text-[#6E6E73]">{data.history[selectedDay].uptime_percent}% uptime</span>
               </div>
             ) : (
               <div className="text-xs text-[#86868B]">
-                Survolez une journée pour afficher le détail de disponibilité
+                Tap or hover over a bar to view daily details
               </div>
             )}
           </div>
 
           {/* Timeline bounds */}
           <div className="flex items-center justify-between text-[11px] text-[#86868B] mt-4 pt-3 border-t border-[#F5F5F7]">
-            <span>Il y a 7 jours</span>
-            <span>Aujourd'hui</span>
+            <span>7 days ago</span>
+            <span>Today</span>
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-5 border-t border-[#E5E5EA] text-xs text-[#6E6E73]">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#30D158] shrink-0" />
-              <span>100% Opérationnel</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-[#E5E5EA] text-xs text-[#6E6E73]">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#30D158] shrink-0" />
+              <span>100% Operational</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#FFD60A] shrink-0" />
-              <span>Dégradé / Maintenance</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FFD60A] shrink-0" />
+              <span>Degraded / Maintenance</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#FF453A] shrink-0" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FF453A] shrink-0" />
               <span>Incident</span>
             </div>
           </div>
         </div>
 
         {/* Footer info & Home button */}
-        <div className="bg-white rounded-3xl border border-[#E5E5EA] p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E5E5EA] p-4 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-2 text-xs text-[#86868B]">
             <Clock size={14} className="shrink-0" />
             <span>
-              Dernière mise à jour à {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · Rafraîchissement automatique toutes les 30s
+              Updated at {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · Auto-refreshes every 30s
             </span>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               to="/contact"
-              className="text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] px-3 py-1.5 transition-colors"
+              className="flex-1 sm:flex-none text-center text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] px-3 py-2 border border-[#E5E5EA] sm:border-transparent rounded-full transition-colors"
             >
               Support
             </Link>
             <Link
               to="/"
-              className="btn-apple text-xs !py-2 !px-4 inline-flex items-center gap-1.5"
+              className="flex-1 sm:flex-none btn-apple text-xs !py-2 !px-4 inline-flex items-center justify-center gap-1.5"
             >
-              <span>Retour à l'accueil</span>
+              <span>Back to Home</span>
               <ArrowRight size={12} />
             </Link>
           </div>
@@ -318,18 +325,18 @@ export default function StatusPage() {
 
       {/* Minimal Bottom Footer */}
       <footer className="border-t border-[#E5E5EA] bg-white py-5">
-        <div className="max-w-[820px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#86868B]">
-          <p>© {new Date().getFullYear()} Vakar Games. Tous droits réservés.</p>
+        <div className="max-w-[820px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#86868B]">
+          <p>© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="hover:text-[#1D1D1F] transition-colors">
-              Confidentialité
+              Privacy
             </Link>
             <Link to="/terms" className="hover:text-[#1D1D1F] transition-colors">
-              Conditions
+              Terms
             </Link>
             {isAdmin && (
               <Link to="/dashboard" className="text-[#FF6600] font-medium hover:underline">
-                Admin Board
+                Dashboard
               </Link>
             )}
           </div>

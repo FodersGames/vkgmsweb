@@ -20,19 +20,19 @@ const MaintenancePage = ({ announcement }) => (
         to="/login"
         className="text-xs font-medium text-[#86868B] hover:text-[#1D1D1F] transition-colors"
       >
-        Espace Staff
+        Staff Portal
       </Link>
     </header>
 
     {/* Center Message */}
     <main className="w-full max-w-xl mx-auto py-16 text-center">
       <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#1D1D1F] mb-4">
-        Maintenance en cours.
+        Scheduled Maintenance.
       </h1>
 
       <p className="text-[#6E6E73] text-base sm:text-lg leading-relaxed max-w-lg mx-auto mb-8 font-normal">
         {announcement ||
-          "Nous effectuons des améliorations techniques sur nos serveurs. La plateforme sera de nouveau accessible très prochainement."}
+          "We are currently performing routine system improvements. The platform will be back online shortly."}
       </p>
 
       {/* Action shortcuts */}
@@ -41,7 +41,7 @@ const MaintenancePage = ({ announcement }) => (
           to="/status"
           className="inline-flex items-center gap-1.5 text-[#1D1D1F] hover:text-[#FF6600] transition-colors"
         >
-          <span>Consulter l'état des services</span>
+          <span>Check System Status</span>
           <span>→</span>
         </Link>
         <span className="text-[#D2D2D7]">·</span>
@@ -56,16 +56,16 @@ const MaintenancePage = ({ announcement }) => (
 
     {/* Clean Apple Footer with accessible Legal links */}
     <footer className="w-full max-w-[1040px] mx-auto pt-6 border-t border-[#F5F5F7] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#86868B]">
-      <p>© {new Date().getFullYear()} Vakar Games. Tous droits réservés.</p>
+      <p>© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
       <div className="flex items-center gap-5">
         <Link to="/privacy" className="hover:text-[#1D1D1F] transition-colors">
-          Confidentialité
+          Privacy Policy
         </Link>
         <Link to="/terms" className="hover:text-[#1D1D1F] transition-colors">
-          Conditions d'utilisation
+          Terms of Service
         </Link>
         <Link to="/status" className="hover:text-[#1D1D1F] transition-colors">
-          Statut
+          System Status
         </Link>
       </div>
     </footer>

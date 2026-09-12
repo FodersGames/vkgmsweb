@@ -40,16 +40,16 @@ const DEFAULT_ROLE_OPTIONS = [
 ];
 
 const ROUNDED_OPTIONS = [
-  { id: 'rounded-2xl', label: 'Grand Arrondi Apple (16px)', preview: 'rounded-2xl' },
-  { id: 'rounded-3xl', label: 'Ultra Arrondi (24px)', preview: 'rounded-3xl' },
-  { id: 'rounded-xl', label: 'Arrondi Léger (12px)', preview: 'rounded-xl' },
-  { id: 'rounded-none', label: 'Bords Carrés (0px)', preview: 'rounded-none' },
+  { id: 'rounded-2xl', label: 'Apple Rounded (16px)', preview: 'rounded-2xl' },
+  { id: 'rounded-3xl', label: 'Large Rounded (24px)', preview: 'rounded-3xl' },
+  { id: 'rounded-xl', label: 'Light Rounded (12px)', preview: 'rounded-xl' },
+  { id: 'rounded-none', label: 'Sharp Corners (0px)', preview: 'rounded-none' },
 ];
 
 const ALIGN_OPTIONS = [
-  { id: 'w-full', label: 'Pleine Largeur' },
-  { id: 'align-center', label: 'Centré (Taille standard)' },
-  { id: 'align-left', label: 'Aligné Gauche' },
+  { id: 'w-full', label: 'Full Width' },
+  { id: 'align-center', label: 'Centered (Standard size)' },
+  { id: 'align-left', label: 'Left Aligned' },
 ];
 
 export const BlogManagement = () => {
@@ -117,7 +117,7 @@ export const BlogManagement = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Sélectionnez un fichier image valide (JPG, PNG, WebP)');
+      toast.error('Please select a valid image file (JPG, PNG, WebP)');
       return;
     }
     setUploading(true);
@@ -126,9 +126,9 @@ export const BlogManagement = () => {
       fd.append('file', file);
       const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setForm((p) => ({ ...p, image_url: r.data.url }));
-      toast.success('Image de couverture téléchargée avec succès');
+      toast.success('Cover image uploaded successfully');
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Échec de téléversement');
+      toast.error(e.response?.data?.detail || 'Upload failed');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -139,7 +139,7 @@ export const BlogManagement = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Sélectionnez un fichier image valide');
+      toast.error('Please select a valid image file');
       return;
     }
     setInlineUploading(true);
@@ -148,9 +148,9 @@ export const BlogManagement = () => {
       fd.append('file', file);
       const r = await api.post(`/api/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setInlineUrl(r.data.url);
-      toast.success('Image importée ! Vous pouvez maintenant choisir son style');
+      toast.success('Image uploaded! You can now choose its styling');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erreur lors du téléversement');
+      toast.error(err.response?.data?.detail || 'Upload failed');
     } finally {
       setInlineUploading(false);
       e.target.value = '';
@@ -178,7 +178,7 @@ export const BlogManagement = () => {
 
   const confirmInsertImage = () => {
     if (!inlineUrl) {
-      toast.error('Veuillez importer ou renseigner une image');
+      toast.error('Please upload or provide an image');
       return;
     }
     const tag = `\n\n![${inlineCaption.trim() || 'Illustration'} | ${inlineRounded} | ${inlineAlign}](${inlineUrl})\n\n`;
@@ -186,7 +186,7 @@ export const BlogManagement = () => {
     setImageModalOpen(false);
     setInlineUrl('');
     setInlineCaption('');
-    toast.success('Image insérée dans l\'article');
+    toast.success('Image inserted into article');
   };
 
   const resetForm = () => {
@@ -232,15 +232,15 @@ export const BlogManagement = () => {
       };
       if (editing) {
         await api.put(`/api/website/blog/${editing}`, payload);
-        toast.success('Article mis à jour avec succès');
+        toast.success('Post updated successfully');
       } else {
         await api.post(`/api/website/blog`, payload);
-        toast.success('Article publié avec succès');
+        toast.success('Post published successfully');
       }
       resetForm();
       fetchPosts();
     } catch (e) {
-      toast.error(e.response?.data?.detail || 'Erreur lors de l\'enregistrement');
+      toast.error(e.response?.data?.detail || 'Error saving post');
     } finally {
       setLoading(false);
     }
@@ -248,11 +248,11 @@ export const BlogManagement = () => {
 
   const handleDelete = (slug, title) => {
     showConfirm({
-      title: 'Supprimer l\'article',
-      description: `L'article "${title}" sera définitivement supprimé. Cette action est irréversible.`,
+      title: 'Delete Article',
+      description: `The article "${title}" will be permanently deleted. This action cannot be undone.`,
       onConfirm: async () => {
         await api.delete(`/api/website/blog/${slug}`);
-        toast.success('Article supprimé');
+        toast.success('Article deleted');
         fetchPosts();
       },
     });
@@ -272,8 +272,8 @@ export const BlogManagement = () => {
               <FileText size={20} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-[#1D1D1F]">Gestion du Devlog & Blog</h3>
-              <p className="text-xs text-[#86868B]">Rédigez des articles illustrés avec personnalisation poussée</p>
+              <h3 className="text-base font-semibold text-[#1D1D1F]">Devlog & Blog Management</h3>
+              <p className="text-xs text-[#86868B]">Write illustrated devlogs with rich layout options</p>
             </div>
           </div>
           {hasPermission('create_blog') && (
@@ -282,7 +282,7 @@ export const BlogManagement = () => {
               onClick={() => (showForm ? resetForm() : setShowForm(true))}
               className="btn-apple text-xs"
             >
-              {showForm ? 'Fermer l\'éditeur' : 'Nouvel Article'}
+              {showForm ? 'Close Editor' : 'New Article'}
             </Button>
           )}
         </CardHeader>
@@ -294,13 +294,13 @@ export const BlogManagement = () => {
                 {/* Title */}
                 <div>
                   <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                    Titre de l'Article
+                    Article Title
                   </label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                    placeholder="ex: Carnet de développement : refonte du moteur graphique"
+                    placeholder="e.g. Development Log: Graphics Engine Overhaul"
                     required
                     className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5EA] text-sm text-[#1D1D1F] focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all"
                   />
@@ -310,7 +310,7 @@ export const BlogManagement = () => {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider">
-                      Corps de l'Article & Illustrations
+                      Article Content & Illustrations
                     </label>
 
                     {/* Editor Tabs: Write vs Live Preview */}
@@ -325,7 +325,7 @@ export const BlogManagement = () => {
                         }`}
                       >
                         <Edit3 size={13} />
-                        <span>Édition</span>
+                        <span>Write</span>
                       </button>
                       <button
                         type="button"
@@ -337,7 +337,7 @@ export const BlogManagement = () => {
                         }`}
                       >
                         <Eye size={13} />
-                        <span>Aperçu en Direct</span>
+                        <span>Live Preview</span>
                       </button>
                     </div>
                   </div>
@@ -382,24 +382,24 @@ export const BlogManagement = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => insertText('> ', '\n', 'Citation en exergue')}
-                            title="Citation"
+                            onClick={() => insertText('> ', '\n', 'Blockquote text')}
+                            title="Blockquote"
                             className="p-2 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/5 transition-colors"
                           >
                             <Quote size={14} />
                           </button>
                           <button
                             type="button"
-                            onClick={() => insertText('- ', '\n', 'Élément de liste')}
-                            title="Liste à puces"
+                            onClick={() => insertText('- ', '\n', 'List item')}
+                            title="Bullet List"
                             className="p-2 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/5 transition-colors"
                           >
                             <List size={14} />
                           </button>
                           <button
                             type="button"
-                            onClick={() => insertText('[', '](https://...)', 'texte du lien')}
-                            title="Insérer un lien"
+                            onClick={() => insertText('[', '](https://...)', 'link text')}
+                            title="Insert Link"
                             className="p-2 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/5 transition-colors"
                           >
                             <LinkIcon size={14} />
@@ -413,7 +413,7 @@ export const BlogManagement = () => {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6600]/10 hover:bg-[#FF6600]/20 text-[#FF6600] font-semibold text-xs transition-colors"
                         >
                           <ImagePlus size={14} />
-                          <span>Insérer une image dans l'article</span>
+                          <span>Insert Image into Article</span>
                         </button>
                       </div>
 
@@ -422,7 +422,7 @@ export const BlogManagement = () => {
                         value={form.content}
                         onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
                         rows={12}
-                        placeholder="Rédigez le contenu de votre article ici... Utilisez la barre d'outils ci-dessus ou insérez des images avec bords arrondis !"
+                        placeholder="Write your article content here... Use the formatting toolbar above or insert images with custom rounded corners!"
                         required
                         className="w-full p-4 text-sm text-[#1D1D1F] leading-relaxed font-sans outline-none resize-y min-h-[220px]"
                       />
@@ -432,10 +432,10 @@ export const BlogManagement = () => {
                     <div className="bg-white rounded-2xl border border-[#E5E5EA] p-6 sm:p-8 shadow-sm min-h-[260px]">
                       <div className="flex items-center gap-2 mb-6 pb-3 border-b border-[#F5F5F7] text-xs text-[#86868B]">
                         <Sparkles size={14} className="text-[#FF6600]" />
-                        <span>Aperçu en temps réel du rendu pour les joueurs</span>
+                        <span>Real-time preview of player rendering</span>
                       </div>
                       <h2 className="text-2xl sm:text-3xl font-semibold text-[#1D1D1F] mb-4">
-                        {form.title || 'Sans titre'}
+                        {form.title || 'Untitled'}
                       </h2>
                       <BlogContentRenderer content={form.content} />
                     </div>
@@ -445,7 +445,7 @@ export const BlogManagement = () => {
                 {/* Cover Image Header */}
                 <div>
                   <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-1.5">
-                    Image de Couverture de l'Article
+                    Article Cover Image
                   </p>
                   <div className="flex items-center gap-4">
                     {form.image_url ? (
@@ -459,7 +459,7 @@ export const BlogManagement = () => {
                           type="button"
                           onClick={() => setForm((p) => ({ ...p, image_url: '' }))}
                           className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors shadow"
-                          title="Supprimer la couverture"
+                          title="Remove cover"
                         >
                           <X size={12} />
                         </button>
@@ -471,7 +471,7 @@ export const BlogManagement = () => {
                     )}
                     <label className="cursor-pointer">
                       <Button variant="secondary" size="sm" icon={Upload} loading={uploading} as="span">
-                        {uploading ? 'Téléversement…' : form.image_url ? 'Remplacer la Couverture' : 'Uploader Couverture'}
+                        {uploading ? 'Uploading…' : form.image_url ? 'Replace Cover' : 'Upload Cover'}
                       </Button>
                       <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
                     </label>
@@ -481,7 +481,7 @@ export const BlogManagement = () => {
                 {/* Access Restriction */}
                 <div className="pt-2">
                   <p className="text-xs font-semibold text-[#6E6E73] uppercase tracking-wider mb-2">
-                    Niveau d'Accès & Visibilité
+                    Access Level & Visibility
                   </p>
                   <div className="flex gap-2 mb-3">
                     <button
@@ -494,7 +494,7 @@ export const BlogManagement = () => {
                       }`}
                     >
                       <Globe size={14} />
-                      Public (Visible par tous les visiteurs)
+                      Public (Visible to all visitors)
                     </button>
                     <button
                       type="button"
@@ -510,28 +510,28 @@ export const BlogManagement = () => {
                       }`}
                     >
                       <Lock size={14} />
-                      Restreint par Rôle (Confidentiel)
+                      Restricted by Role (Confidential)
                     </button>
                   </div>
 
                   {form.allowed_roles.length > 0 && (
                     <div className="p-4 rounded-xl bg-white border border-[#E5E5EA] space-y-3">
                       <div className="flex items-center justify-between text-xs text-[#6E6E73]">
-                        <span>Rôles autorisés à lire cet article :</span>
+                        <span>Roles authorized to read this article:</span>
                         <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => setForm((p) => ({ ...p, allowed_roles: availableRoles.map((r) => r.id) }))}
                             className="text-[11px] font-medium text-[#FF6600] hover:underline"
                           >
-                            Tous sélectionner
+                            Select all
                           </button>
                           <button
                             type="button"
                             onClick={() => setForm((p) => ({ ...p, allowed_roles: [] }))}
                             className="text-[11px] font-medium text-[#86868B] hover:underline"
                           >
-                            Rendre public
+                            Make public
                           </button>
                         </div>
                       </div>
@@ -574,16 +574,16 @@ export const BlogManagement = () => {
                       className="w-4 h-4 rounded text-[#FF6600] focus:ring-[#FF6600]"
                     />
                     <span className="text-xs font-medium text-[#1D1D1F]">
-                      Publier immédiatement cet article sur le site
+                      Publish this article immediately on the website
                     </span>
                   </label>
 
                   <div className="flex items-center gap-3">
                     <Button variant="ghost" size="sm" onClick={resetForm} type="button">
-                      Annuler
+                      Cancel
                     </Button>
                     <Button icon={Save} loading={loading} type="submit" className="btn-apple text-xs">
-                      {editing ? 'Enregistrer les modifications' : 'Créer et Enregistrer'}
+                      {editing ? 'Save Changes' : 'Create & Save'}
                     </Button>
                   </div>
                 </div>
@@ -597,12 +597,12 @@ export const BlogManagement = () => {
           {posts.length === 0 ? (
             <EmptyState
               icon={FileText}
-              title="Aucun article de devlog"
-              description="Rédigez votre premier carnet de développement studio."
+              title="No devlog articles"
+              description="Write your first studio devlog article."
               action={
                 hasPermission('create_blog') && (
                   <Button icon={Plus} onClick={() => setShowForm(true)} className="btn-apple text-xs">
-                    Créer un article
+                    Create an article
                   </Button>
                 )
               }
@@ -631,18 +631,18 @@ export const BlogManagement = () => {
                             post.published ? 'bg-[#30D158]/10 text-[#28a745]' : 'bg-amber-50 text-amber-600'
                           }`}
                         >
-                          {post.published ? 'Publié' : 'Brouillon'}
+                          {post.published ? 'Published' : 'Draft'}
                         </span>
                         {post.allowed_roles?.length > 0 && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
                             <Lock size={10} />
-                            {post.allowed_roles.length} rôle(s)
+                            {post.allowed_roles.length} role(s)
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-[#86868B] truncate">
-                        Par {post.author} · Créé le{' '}
-                        {new Date(post.created_at).toLocaleDateString('fr-FR', {
+                        By {post.author} · Created on{' '}
+                        {new Date(post.created_at).toLocaleDateString('en-US', {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
@@ -655,14 +655,14 @@ export const BlogManagement = () => {
                     <button
                       onClick={() => startEdit(post)}
                       className="p-2 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-xl transition-colors"
-                      title="Éditer"
+                      title="Edit"
                     >
                       <Edit2 size={15} />
                     </button>
                     <button
                       onClick={() => handleDelete(post.slug, post.title)}
                       className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      title="Supprimer"
+                      title="Delete"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -674,7 +674,7 @@ export const BlogManagement = () => {
         </CardBody>
       </Card>
 
-      {/* ── MODAL: INSÉRER UNE IMAGE AVEC BORDS ARRONDIS ─────────────────── */}
+      {/* ── MODAL: INSERT IMAGE WITH ROUNDED CORNERS ─────────────────── */}
       {imageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-appear">
           <div className="bg-white rounded-3xl border border-[#E5E5EA] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
@@ -685,8 +685,8 @@ export const BlogManagement = () => {
                   <ImagePlus size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#1D1D1F]">Insérer une Image dans l'Article</h3>
-                  <p className="text-[11px] text-[#86868B]">Téléversez et personnalisez les bords arrondis</p>
+                  <h3 className="text-sm font-semibold text-[#1D1D1F]">Insert Image into Article</h3>
+                  <p className="text-[11px] text-[#86868B]">Upload and customize rounded border styling</p>
                 </div>
               </div>
               <button
@@ -702,19 +702,19 @@ export const BlogManagement = () => {
               {/* File Upload / URL */}
               <div>
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                  Fichier Image
+                  Image File
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={inlineUrl}
                     onChange={(e) => setInlineUrl(e.target.value)}
-                    placeholder="URL de l'image ou téléversez depuis votre appareil"
+                    placeholder="Image URL or upload from your device"
                     className="flex-1 px-3 py-2 rounded-xl bg-[#F5F5F7] border border-[#E5E5EA] text-xs text-[#1D1D1F] focus:border-[#FF6600] outline-none"
                   />
                   <label className="cursor-pointer">
                     <Button variant="secondary" size="sm" icon={Upload} loading={inlineUploading} as="span">
-                      {inlineUploading ? 'Téléversement...' : 'Parcourir'}
+                      {inlineUploading ? 'Uploading...' : 'Browse'}
                     </Button>
                     <input type="file" accept="image/*" onChange={handleInlineUpload} className="hidden" />
                   </label>
@@ -724,7 +724,7 @@ export const BlogManagement = () => {
               {/* Preview with selected rounded borders */}
               {inlineUrl && (
                 <div className="p-3 bg-[#F5F5F7] rounded-2xl text-center">
-                  <p className="text-[10px] uppercase font-semibold text-[#86868B] mb-2">Aperçu du Style Sélectionné</p>
+                  <p className="text-[10px] uppercase font-semibold text-[#86868B] mb-2">Selected Style Preview</p>
                   <div className="inline-block max-w-full">
                     <img
                       src={inlineUrl.startsWith('/') ? `${API_URL}${inlineUrl}` : inlineUrl}
@@ -738,13 +738,13 @@ export const BlogManagement = () => {
               {/* Caption */}
               <div>
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                  Légende sous l'Image (Optionnel)
+                  Image Caption (Optional)
                 </label>
                 <input
                   type="text"
                   value={inlineCaption}
                   onChange={(e) => setInlineCaption(e.target.value)}
-                  placeholder="ex: Vue en jeu sur la nouvelle carte atmosphérique"
+                  placeholder="e.g. In-game screenshot of the new atmospheric map"
                   className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-[#E5E5EA] text-xs text-[#1D1D1F] focus:border-[#FF6600] outline-none"
                 />
               </div>
@@ -752,7 +752,7 @@ export const BlogManagement = () => {
               {/* Rounded Borders Options */}
               <div>
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                  Style de Bords Arrondis
+                  Rounded Corner Style
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {ROUNDED_OPTIONS.map((opt) => (
@@ -776,7 +776,7 @@ export const BlogManagement = () => {
               {/* Alignment */}
               <div>
                 <label className="block text-xs font-semibold text-[#1D1D1F] uppercase tracking-wider mb-1.5">
-                  Disposition
+                  Layout Alignment
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {ALIGN_OPTIONS.map((opt) => (
@@ -800,14 +800,14 @@ export const BlogManagement = () => {
             {/* Modal Footer */}
             <div className="px-6 py-4 bg-[#FBFBFD] border-t border-[#F5F5F7] flex items-center justify-end gap-3">
               <Button variant="ghost" size="sm" onClick={() => setImageModalOpen(false)}>
-                Annuler
+                Cancel
               </Button>
               <Button
                 onClick={confirmInsertImage}
                 disabled={!inlineUrl}
                 className="btn-apple text-xs !py-2"
               >
-                Insérer dans l'article
+                Insert into Article
               </Button>
             </div>
           </div>

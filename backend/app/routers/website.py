@@ -303,7 +303,8 @@ async def get_public_system_status():
 
     # Build 7-day history (from 6 days ago up to today)
     now = datetime.now(timezone.utc)
-    day_french_names = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    day_short_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     history = []
 
     for i in range(6, -1, -1):
@@ -311,21 +312,25 @@ async def get_public_system_status():
         is_today = (i == 0)
 
         if is_today:
-            label = "Aujourd'hui"
+            label = "Today"
+            short_label = "Today"
             day_status = overall_status
             uptime_pct = 98.5 if is_maintenance else (0.0 if not db_connected else 100.0)
         elif i == 1:
-            label = "Hier"
+            label = "Yesterday"
+            short_label = "Yest"
             day_status = "operational"
             uptime_pct = 100.0
         else:
-            label = day_french_names[day_date.weekday()]
+            label = day_names[day_date.weekday()]
+            short_label = day_short_names[day_date.weekday()]
             day_status = "operational"
             uptime_pct = 100.0
 
         history.append({
             "date": day_date.strftime("%Y-%m-%d"),
             "label": label,
+            "short_label": short_label,
             "status": day_status,
             "uptime_percent": uptime_pct,
         })
