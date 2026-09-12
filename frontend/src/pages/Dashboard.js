@@ -289,7 +289,7 @@ const SidebarContent = ({
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-2 h-2 rounded-full bg-[#30D158] animate-pulse shrink-0" />
           <span className="truncate text-[11px] font-semibold text-[#6E6E73] dark:text-[#a1a1aa] group-hover:text-[#1D1D1F] dark:group-hover:text-white">
-            Statut Systèmes Live
+            Live Systems Status
           </span>
         </div>
         <ArrowUpRight size={12} className="text-[#86868B] group-hover:text-[#FF6600] shrink-0" />
@@ -650,10 +650,10 @@ const DashboardContent = () => {
             </Link>
             <Link
               to="/"
-              title="Voir le site public"
+              title="View public website"
               className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-[#1D1D1F] dark:text-white bg-white dark:bg-[#111118] border border-[#D2D2D7] dark:border-[#2a2a3c] hover:border-[#BFBFC4] dark:hover:border-[#3a3a4c] px-3 shadow-2xs transition-all"
             >
-              <span>Site public</span>
+              <span>Public Site</span>
               <ArrowUpRight size={12} className="text-[#86868B]" />
             </Link>
             <div className="flex items-center gap-2.5 pl-0.5">
@@ -706,7 +706,7 @@ const DashboardContent = () => {
                activeTab !== 'account' && (
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-200">
-                    Cette section n'est pas accessible ou ne dispose pas des permissions requises. Affichage de la vue d'ensemble.
+                    This section is not accessible or requires additional permissions. Showing the overview instead.
                   </div>
                   <DashboardOverview goTo={goTo} />
                 </div>

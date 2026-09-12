@@ -58,25 +58,25 @@ async def _get_play_user_from_access(request: Request):
     """Validates a play access token (1h, in-memory on client). Uses shared db.users."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Token requis")
+        raise HTTPException(401, "Token required")
     token = auth[7:]
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except Exception:
-        raise HTTPException(401, "Token invalide ou expiré")
+        raise HTTPException(401, "Invalid or expired token")
     if payload.get("type") != "play":
-        raise HTTPException(401, "Token invalide")
+        raise HTTPException(401, "Invalid token")
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(401, "Token invalide")
+        raise HTTPException(401, "Invalid token")
     try:
         user = await db.users.find_one({"_id": ObjectId(user_id)})
     except Exception:
-        raise HTTPException(401, "Token invalide")
+        raise HTTPException(401, "Invalid token")
     if not user:
-        raise HTTPException(401, "Compte introuvable")
+        raise HTTPException(401, "Account not found")
     if user.get("isSuspended"):
-        raise HTTPException(403, "Compte suspendu")
+        raise HTTPException(403, "Account suspended")
     return user
 
 async def _is_project_banned(user_id, project_slug: str) -> bool:

@@ -121,13 +121,13 @@ async def upload_game_file(
     if ext == '.sprite3':
         gid_s3 = (group_id or "").strip()
         if file_type != 'text_engine' or not gid_s3:
-            raise HTTPException(status_code=400, detail="Les fichiers .sprite3 ne peuvent être importés que dans un groupe Text Engine")
+            raise HTTPException(status_code=400, detail=".sprite3 files can only be imported into a Text Engine group")
         try:
             with zipfile.ZipFile(io.BytesIO(content)) as zf:
                 sprite_data = json.loads(zf.read('sprite.json').decode('utf-8'))
                 costumes = sprite_data.get('costumes', [])
                 if not costumes:
-                    raise HTTPException(status_code=400, detail="Aucun costume trouvé dans ce sprite")
+                    raise HTTPException(status_code=400, detail="No costumes found in this sprite")
 
                 now = datetime.now(timezone.utc)
                 gname = (group_name or "").strip() or sprite_data.get('name', '')
@@ -201,7 +201,7 @@ async def upload_game_file(
         try:
             content = _sanitize_svg(content)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"SVG rejeté : {e}")
+            raise HTTPException(status_code=400, detail=f"SVG rejected: {e}")
 
     display_name = name.strip() or Path(file.filename or "").stem or "Unnamed file"
     now = datetime.now(timezone.utc)
@@ -295,7 +295,7 @@ async def replace_game_file(
         try:
             content = _sanitize_svg(content)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"SVG rejeté : {e}")
+            raise HTTPException(status_code=400, detail=f"SVG rejected: {e}")
 
     dest = _game_file_path(slug, file_id)
     with open(dest, "wb") as f:

@@ -95,7 +95,7 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (limitReached) {
-      setError('Ticket ouvert maximum atteint (3/3).');
+      setError('Maximum open tickets reached (3/3).');
       return;
     }
     setSending(true);
@@ -166,7 +166,7 @@ const Contact = () => {
                 }`}
               >
                 <PaperPlaneTilt size={16} />
-                <span>Nouveau Ticket</span>
+                <span>New Ticket</span>
               </button>
 
               {token && (
@@ -180,7 +180,7 @@ const Contact = () => {
                   }`}
                 >
                   <Ticket size={16} />
-                  <span>Mes Tickets</span>
+                  <span>My Tickets</span>
                   <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${
                     limitReached ? 'bg-red-100 text-red-700' : 'bg-[#E5E5EA] text-[#1D1D1F]'
                   }`}>
@@ -210,7 +210,7 @@ const Contact = () => {
                       onClick={() => { setActiveView('tickets'); setSuccess(''); }}
                       className="btn-apple mr-3"
                     >
-                      <Ticket size={14} className="mr-1.5" /> Voir mes tickets ({openCount}/3)
+                      <Ticket size={14} className="mr-1.5" /> View My Tickets ({openCount}/3)
                     </button>
                   )}
                   <button
@@ -228,7 +228,7 @@ const Contact = () => {
                     </h2>
                     {token && (
                       <span className="text-xs font-medium text-[#86868B]">
-                        Tickets ouverts: {openCount}/3
+                        Open tickets: {openCount}/3
                       </span>
                     )}
                   </div>
@@ -236,17 +236,17 @@ const Contact = () => {
                   {limitReached && (
                     <div className="p-4 mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl">
                       <div className="flex items-center gap-2 font-semibold text-xs mb-1">
-                        <Warning size={16} /> Ticket ouvert maximum atteint ({openCount}/3)
+                        <Warning size={16} /> Maximum open tickets reached ({openCount}/3)
                       </div>
                       <p className="text-xs text-red-600 leading-relaxed">
-                        Vous avez atteint la limite de 3 tickets ouverts simultanés. Veuillez attendre la résolution d'un de vos tickets avant d'en créer un nouveau.
+                        You have reached the limit of 3 concurrent open tickets. Please wait for an existing ticket to be resolved before opening a new one.
                       </p>
                       <button
                         type="button"
                         onClick={() => setActiveView('tickets')}
                         className="mt-3 text-xs font-medium underline text-red-700"
                       >
-                        Consulter mes tickets en cours &rarr;
+                        View my open tickets &rarr;
                       </button>
                     </div>
                   )}
@@ -373,19 +373,19 @@ const Contact = () => {
                 {loadingTickets ? (
                   <div className="py-16 text-center text-[#86868B]">
                     <CircleNotch size={24} className="animate-spin text-[#FF6600] mx-auto mb-2" />
-                    <p className="text-xs">Chargement des tickets...</p>
+                    <p className="text-xs">Loading tickets...</p>
                   </div>
                 ) : tickets.length === 0 ? (
                   <div className="py-16 text-center">
                     <Ticket size={36} className="text-[#86868B] mx-auto mb-3" />
-                    <p className="text-base font-semibold text-[#1D1D1F] mb-1">Aucun ticket pour l'instant</p>
-                    <p className="text-xs text-[#6E6E73] mb-4">Vous n'avez pas de ticket de support actif.</p>
+                    <p className="text-base font-semibold text-[#1D1D1F] mb-1">No tickets yet</p>
+                    <p className="text-xs text-[#6E6E73] mb-4">You do not have any active support tickets.</p>
                     <button
                       type="button"
                       onClick={() => setActiveView('new')}
                       className="btn-apple"
                     >
-                      Ouvrir un ticket
+                      Open a ticket
                     </button>
                   </div>
                 ) : (
@@ -394,7 +394,7 @@ const Contact = () => {
                       const isExpanded = expandedTicketNumber === t.ticket_number;
                       const isClosed = t.status === 'closed';
                       const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#86868B';
-                      const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
+                      const statusLabel = t.status === 'open' ? 'Open' : t.status === 'in_progress' ? 'In Progress' : 'Closed';
 
                       return (
                         <div
@@ -444,7 +444,7 @@ const Contact = () => {
                                     >
                                       <div className="flex items-center justify-between mb-1">
                                         <span className="font-semibold text-[11px]" style={{ color: isUser ? '#1D1D1F' : '#FF6600' }}>
-                                          {m.author_name || (isUser ? 'Vous' : 'Support')}
+                                          {m.author_name || (isUser ? 'You' : 'Support')}
                                         </span>
                                         <span className="text-[10px] text-[#86868B]">
                                           {m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}
@@ -465,7 +465,7 @@ const Contact = () => {
                                     rows={3}
                                     value={replyContent}
                                     onChange={e => setReplyContent(e.target.value)}
-                                    placeholder="Répondre au ticket..."
+                                    placeholder="Reply to ticket..."
                                     className={`${inputClass} resize-none`}
                                   />
                                   {replyError && <p className="text-xs text-red-500">{replyError}</p>}
@@ -476,13 +476,13 @@ const Contact = () => {
                                       className="btn-apple text-xs !py-1.5 !px-3 disabled:opacity-50"
                                     >
                                       {sendingReply ? <CircleNotch size={12} className="animate-spin mr-1.5" /> : <PaperPlaneTilt size={12} className="mr-1.5" />}
-                                      {sendingReply ? 'Envoi…' : 'Envoyer la réponse'}
+                                      {sendingReply ? 'Sending…' : 'Send Reply'}
                                     </button>
                                   </div>
                                 </form>
                               ) : (
                                 <p className="text-xs text-[#86868B] italic text-center py-2">
-                                  Ce ticket est fermé. Les réponses ne sont plus acceptées.
+                                  This ticket is closed. Replies are no longer accepted.
                                 </p>
                               )}
                             </div>

@@ -20,10 +20,10 @@ import { Link } from 'react-router-dom';
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const fmt = (bytes) => {
-  if (bytes === undefined || bytes === null) return '0 Go';
-  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' Go';
-  if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' Mo';
-  return (bytes / 1e3).toFixed(0) + ' Ko';
+  if (bytes === undefined || bytes === null) return '0 GB';
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' GB';
+  if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
+  return (bytes / 1e3).toFixed(0) + ' KB';
 };
 
 const fmtUptime = (seconds) => {
@@ -32,9 +32,9 @@ const fmtUptime = (seconds) => {
   const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const parts = [];
-  if (d) parts.push(`${d}j`);
+  if (d) parts.push(`${d}d`);
   if (h) parts.push(`${h}h`);
-  parts.push(`${m}min`);
+  parts.push(`${m}m`);
   return parts.join(' ');
 };
 
@@ -91,7 +91,7 @@ export const VpsStats = () => {
       setStats(r.data);
       setLastUpdate(new Date());
     } catch (e) {
-      setError(e.response?.data?.detail || 'Impossible de joindre le serveur.');
+      setError(e.response?.data?.detail || 'Unable to reach the server.');
     } finally {
       setLoading(false);
     }
@@ -114,14 +114,14 @@ export const VpsStats = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold tracking-tight text-[#1D1D1F]">
-                Serveur & Infrastructure VPS
+                Server & VPS Infrastructure
               </h2>
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#30D158]/10 text-[#28a745]">
-                {stats?.server_environment || 'En ligne'}
+                {stats?.server_environment || 'Online'}
               </span>
             </div>
             <p className="text-xs text-[#86868B] mt-0.5">
-              {stats?.os_info ? `${stats.os_info} · Python ${stats.python_version || ''}` : 'Métriques temps réel des ressources du système hébergeant le backend.'}
+              {stats?.os_info ? `${stats.os_info} · Python ${stats.python_version || ''}` : 'Real-time telemetry and resource usage of the backend host server.'}
             </p>
           </div>
         </div>
@@ -133,7 +133,7 @@ export const VpsStats = () => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#F5F5F7] hover:bg-[#E5E5EA] text-xs font-medium text-[#1D1D1F] transition-colors border border-[#E5E5EA]"
           >
-            <span>Status public</span>
+            <span>Public Status</span>
             <ExternalLink size={12} className="text-[#86868B]" />
           </Link>
           <button
@@ -142,7 +142,7 @@ export const VpsStats = () => {
             className="btn-apple text-xs !py-2 !px-3.5 inline-flex items-center gap-1.5"
           >
             {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-            <span>Actualiser</span>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -156,7 +156,7 @@ export const VpsStats = () => {
       {!stats && loading && (
         <div className="bg-white rounded-2xl border border-[#E5E5EA] p-16 flex flex-col items-center justify-center gap-3">
           <Loader2 size={24} className="animate-spin text-[#FF6600]" />
-          <p className="text-xs text-[#86868B]">Interrogation des sondes système en cours...</p>
+          <p className="text-xs text-[#86868B]">Querying system telemetry probes...</p>
         </div>
       )}
 
@@ -165,25 +165,25 @@ export const VpsStats = () => {
           {/* Main Gauges Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <AppleGauge
-              label="Processeur (CPU)"
+              label="Processor (CPU)"
               icon={Cpu}
               percent={stats.cpu.percent}
               valueStr={`${stats.cpu.percent.toFixed(1)}%`}
-              subtitle={`${stats.cpu.count} cœurs logiques`}
+              subtitle={`${stats.cpu.count} logical cores`}
             />
             <AppleGauge
-              label="Mémoire Vive (RAM)"
+              label="Memory (RAM)"
               icon={Database}
               percent={stats.ram.percent}
               valueStr={`${fmt(stats.ram.used)} / ${fmt(stats.ram.total)}`}
-              subtitle={`${fmt(stats.ram.free)} libre`}
+              subtitle={`${fmt(stats.ram.free)} available`}
             />
             <AppleGauge
-              label="Stockage Disque"
+              label="Disk Storage"
               icon={HardDrive}
               percent={stats.disk.percent}
               valueStr={`${fmt(stats.disk.used)} / ${fmt(stats.disk.total)}`}
-              subtitle={`${fmt(stats.disk.free)} libre`}
+              subtitle={`${fmt(stats.disk.free)} available`}
             />
           </div>
 
@@ -193,13 +193,13 @@ export const VpsStats = () => {
             <div className="bg-white rounded-2xl border border-[#E5E5EA] p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#86868B] uppercase tracking-wider mb-2">
                 <Clock size={14} className="text-[#FF6600]" />
-                <span>Temps de service</span>
+                <span>Uptime</span>
               </div>
               <p className="text-xl font-bold tracking-tight text-[#1D1D1F]">
                 {fmtUptime(stats.uptime_seconds)}
               </p>
               <p className="text-[11px] text-[#86868B] mt-1">
-                Depuis le dernier démarrage
+                Since last system boot
               </p>
             </div>
 
@@ -207,7 +207,7 @@ export const VpsStats = () => {
             <div className="bg-white rounded-2xl border border-[#E5E5EA] p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#86868B] uppercase tracking-wider mb-2">
                 <Activity size={14} className="text-[#30D158]" />
-                <span>Charge (Load Avg)</span>
+                <span>Load Average</span>
               </div>
               <div className="flex items-baseline gap-3">
                 {stats.load_avg?.map((val, idx) => (
@@ -223,13 +223,13 @@ export const VpsStats = () => {
             <div className="bg-white rounded-2xl border border-[#E5E5EA] p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#86868B] uppercase tracking-wider mb-2">
                 <Layers size={14} className="text-[#007AFF]" />
-                <span>Processus Actifs</span>
+                <span>Active Processes</span>
               </div>
               <p className="text-xl font-bold tracking-tight text-[#1D1D1F]">
                 {stats.processes_count ?? 1}
               </p>
               <p className="text-[11px] text-[#86868B] mt-1">
-                Threads & workers backend
+                Backend worker threads
               </p>
             </div>
 
@@ -237,19 +237,19 @@ export const VpsStats = () => {
             <div className="bg-white rounded-2xl border border-[#E5E5EA] p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#86868B] uppercase tracking-wider mb-2">
                 <ArrowUpRight size={14} className="text-[#5856D6]" />
-                <span>Réseau (E/S)</span>
+                <span>Network (I/O)</span>
               </div>
               {stats.net_io ? (
                 <div className="text-xs">
                   <p className="font-semibold text-[#1D1D1F]">
                     ▲ {fmt(stats.net_io.bytes_sent)} · ▼ {fmt(stats.net_io.bytes_recv)}
                   </p>
-                  <p className="text-[11px] text-[#86868B] mt-1">Total paquets transférés</p>
+                  <p className="text-[11px] text-[#86868B] mt-1">Total network throughput</p>
                 </div>
               ) : (
                 <div className="text-xs">
-                  <p className="font-semibold text-[#30D158]">Actif (Edge HTTP)</p>
-                  <p className="text-[11px] text-[#86868B] mt-1">SSL chiffré TLS 1.3</p>
+                  <p className="font-semibold text-[#30D158]">Active (Edge HTTP)</p>
+                  <p className="text-[11px] text-[#86868B] mt-1">TLS 1.3 encrypted</p>
                 </div>
               )}
             </div>
@@ -262,7 +262,7 @@ export const VpsStats = () => {
                 <Terminal size={16} />
               </div>
               <div>
-                <p className="font-semibold text-[#1D1D1F]">Système d'exploitation & Runtime</p>
+                <p className="font-semibold text-[#1D1D1F]">Operating System & Runtime</p>
                 <p className="text-[#86868B] text-[11px]">
                   {stats.os_info} · Python {stats.python_version}
                 </p>
@@ -271,7 +271,7 @@ export const VpsStats = () => {
             {lastUpdate && (
               <span className="text-[11px] text-[#86868B] flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] animate-pulse" />
-                Dernière mesure : {lastUpdate.toLocaleTimeString('fr-FR')} (refresh auto 10s)
+                Last reading: {lastUpdate.toLocaleTimeString('en-US')} (auto-refresh 10s)
               </span>
             )}
           </div>
