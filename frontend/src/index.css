@@ -16,28 +16,28 @@
 
 @layer base {
   :root {
-    /* Crisp True White studio theme */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 5%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 5%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    /* Dark gaming theme — Kefir-inspired */
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
     /* Brand Orange — #FF6600 */
     --primary: 24 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 85%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 50%;
     --accent: 24 100% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
     --ring: 24 100% 50%;
-    --radius: 0.25rem;
+    --radius: 0.5rem;
   }
 
   /* Admin dashboard keeps its own dark variant */
@@ -80,8 +80,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    background-color: #FFFFFF;
-    color: #0A0A0A;
+    background-color: #0D0D0D;
+    color: #FFFFFF;
   }
 }
 
@@ -94,7 +94,7 @@
   height: 100vh;
   pointer-events: none;
   z-index: 40;
-  opacity: 0.025;
+  opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 160px 160px;
@@ -240,24 +240,24 @@
   pointer-events: none;
 }
 
-/* Section alternates */
+/* Section dark alternates */
 .section-dark {
-  background-color: #FFFFFF;
+  background-color: #111111;
 }
 .section-darker {
-  background-color: #F8F9FA;
+  background-color: #0D0D0D;
 }
 .section-accent {
-  background: #FFFFFF;
+  background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
 }
 
-/* Uppercase bold label */
+/* Kefir-style uppercase bold label */
 .kefir-label {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #71717A;
+  color: #555555;
 }
 
 .stat-number {
@@ -265,63 +265,56 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  color: #0A0A0A;
+  color: #FFFFFF;
   white-space: nowrap;
 }
 
-/* Dot grid */
+/* Dot grid (adapted for dark) */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
   background-size: 28px 28px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
 }
 
-/* Brand Primary CTA button — Orange (#FF6600) */
+/* Kefir-style white CTA button */
 .btn-kefir {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.65rem 1.85rem;
-  background: #FF6600;
-  color: #FFFFFF;
+  padding: 0.6rem 1.75rem;
+  background: #FFFFFF;
+  color: #000000;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 0px;
-  border: 2px solid #FF6600;
+  border: 2px solid #FFFFFF;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s, color 0.2s;
 }
 .btn-kefir:hover {
-  background: #e05a00;
-  border-color: #e05a00;
+  background: transparent;
   color: #FFFFFF;
-  transform: translateY(-1px);
 }
-
-/* Brand Secondary CTA button — High contrast crisp black outline */
 .btn-kefir-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.65rem 1.85rem;
-  background: #FFFFFF;
-  color: #0A0A0A;
+  padding: 0.6rem 1.75rem;
+  background: transparent;
+  color: #FFFFFF;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border-radius: 0px;
-  border: 2px solid #0A0A0A;
+  border: 2px solid rgba(255,255,255,0.4);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s, color 0.2s;
 }
 .btn-kefir-outline:hover {
-  background: #0A0A0A;
+  border-color: #FFFFFF;
   color: #FFFFFF;
-  transform: translateY(-1px);
 }
 
 /* Chevron bounce */

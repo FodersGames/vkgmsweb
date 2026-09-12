@@ -16,21 +16,21 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.
 const NAME_COOLDOWN_DAYS = 30;
 
 /* ─── Style helpers ────────────────────────────────────────────────────── */
-const inputLight = {
-  backgroundColor: '#F8F9FA',
-  border: '1px solid #D4D4D8',
-  color: '#0A0A0A',
+const inputDark = {
+  backgroundColor: '#0A0A0A',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#FFFFFF',
   borderRadius: 0,
   outline: 'none',
   width: '100%',
   padding: '0.6rem 0.75rem',
   fontSize: '0.875rem',
 };
-const inputFocusLight = { borderColor: '#FF6600' };
+const inputFocusDark = { borderColor: '#FF6600' };
 
-const cardLight = {
-  backgroundColor: '#FFFFFF',
-  border: '1px solid #E5E7EB',
+const cardDark = {
+  backgroundColor: '#111111',
+  border: '1px solid rgba(255,255,255,0.06)',
   padding: '1.5rem',
 };
 
@@ -65,7 +65,7 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#52525B' }}>
+        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
           {label}
         </label>
       </div>
@@ -77,9 +77,9 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           autoComplete={autoComplete}
           placeholder={placeholder}
           style={{
-            ...inputLight,
+            ...inputDark,
             paddingRight: '2.5rem',
-            ...(focused ? inputFocusLight : {}),
+            ...(focused ? inputFocusDark : {}),
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -91,11 +91,11 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
           style={{
             position: 'absolute', right: '0.75rem', top: '50%',
             transform: 'translateY(-50%)', background: 'none',
-            border: 'none', cursor: 'pointer', color: '#71717A',
+            border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
             display: 'flex', alignItems: 'center', padding: 0,
           }}
-          onMouseEnter={e => e.currentTarget.style.color = '#0A0A0A'}
-          onMouseLeave={e => e.currentTarget.style.color = '#71717A'}
+          onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
         >
           {show ? <EyeSlash size={14} /> : <Eye size={14} />}
         </button>
@@ -108,8 +108,8 @@ const TextField = ({ label, value, onChange, placeholder, autoComplete, required
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#52525B', marginBottom: '0.4rem' }}>
-        {label} {!required && <span style={{ color: '#A1A1AA', textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(optional)</span>}
+      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
+        {label} {!required && <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(optional)</span>}
       </label>
       <input
         type="text"
@@ -121,9 +121,9 @@ const TextField = ({ label, value, onChange, placeholder, autoComplete, required
         disabled={disabled}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        style={{ ...inputLight, ...(focused && !disabled ? inputFocusLight : {}), opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'text' }}
+        style={{ ...inputDark, ...(focused && !disabled ? inputFocusDark : {}), opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'text' }}
       />
-      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: '#71717A' }}>{hint}</p>}
+      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>{hint}</p>}
     </div>
   );
 };
@@ -265,13 +265,13 @@ const Profile = () => {
   const customRoles = (user.roles || []).filter(r => !r.is_system);
 
   return (
-    <div style={{ backgroundColor: '#FFFFFF', color: '#0A0A0A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       <div style={{ flex: 1, paddingTop: '60px' }}>
 
         {/* ── Hero header ─────────────────────────────────────────── */}
-        <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '3.5rem 1.5rem 2.5rem' }}>
+        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
           <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
             {/* Roles / Badges DISPLAYED ABOVE THE PROFILE PHOTO */}
@@ -286,8 +286,8 @@ const Profile = () => {
                     width: '30px',
                     height: '30px',
                     borderRadius: '6px',
-                    backgroundColor: '#FFF7ED',
-                    border: '1px solid #FDBA74',
+                    backgroundColor: 'rgba(255, 102, 0,0.12)',
+                    border: '1px solid rgba(255, 102, 0,0.3)',
                     color: '#FF6600',
                     cursor: 'default',
                     transition: 'transform 0.15s',
@@ -308,9 +308,9 @@ const Profile = () => {
                     width: '30px',
                     height: '30px',
                     borderRadius: '6px',
-                    backgroundColor: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                    color: '#2563EB',
+                    backgroundColor: 'rgba(59,130,246,0.12)',
+                    border: '1px solid rgba(59,130,246,0.3)',
+                    color: '#3B82F6',
                     cursor: 'default',
                     transition: 'transform 0.15s',
                   }}
@@ -330,9 +330,9 @@ const Profile = () => {
                     width: '30px',
                     height: '30px',
                     borderRadius: '6px',
-                    backgroundColor: '#FFFBEB',
-                    border: '1px solid #FDE68A',
-                    color: '#D97706',
+                    backgroundColor: 'rgba(245,158,11,0.12)',
+                    border: '1px solid rgba(245,158,11,0.3)',
+                    color: '#F59E0B',
                     cursor: 'default',
                     transition: 'transform 0.15s',
                   }}
@@ -379,10 +379,10 @@ const Profile = () => {
             >
               <div style={{
                 width: '86px', height: '86px',
-                border: '2px solid #E5E7EB',
+                border: '2px solid rgba(255,255,255,0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '1.75rem', fontWeight: 900, color: '#FF6600',
-                backgroundColor: '#F8F9FA', overflow: 'hidden',
+                backgroundColor: '#1A1A1A', overflow: 'hidden',
               }}>
                 {avatarPreview || user.avatar_url ? (
                   <img
@@ -395,7 +395,7 @@ const Profile = () => {
               {/* Hover overlay */}
               <div className="avatar-overlay" style={{
                 position: 'absolute', inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.5)',
+                backgroundColor: 'rgba(0,0,0,0.55)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: 0, transition: 'opacity 0.2s',
               }}
@@ -411,10 +411,10 @@ const Profile = () => {
             </div>
 
             {/* Display Name */}
-            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#0A0A0A', margin: 0, marginBottom: '0.25rem' }}>
+            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0, marginBottom: '0.25rem' }}>
               {displayName}
             </h1>
-            <p style={{ fontSize: '0.85rem', color: '#71717A', margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
               @{user.username} • {user.email}
             </p>
 
@@ -423,18 +423,18 @@ const Profile = () => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525B', border: '1px solid #E5E7EB', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#0A0A0A'; e.currentTarget.style.borderColor = '#A1A1AA'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#52525B'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 >
                   <SquaresFour size={12} /> Dashboard
                 </Link>
               )}
               <button
                 onClick={handleLogout}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#DC2626', border: '1px solid #FECACA', padding: '0.45rem 0.85rem', background: 'none', cursor: 'pointer', transition: 'color 0.2s, border-color 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#B91C1C'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.borderColor = '#FECACA'; }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,100,100,0.6)', border: '1px solid rgba(255,100,100,0.2)', padding: '0.45rem 0.85rem', background: 'none', cursor: 'pointer', transition: 'color 0.2s, border-color 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#FF6464'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,100,100,0.6)'; e.currentTarget.style.borderColor = 'rgba(255,100,100,0.2)'; }}
               >
                 <SignOut size={12} /> Sign Out
               </button>
@@ -445,7 +445,7 @@ const Profile = () => {
         {/* Avatar error */}
         {avatarError && (
           <div style={{ maxWidth: '520px', margin: '1rem auto', padding: '0 1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
               <Warning size={12} style={{ flexShrink: 0 }} />{avatarError}
               <button onClick={() => setAvatarError('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}><X size={12} /></button>
             </div>
@@ -456,20 +456,20 @@ const Profile = () => {
         <div style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           {/* 1. ACCOUNT DETAILS CARD */}
-          <div style={cardLight}>
+          <div style={cardDark}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <User size={15} style={{ color: '#FF6600' }} />
-                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#0A0A0A', margin: 0 }}>
+                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                   Account Details
                 </h2>
               </div>
               {!editingProfile && (
                 <button
                   onClick={() => setEditingProfile(true)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#71717A', border: '1px solid #E5E7EB', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#0A0A0A'; e.currentTarget.style.borderColor = '#A1A1AA'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#71717A'; e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 >
                   <PencilSimple size={10} /> Edit
                 </button>
@@ -495,11 +495,11 @@ const Profile = () => {
                   autoComplete="username"
                 />
                 <div>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#71717A', marginBottom: '0.25rem' }}>Email</p>
-                  <p style={{ fontSize: '0.85rem', color: '#52525B', margin: 0 }}>{user.email} <span style={{ color: '#A1A1AA', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
                 </div>
                 {profileError && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
                     <Warning size={12} style={{ flexShrink: 0 }} />{profileError}
                   </div>
                 )}
@@ -526,7 +526,7 @@ const Profile = () => {
             ) : (
               <>
                 {profileSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: '#FFF7ED', border: '1px solid #FFEDD5', color: '#FF6600', fontSize: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem', marginBottom: '1rem' }}>
                     <CheckCircle size={12} style={{ flexShrink: 0 }} /> Profile updated.
                   </div>
                 )}
@@ -538,8 +538,8 @@ const Profile = () => {
                     { label: 'Status',   value: user.is_super_admin ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Player') },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#71717A', marginBottom: '0.2rem' }}>{label}</p>
-                      <p style={{ fontSize: '0.85rem', color: '#0A0A0A', wordBreak: 'break-all', margin: 0 }}>{value}</p>
+                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all', margin: 0 }}>{value}</p>
                     </div>
                   ))}
                 </div>
@@ -548,16 +548,16 @@ const Profile = () => {
           </div>
 
           {/* 2. PASSWORD & SECURITY CARD (IN ACCOUNT DETAILS) */}
-          <div style={cardLight}>
+          <div style={cardDark}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPasswordChange ? '1.25rem' : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Lock size={15} style={{ color: '#FF6600' }} />
                 <div>
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#0A0A0A', margin: 0 }}>
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                     Password & Security
                   </h2>
                   {!showPasswordChange && (
-                    <p style={{ fontSize: '0.75rem', color: '#71717A', margin: 0, marginTop: '0.2rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', margin: 0, marginTop: '0.2rem' }}>
                       Keep your account secure by updating your password regularly.
                     </p>
                   )}
@@ -574,8 +574,8 @@ const Profile = () => {
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: showPasswordChange ? '#71717A' : '#FF6600',
-                  border: `1px solid ${showPasswordChange ? '#E5E7EB' : '#FF6600'}`,
+                  color: showPasswordChange ? 'rgba(255,255,255,0.5)' : '#FF6600',
+                  border: `1px solid ${showPasswordChange ? 'rgba(255,255,255,0.15)' : 'rgba(255, 102, 0,0.3)'}`,
                   padding: '0.35rem 0.75rem',
                   background: 'none',
                   cursor: 'pointer',
@@ -593,12 +593,12 @@ const Profile = () => {
                 <PasswordField label="New password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" placeholder="Min. 8 chars" />
                 <PasswordField label="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" placeholder="Repeat your new password" />
                 {pwError && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
                     <Warning size={12} style={{ flexShrink: 0 }} />{pwError}
                   </div>
                 )}
                 {pwSuccess && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: '#FFF7ED', border: '1px solid #FFEDD5', color: '#FF6600', fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255, 102, 0,0.08)', border: '1px solid rgba(255, 102, 0,0.2)', color: '#FF6600', fontSize: '0.75rem' }}>
                     <CheckCircle size={12} style={{ flexShrink: 0 }} /> Password updated successfully.
                   </div>
                 )}

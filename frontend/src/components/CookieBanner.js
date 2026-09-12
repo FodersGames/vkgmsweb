@@ -34,19 +34,19 @@ export const CookieBanner = () => {
       // Capped so it never reaches under the support bubble (bottom-right,
       // ~88px footprint) on narrow phones — anchored bottom-left only,
       // never spanning the full width like a right-anchored banner would.
-      className="animate-appear fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[60] w-[min(320px,calc(100vw-6.5rem))] bg-white border border-[#E5E7EB] shadow-2xl"
+      className="animate-appear fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[60] w-[min(320px,calc(100vw-6.5rem))] rounded-2xl overflow-hidden liquid-glass-dark"
       role="dialog"
       aria-label="Cookie consent"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#E5E7EB]">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
           <Cookie size={14} className="text-[#FF6600]" />
-          <span className="text-sm font-bold text-[#0A0A0A] tracking-wide">Cookies</span>
+          <span className="text-sm font-bold text-white tracking-wide">Cookies</span>
         </div>
         <button
           onClick={necessary}
-          className="text-[#71717A] hover:text-[#0A0A0A] transition-colors"
+          className="text-[#6E6E73] hover:text-white transition-colors"
           aria-label="Close and accept necessary only"
         >
           <X size={14} />
@@ -55,7 +55,7 @@ export const CookieBanner = () => {
 
       {/* Body */}
       <div className="px-5 py-4">
-        <p className="text-xs text-[#52525B] leading-relaxed mb-3">
+        <p className="text-xs text-[#A1A1A6] leading-relaxed mb-3">
           We use cookies to improve your experience and analyze traffic.{' '}
           {!expanded && (
             <button
@@ -68,13 +68,13 @@ export const CookieBanner = () => {
         </p>
 
         {expanded && (
-          <div className="mb-3 space-y-2 text-[11px] text-[#71717A] leading-relaxed">
-            <div className="border-l-2 border-[#FF6600] pl-3">
-              <p className="font-semibold text-[#0A0A0A] mb-0.5">Necessary cookies</p>
+          <div className="mb-3 space-y-2 text-[11px] text-[#6E6E73] leading-relaxed">
+            <div className="border-l-2 border-[#FF6600]/40 pl-3">
+              <p className="font-semibold text-[#A1A1A6] mb-0.5">Necessary cookies</p>
               <p>Authentication session, security. Always active.</p>
             </div>
-            <div className="border-l-2 border-[#D4D4D8] pl-3">
-              <p className="font-semibold text-[#0A0A0A] mb-0.5">Analytics cookies</p>
+            <div className="border-l-2 border-[#3D3733] pl-3">
+              <p className="font-semibold text-[#A1A1A6] mb-0.5">Analytics cookies</p>
               <p>Anonymous traffic analysis to improve the site.</p>
             </div>
             <Link to="/privacy" className="block text-[#FF6600] hover:underline pt-1">
@@ -85,16 +85,12 @@ export const CookieBanner = () => {
 
         {/* Actions */}
         <div className="flex flex-col gap-2">
-          <button
-            onClick={accept}
-            className="btn-kefir w-full text-center"
-            style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }}
-          >
+          <PublicButton onClick={accept} variant="accent" size="sm" className="w-full">
             Accept all
-          </button>
+          </PublicButton>
           <button
             onClick={necessary}
-            className="w-full py-2 text-xs font-bold uppercase tracking-wider text-[#0A0A0A] bg-[#F8F9FA] border border-[#D4D4D8] hover:bg-[#F4F4F5] transition-colors"
+            className="w-full py-2 text-xs font-semibold rounded-lg text-[#D6D3D1] hover:text-white border border-white/15 hover:border-white/30 transition-colors"
           >
             Necessary only
           </button>
