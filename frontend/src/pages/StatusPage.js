@@ -13,12 +13,76 @@ import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
+const STAGES = {
+  green: {
+    key: 'green',
+    label: '100% Operational',
+    short: 'Operational',
+    colorHex: '#30D158',
+    downtime: '0 min downtime',
+    desc: 'All systems nominal',
+    style: { backgroundColor: '#30D158' },
+  },
+  green_yellow: {
+    key: 'green_yellow',
+    label: 'Nominal Fluctuation',
+    short: 'Nominal',
+    colorHex: '#84CC16',
+    downtime: '< 5 min latency',
+    desc: 'Minor latency fluctuation',
+    style: { background: 'linear-gradient(180deg, #84CC16 0%, #30D158 100%)' },
+  },
+  yellow: {
+    key: 'yellow',
+    label: 'Degraded / Maintenance',
+    short: 'Degraded',
+    colorHex: '#FFD60A',
+    downtime: '15-45 min downtime',
+    desc: 'Scheduled maintenance or minor degradation',
+    style: { backgroundColor: '#FFD60A' },
+  },
+  yellow_red: {
+    key: 'yellow_red',
+    label: 'Partial Outage',
+    short: 'Partial Outage',
+    colorHex: '#FF9500',
+    downtime: '1-3h downtime',
+    desc: 'Elevated disruption on some services',
+    style: { background: 'linear-gradient(180deg, #FF9500 0%, #FFD60A 100%)' },
+  },
+  red: {
+    key: 'red',
+    label: 'Major Outage',
+    short: 'Major Outage',
+    colorHex: '#FF453A',
+    downtime: '> 3h outage',
+    desc: 'Critical system interruption',
+    style: { backgroundColor: '#FF453A' },
+  },
+};
+
+const resolveStage = (day) => {
+  if (day?.color_stage && STAGES[day.color_stage]) {
+    return STAGES[day.color_stage];
+  }
+  const s = day?.status;
+  const pct = typeof day?.uptime_percent === 'number' ? day.uptime_percent : 100;
+  if (s === 'incident' || pct < 85) return STAGES.red;
+  if (s === 'partial_outage' || pct < 97) return STAGES.yellow_red;
+  if (s === 'maintenance' || s === 'degraded' || pct < 99.5) return STAGES.yellow;
+  if (s === 'nominal' || pct < 99.95) return STAGES.green_yellow;
+  return STAGES.green;
+};
+
 export default function StatusPage() {
   const [data, setData] = useState(null);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+
+  const isUserAdmin = Boolean(user && typeof isAdmin === 'function' && isAdmin());
+  const authTarget = isUserAdmin ? '/dashboard' : '/login';
 
   const fetchStatus = async () => {
     setRefreshing(true);
@@ -40,6 +104,8 @@ export default function StatusPage() {
           short_label: i === 0 ? 'Today' : i === 1 ? 'Yest' : shortDays[d.getDay()],
           status: 'operational',
           uptime_percent: 100.0,
+          color_stage: 'green',
+          downtime_minutes: 0,
         });
       }
       setData({
@@ -64,19 +130,6 @@ export default function StatusPage() {
   const isMaint = data?.maintenance?.active || data?.status === 'maintenance';
   const isIncident = data?.status === 'incident';
   const isOperational = data?.status === 'operational' && !isMaint;
-
-  const getBarColor = (status) => {
-    if (status === 'incident') return 'bg-[#FF453A]';
-    if (status === 'maintenance' || status === 'degraded') return 'bg-[#FFD60A]';
-    return 'bg-[#30D158]';
-  };
-
-  const getStatusLabel = (status) => {
-    if (status === 'incident') return 'Service Disruption';
-    if (status === 'maintenance') return 'Scheduled Maintenance';
-    if (status === 'degraded') return 'Degraded Performance';
-    return '100% Operational';
-  };
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] flex flex-col antialiased">
@@ -108,15 +161,12 @@ export default function StatusPage() {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            {isAdmin && (
-              <Link
-                to="/dashboard"
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#FF6600] hover:text-[#E05A00] transition-colors"
-              >
-                <span>Dashboard</span>
-                <ChevronRight size={13} />
-              </Link>
-            )}
+            <Link
+              to={authTarget}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E5E5EA] text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:border-[#D2D2D7] shadow-xs transition-all"
+            >
+              <span>Sign In</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -218,7 +268,7 @@ export default function StatusPage() {
           <div className="grid grid-cols-7 gap-1.5 sm:gap-3 py-2">
             {(data?.history || []).map((day, idx) => {
               const isSelected = selectedDay === idx;
-              const barColor = getBarColor(day.status);
+              const stage = resolveStage(day);
               const shortLabel = day.short_label || (idx === (data?.history?.length || 7) - 1 ? 'Today' : idx === (data?.history?.length || 7) - 2 ? 'Yest' : day.label?.slice(0, 3));
               const fullLabel = day.label || (idx === (data?.history?.length || 7) - 1 ? 'Today' : idx === (data?.history?.length || 7) - 2 ? 'Yesterday' : day.label);
 
@@ -233,11 +283,12 @@ export default function StatusPage() {
                   {/* Bar */}
                   <div className="w-full relative flex flex-col items-center">
                     <div
-                      className={`w-full h-11 sm:h-16 rounded-lg sm:rounded-2xl transition-all duration-200 ${barColor} ${
+                      className={`w-full h-11 sm:h-16 rounded-lg sm:rounded-2xl transition-all duration-200 ${
                         isSelected
                           ? 'scale-105 shadow-md brightness-110 ring-2 ring-[#1D1D1F]'
-                          : 'opacity-90 hover:opacity-100'
+                          : 'opacity-90 hover:opacity-100 hover:brightness-105'
                       }`}
+                      style={stage.style}
                     />
                   </div>
 
@@ -250,7 +301,7 @@ export default function StatusPage() {
                       {fullLabel}
                     </span>
                     <span className="block text-[9px] sm:text-[10px] text-[#86868B] font-mono mt-0.5">
-                      {day.uptime_percent ? `${day.uptime_percent}%` : '100%'}
+                      {day.uptime_percent !== undefined ? `${day.uptime_percent}%` : '100%'}
                     </span>
                   </div>
                 </button>
@@ -259,16 +310,30 @@ export default function StatusPage() {
           </div>
 
           {/* Inspection / Tooltip box */}
-          <div className="mt-3 sm:mt-4 p-3 rounded-xl sm:rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-center min-h-[44px] flex items-center justify-center transition-all">
-            {selectedDay !== null && data?.history?.[selectedDay] ? (
-              <div className="text-xs text-[#1D1D1F]">
-                <span className="font-semibold">{data.history[selectedDay].label}</span> ({data.history[selectedDay].date}) :{' '}
-                <span className="font-medium">{getStatusLabel(data.history[selectedDay].status)}</span> ·{' '}
-                <span className="text-[#6E6E73]">{data.history[selectedDay].uptime_percent}% uptime</span>
-              </div>
-            ) : (
+          <div className="mt-3 sm:mt-4 p-3 rounded-xl sm:rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-center min-h-[46px] flex items-center justify-center transition-all">
+            {selectedDay !== null && data?.history?.[selectedDay] ? (() => {
+              const day = data.history[selectedDay];
+              const stage = resolveStage(day);
+              const downtimeText = day.downtime_minutes !== undefined
+                ? (day.downtime_minutes === 0 ? '0 min downtime' : `${day.downtime_minutes} min downtime`)
+                : stage.downtime;
+              return (
+                <div className="text-xs text-[#1D1D1F] flex items-center justify-center flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 font-semibold">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: stage.colorHex }} />
+                    {day.label} ({day.date})
+                  </span>
+                  <span className="text-[#86868B]">·</span>
+                  <span className="font-medium">{stage.label}</span>
+                  <span className="text-[#86868B]">·</span>
+                  <span className="text-[#6E6E73]">{downtimeText}</span>
+                  <span className="text-[#86868B]">·</span>
+                  <span className="font-mono text-[#1D1D1F]">{day.uptime_percent}% uptime</span>
+                </div>
+              );
+            })() : (
               <div className="text-xs text-[#86868B]">
-                Tap or hover over a bar to view daily details
+                Tap or hover over a bar to view daily performance telemetry
               </div>
             )}
           </div>
@@ -279,19 +344,42 @@ export default function StatusPage() {
             <span>Today</span>
           </div>
 
-          {/* Legend */}
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-[#E5E5EA] text-xs text-[#6E6E73]">
-            <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Legend - 5-stage chromatic progression */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3.5 mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-[#E5E5EA] text-[11px] sm:text-xs text-[#6E6E73]">
+            <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#30D158] shrink-0" />
-              <span>100% Operational</span>
+              <span className="font-medium text-[#1D1D1F]">Green</span>
+              <span className="text-[#86868B] hidden sm:inline">(100%)</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-[#D2D2D7]">→</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0"
+                style={{ background: 'linear-gradient(135deg, #30D158 0%, #84CC16 100%)' }}
+              />
+              <span className="font-medium text-[#1D1D1F]">Green-Yellow</span>
+              <span className="text-[#86868B] hidden sm:inline">(&lt; 5m)</span>
+            </div>
+            <span className="text-[#D2D2D7]">→</span>
+            <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FFD60A] shrink-0" />
-              <span>Degraded / Maintenance</span>
+              <span className="font-medium text-[#1D1D1F]">Yellow</span>
+              <span className="text-[#86868B] hidden sm:inline">(15-45m)</span>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-[#D2D2D7]">→</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0"
+                style={{ background: 'linear-gradient(135deg, #FFD60A 0%, #FF9500 100%)' }}
+              />
+              <span className="font-medium text-[#1D1D1F]">Yellow-Red</span>
+              <span className="text-[#86868B] hidden sm:inline">(1-3h)</span>
+            </div>
+            <span className="text-[#D2D2D7]">→</span>
+            <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#FF453A] shrink-0" />
-              <span>Incident</span>
+              <span className="font-medium text-[#1D1D1F]">Red</span>
+              <span className="text-[#86868B] hidden sm:inline">(&gt; 3h)</span>
             </div>
           </div>
         </div>
@@ -334,11 +422,12 @@ export default function StatusPage() {
             <Link to="/terms" className="hover:text-[#1D1D1F] transition-colors">
               Terms
             </Link>
-            {isAdmin && (
-              <Link to="/dashboard" className="text-[#FF6600] font-medium hover:underline">
-                Dashboard
-              </Link>
-            )}
+            <Link
+              to={authTarget}
+              className="hover:text-[#1D1D1F] transition-colors"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
       </footer>
