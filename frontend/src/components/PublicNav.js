@@ -32,10 +32,10 @@ export const PublicNav = ({ onAbout }) => {
       className="fixed left-0 right-0 z-50 transition-[top,background] duration-200"
       style={{
         top: 'var(--vkg-banner-h, 0px)',
-        backgroundColor: scrolled ? '#0D0D0D' : 'rgba(13,13,13,0.85)',
+        backgroundColor: scrolled ? '#FFFFFF' : 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid #E5E7EB' : '1px solid rgba(0,0,0,0.06)',
       }}
     >
       <div className="max-w-[1100px] mx-auto px-6 h-[60px] flex items-center justify-between">
@@ -49,7 +49,7 @@ export const PublicNav = ({ onAbout }) => {
               alt="Vakar Games"
               className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
             />
-            <span className="font-black text-white tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
+            <span className="font-black text-[#0A0A0A] tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
               Vakar Games
             </span>
           </Link>
@@ -60,7 +60,7 @@ export const PublicNav = ({ onAbout }) => {
                 key={to}
                 to={to}
                 className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                  active(to) ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
+                  active(to) ? 'text-[#FF6600]' : 'text-[#52525B] hover:text-[#000000]'
                 }`}
               >
                 {label}
@@ -69,7 +69,7 @@ export const PublicNav = ({ onAbout }) => {
             <Link
               to="/contact"
               className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                active('/contact') ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
+                active('/contact') ? 'text-[#FF6600]' : 'text-[#52525B] hover:text-[#000000]'
               }`}
             >
               Contact
@@ -84,7 +84,7 @@ export const PublicNav = ({ onAbout }) => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 hover:text-white border border-white/15 hover:border-white/40 px-3 py-1.5 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#52525B] hover:text-[#000000] border border-[#D4D4D8] hover:border-[#000000] px-3 py-1.5 transition-colors"
                 >
                   <SquaresFour size={11} />
                   Admin
@@ -92,9 +92,9 @@ export const PublicNav = ({ onAbout }) => {
               )}
               <Link
                 to="/profile"
-                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#52525B] hover:text-[#000000] transition-colors"
               >
-                <div className="w-6 h-6 rounded-full bg-[#FF6600]/20 border border-[#FF6600]/40 flex items-center justify-center text-[10px] font-bold text-[#FF6600] overflow-hidden">
+                <div className="w-6 h-6 rounded-full bg-[#FF6600]/10 border border-[#FF6600]/30 flex items-center justify-center text-[10px] font-bold text-[#FF6600] overflow-hidden">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
@@ -119,7 +119,7 @@ export const PublicNav = ({ onAbout }) => {
         </div>
 
         <button
-          className="md:hidden p-2 -mr-1 text-white/70 hover:text-white transition-colors"
+          className="md:hidden p-2 -mr-1 text-[#52525B] hover:text-[#000000] transition-colors"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -131,7 +131,7 @@ export const PublicNav = ({ onAbout }) => {
       {open && (
         <div
           className="md:hidden px-6 py-4 space-y-1"
-          style={{ backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #E5E7EB' }}
         >
           {links.map(({ to, label }) => (
             <Link
@@ -139,7 +139,7 @@ export const PublicNav = ({ onAbout }) => {
               to={to}
               onClick={() => setOpen(false)}
               className={`block text-[11px] font-bold uppercase tracking-[0.12em] py-3 transition-colors ${
-                active(to) ? 'text-[#FF6600]' : 'text-white/60 hover:text-white'
+                active(to) ? 'text-[#FF6600]' : 'text-[#52525B] hover:text-[#000000]'
               }`}
             >
               {label}
@@ -148,7 +148,7 @@ export const PublicNav = ({ onAbout }) => {
           <Link
             to="/contact"
             onClick={() => setOpen(false)}
-            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#52525B] hover:text-[#000000] py-3 transition-colors"
           >
             Contact
           </Link>
@@ -158,7 +158,7 @@ export const PublicNav = ({ onAbout }) => {
               <Link
                 to="/profile"
                 onClick={() => setOpen(false)}
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#52525B] hover:text-[#000000] py-3 transition-colors"
               >
                 My Account ({user.name || user.firstName || user.username})
               </Link>
@@ -166,20 +166,22 @@ export const PublicNav = ({ onAbout }) => {
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
-                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#52525B] hover:text-[#000000] py-3 transition-colors"
                 >
                   Admin Dashboard
                 </Link>
               )}
             </>
           ) : (
-            <Link
-              to="/login"
-              onClick={() => setOpen(false)}
-              className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white py-3 transition-colors"
-            >
-              Sign In
-            </Link>
+            <div className="pt-2">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="btn-kefir text-[10px] py-2 px-4 w-full text-center"
+              >
+                Sign In
+              </Link>
+            </div>
           )}
         </div>
       )}

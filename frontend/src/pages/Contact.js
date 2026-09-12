@@ -23,9 +23,9 @@ const CATEGORIES = [
 
 /* Input style shorthand */
 const inputStyle = {
-  backgroundColor: '#0D0D0D',
-  border: '1px solid rgba(255,255,255,0.12)',
-  color: '#FFFFFF',
+  backgroundColor: '#F8F9FA',
+  border: '1px solid #D4D4D8',
+  color: '#0A0A0A',
   borderRadius: 0,
   outline: 'none',
 };
@@ -141,39 +141,35 @@ const Contact = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#FFFFFF', color: '#0A0A0A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       <div style={{ flex: 1, paddingTop: '60px' }}>
         {/* Header with cinematic backdrop */}
         <div
           className="relative overflow-hidden"
-          style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '4rem 0' }}
+          style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '4rem 0' }}
         >
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
             <img
               src={headerWaterfallJungle}
               alt=""
               className="w-full h-full object-cover object-center"
-              style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
+              style={{ filter: 'brightness(1.05) contrast(1.02) saturate(1.1)', transform: 'scale(1.03)', opacity: 0.55 }}
             />
             <div
               className="absolute inset-0"
-              style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 40%, #FFFFFF 100%)' }}
             />
           </div>
           <div className="relative z-10 max-w-[1100px] mx-auto px-6">
             <h1
-              className="font-black uppercase text-white drop-shadow-2xl"
+              className="font-black uppercase text-[#0A0A0A]"
               style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
             >
               Contact & Support
             </h1>
-            <p className="mt-4 text-sm text-white/60 max-w-[42ch]">
+            <p className="mt-4 text-sm text-[#52525B] max-w-[42ch]">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
           </div>
@@ -183,13 +179,13 @@ const Contact = () => {
           {/* Main Area */}
           <div className="lg:col-span-2">
             {/* View Switcher */}
-            <div className="flex items-center gap-4 mb-6 border-b border-white/[0.08] pb-3">
+            <div className="flex items-center gap-4 mb-6 border-b border-[#E5E7EB] pb-3">
               <button
                 type="button"
                 onClick={() => { setActiveView('new'); setSuccess(''); setError(''); }}
                 className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
                 style={{
-                  color: activeView === 'new' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                  color: activeView === 'new' ? '#0A0A0A' : '#71717A',
                   borderBottom: activeView === 'new' ? '2px solid #FF6600' : '2px solid transparent',
                   marginBottom: '-13px',
                 }}
@@ -204,7 +200,7 @@ const Contact = () => {
                   onClick={() => { setActiveView('tickets'); setSuccess(''); setError(''); }}
                   className="flex items-center gap-2 pb-2 text-xs font-bold uppercase tracking-wider transition-colors"
                   style={{
-                    color: activeView === 'tickets' ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                    color: activeView === 'tickets' ? '#0A0A0A' : '#71717A',
                     borderBottom: activeView === 'tickets' ? '2px solid #FF6600' : '2px solid transparent',
                     marginBottom: '-13px',
                   }}
@@ -212,10 +208,10 @@ const Contact = () => {
                   <Ticket size={14} />
                   <span>Mes Tickets</span>
                   <span
-                    className="px-2 py-0.5 text-[10px] font-mono font-bold rounded"
+                    className="px-2 py-0.5 text-[10px] font-mono font-bold"
                     style={{
-                      backgroundColor: limitReached ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 102, 0, 0.15)',
-                      color: limitReached ? '#F87171' : '#FF6600',
+                      backgroundColor: limitReached ? '#FEE2E2' : '#FFEDD5',
+                      color: limitReached ? '#DC2626' : '#C2410C',
                     }}
                   >
                     {openCount}/3
@@ -228,67 +224,65 @@ const Contact = () => {
             {activeView === 'new' ? (
               success ? (
                 <div
-                  className="p-10 text-center"
-                  style={{ backgroundColor: '#111111', border: '1px solid rgba(255, 102, 0,0.2)' }}
+                  className="p-10 text-center bg-white"
+                  style={{ border: '1px solid #FF6600' }}
                 >
                   <CheckCircle size={40} style={{ color: '#FF6600', margin: '0 auto 1rem' }} />
-                  <h2 className="font-black uppercase text-white text-xl tracking-tight mb-2">
+                  <h2 className="font-black uppercase text-[#0A0A0A] text-xl tracking-tight mb-2">
                     Ticket Submitted!
                   </h2>
-                  <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Your reference: <strong className="text-white">{success}</strong>
+                  <p className="text-sm mb-1 text-[#52525B]">
+                    Your reference: <strong className="text-[#0A0A0A]">{success}</strong>
                   </p>
-                  <p className="text-xs mt-3 mb-6" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <p className="text-xs mt-3 mb-6 text-[#71717A]">
                     We'll reply as soon as possible.
                   </p>
                   {token && (
                     <button
                       type="button"
                       onClick={() => { setActiveView('tickets'); setSuccess(''); }}
-                      className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide mb-4"
-                      style={{ color: '#FF6600', fontSize: '0.7rem' }}
+                      className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide mb-4 text-[#FF6600]"
+                      style={{ fontSize: '0.7rem' }}
                     >
                       <Ticket size={14} /> Voir mes tickets ({openCount}/3)
                     </button>
                   )}
                   <button
                     onClick={() => setSuccess('')}
-                    className="block mx-auto mt-3 text-xs uppercase tracking-wide transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}
+                    className="block mx-auto mt-3 text-xs uppercase tracking-wide transition-colors text-[#71717A] hover:text-[#0A0A0A]"
+                    style={{ fontSize: '0.65rem' }}
                   >
                     Send another message
                   </button>
                 </div>
               ) : (
                 <div
-                  className="p-8"
-                  style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+                  className="p-8 bg-white"
+                  style={{ border: '1px solid #E5E7EB' }}
                 >
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="font-black uppercase text-white text-lg tracking-tight">
+                    <h2 className="font-black uppercase text-[#0A0A0A] text-lg tracking-tight">
                       Send Us a Message
                     </h2>
                     {token && (
-                      <span className="text-xs font-mono" style={{ color: limitReached ? '#F87171' : 'rgba(255,255,255,0.4)' }}>
+                      <span className="text-xs font-mono" style={{ color: limitReached ? '#DC2626' : '#71717A' }}>
                         Tickets ouverts: {openCount}/3
                       </span>
                     )}
                   </div>
 
                   {limitReached && (
-                    <div className="p-4 mb-6 bg-red-500/10 border border-red-500/30 text-red-400">
+                    <div className="p-4 mb-6 bg-red-50 border border-red-200 text-red-700">
                       <div className="flex items-center gap-2 font-bold uppercase text-xs tracking-wider mb-1">
                         <Warning size={16} /> Ticket ouvert maximum atteint ({openCount}/3)
                       </div>
-                      <p className="text-xs text-red-300/80 leading-relaxed">
+                      <p className="text-xs text-red-600 leading-relaxed">
                         Vous avez atteint la limite de 3 tickets ouverts simultanés. Veuillez attendre la résolution d'un de vos tickets avant d'en créer un nouveau.
                       </p>
                       <button
                         type="button"
                         onClick={() => setActiveView('tickets')}
-                        className="mt-3 text-xs font-bold uppercase tracking-wider text-white underline hover:text-[#FF6600]"
+                        className="mt-3 text-xs font-bold uppercase tracking-wider text-[#0A0A0A] underline hover:text-[#FF6600]"
                       >
                         Consulter mes tickets en cours →
                       </button>
@@ -297,8 +291,8 @@ const Contact = () => {
 
                   {!token ? (
                     <div className="text-center py-10 space-y-4">
-                      <p className="font-bold uppercase text-white tracking-wide" style={{ fontSize: '0.8rem' }}>Account Required</p>
-                      <p className="text-xs leading-relaxed mx-auto max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                      <p className="font-bold uppercase text-[#0A0A0A] tracking-wide" style={{ fontSize: '0.8rem' }}>Account Required</p>
+                      <p className="text-xs leading-relaxed mx-auto max-w-xs text-[#71717A]">
                         You need to be signed in to open a support ticket. This helps us track your request and reply faster.
                       </p>
                       <Link to="/login" className="btn-kefir inline-flex">
@@ -308,7 +302,7 @@ const Contact = () => {
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2 text-[#52525B]">
                           Your email
                         </label>
                         <input
@@ -317,11 +311,11 @@ const Contact = () => {
                           value={form.email}
                           readOnly
                           className="w-full px-3 py-2.5 text-sm"
-                          style={{ ...inputStyle, opacity: 0.5 }}
+                          style={{ ...inputStyle, opacity: 0.7 }}
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2 text-[#52525B]">
                           Category
                         </label>
                         <select
@@ -336,7 +330,7 @@ const Contact = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2 text-[#52525B]">
                           Subject
                         </label>
                         <input
@@ -351,7 +345,7 @@ const Contact = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.12em] mb-2 text-[#52525B]">
                           Message
                         </label>
                         <textarea
@@ -365,7 +359,7 @@ const Contact = () => {
                           placeholder="Describe your issue in detail…"
                         />
                       </div>
-                      {error && <p className="text-xs text-red-400">{error}</p>}
+                      {error && <p className="text-xs text-red-600">{error}</p>}
                       <button
                         type="submit"
                         disabled={sending || limitReached}
@@ -380,14 +374,14 @@ const Contact = () => {
               )
             ) : (
               /* View 2: Mes Tickets */
-              <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)', padding: '2rem' }}>
+              <div className="bg-white p-8" style={{ border: '1px solid #E5E7EB' }}>
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="font-black uppercase text-white text-lg tracking-tight">
+                    <h2 className="font-black uppercase text-[#0A0A0A] text-lg tracking-tight">
                       Mes Tickets Ouverts
                     </h2>
-                    <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                      Tickets actifs: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
+                    <p className="text-xs mt-1 text-[#71717A]">
+                      Tickets actifs: <strong className={limitReached ? 'text-red-600' : 'text-[#0A0A0A]'}>{openCount}/3</strong>
                     </p>
                   </div>
                   <button
@@ -402,7 +396,7 @@ const Contact = () => {
                 </div>
 
                 {limitReached && (
-                  <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+                  <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
                     Ticket ouvert maximum atteint ({openCount}/3).
                   </div>
                 )}
@@ -410,13 +404,13 @@ const Contact = () => {
                 {loadingTickets ? (
                   <div className="py-12 text-center">
                     <CircleNotch size={24} className="animate-spin text-[#FF6600] mx-auto mb-2" />
-                    <p className="text-xs text-white/40">Chargement des tickets...</p>
+                    <p className="text-xs text-[#71717A]">Chargement des tickets...</p>
                   </div>
                 ) : tickets.length === 0 ? (
                   <div className="py-12 text-center">
-                    <Ticket size={32} className="text-white/20 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-white mb-1">Aucun ticket pour l'instant</p>
-                    <p className="text-xs text-white/40 mb-4">Vous n'avez pas de ticket de support.</p>
+                    <Ticket size={32} className="text-[#A1A1AA] mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-[#0A0A0A] mb-1">Aucun ticket pour l'instant</p>
+                    <p className="text-xs text-[#71717A] mb-4">Vous n'avez pas de ticket de support.</p>
                     <button
                       type="button"
                       onClick={() => setActiveView('new')}
@@ -430,46 +424,46 @@ const Contact = () => {
                     {tickets.map(t => {
                       const isExpanded = expandedTicketNumber === t.ticket_number;
                       const isClosed = t.status === 'closed';
-                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#6E6E73';
+                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#D97706' : '#71717A';
                       const statusLabel = t.status === 'open' ? 'Ouvert' : t.status === 'in_progress' ? 'En cours' : 'Fermé';
 
                       return (
                         <div
                           key={t.ticket_number}
+                          className="bg-white"
                           style={{
-                            backgroundColor: '#0D0D0D',
-                            border: `1px solid ${isExpanded ? 'rgba(255, 102, 0,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                            border: `1px solid ${isExpanded ? '#FF6600' : '#E5E7EB'}`,
                           }}
                         >
                           <div
                             onClick={() => setExpandedTicketNumber(isExpanded ? null : t.ticket_number)}
-                            className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
+                            className="p-4 flex items-center justify-between cursor-pointer hover:bg-[#F8F9FA] transition-colors"
                           >
                             <div className="flex-1 min-w-0 mr-4">
                               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                                 <span className="text-xs font-mono font-bold text-[#FF6600]">{t.ticket_number}</span>
-                                <span className="text-[10px] uppercase font-bold text-white/30">• {t.category}</span>
+                                <span className="text-[10px] uppercase font-bold text-[#71717A]">• {t.category}</span>
                                 <span
-                                  className="text-[10px] font-bold uppercase px-2 py-0.5 rounded"
-                                  style={{ backgroundColor: `${statusColor}1A`, color: statusColor }}
+                                  className="text-[10px] font-bold uppercase px-2 py-0.5"
+                                  style={{ backgroundColor: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}33` }}
                                 >
                                   {statusLabel}
                                 </span>
-                                <span className="text-[10px] text-white/30 ml-auto">
+                                <span className="text-[10px] text-[#71717A] ml-auto">
                                   {t.created_at ? new Date(t.created_at).toLocaleDateString() : ''}
                                 </span>
                               </div>
-                              <h3 className="text-sm font-bold text-white truncate">
+                              <h3 className="text-sm font-bold text-[#0A0A0A] truncate">
                                 {t.subject}
                               </h3>
                             </div>
-                            <div className="text-white/40">
+                            <div className="text-[#71717A]">
                               {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
                             </div>
                           </div>
 
                           {isExpanded && (
-                            <div className="p-4 border-t border-white/[0.06] bg-[#0A0A0A] space-y-4">
+                            <div className="p-4 border-t border-[#E5E7EB] bg-[#F8F9FA] space-y-4">
                               {/* Messages list */}
                               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                                 {(t.messages || []).map((m, idx) => {
@@ -479,19 +473,19 @@ const Contact = () => {
                                       key={idx}
                                       className={`p-3 text-xs ${
                                         isUser
-                                          ? 'bg-white/[0.03] border border-white/[0.06] ml-0 mr-8'
-                                          : 'bg-[#FF6600]/[0.08] border border-[#FF6600]/20 mr-0 ml-8'
+                                          ? 'bg-white border border-[#E5E7EB] ml-0 mr-8 text-[#0A0A0A]'
+                                          : 'bg-orange-50/80 border border-orange-200 mr-0 ml-8 text-[#0A0A0A]'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="font-bold text-[11px]" style={{ color: isUser ? '#FFFFFF' : '#FF6600' }}>
+                                        <span className="font-bold text-[11px]" style={{ color: isUser ? '#0A0A0A' : '#FF6600' }}>
                                           {m.author_name || (isUser ? 'Vous' : 'Support')}
                                         </span>
-                                        <span className="text-[10px] text-white/30">
+                                        <span className="text-[10px] text-[#71717A]">
                                           {m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}
                                         </span>
                                       </div>
-                                      <p className="text-white/80 whitespace-pre-wrap leading-relaxed">
+                                      <p className="text-[#27272A] whitespace-pre-wrap leading-relaxed">
                                         {m.content}
                                       </p>
                                     </div>
@@ -511,7 +505,7 @@ const Contact = () => {
                                     className="w-full px-3 py-2 text-xs resize-none"
                                     style={inputStyle}
                                   />
-                                  {replyError && <p className="text-xs text-red-400">{replyError}</p>}
+                                  {replyError && <p className="text-xs text-red-600">{replyError}</p>}
                                   <div className="flex justify-end">
                                     <button
                                       type="submit"
@@ -525,7 +519,7 @@ const Contact = () => {
                                   </div>
                                 </form>
                               ) : (
-                                <p className="text-xs text-white/30 italic text-center py-2">
+                                <p className="text-xs text-[#71717A] italic text-center py-2">
                                   Ce ticket est fermé. Les réponses ne sont plus acceptées.
                                 </p>
                               )}
@@ -541,56 +535,53 @@ const Contact = () => {
           </div>
 
           {/* Sidebar info */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 bg-white"
+              style={{ border: '1px solid #E5E7EB' }}
             >
               <div className="flex items-center gap-3 mb-3">
                 <EnvelopeSimple size={14} style={{ color: '#FF6600' }} />
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Email</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0A]">Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
-                className="text-sm transition-colors"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#FF6600'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                className="text-sm transition-colors text-[#52525B] hover:text-[#FF6600]"
               >
                 {supportEmail}
               </a>
             </div>
 
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 bg-white"
+              style={{ border: '1px solid #E5E7EB' }}
             >
               <div className="flex items-center gap-3 mb-3">
                 <ChatCircle size={14} style={{ color: '#FF6600' }} />
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Chat Support</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0A]">Chat Support</h3>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-xs leading-relaxed text-[#52525B]">
                 The chat bubble at the bottom right of every page lets you open a ticket or track your existing requests instantly.
               </p>
             </div>
 
             {token && (
               <div
-                className="p-5 cursor-pointer hover:border-white/20 transition-colors"
-                style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+                className="p-5 cursor-pointer bg-white transition-colors hover:border-[#A1A1AA]"
+                style={{ border: '1px solid #E5E7EB' }}
                 onClick={() => { setActiveView('tickets'); setSuccess(''); }}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <Ticket size={14} style={{ color: '#FF6600' }} />
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Mes Tickets</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0A]">Mes Tickets</h3>
                 </div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Tickets ouverts: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
+                <p className="text-xs mb-2 text-[#52525B]">
+                  Tickets ouverts: <strong className={limitReached ? 'text-red-600' : 'text-[#0A0A0A]'}>{openCount}/3</strong>
                 </p>
                 <button
                   type="button"
-                  className="text-[10px] font-bold uppercase tracking-wide transition-colors"
-                  style={{ color: '#FF6600', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  className="text-[10px] font-bold uppercase tracking-wide transition-colors text-[#FF6600]"
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                 >
                   Voir mes tickets →
                 </button>
@@ -598,12 +589,12 @@ const Contact = () => {
             )}
 
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 bg-white"
+              style={{ border: '1px solid #E5E7EB' }}
             >
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white mb-1.5">Response Time</p>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                We typically respond within <strong className="text-white/60">24–48 hours</strong> during business days.
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0A] mb-1.5">Response Time</p>
+              <p className="text-xs leading-relaxed text-[#52525B]">
+                We typically respond within <strong className="text-[#0A0A0A]">24–48 hours</strong> during business days.
               </p>
             </div>
           </div>
