@@ -68,6 +68,7 @@ async def login(request: Request, body: LoginEmailRequest):
         raise HTTPException(status_code=403, detail="Account suspended. Contact an administrator.")
     is_super = user.get("role") == "super_admin"
     direct_perms = set(user.get("permissions", []))
+    custom_role_keys = [str(r) for r in (user.get("custom_roles") or [])]
     user_roles = []
     if is_super:
         user_roles.append({
@@ -115,15 +116,16 @@ async def login(request: Request, body: LoginEmailRequest):
         if not has_dashboard_access:
             raise HTTPException(status_code=403, detail="The site is under maintenance. Only staff accounts can sign in right now.")
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"lastLogin": datetime.now(timezone.utc)}})
-    token = create_access_token(str(user["_id"]), user["username"], is_super, effective_perms, email)
-    await log_action("auth", f"User '{user['username']}' logged in", user=user["username"])
+    username = user.get("username", "")
+    token = create_access_token(str(user["_id"]), username, is_super, effective_perms, email)
+    await log_action("auth", f"User '{username}' logged in", user=username)
     return {
         "token": token,
         "user": {
             "id": str(user["_id"]),
-            "email": user["email"],
-            "username": user["username"],
-            "name": user.get("name") or (f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()) or user.get("username", ""),
+            "email": user.get("email", email),
+            "username": username,
+            "name": user.get("name") or (f"{user.get('firstName', '')} {user.get('lastName', '')}".strip()) or username,
             "firstName": user.get("name") or user.get("firstName", ""),
             "lastName": user.get("lastName", ""),
             "role": user.get("role", "user"),

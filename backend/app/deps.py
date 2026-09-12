@@ -101,9 +101,13 @@ async def get_current_user(request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
     try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        oid = ObjectId(user_id)
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        user = await db.users.find_one({"_id": oid})
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database temporarily unavailable")
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     if user.get("isSuspended"):

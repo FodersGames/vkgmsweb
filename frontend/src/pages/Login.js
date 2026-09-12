@@ -154,7 +154,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login, register, user, mustChangePassword } = useAuth();
+  const { login, register, user, mustChangePassword, refreshUser } = useAuth();
   const [tab, setTab] = useState('login');
 
   // Login form state
@@ -191,7 +191,7 @@ export const Login = () => {
       setLoginError(result.error || 'Failed to sign in. Please check your credentials.');
       return;
     }
-    if (result.must_change_password) {
+    if (result.first_login || result.must_change_password || result.user?.mustChangePassword) {
       setMustChange(true);
       return;
     }
@@ -238,8 +238,10 @@ export const Login = () => {
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-[#F5F5F7] text-[#1D1D1F]">
       {mustChange && (
         <ChangePasswordModal
-          onSuccess={() => {
-            if (hasDashboardAccess(user)) {
+          onSuccess={async () => {
+            const updated = await refreshUser();
+            const currentUser = updated || user;
+            if (hasDashboardAccess(currentUser)) {
               navigate('/dashboard');
             } else {
               navigate('/profile');

@@ -118,8 +118,9 @@ const findCurrentItem = (tabId) => {
 
 // ── Nav item ──────────────────────────────────────────────────────────────
 const NavItem = ({ item, activeTab, onSelect, draggable, onDragStart, onDragOver, onDrop, onDragEnd, dragOver }) => {
-  const Icon     = item.icon;
-  const isActive = activeTab === item.id;
+  const { id, label, badge, icon: Icon } = item;
+  const isActive = activeTab === id;
+  const onClick = () => onSelect(id);
 
   return (
     <button

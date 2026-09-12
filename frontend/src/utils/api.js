@@ -12,8 +12,12 @@ export const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.
  */
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 15000,
 });
+
+let isHandling401 = false;
+let hasRecentNetworkToast = false;
+let hasRecent5xxToast = false;
 
 api.interceptors.request.use(
   (config) => {
@@ -31,10 +35,14 @@ api.interceptors.response.use(
   (error) => {
     // Network / timeout (no response at all)
     if (!error.response) {
-      if (error.code === 'ECONNABORTED') {
-        toast.error('Request timed out: check your connection');
-      } else {
-        toast.error('Network error: check your internet connection');
+      if (!hasRecentNetworkToast) {
+        hasRecentNetworkToast = true;
+        if (error.code === 'ECONNABORTED') {
+          toast.error('Request timed out: check your connection');
+        } else {
+          toast.error('Network error: check your internet connection');
+        }
+        setTimeout(() => { hasRecentNetworkToast = false; }, 4000);
       }
       return Promise.reject(error);
     }
@@ -46,8 +54,12 @@ api.interceptors.response.use(
     // 401: session expired (skip on auth routes to avoid login-redirect loops)
     if (status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
-      toast.error('Session expired: please log in again');
-      window.location.hash = '/login';
+      if (!isHandling401) {
+        isHandling401 = true;
+        toast.error('Session expired: please log in again');
+        window.location.hash = '/login';
+        setTimeout(() => { isHandling401 = false; }, 3000);
+      }
       return Promise.reject(error);
     }
 
@@ -65,7 +77,11 @@ api.interceptors.response.use(
 
     // 5xx: server error
     if (status >= 500) {
-      toast.error('Server error: please try again or contact support');
+      if (!hasRecent5xxToast) {
+        hasRecent5xxToast = true;
+        toast.error('Server error: please try again or contact support');
+        setTimeout(() => { hasRecent5xxToast = false; }, 4000);
+      }
       return Promise.reject(error);
     }
 

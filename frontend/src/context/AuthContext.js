@@ -22,6 +22,7 @@ export const extractErrorMessage = (err, fallback = 'An error occurred') => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [networkError, setNetworkError] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
@@ -32,18 +33,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchMe = async (t) => {
+  const fetchMe = async (t, retryCount = 0) => {
     try {
       const res = await axios.get(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${t}` },
+        timeout: 15000,
       });
       setUser(res.data);
-    } catch {
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
-    } finally {
+      setNetworkError(false);
       setLoading(false);
+    } catch (err) {
+      const status = err?.response?.status;
+      // 401 Unauthorized or 403 Account Suspended : token is genuinely invalid
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setNetworkError(false);
+        setLoading(false);
+      } else {
+        // Network error, 502/503/504, timeout : DO NOT delete the stored token!
+        if (retryCount < 2) {
+          setTimeout(() => fetchMe(t, retryCount + 1), 1500 * (retryCount + 1));
+          return;
+        }
+        setNetworkError(true);
+        setLoading(false);
+      }
     }
   };
 
@@ -54,7 +70,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
-      return { success: true, first_login, user: userData };
+      setNetworkError(false);
+      return {
+        success: true,
+        first_login,
+        must_change_password: Boolean(first_login || userData?.mustChangePassword),
+        user: userData,
+      };
     } catch (err) {
       return { success: false, error: extractErrorMessage(err, 'Login failed') };
     }
@@ -132,6 +154,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setNetworkError(false);
   };
 
   const hasPermission = (permission) => {
@@ -156,7 +179,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, token, login, register, logout, updateProfile, setPseudo, changePassword, hasPermission, isAdmin, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, networkError, token, login, register, logout, updateProfile, setPseudo, changePassword, hasPermission, isAdmin, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
