@@ -46,17 +46,22 @@ const Home = () => {
         style={{ height: '100vh', minHeight: '560px' }}
         data-testid="hero-section"
       >
-        {/* Background Image with Dark Atmospheric Overlay */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <img
-            src={heroCoastSunset}
-            alt="Vakar Games Hero Background"
+        {/* Cinematic Video Background with Dark Atmospheric Overlay */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={heroCoastSunset}
             className="w-full h-full object-cover object-center"
             style={{
               filter: 'brightness(0.55) contrast(1.15) saturate(1.1)',
-              transform: 'scale(1.04)',
+              transform: 'scale(1.03)',
             }}
-          />
+          >
+            <source src={`${process.env.PUBLIC_URL || ''}/videos/autumn-landscape.mp4`} type="video/mp4" />
+          </video>
           {/* Gradients for text contrast and seamless bottom fade */}
           <div
             className="absolute inset-0"
