@@ -4,11 +4,10 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import headerWaterfallJungle from '../assets/photos/header-waterfall-jungle.jpg';
 import { getWebsiteSettings } from '../utils/publicCache';
 import {
   PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle,
-  CircleNotch, CaretDown, CaretUp, Clock, Warning
+  CircleNotch, CaretDown, CaretUp, Clock, Warning, LockKey
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
@@ -145,35 +144,32 @@ const Contact = () => {
       <PublicNav />
 
       <div style={{ flex: 1, paddingTop: '60px' }}>
-        {/* Header with cinematic backdrop */}
+        {/* Header — sleek studio dark theme */}
         <div
           className="relative overflow-hidden"
-          style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '4rem 0' }}
+          style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '4.5rem 0' }}
         >
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-            <img
-              src={headerWaterfallJungle}
-              alt=""
-              className="w-full h-full object-cover object-center"
-              style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
-            />
+            <div className="absolute inset-0 dot-grid opacity-35" />
             <div
               className="absolute inset-0"
-              style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+              style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
             />
           </div>
           <div className="relative z-10 max-w-[1100px] mx-auto px-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
+              <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
+                DIRECT CHANNEL · DESK & TICKETS
+              </span>
+            </div>
             <h1
-              className="font-black uppercase text-white drop-shadow-2xl"
-              style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
+              className="font-black uppercase text-white tracking-tight"
+              style={{ fontSize: 'clamp(2.5rem, 7vw, 4.5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
             >
               Contact & Support
             </h1>
-            <p className="mt-4 text-sm text-white/60 max-w-[42ch]">
+            <p className="mt-4 text-sm text-white/60 max-w-[46ch] leading-relaxed">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
           </div>
@@ -296,14 +292,32 @@ const Contact = () => {
                   )}
 
                   {!token ? (
-                    <div className="text-center py-10 space-y-4">
-                      <p className="font-bold uppercase text-white tracking-wide" style={{ fontSize: '0.8rem' }}>Account Required</p>
-                      <p className="text-xs leading-relaxed mx-auto max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        You need to be signed in to open a support ticket. This helps us track your request and reply faster.
-                      </p>
-                      <Link to="/login" className="btn-kefir inline-flex">
-                        Sign in or Create Account
-                      </Link>
+                    <div className="p-8 sm:p-12 text-center border border-white/10 bg-[#0D0D0D] space-y-5">
+                      <div className="w-14 h-14 mx-auto rounded-full bg-[#FF6600]/10 border border-[#FF6600]/30 flex items-center justify-center text-[#FF6600]">
+                        <LockKey size={26} weight="bold" />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="inline-block px-2.5 py-1 bg-white/5 border border-white/10 text-[10px] font-mono uppercase tracking-widest text-[#FF6600]">
+                          Authentication Required
+                        </div>
+                        <h3 className="font-black uppercase text-white text-xl tracking-tight">
+                          Sign In to Open a Ticket
+                        </h3>
+                        <p className="text-xs leading-relaxed max-w-md mx-auto text-white/50">
+                          You need to be signed in to open a support ticket. This helps us track your request, assign it to a team member, and reply faster.
+                        </p>
+                      </div>
+                      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Link to="/login" className="btn-kefir py-3 px-6 text-xs">
+                          Sign In or Create Account
+                        </Link>
+                        <a
+                          href={`mailto:${supportEmail}`}
+                          className="btn-kefir-outline py-3 px-6 text-xs"
+                        >
+                          Email Directly
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -541,69 +555,70 @@ const Contact = () => {
           </div>
 
           {/* Sidebar info */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 transition-colors border border-white/10 hover:border-white/20 bg-[#111111]"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <EnvelopeSimple size={14} style={{ color: '#FF6600' }} />
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Email</h3>
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="w-7 h-7 rounded bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <EnvelopeSimple size={15} weight="bold" />
+                </div>
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Direct Email</h3>
               </div>
               <a
                 href={`mailto:${supportEmail}`}
-                className="text-sm transition-colors"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#FF6600'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+                className="text-xs transition-colors font-medium text-white/60 hover:text-[#FF6600] underline"
               >
                 {supportEmail}
               </a>
             </div>
 
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 transition-colors border border-white/10 hover:border-white/20 bg-[#111111]"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <ChatCircle size={14} style={{ color: '#FF6600' }} />
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Chat Support</h3>
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="w-7 h-7 rounded bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <ChatCircle size={15} weight="bold" />
+                </div>
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white">Live Support Widget</h3>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                The chat bubble at the bottom right of every page lets you open a ticket or track your existing requests instantly.
+              <p className="text-xs leading-relaxed text-white/50">
+                The support launcher at the bottom right of every page lets you submit a ticket or track ongoing requests instantly.
               </p>
             </div>
 
             {token && (
               <div
-                className="p-5 cursor-pointer hover:border-white/20 transition-colors"
-                style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+                className="p-5 cursor-pointer border border-white/10 hover:border-[#FF6600]/60 bg-[#111111] transition-all group"
                 onClick={() => { setActiveView('tickets'); setSuccess(''); }}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <Ticket size={14} style={{ color: '#FF6600' }} />
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">Mes Tickets</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <Ticket size={16} className="text-[#FF6600]" weight="bold" />
+                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-white group-hover:text-[#FF6600] transition-colors">Mes Tickets</h3>
+                  </div>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${limitReached ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'}`}>
+                    {openCount}/3
+                  </span>
                 </div>
-                <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  Tickets ouverts: <strong className={limitReached ? 'text-red-400' : 'text-white'}>{openCount}/3</strong>
+                <p className="text-xs text-white/50 mb-2">
+                  Consulter les réponses du studio et l'avancement de vos demandes.
                 </p>
-                <button
-                  type="button"
-                  className="text-[10px] font-bold uppercase tracking-wide transition-colors"
-                  style={{ color: '#FF6600', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                >
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#FF6600] group-hover:underline">
                   Voir mes tickets →
-                </button>
+                </span>
               </div>
             )}
 
             <div
-              className="p-5"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-5 transition-colors border border-white/10 bg-[#111111]"
             >
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white mb-1.5">Response Time</p>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                We typically respond within <strong className="text-white/60">24–48 hours</strong> during business days.
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={15} className="text-white/40" />
+                <p className="text-[11px] font-bold uppercase tracking-wider text-white">Response Time</p>
+              </div>
+              <p className="text-xs leading-relaxed text-white/50">
+                We typically respond within <strong className="text-white font-medium">24–48 hours</strong> during business days.
               </p>
             </div>
           </div>

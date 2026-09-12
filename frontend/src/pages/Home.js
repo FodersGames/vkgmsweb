@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CaretDown, GameController } from '@phosphor-icons/react';
+import { CaretDown, GameController, Crosshair, GlobeHemisphereWest, Cpu } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { getPublicGames } from '../utils/publicCache';
-import heroCoastSunset from '../assets/photos/hero-coast-sunset.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -53,7 +52,6 @@ const Home = () => {
             loop
             muted
             playsInline
-            poster={heroCoastSunset}
             className="w-full h-full object-cover object-center"
             style={{
               filter: 'brightness(0.55) contrast(1.15) saturate(1.1)',
@@ -250,19 +248,22 @@ const Home = () => {
         <div className="max-w-[1100px] mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-14 items-center">
             <div>
-              <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>The Studio</p>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
+                <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>The Studio · Independent</span>
+              </div>
               <h2
-                className="font-black uppercase text-white"
-                style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
+                className="font-black uppercase text-white tracking-tight"
+                style={{ fontSize: 'clamp(2.4rem, 5.5vw, 4.2rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
               >
-                We Make<br />
-                <span style={{ color: '#FF6600' }}>Games</span><br />
+                We Make <br />
+                <span style={{ color: '#FF6600' }}>Games</span> <br />
                 We Love.
               </h2>
-              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '42ch' }}>
+              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', maxWidth: '42ch' }}>
                 Vakar Games is an independent studio based in France. We keep our team compact by design — every developer, artist, and designer is closely tied to the vision. Small team, deliberate creative choices, zero shortcuts on gameplay.
               </p>
-              <div className="mt-8 flex items-center gap-6 flex-wrap">
+              <div className="mt-8 flex items-center gap-5 flex-wrap">
                 <Link to="/blog" className="btn-kefir">
                   Studio Journal
                 </Link>
@@ -270,26 +271,63 @@ const Home = () => {
                   Get In Touch
                 </Link>
               </div>
+              <div className="mt-10 pt-6 border-t border-white/[0.08] flex items-center gap-6 text-[11px] font-mono text-white/40 flex-wrap">
+                <span>HQ: FRANCE</span>
+                <span>•</span>
+                <span>EST. 2024</span>
+                <span>•</span>
+                <span>AUTONOMOUS</span>
+              </div>
             </div>
 
-            {/* Right — manifesto / philosophy cards */}
-            <div className="space-y-px">
+            {/* Right — Architectural philosophy cards with icons & index tags */}
+            <div className="space-y-3">
               {[
-                { label: 'Player-First Design', desc: 'Tight mechanics, deliberate pacing, rich atmospheres that respect the player\'s time.' },
-                { label: 'Original Universes', desc: 'Every world is built from scratch — atmospheric adventures to competitive multiplayer.' },
-                { label: 'In-House Technology', desc: 'We write our own backend systems, player registries, and live operations.' },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="px-6 py-5 flex items-start gap-4"
-                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(255,102,0,0.5)' }}
-                >
-                  <div>
-                    <p className="font-bold uppercase text-white text-sm tracking-[0.08em] mb-1">{item.label}</p>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.desc}</p>
+                {
+                  num: '01',
+                  tag: 'GAMEPLAY & CRAFT',
+                  label: 'Player-First Design',
+                  desc: "Tight mechanics, deliberate pacing, rich atmospheres that respect the player's time.",
+                  icon: Crosshair,
+                },
+                {
+                  num: '02',
+                  tag: 'WORLDS & NARRATIVE',
+                  label: 'Original Universes',
+                  desc: 'Every world is built from scratch — atmospheric adventures to competitive multiplayer.',
+                  icon: GlobeHemisphereWest,
+                },
+                {
+                  num: '03',
+                  tag: 'SYSTEMS & CODE',
+                  label: 'In-House Technology',
+                  desc: 'We write our own backend systems, player registries, and live operations.',
+                  icon: Cpu,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className="p-6 bg-[#0D0D0D] border border-white/10 hover:border-[#FF6600]/60 transition-all group relative"
+                    style={{ borderLeft: '3px solid #FF6600' }}
+                  >
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-[#FF6600]">{item.num} //</span>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-white/40">{item.tag}</span>
+                      </div>
+                      <Icon size={18} className="text-white/40 group-hover:text-[#FF6600] transition-colors" />
+                    </div>
+                    <h3 className="font-bold uppercase text-white text-base tracking-wide mb-1.5">
+                      {item.label}
+                    </h3>
+                    <p className="text-xs leading-relaxed text-white/50">
+                      {item.desc}
+                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

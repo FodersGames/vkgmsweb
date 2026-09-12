@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Briefcase, CaretDown, CaretUp, PaperPlaneTilt, X, CheckCircle, Warning, Users, CircleNotch } from '@phosphor-icons/react';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import headerCliffsSunset from '../assets/photos/header-cliffs-sunset.jpg';
 import { ToolIcon, TOOL_LABELS, DEPARTMENTS, departmentColor } from '../constants/careers';
 import { useAuth } from '../context/AuthContext';
 
@@ -212,38 +211,35 @@ export default function Careers() {
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
-      {/* Hero with cinematic backdrop */}
+      {/* Hero — sleek dark theme */}
       <section
         className="relative overflow-hidden"
-        style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}
+        style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingTop: '90px', paddingBottom: '4rem' }}
       >
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <img
-            src={headerCliffsSunset}
-            alt=""
-            className="w-full h-full object-cover object-center"
-            style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
-          />
+          <div className="absolute inset-0 dot-grid opacity-35" />
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
           />
         </div>
         <div className="relative z-10 max-w-[1100px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
+                <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
+                  TALENT & CULTURE
+                </span>
+              </div>
               <h1
-                className="font-black uppercase text-white drop-shadow-2xl"
-                style={{ fontSize: 'clamp(2.4rem, 6vw, 4.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
+                className="font-black uppercase text-white tracking-tight"
+                style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
               >
-                Build something<br className="hidden sm:block" /> that lasts.
+                Careers
               </h1>
-              <p className="mt-4 text-sm leading-relaxed text-white/60" style={{ maxWidth: '52ch' }}>
-                We're a passionate independent studio crafting memorable games and creative experiences. If you want to contribute to ambitious projects, we'd love to hear from you.
+              <p className="mt-4 text-sm max-w-md text-white/60 leading-relaxed">
+                Join our compact, autonomous team in France or remotely. We make games we love, with zero compromises on quality.
               </p>
             </div>
 
