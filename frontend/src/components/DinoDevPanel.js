@@ -4,12 +4,80 @@ import { toast } from 'sonner';
 import {
   Gamepad2, Gift, ShieldAlert, Wrench, History, Search, Check, Copy,
   User, RefreshCw, Key, AlertTriangle, Sparkles, Gem, Dna, Lock, Unlock,
-  Plus, Minus, Trash2, Send, ExternalLink, HelpCircle, Flame, Egg, Box
+  Plus, Minus, Trash2, Send, ExternalLink, HelpCircle, Flame, Egg, Box,
+  Clock, Calendar, Power, Radio, CheckCircle2, XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './ConfirmDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
+
+export const getItemIcon = (id, type) => {
+  if (!id) return null;
+  const cleanId = String(id).trim();
+
+  // Currencies
+  if (cleanId === 'gems' || cleanId === 'gem' || cleanId === 'Amber') return '/dino-assets/icons/gems.png';
+  if (cleanId === 'dna' || cleanId === 'DNA') return '/dino-assets/icons/dna.png';
+  if (cleanId === 'gold' || cleanId === 'coins') return '/dino-assets/icons/gold.png';
+  if (cleanId === 'gift') return '/dino-assets/icons/gift.png';
+
+  // Eggs
+  if (cleanId.includes('EGG') || type === 'egg') {
+    return `/dino-assets/eggs/${cleanId}.png`;
+  }
+
+  // Chests
+  if (cleanId.startsWith('Chest') || type === 'chest') {
+    return `/dino-assets/chests/${cleanId}.png`;
+  }
+
+  // Materials & Blueprints Map
+  const itemMap = {
+    'Item_AmberStone': '/dino-assets/items/Amber.png',
+    'Item_AmberVial': '/dino-assets/items/AmberVial.png',
+    'Item_BlueprintT1': '/dino-assets/items/PlanT1.png',
+    'Item_BlueprintT2': '/dino-assets/items/PlanT2.png',
+    'Item_BlueprintT3': '/dino-assets/items/PlanT3.png',
+    'Item_BlueprintLab': '/dino-assets/items/Item_LabMicroscope.png',
+    'Item_SandCementBag': '/dino-assets/items/Item_SandCementBag.png',
+    'Item_TitaniumIngot': '/dino-assets/items/Item_TitaniumIngot.png',
+    'Item_ReinforcedBone': '/dino-assets/items/Item_ReinforcedBone.png',
+    'Item_MeteoriteShard': '/dino-assets/items/Item_MeteoriteShard.png',
+    'Item_VolcanicBasalt': '/dino-assets/items/Item_VolcanicBasalt.png',
+    'Item_OpticalLens': '/dino-assets/items/Item_OpticalLens.png',
+    'Item_PetrifiedWood': '/dino-assets/items/Item_PetrifiedWood.png',
+    'Item_BraidedVines': '/dino-assets/items/Item_BraidedVines.png',
+  };
+  if (itemMap[cleanId]) return itemMap[cleanId];
+  if (type === 'item') {
+    return `/dino-assets/items/${cleanId}.png`;
+  }
+
+  // Default: Dinos
+  return `/dino-assets/dinos/${cleanId}.png`;
+};
+
+export const ItemImage = ({ src, alt, className = "w-8 h-8", fallbackIcon: FallbackIcon }) => {
+  const [error, setError] = useState(!src);
+
+  useEffect(() => {
+    setError(!src);
+  }, [src]);
+
+  if (error || !src) {
+    return FallbackIcon ? <FallbackIcon size={16} className="text-[#FF6600]" /> : null;
+  }
+  return (
+    <img
+      src={src}
+      alt={alt || "item"}
+      className={`${className} object-contain`}
+      onError={() => setError(true)}
+      loading="lazy"
+    />
+  );
+};
 
 export const DinoDevPanel = () => {
   const { token, user } = useAuth();
@@ -49,11 +117,22 @@ export const DinoDevPanel = () => {
   // ── 3. Maintenance Tab State ────────────────────────────────────────────────
   const [maintStatus, setMaintStatus] = useState({
     is_maintenance: false,
-    maintenance_message: 'Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée.',
+    effective_active: false,
+    raw_is_maintenance: false,
+    is_scheduled: false,
     scheduled_maintenance_utc: 'none',
+    maintenance_message: 'Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée.',
+    seconds_until_scheduled: null,
   });
+  const [maintMessageInput, setMaintMessageInput] = useState('Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée.');
+  const [scheduleDelayMinutes, setScheduleDelayMinutes] = useState(30);
+  const [scheduleCustomMinutes, setScheduleCustomMinutes] = useState('');
+  const [scheduleCustomDate, setScheduleCustomDate] = useState('');
+  const [scheduleMode, setScheduleMode] = useState('preset'); // 'preset' | 'custom_min' | 'custom_date'
+  const [countdownStr, setCountdownStr] = useState('');
   const [loadingMaint, setLoadingMaint] = useState(false);
   const [savingMaint, setSavingMaint] = useState(false);
+  const [cancelingMaint, setCancelingMaint] = useState(false);
 
   // ── 4. History Tab State ────────────────────────────────────────────────────
   const [logs, setLogs] = useState([]);
@@ -285,6 +364,9 @@ export const DinoDevPanel = () => {
     try {
       const res = await axios.get(`${API_URL}/api/admin/dino/maintenance`, { headers: authHeaders });
       setMaintStatus(res.data);
+      if (res.data.maintenance_message) {
+        setMaintMessageInput(res.data.maintenance_message);
+      }
     } catch (err) {
       toast.error('Failed to load in-game maintenance status');
     } finally {
@@ -292,15 +374,145 @@ export const DinoDevPanel = () => {
     }
   };
 
-  const handleSaveMaintenance = async (e) => {
+  useEffect(() => {
+    if (!maintStatus?.is_scheduled || !maintStatus?.scheduled_maintenance_utc || maintStatus?.scheduled_maintenance_utc === 'none') {
+      setCountdownStr('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const targetTime = new Date(maintStatus.scheduled_maintenance_utc).getTime();
+      const now = Date.now();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        setCountdownStr('Starting now...');
+        fetchMaintenance();
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (hours > 0) {
+        setCountdownStr(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setCountdownStr(`${minutes}m ${seconds}s`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maintStatus]);
+
+  const handleReopenServers = () => {
+    setDialog({
+      open: true,
+      title: 'Reopen Game Servers',
+      description: 'Are you sure you want to lift maintenance and reopen the game servers immediately to all mobile players?',
+      onConfirm: async () => {
+        setSavingMaint(true);
+        try {
+          const res = await axios.post(
+            `${API_URL}/api/admin/dino/maintenance`,
+            { action: 'cancel' },
+            { headers: authHeaders }
+          );
+          setMaintStatus(res.data);
+          toast.success('Servers reopened: Mobile game is now LIVE!');
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Failed to reopen servers');
+        } finally {
+          setSavingMaint(false);
+        }
+      },
+    });
+  };
+
+  const handleImmediateCut = () => {
+    setDialog({
+      open: true,
+      title: 'Trigger Immediate In-Game Maintenance',
+      description: 'This will immediately disconnect and lock out all iOS & Android players with the maintenance screen. Are you sure?',
+      onConfirm: async () => {
+        setSavingMaint(true);
+        try {
+          const res = await axios.post(
+            `${API_URL}/api/admin/dino/maintenance`,
+            {
+              action: 'immediate',
+              maintenance_message: maintMessageInput.trim(),
+            },
+            { headers: authHeaders }
+          );
+          setMaintStatus(res.data);
+          toast.success('Immediate maintenance enabled! Game service cut.');
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Failed to enable maintenance');
+        } finally {
+          setSavingMaint(false);
+        }
+      },
+    });
+  };
+
+  const handleCancelSchedule = async () => {
+    setCancelingMaint(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/admin/dino/maintenance`,
+        { action: 'cancel' },
+        { headers: authHeaders }
+      );
+      setMaintStatus(res.data);
+      toast.success('Scheduled maintenance cancelled: Game remains ONLINE');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to cancel schedule');
+    } finally {
+      setCancelingMaint(false);
+    }
+  };
+
+  const handleScheduleSubmit = async (e) => {
     e.preventDefault();
     setSavingMaint(true);
     try {
-      await axios.post(`${API_URL}/api/admin/dino/maintenance`, maintStatus, { headers: authHeaders });
-      toast.success('Game maintenance configuration updated on PlayFab TitleData!');
-      fetchMaintenance();
+      let payload = {
+        action: 'schedule',
+        maintenance_message: maintMessageInput.trim(),
+      };
+
+      if (scheduleMode === 'preset') {
+        payload.delay_minutes = scheduleDelayMinutes;
+      } else if (scheduleMode === 'custom_min') {
+        const mins = parseFloat(scheduleCustomMinutes);
+        if (!mins || mins <= 0) {
+          toast.error('Please enter a delay greater than 0 minutes');
+          setSavingMaint(false);
+          return;
+        }
+        payload.delay_minutes = mins;
+      } else if (scheduleMode === 'custom_date') {
+        if (!scheduleCustomDate) {
+          toast.error('Please select a date and time');
+          setSavingMaint(false);
+          return;
+        }
+        payload.scheduled_maintenance_utc = new Date(scheduleCustomDate).toISOString();
+      }
+
+      const res = await axios.post(
+        `${API_URL}/api/admin/dino/maintenance`,
+        payload,
+        { headers: authHeaders }
+      );
+      setMaintStatus(res.data);
+      toast.success('In-Game Maintenance scheduled successfully!');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to update maintenance');
+      toast.error(err.response?.data?.detail || 'Failed to schedule maintenance');
     } finally {
       setSavingMaint(false);
     }
@@ -506,9 +718,9 @@ export const DinoDevPanel = () => {
                 {/* Gems */}
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#1D1D1F] dark:text-white flex items-center gap-1.5">
-                      <Gem size={14} className="text-emerald-500" />
-                      <span>Gems</span>
+                    <span className="text-xs font-bold text-[#1D1D1F] dark:text-white flex items-center gap-2">
+                      <ItemImage src="/dino-assets/icons/gems.png" alt="Gems" className="w-5 h-5" fallbackIcon={Gem} />
+                      <span>Gems / Amber</span>
                     </span>
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       +{giftGems.toLocaleString()}
@@ -545,9 +757,9 @@ export const DinoDevPanel = () => {
                 {/* DNA */}
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#1D1D1F] dark:text-white flex items-center gap-1.5">
-                      <Dna size={14} className="text-purple-500" />
-                      <span>DNA</span>
+                    <span className="text-xs font-bold text-[#1D1D1F] dark:text-white flex items-center gap-2">
+                      <ItemImage src="/dino-assets/icons/dna.png" alt="DNA" className="w-5 h-5" fallbackIcon={Dna} />
+                      <span>DNA Bank</span>
                     </span>
                     <span className="text-xs font-mono font-bold text-purple-600 dark:text-purple-400">
                       +{giftDna.toLocaleString()}
@@ -605,24 +817,25 @@ export const DinoDevPanel = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-72 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto pr-1">
                 {filteredDinos.map((dino) => {
                   const isSelected = !!selectedDinos[dino.id];
                   const count = selectedDinos[dino.id] || 0;
+                  const iconSrc = dino.icon || getItemIcon(dino.id, 'dino');
 
                   return (
                     <div
                       key={dino.id}
                       onClick={() => toggleDinoSelect(dino.id)}
-                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between ${
+                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between group ${
                         isSelected
-                          ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#1D1D1F] dark:text-white'
-                          : 'border-[#E5E5EA] dark:border-[#2a2a3c] hover:border-[#D2D2D7] dark:hover:border-[#3a3a4c] bg-[#F5F5F7] dark:bg-[#1e1e2d]'
+                          ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#1D1D1F] dark:text-white shadow-xs'
+                          : 'border-[#E5E5EA] dark:border-[#2a2a3c] hover:border-[#FF6600]/50 bg-[#F5F5F7] dark:bg-[#1e1e2d]'
                       }`}
                     >
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] uppercase font-bold text-[#FF6600]">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] uppercase font-bold text-[#FF6600] truncate">
                             {dino.tier}
                           </span>
                           {isSelected && (
@@ -631,9 +844,21 @@ export const DinoDevPanel = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs font-bold text-[#1D1D1F] dark:text-white truncate">
-                          {dino.name}
-                        </p>
+
+                        {/* Dino Sprite Icon */}
+                        <div className="flex flex-col items-center text-center my-1">
+                          <div className="w-14 h-14 rounded-2xl bg-white/80 dark:bg-[#151520]/80 border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-center p-1 shadow-2xs group-hover:scale-105 transition-transform">
+                            <ItemImage
+                              src={iconSrc}
+                              alt={dino.name}
+                              className="w-12 h-12"
+                              fallbackIcon={Flame}
+                            />
+                          </div>
+                          <p className="text-xs font-bold text-[#1D1D1F] dark:text-white mt-1.5 truncate max-w-full">
+                            {dino.name}
+                          </p>
+                        </div>
                       </div>
 
                       {isSelected && (
@@ -644,7 +869,7 @@ export const DinoDevPanel = () => {
                           <button
                             type="button"
                             onClick={() => updateDinoCount(dino.id, -1)}
-                            className="p-1 rounded-md bg-white dark:bg-[#151520] text-xs font-bold"
+                            className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05] text-xs font-bold"
                           >
                             <Minus size={10} />
                           </button>
@@ -652,7 +877,7 @@ export const DinoDevPanel = () => {
                           <button
                             type="button"
                             onClick={() => updateDinoCount(dino.id, 1)}
-                            className="p-1 rounded-md bg-white dark:bg-[#151520] text-xs font-bold"
+                            className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05] text-xs font-bold"
                           >
                             <Plus size={10} />
                           </button>
@@ -676,35 +901,46 @@ export const DinoDevPanel = () => {
                 <label className="block text-xs font-bold text-[#86868B] uppercase tracking-wider mb-2">
                   Dino Eggs (Hatch automatically on claim)
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {(catalog?.eggs || []).map((egg) => {
                     const count = selectedEggs[egg.id] || 0;
+                    const iconSrc = egg.icon || getItemIcon(egg.id, 'egg');
                     return (
                       <div
                         key={egg.id}
-                        className="p-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
+                        className="p-2.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
                       >
-                        <div className="truncate mr-2">
-                          <p className="text-xs font-bold text-[#1D1D1F] dark:text-white truncate">{egg.name}</p>
-                          <span className="text-[10px] text-[#86868B]">Tier {egg.tier}</span>
+                        <div className="flex items-center gap-2.5 truncate mr-2">
+                          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-center p-1 shrink-0">
+                            <ItemImage
+                              src={iconSrc}
+                              alt={egg.name}
+                              className="w-8 h-8"
+                              fallbackIcon={Egg}
+                            />
+                          </div>
+                          <div className="truncate">
+                            <p className="text-xs font-bold text-[#1D1D1F] dark:text-white truncate">{egg.name}</p>
+                            <span className="text-[10px] text-[#FF6600] font-semibold">Tier {egg.tier}</span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {count > 0 && (
                             <button
                               type="button"
                               onClick={() => updateEggCount(egg.id, -1)}
-                              className="p-1 rounded bg-white dark:bg-[#151520]"
+                              className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                             >
                               <Minus size={10} />
                             </button>
                           )}
-                          <span className={`text-xs font-bold font-mono px-1 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
+                          <span className={`text-xs font-bold font-mono px-1.5 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
                             {count}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateEggCount(egg.id, 1)}
-                            className="p-1 rounded bg-white dark:bg-[#151520]"
+                            className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                           >
                             <Plus size={10} />
                           </button>
@@ -720,32 +956,43 @@ export const DinoDevPanel = () => {
                 <label className="block text-xs font-bold text-[#86868B] uppercase tracking-wider mb-2">
                   Chests (Open automatically on claim)
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {(catalog?.chests || []).map((ch) => {
                     const count = selectedChests[ch.id] || 0;
+                    const iconSrc = ch.icon || getItemIcon(ch.id, 'chest');
                     return (
                       <div
                         key={ch.id}
-                        className="p-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
+                        className="p-2.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
                       >
-                        <p className="text-xs font-bold text-[#1D1D1F] dark:text-white">{ch.name}</p>
+                        <div className="flex items-center gap-2.5 truncate mr-2">
+                          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-center p-1 shrink-0">
+                            <ItemImage
+                              src={iconSrc}
+                              alt={ch.name}
+                              className="w-8 h-8"
+                              fallbackIcon={Box}
+                            />
+                          </div>
+                          <p className="text-xs font-bold text-[#1D1D1F] dark:text-white truncate">{ch.name}</p>
+                        </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {count > 0 && (
                             <button
                               type="button"
                               onClick={() => updateChestCount(ch.id, -1)}
-                              className="p-1 rounded bg-white dark:bg-[#151520]"
+                              className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                             >
                               <Minus size={10} />
                             </button>
                           )}
-                          <span className={`text-xs font-bold font-mono px-1 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
+                          <span className={`text-xs font-bold font-mono px-1.5 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
                             {count}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateChestCount(ch.id, 1)}
-                            className="p-1 rounded bg-white dark:bg-[#151520]"
+                            className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                           >
                             <Plus size={10} />
                           </button>
@@ -761,35 +1008,46 @@ export const DinoDevPanel = () => {
                 <label className="block text-xs font-bold text-[#86868B] uppercase tracking-wider mb-2">
                   Materials & Blueprints
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {(catalog?.items || []).map((it) => {
                     const count = selectedItems[it.id] || 0;
+                    const iconSrc = it.icon || getItemIcon(it.id, 'item');
                     return (
                       <div
                         key={it.id}
-                        className="p-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
+                        className="p-2.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between"
                       >
-                        <div>
-                          <p className="text-xs font-bold text-[#1D1D1F] dark:text-white">{it.name}</p>
-                          <span className="text-[10px] text-[#86868B]">{it.desc}</span>
+                        <div className="flex items-center gap-2.5 truncate mr-2">
+                          <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-center p-1 shrink-0">
+                            <ItemImage
+                              src={iconSrc}
+                              alt={it.name}
+                              className="w-8 h-8"
+                              fallbackIcon={Box}
+                            />
+                          </div>
+                          <div className="truncate">
+                            <p className="text-xs font-bold text-[#1D1D1F] dark:text-white truncate">{it.name}</p>
+                            <span className="text-[10px] text-[#86868B] truncate block">{it.desc}</span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {count > 0 && (
                             <button
                               type="button"
                               onClick={() => updateItemCount(it.id, -1)}
-                              className="p-1 rounded bg-white dark:bg-[#151520]"
+                              className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                             >
                               <Minus size={10} />
                             </button>
                           )}
-                          <span className={`text-xs font-bold font-mono px-1 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
+                          <span className={`text-xs font-bold font-mono px-1.5 ${count > 0 ? 'text-[#FF6600]' : 'text-[#86868B]'}`}>
                             {count}
                           </span>
                           <button
                             type="button"
                             onClick={() => updateItemCount(it.id, 1)}
-                            className="p-1 rounded bg-white dark:bg-[#151520]"
+                            className="p-1 rounded-md bg-white dark:bg-[#151520] hover:bg-black/[0.05]"
                           >
                             <Plus size={10} />
                           </button>
@@ -818,48 +1076,66 @@ export const DinoDevPanel = () => {
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-[#E5E5EA] dark:border-[#2a2a3c] space-y-1.5">
+                <div className="pt-2 border-t border-[#E5E5EA] dark:border-[#2a2a3c] space-y-2">
                   <span className="text-[#86868B] font-semibold block mb-1">Included Rewards:</span>
 
                   {giftGems > 0 && (
-                    <div className="flex items-center justify-between text-emerald-600 font-semibold">
-                      <span>💎 Gems</span>
+                    <div className="flex items-center justify-between text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded-xl">
+                      <span className="flex items-center gap-1.5">
+                        <ItemImage src="/dino-assets/icons/gems.png" className="w-4 h-4" />
+                        <span>Gems</span>
+                      </span>
                       <span className="font-mono font-bold">+{giftGems.toLocaleString()}</span>
                     </div>
                   )}
 
                   {giftDna > 0 && (
-                    <div className="flex items-center justify-between text-purple-600 font-semibold">
-                      <span>🧬 DNA</span>
+                    <div className="flex items-center justify-between text-purple-600 font-semibold bg-purple-50 dark:bg-purple-950/30 p-2 rounded-xl">
+                      <span className="flex items-center gap-1.5">
+                        <ItemImage src="/dino-assets/icons/dna.png" className="w-4 h-4" />
+                        <span>DNA</span>
+                      </span>
                       <span className="font-mono font-bold">+{giftDna.toLocaleString()}</span>
                     </div>
                   )}
 
                   {Object.entries(selectedDinos).map(([name, count]) => (
-                    <div key={name} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium">
-                      <span>🦖 {name}</span>
-                      <span className="font-mono font-bold">x{count}</span>
+                    <div key={name} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium p-1.5 rounded-lg bg-[#F5F5F7] dark:bg-[#1e1e2d]">
+                      <span className="flex items-center gap-2 truncate mr-2">
+                        <ItemImage src={getItemIcon(name, 'dino')} className="w-5 h-5" fallbackIcon={Flame} />
+                        <span className="truncate">{name}</span>
+                      </span>
+                      <span className="font-mono font-bold shrink-0">x{count}</span>
                     </div>
                   ))}
 
                   {Object.entries(selectedEggs).map(([id, count]) => (
-                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium">
-                      <span>🥚 {id}</span>
-                      <span className="font-mono font-bold">x{count}</span>
+                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium p-1.5 rounded-lg bg-[#F5F5F7] dark:bg-[#1e1e2d]">
+                      <span className="flex items-center gap-2 truncate mr-2">
+                        <ItemImage src={getItemIcon(id, 'egg')} className="w-5 h-5" fallbackIcon={Egg} />
+                        <span className="truncate">{id}</span>
+                      </span>
+                      <span className="font-mono font-bold shrink-0">x{count}</span>
                     </div>
                   ))}
 
                   {Object.entries(selectedChests).map(([id, count]) => (
-                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium">
-                      <span>📦 {id}</span>
-                      <span className="font-mono font-bold">x{count}</span>
+                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium p-1.5 rounded-lg bg-[#F5F5F7] dark:bg-[#1e1e2d]">
+                      <span className="flex items-center gap-2 truncate mr-2">
+                        <ItemImage src={getItemIcon(id, 'chest')} className="w-5 h-5" fallbackIcon={Box} />
+                        <span className="truncate">{id}</span>
+                      </span>
+                      <span className="font-mono font-bold shrink-0">x{count}</span>
                     </div>
                   ))}
 
                   {Object.entries(selectedItems).map(([id, count]) => (
-                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium">
-                      <span>🎒 {id}</span>
-                      <span className="font-mono font-bold">x{count}</span>
+                    <div key={id} className="flex items-center justify-between text-[#1D1D1F] dark:text-white font-medium p-1.5 rounded-lg bg-[#F5F5F7] dark:bg-[#1e1e2d]">
+                      <span className="flex items-center gap-2 truncate mr-2">
+                        <ItemImage src={getItemIcon(id, 'item')} className="w-5 h-5" fallbackIcon={Box} />
+                        <span className="truncate">{id}</span>
+                      </span>
+                      <span className="font-mono font-bold shrink-0">x{count}</span>
                     </div>
                   ))}
 
@@ -1002,18 +1278,24 @@ export const DinoDevPanel = () => {
                   <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider block mb-1">
                     DNA Bank
                   </span>
-                  <p className="text-lg font-bold font-mono text-purple-600 dark:text-purple-400">
-                    {playerData.player_dna || '0'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <ItemImage src="/dino-assets/icons/dna.png" alt="DNA" className="w-6 h-6" fallbackIcon={Dna} />
+                    <p className="text-lg font-bold font-mono text-purple-600 dark:text-purple-400">
+                      {playerData.player_dna || '0'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c]">
                   <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider block mb-1">
                     Gems Stash
                   </span>
-                  <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    {playerData.player_gems || '0'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <ItemImage src="/dino-assets/icons/gems.png" alt="Gems" className="w-6 h-6" fallbackIcon={Gem} />
+                    <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      {playerData.player_gems || '0'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c]">
@@ -1037,25 +1319,66 @@ export const DinoDevPanel = () => {
 
               {/* Dinos and Inventory details */}
               <div className="space-y-4 pt-2">
-                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-1">
+                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-2">
                   <span className="font-bold text-[#1D1D1F] dark:text-white block">Equipped Dinos:</span>
-                  <p className="text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed">
-                    {playerData.equipped_dinos || 'None'}
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {playerData.equipped_dinos && playerData.equipped_dinos !== 'None' ? (
+                      playerData.equipped_dinos.split(',').map((d, i) => {
+                        const clean = d.trim();
+                        const icon = getItemIcon(clean, 'dino');
+                        return (
+                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                            <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Flame} />
+                            <span>{clean}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="text-[#86868B] italic">None</span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-1">
+                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-2">
                   <span className="font-bold text-[#1D1D1F] dark:text-white block">Owned Dinos Collection:</span>
-                  <p className="text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed max-h-32 overflow-y-auto">
-                    {playerData.owned_dinos || 'None'}
-                  </p>
+                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                    {playerData.owned_dinos && playerData.owned_dinos !== 'None' ? (
+                      playerData.owned_dinos.split(',').map((d, i) => {
+                        const clean = d.trim();
+                        const baseName = clean.split('x')[0].trim();
+                        const icon = getItemIcon(baseName, 'dino');
+                        return (
+                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                            <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Flame} />
+                            <span>{clean}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="text-[#86868B] italic">None</span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-1">
+                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-2">
                   <span className="font-bold text-[#1D1D1F] dark:text-white block">Inventory Items:</span>
-                  <p className="text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed max-h-32 overflow-y-auto">
-                    {playerData.inventory_items || 'Empty bag'}
-                  </p>
+                  <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                    {playerData.inventory_items && playerData.inventory_items !== 'Empty bag' ? (
+                      playerData.inventory_items.split(',').map((item, i) => {
+                        const clean = item.trim();
+                        const baseId = clean.split('x')[0].trim();
+                        const icon = getItemIcon(baseId, 'item');
+                        return (
+                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                            <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Box} />
+                            <span>{clean}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="text-[#86868B] italic">Empty bag</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1065,94 +1388,282 @@ export const DinoDevPanel = () => {
 
       {/* ── TAB 3: IN-GAME REMOTE MAINTENANCE ──────────────────── */}
       {activeTab === 'maintenance' && (
-        <form onSubmit={handleSaveMaintenance} className="space-y-6 max-w-3xl">
+        <div className="space-y-6 max-w-4xl">
+          {/* Status & Immediate Control Card */}
           <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] shadow-xs space-y-6">
-            <div>
-              <h2 className="text-base font-bold text-[#1D1D1F] dark:text-white flex items-center gap-2">
-                <Wrench size={16} className="text-[#FF6600]" />
-                <span>Mobile Game Remote Maintenance Switch</span>
-              </h2>
-              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1">
-                Controls the live maintenance lockscreen for all iOS and Android players via PlayFab TitleData.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <Wrench size={20} />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-[#1D1D1F] dark:text-white">
+                    Idle Dino Clicker Tycoon — Remote Maintenance
+                  </h2>
+                  <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
+                    Real-time PlayFab TitleData maintenance switch & automated scheduler
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchMaintenance}
+                className="p-2 rounded-xl hover:bg-black/[0.04] text-[#86868B] self-end sm:self-center"
+                title="Refresh status from PlayFab"
+              >
+                <RefreshCw size={15} className={loadingMaint ? 'animate-spin' : ''} />
+              </button>
             </div>
 
             {loadingMaint ? (
               <div className="p-12 text-center text-[#86868B]">
                 <RefreshCw size={24} className="animate-spin mx-auto mb-2 text-[#FF6600]" />
-                Loading game maintenance status from PlayFab...
+                Checking live PlayFab TitleData status...
               </div>
             ) : (
               <>
-                {/* Active Toggle */}
-                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-bold text-[#1D1D1F] dark:text-white block">
-                      Lock Game Under Maintenance
-                    </span>
-                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
-                      When enabled, all players attempting to launch Idle Dino Clicker Tycoon will be greeted with the maintenance lockscreen.
-                    </p>
+                {/* Status Indicator Card */}
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  maintStatus.effective_active
+                    ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40 text-red-900 dark:text-red-200'
+                    : maintStatus.is_scheduled
+                    ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200'
+                    : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-900 dark:text-emerald-200'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                            maintStatus.effective_active ? 'bg-red-500' : maintStatus.is_scheduled ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`}></span>
+                          <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                            maintStatus.effective_active ? 'bg-red-600' : maintStatus.is_scheduled ? 'bg-amber-600' : 'bg-emerald-600'
+                          }`}></span>
+                        </span>
+                        <h3 className="text-sm font-bold tracking-wide uppercase">
+                          {maintStatus.effective_active
+                            ? 'Game Maintenance is ACTIVE (Service Cut)'
+                            : maintStatus.is_scheduled
+                            ? 'Maintenance SCHEDULED (Countdown Active)'
+                            : 'Game Servers ONLINE (Normal Operation)'}
+                        </h3>
+                      </div>
+                      <p className="text-xs opacity-90 leading-relaxed">
+                        {maintStatus.effective_active
+                          ? 'All iOS & Android players attempting to launch the game are blocked by the maintenance screen.'
+                          : maintStatus.is_scheduled
+                          ? 'In-game countdown is active. Game will lock automatically when the timer reaches zero.'
+                          : 'Mobile players around the world can launch and play the game with cloud save normally.'}
+                      </p>
+                    </div>
+
+                    {/* Immediate Action Buttons */}
+                    <div className="shrink-0 flex items-center gap-2">
+                      {maintStatus.effective_active ? (
+                        <button
+                          type="button"
+                          onClick={handleReopenServers}
+                          disabled={savingMaint}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>Reopen Servers (Set Online)</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleImmediateCut}
+                          disabled={savingMaint}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                        >
+                          <Power size={15} />
+                          <span>Trigger Immediate Maintenance</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={maintStatus.is_maintenance}
-                      onChange={(e) => setMaintStatus(prev => ({ ...prev, is_maintenance: e.target.checked }))}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-[#E5E5EA] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D2D2D7] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6600]"></div>
-                  </label>
                 </div>
 
-                {/* Message input */}
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] dark:text-[#71717a] uppercase tracking-wider mb-1.5">
-                    Maintenance Notice Message (Displayed on Player Screen)
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={maintStatus.maintenance_message}
-                    onChange={(e) => setMaintStatus(prev => ({ ...prev, maintenance_message: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600] resize-y"
-                  />
-                </div>
+                {/* Scheduled Alert Banner (if scheduled) */}
+                {maintStatus.is_scheduled && (
+                  <div className="p-5 rounded-2xl bg-[#FFF8EE] dark:bg-[#251b14] border border-[#FFE2C2] dark:border-[#52331b] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 text-[#D95700] dark:text-[#FFA043] font-bold text-sm">
+                          <Clock size={16} />
+                          <span>Scheduled Maintenance Countdown</span>
+                        </div>
+                        <p className="text-xs text-[#86868B] mt-0.5">
+                          Target UTC: <b className="font-mono text-[#1D1D1F] dark:text-white">{maintStatus.scheduled_maintenance_utc}</b>
+                        </p>
+                      </div>
 
-                {/* Scheduled Countdown */}
-                <div>
-                  <label className="block text-xs font-semibold text-[#86868B] dark:text-[#71717a] uppercase tracking-wider mb-1.5">
-                    Scheduled Maintenance UTC (Optional, or "none")
-                  </label>
-                  <input
-                    type="text"
-                    value={maintStatus.scheduled_maintenance_utc}
-                    onChange={(e) => setMaintStatus(prev => ({ ...prev, scheduled_maintenance_utc: e.target.value }))}
-                    placeholder="e.g. 2026-09-15T14:00:00Z or none"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white font-mono focus:outline-none focus:border-[#FF6600]"
-                  />
-                </div>
+                      <div className="flex items-center gap-3">
+                        <div className="px-4 py-2 rounded-xl bg-white dark:bg-[#151520] border border-[#FFE2C2] dark:border-[#52331b] text-center">
+                          <span className="text-[10px] uppercase font-bold text-[#86868B] block">Starts in</span>
+                          <span className="text-base font-mono font-bold text-[#D95700] dark:text-[#FFA043]">
+                            {countdownStr || 'Calculating...'}
+                          </span>
+                        </div>
 
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={savingMaint}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6600] hover:bg-[#E65C00] text-white text-xs font-semibold transition-all shadow-xs disabled:opacity-50"
-                  >
-                    {savingMaint ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        <span>Updating TitleData...</span>
-                      </>
-                    ) : (
-                      <span>Save In-Game Maintenance</span>
-                    )}
-                  </button>
-                </div>
+                        <button
+                          type="button"
+                          onClick={handleCancelSchedule}
+                          disabled={cancelingMaint}
+                          className="px-3.5 py-2 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-bold border border-red-200 dark:border-red-900/40 transition-colors"
+                        >
+                          {cancelingMaint ? 'Canceling...' : 'Cancel Schedule'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-white/60 dark:bg-black/20 text-xs text-[#1D1D1F] dark:text-white">
+                      <span className="font-bold text-[#86868B] block mb-0.5">Player Screen Notice:</span>
+                      <p className="italic font-medium">"{maintStatus.maintenance_message}"</p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
-        </form>
+
+          {/* Schedule New Maintenance Section */}
+          <form onSubmit={handleScheduleSubmit} className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] shadow-xs space-y-6">
+            <div>
+              <h3 className="text-base font-bold text-[#1D1D1F] dark:text-white flex items-center gap-2">
+                <Calendar size={16} className="text-[#FF6600]" />
+                <span>Schedule In-Game Maintenance Window</span>
+              </h3>
+              <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-1">
+                Program a maintenance cut with an in-game countdown banner displayed to all players ahead of time.
+              </p>
+            </div>
+
+            {/* Delay Presets Selector */}
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-[#86868B] dark:text-[#71717a] uppercase tracking-wider">
+                Select Delay / Execution Time
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: '+5 Minutes', mins: 5 },
+                  { label: '+15 Minutes', mins: 15 },
+                  { label: '+30 Minutes', mins: 30 },
+                  { label: '+60 Minutes (1h)', mins: 60 },
+                  { label: '+2 Hours', mins: 120 },
+                ].map(preset => (
+                  <button
+                    key={preset.mins}
+                    type="button"
+                    onClick={() => { setScheduleMode('preset'); setScheduleDelayMinutes(preset.mins); }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                      scheduleMode === 'preset' && scheduleDelayMinutes === preset.mins
+                        ? 'bg-[#FF6600] text-white border-[#FF6600] shadow-xs'
+                        : 'bg-[#F5F5F7] dark:bg-[#1e1e2d] border-[#E5E5EA] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA]'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setScheduleMode('custom_min')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                    scheduleMode === 'custom_min'
+                      ? 'bg-[#FF6600] text-white border-[#FF6600] shadow-xs'
+                      : 'bg-[#F5F5F7] dark:bg-[#1e1e2d] border-[#E5E5EA] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA]'
+                  }`}
+                >
+                  Custom Minutes
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setScheduleMode('custom_date')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                    scheduleMode === 'custom_date'
+                      ? 'bg-[#FF6600] text-white border-[#FF6600] shadow-xs'
+                      : 'bg-[#F5F5F7] dark:bg-[#1e1e2d] border-[#E5E5EA] dark:border-[#2a2a3c] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA]'
+                  }`}
+                >
+                  Pick Date & Time
+                </button>
+              </div>
+
+              {/* Custom Minutes Input */}
+              {scheduleMode === 'custom_min' && (
+                <div className="pt-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Enter minutes (e.g. 45)..."
+                    value={scheduleCustomMinutes}
+                    onChange={(e) => setScheduleCustomMinutes(e.target.value)}
+                    className="w-full sm:w-64 px-4 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white font-mono focus:outline-none focus:border-[#FF6600]"
+                  />
+                </div>
+              )}
+
+              {/* Date & Time Picker */}
+              {scheduleMode === 'custom_date' && (
+                <div className="pt-2">
+                  <input
+                    type="datetime-local"
+                    value={scheduleCustomDate}
+                    onChange={(e) => setScheduleCustomDate(e.target.value)}
+                    className="w-full sm:w-72 px-4 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white font-mono focus:outline-none focus:border-[#FF6600]"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Message input */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-[#86868B] dark:text-[#71717a] uppercase tracking-wider">
+                Maintenance Notice Message (Displayed to Mobile Players)
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={maintMessageInput}
+                onChange={(e) => setMaintMessageInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-sm text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600] resize-y"
+              />
+              <p className="text-[11px] text-[#86868B]">
+                This message will be shown on player screens when disconnected or viewing the countdown.
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-[#86868B]">
+                PlayFab Title: <b className="font-mono text-[#1D1D1F] dark:text-white">{config?.title_id || '1C8E49'}</b>
+              </span>
+
+              <button
+                type="submit"
+                disabled={savingMaint}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6600] hover:bg-[#E65C00] text-white text-xs font-semibold transition-all shadow-xs disabled:opacity-50"
+              >
+                {savingMaint ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Synchronizing PlayFab...</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock size={14} />
+                    <span>Schedule In-Game Maintenance</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* ── TAB 4: AUDIT LOGS ──────────────────────────────────── */}
