@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Settings, AlertTriangle, Mail, Megaphone, Save, Link2, Clock, X } from 'lucide-react';
 import api from '../utils/api';
+import { clearWebsiteSettingsCache } from '../utils/publicCache';
 import { Button, Input, SavedFlash, useSavedFlash } from '../ui';
 
 const timeAgo = (iso) => {
@@ -82,6 +83,7 @@ export const GlobalManagement = () => {
     setLoadingMaintenance(true);
     try {
       const r = await api.put('/api/website/settings', { maintenance_mode: !maintenance });
+      clearWebsiteSettingsCache();
       setMaintenance(r.data.maintenance_mode);
       setScheduledAt(r.data.maintenance_scheduled_at || null);
       setScheduledMessage(r.data.maintenance_announcement || '');
@@ -102,6 +104,7 @@ export const GlobalManagement = () => {
         maintenance_scheduled_at: at,
         maintenance_announcement: scheduleMessageInput.trim(),
       });
+      clearWebsiteSettingsCache();
       setScheduledAt(r.data.maintenance_scheduled_at || null);
       setScheduledMessage(r.data.maintenance_announcement || '');
       setUpdatedAt(new Date().toISOString());
@@ -114,6 +117,7 @@ export const GlobalManagement = () => {
     setCancelingSchedule(true);
     try {
       const r = await api.put('/api/website/settings', { maintenance_scheduled_at: '' });
+      clearWebsiteSettingsCache();
       setScheduledAt(r.data.maintenance_scheduled_at || null);
       setScheduledMessage(r.data.maintenance_announcement || '');
       setUpdatedAt(new Date().toISOString());
@@ -127,6 +131,7 @@ export const GlobalManagement = () => {
     setSavingEmail(true);
     try {
       const r = await api.put('/api/website/settings', { support_email: emailInput.trim() });
+      clearWebsiteSettingsCache();
       setSupportEmail(r.data.support_email);
       setEmailInput(r.data.support_email);
       setUpdatedAt(new Date().toISOString());
@@ -140,6 +145,7 @@ export const GlobalManagement = () => {
     setSavingBanner(true);
     try {
       const r = await api.put('/api/website/settings', { announcement_banner: bannerInput.trim(), announcement_active: bannerActive });
+      clearWebsiteSettingsCache();
       setSavedBanner({ text: r.data.announcement_banner, active: r.data.announcement_active });
       setUpdatedAt(new Date().toISOString());
       flashBannerSaved();

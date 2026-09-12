@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconContext } from '@phosphor-icons/react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -38,6 +38,7 @@ const NotFound = () => (
 const AppRoutes = () => {
   const { maintenance, announcement } = useMaintenanceCheck();
   const location = useLocation();
+  const { user } = useAuth();
 
   const isAdminSubdomain = typeof window !== 'undefined' && (
     window.location.hostname === 'admin.vakargames.com' ||
@@ -45,8 +46,11 @@ const AppRoutes = () => {
   );
 
   const isStatusPage = location.pathname === '/status' || location.pathname.startsWith('/status');
+  const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/login');
+  const isDashboard = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard');
+  const isStaff = user?.is_super_admin || user?.role === 'admin' || (user?.permissions && user.permissions.length > 0);
 
-  if (maintenance && !isAdminSubdomain && !isStatusPage) {
+  if (maintenance && !isAdminSubdomain && !isStatusPage && !isLoginPage && !isDashboard && !isStaff) {
     return <MaintenancePage announcement={announcement} />;
   }
 

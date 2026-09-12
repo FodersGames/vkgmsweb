@@ -104,7 +104,7 @@ export const useMaintenanceCheck = () => {
   const check = useCallback(async () => {
     try {
       const data = await getWebsiteSettings();
-      const isMaint = !!data?.maintenance_active;
+      const isMaint = !!(data?.maintenance_mode || data?.maintenance_active);
       const scheduled = data?.maintenance_scheduled_at ? new Date(data.maintenance_scheduled_at) : null;
       setStatus({
         maintenance: isMaint,
@@ -118,7 +118,7 @@ export const useMaintenanceCheck = () => {
 
   useEffect(() => {
     check();
-    const interval = setInterval(check, 30000);
+    const interval = setInterval(check, 10000);
     return () => clearInterval(interval);
   }, [check, pathname]);
 

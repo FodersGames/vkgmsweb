@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds cache
+const CACHE_TTL_MS = 10 * 1000; // 10 seconds cache for rapid maintenance/announcement responsiveness
 
 let settingsCache = null;
 let settingsCacheTime = 0;
