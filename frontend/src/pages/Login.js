@@ -3,9 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from '@phosphor-icons/react';
-import { PublicButton } from '../ui/PublicButton';
-import heroCoastSunset from '../assets/photos/hero-coast-sunset.jpg';
-
 import { API_URL } from '../utils/api';
 
 const hasDashboardAccess = (u) =>
@@ -23,7 +20,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
   const isPassword = type === 'password';
   return (
     <div className="relative">
-      <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
+      <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
       <input
         id={id}
         type={isPassword && show ? 'text' : type}
@@ -32,16 +29,16 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="rounded-lg w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all placeholder:text-[#A1A1A6]"
+        className="w-full pl-10 pr-10 py-2.5 bg-[#181818] border border-white/15 text-white text-sm focus:outline-none focus:border-[#FF6600] transition-all placeholder:text-white/25"
       />
       {isPassword && (
         <button
           type="button"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
           onClick={() => setShow(s => !s)}
           tabIndex={-1}
         >
-          {show ? <EyeSlash size={13} /> : <Eye size={13} />}
+          {show ? <EyeSlash size={14} /> : <Eye size={14} />}
         </button>
       )}
     </div>
@@ -49,43 +46,77 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
 };
 
 const ChangePasswordModal = ({ onSuccess }) => {
-  const { changePassword } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (newPassword !== confirm) { setError('Passwords do not match'); return; }
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
     setLoading(true);
-    const result = await changePassword({ newPassword });
-    setLoading(false);
-    if (result.success) {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${API_URL}/api/auth/change-password`,
+        { current_password: currentPassword, new_password: newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       onSuccess();
-    } else {
-      setError(result.error);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to change password');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="animate-appear rounded-2xl liquid-glass max-w-md w-full p-8">
-        <div className="mb-6">
-          <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
-            <Warning size={18} className="text-amber-600" />
-          </div>
-          <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-1">Change your password</h2>
-          <p className="text-sm text-[#6E6E73]">
-            You must set a new password before continuing.
-          </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="w-full max-w-md p-7 bg-[#121212] border border-white/15 shadow-2xl">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
+          <h2 className="text-base font-black uppercase text-white tracking-wider">
+            Change Temporary Password
+          </h2>
         </div>
+        <p className="text-xs text-white/50 mb-5 leading-relaxed">
+          You are using a temporary password. Please choose a new permanent password to continue.
+        </p>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <Warning size={15} className="flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
-              New password
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+              Current Temporary Password
+            </label>
+            <InputField
+              icon={Lock}
+              type="password"
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+              id="current-password"
+              autoComplete="current-password"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+              New Password
             </label>
             <InputField
               icon={Lock}
@@ -93,32 +124,31 @@ const ChangePasswordModal = ({ onSuccess }) => {
               placeholder="Min. 8 characters"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
+              id="new-password"
               autoComplete="new-password"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
-              Confirm new password
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1">
+              Confirm New Password
             </label>
             <InputField
               icon={Lock}
               type="password"
-              placeholder="Repeat your password"
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              id="confirm-password"
               autoComplete="new-password"
             />
           </div>
-
-          {error && (
-            <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-
-          <PublicButton type="submit" disabled={loading} className="w-full">
-            {loading ? 'Saving…' : 'Set new password'}
-          </PublicButton>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-kefir w-full py-3 text-xs mt-2 disabled:opacity-50"
+          >
+            {loading ? 'Updating…' : 'Set New Password'}
+          </button>
         </form>
       </div>
     </div>
@@ -126,107 +156,80 @@ const ChangePasswordModal = ({ onSuccess }) => {
 };
 
 export const Login = () => {
-  const [tab, setTab] = useState('login');
-  const [mustChange, setMustChange] = useState(false);
-  const [maintenance, setMaintenance] = useState(false);
+  const navigate = useNavigate();
+  const { login, register, user, mustChangePassword } = useAuth();
+  const [tab, setTab] = useState('login'); // 'login' | 'register'
 
-  // Login state
+  // Login form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
-  // Register state
-  const [reg, setReg] = useState({ email: '', password: '', name: '' });
+  // Register form state
+  const [reg, setReg] = useState({ name: '', email: '', password: '' });
+  const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
-  const [regLoading, setRegLoading] = useState(false);
-
-  const { login, register, logout, user } = useAuth();
-  const navigate = useNavigate();
+  const [mustChange, setMustChange] = useState(false);
 
   useEffect(() => {
-    document.title = 'Sign In — Vakar Games';
-    axios.get(`${API_URL}/api/website/settings`)
-      .then(r => setMaintenance(!!r.data.maintenance_mode))
-      .catch(() => {});
-  }, []);
+    document.title = tab === 'login' ? 'Sign In — Vakar Games' : 'Create Account — Vakar Games';
+  }, [tab]);
+
+  useEffect(() => {
+    if (mustChangePassword) {
+      setMustChange(true);
+    }
+  }, [mustChangePassword]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      setLoginError('Email is required');
-      return;
-    }
-    if (!password) {
-      setLoginError('Password is required');
-      return;
-    }
     setLoginLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
     const result = await login(cleanEmail, password);
     setLoginLoading(false);
-    if (result.success) {
-      // During maintenance, only accounts with dashboard access may sign in
-      if (maintenance && !hasDashboardAccess(result.user)) {
-        logout();
-        setLoginError('The site is under maintenance. Only staff accounts can sign in right now.');
-        return;
-      }
-      if (result.first_login) {
-        setMustChange(true);
-      } else if (hasDashboardAccess(result.user)) {
-        navigate('/dashboard');
-      } else {
-        navigate('/profile');
-      }
+    if (!result.success) {
+      setLoginError(result.error || 'Failed to sign in. Please check your credentials.');
+      return;
+    }
+    if (result.must_change_password) {
+      setMustChange(true);
+      return;
+    }
+    if (hasDashboardAccess(result.user)) {
+      navigate('/dashboard');
     } else {
-      setLoginError(result.error);
+      navigate('/profile');
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError('');
-    const cleanEmail = reg.email.trim().toLowerCase();
-    const cleanName = (reg.name || reg.firstName || '').trim();
-
-    if (!cleanName) {
-      setRegError('Name is required');
+    if (!reg.name.trim()) {
+      setRegError('Please enter your name.');
       return;
     }
-    if (!cleanEmail) {
-      setRegError('Email is required');
+    if (reg.password.length < 8) {
+      setRegError('Password must be at least 8 characters long.');
       return;
     }
-    if (!reg.password || reg.password.length < 8) {
-      setRegError('Password must be at least 8 characters');
+    if (!/[A-Za-z]/.test(reg.password) || !/[0-9]/.test(reg.password)) {
+      setRegError('Password must contain at least one letter and one number.');
       return;
     }
-
     setRegLoading(true);
+    const cleanEmail = reg.email.trim().toLowerCase();
     const result = await register({
+      name: reg.name.trim(),
       email: cleanEmail,
       password: reg.password,
-      name: cleanName,
     });
-    if (!result.success) {
-      setRegLoading(false);
-      setRegError(result.error);
-      return;
-    }
-    // Log the new account straight in — registration alone used to leave the
-    // user logged out on a "go sign in" panel, which is now only a fallback
-    // if this auto-login step itself fails.
-    const loginResult = await login(cleanEmail, reg.password);
     setRegLoading(false);
-    if (loginResult.success) {
-      if (hasDashboardAccess(loginResult.user)) {
-        navigate('/dashboard');
-      } else {
-        navigate('/profile');
-      }
+    if (!result.success) {
+      setRegError(result.error || 'Registration failed.');
     } else {
       setTab('login');
       setEmail(cleanEmail);
@@ -235,57 +238,52 @@ export const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
-      <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <img src={heroCoastSunset} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        {/* A heavy scrim (previously /90) hid the photo almost entirely just to
-            fix text contrast — wrong trade. Keep the photo visible with a light
-            scrim and instead give the two text elements sitting directly on it
-            (subtitle, legal line) a strong halo via text-shadow, which stays
-            legible over both the bright sky and the dark mountain silhouette. */}
-        {/* Background glow — Brand Orange */}
-        <div className="absolute inset-0 bg-[#F5F5F7]/55" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#FF6600]/20 blur-[110px]" />
-        <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#FF6600]/10 blur-[110px]" />
+    <div className="relative min-h-screen overflow-hidden flex items-center justify-center p-4 bg-[#0D0D0D]">
+      {/* Dark background styling — No AI images */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 dot-grid opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-[#FF6600]/10 blur-[130px]" />
       </div>
 
       {mustChange && (
-        <ChangePasswordModal onSuccess={() => {
-          if (hasDashboardAccess(user)) {
-            navigate('/dashboard');
-          } else {
-            navigate('/profile');
-          }
-        }} />
+        <ChangePasswordModal
+          onSuccess={() => {
+            if (hasDashboardAccess(user)) {
+              navigate('/dashboard');
+            } else {
+              navigate('/profile');
+            }
+          }}
+        />
       )}
 
-      <div className="w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="inline-flex flex-col items-center gap-2 group transition-colors"
+            className="inline-flex flex-col items-center gap-2.5 group transition-colors"
           >
             <img src="/logo.png" alt="Vakar Games" className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
-            <span className="font-display text-[18px] font-bold tracking-tight text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+            <span className="text-[17px] font-black uppercase tracking-wider text-white group-hover:text-[#FF6600] transition-colors">
               Vakar Games
             </span>
           </Link>
-          <p className="mt-1.5 text-sm font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
-            {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
+          <p className="mt-2 text-xs font-mono uppercase tracking-wider text-white/50">
+            {tab === 'login' ? 'Authentication / Sign In' : 'New Player Registration'}
           </p>
         </div>
 
-        <div className="animate-appear rounded-2xl liquid-glass overflow-hidden">
+        <div className="animate-appear bg-[#121212] border border-white/12 shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-[#D2D2D7]/60">
+          <div className="flex border-b border-white/10">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${
                   tab === id
-                    ? 'text-[#1D1D1F] border-b-2 border-[#1D1D1F] -mb-px'
-                    : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                    ? 'text-white border-b-2 border-[#FF6600] bg-[#161616]'
+                    : 'text-white/40 hover:text-white bg-[#0F0F0F]'
                 }`}
               >
                 {label}
@@ -294,9 +292,9 @@ export const Login = () => {
           </div>
 
           {tab === 'login' ? (
-            <form onSubmit={handleLogin} className="px-7 py-7 space-y-4" data-testid="login-form">
+            <form onSubmit={handleLogin} className="p-6 sm:p-7 space-y-4" data-testid="login-form">
               <div>
-                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
                   Email
                 </label>
                 <InputField
@@ -310,7 +308,7 @@ export const Login = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
                   Password
                 </label>
                 <InputField
@@ -325,42 +323,45 @@ export const Login = () => {
               </div>
 
               {loginError && (
-                <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="login-error">
-                  {loginError}
+                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2" data-testid="login-error">
+                  <Warning size={15} className="flex-shrink-0" />
+                  <span>{loginError}</span>
                 </div>
               )}
 
-              <PublicButton
+              <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full"
+                className="btn-kefir w-full py-3 text-xs disabled:opacity-50"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
-              </PublicButton>
+              </button>
             </form>
           ) : (
-            <div className="px-7 py-7">
+            <div className="p-6 sm:p-7">
               {regSuccess ? (
-                <div className="text-center py-4">
-                  <div className="rounded-lg w-11 h-11 bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={18} className="text-[#FF6600]" />
+                <div className="text-center py-4 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[#FF6600]/15 border border-[#FF6600]/40 flex items-center justify-center mx-auto text-[#FF6600]">
+                    <CheckCircle size={24} weight="bold" />
                   </div>
-                  <h3 className="font-display text-lg font-medium text-[#1D1D1F] mb-1">Account created</h3>
-                  <p className="text-sm text-[#6E6E73] mb-5">
-                    You can now sign in with your email and password.
-                  </p>
-                  <PublicButton
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wider">Account Created</h3>
+                    <p className="text-xs text-white/50 mt-1">
+                      You can now sign in with your email and password.
+                    </p>
+                  </div>
+                  <button
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="w-full"
+                    className="btn-kefir w-full py-2.5 text-xs mt-2"
                   >
-                    Go to Sign In
-                  </PublicButton>
+                    Proceed to Sign In
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
                       Name
                     </label>
                     <InputField
@@ -373,7 +374,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
                       Email
                     </label>
                     <InputField
@@ -386,13 +387,13 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
                       Password
                     </label>
                     <InputField
                       icon={Lock}
                       type="password"
-                      placeholder="Min. 8 characters, 1 letter, 1 number"
+                      placeholder="Min. 8 chars, 1 letter, 1 number"
                       value={reg.password}
                       onChange={e => setReg(r => ({ ...r, password: e.target.value }))}
                       autoComplete="new-password"
@@ -400,30 +401,33 @@ export const Login = () => {
                   </div>
 
                   {regError && (
-                    <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="register-error">
-                      {regError}
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2" data-testid="register-error">
+                      <Warning size={15} className="flex-shrink-0" />
+                      <span>{regError}</span>
                     </div>
                   )}
 
-                  <PublicButton
+                  <button
                     type="submit"
                     disabled={regLoading}
-                    className="w-full"
+                    className="btn-kefir w-full py-3 text-xs disabled:opacity-50"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
-                  </PublicButton>
+                  </button>
                 </form>
               )}
             </div>
           )}
         </div>
 
-        <p className="mt-5 text-center text-xs font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+        <p className="mt-5 text-center text-[11px] text-white/40">
           By creating an account you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-[#1D1D1F] transition-colors">Terms of Service</Link>.
+          <Link to="/terms" className="underline hover:text-white transition-colors">Terms of Service</Link>.
         </p>
       </div>
     </div>
   );
 };
+
+export default Login;

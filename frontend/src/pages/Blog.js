@@ -5,7 +5,6 @@ import { ArrowLeft, Calendar, User, CircleNotch, Lock, ShieldCheck, SignIn } fro
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
-import headerForestTrail from '../assets/photos/header-forest-trail.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -51,36 +50,33 @@ export const BlogList = () => {
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav />
 
-      {/* Page header with cinematic backdrop */}
+      {/* Page header — sleek dark theme */}
       <div
         className="relative overflow-hidden"
-        style={{ paddingTop: '60px', backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ paddingTop: '60px', backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
       >
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <img
-            src={headerForestTrail}
-            alt=""
-            className="w-full h-full object-cover object-center"
-            style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
-          />
+          <div className="absolute inset-0 dot-grid opacity-35" />
           <div
             className="absolute inset-0"
-            style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+            style={{ background: 'radial-gradient(ellipse 70% 60% at 80% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
           />
         </div>
         <div className="relative z-10 max-w-[1100px] mx-auto px-6 py-16 sm:py-20">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-[#FF6600]" />
+            <span className="kefir-label" style={{ color: '#FF6600', letterSpacing: '0.2em' }}>
+              DEVLOGS & DISPATCHES
+            </span>
+          </div>
           <h1
-            className="font-black uppercase text-white drop-shadow-2xl"
+            className="font-black uppercase text-white tracking-tight"
             style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
           >
             Blog
           </h1>
-          <p className="mt-4 text-sm max-w-md text-white/60">
-            News, updates and announcements from the studio.
+          <p className="mt-4 text-sm max-w-md text-white/60 leading-relaxed">
+            News, development updates, and stories from the Vakar Games studio.
           </p>
         </div>
       </div>

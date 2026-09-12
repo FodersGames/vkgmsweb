@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useLocation, Link } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { getWebsiteSettings } from '../utils/publicCache';
-import cloudSunrise from '../assets/photos/cloud-sunrise.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -13,59 +12,55 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.
 // (max-w-4xl) with the icon and text side by side instead of stacked, so
 // it reads as a wide card, not a narrow column you have to scroll to read.
 const MaintenancePage = ({ announcement }) => (
-  <div className="relative h-screen flex flex-col bg-[#F5F5F7] overflow-hidden [contain:paint]">
-    <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-      <img src={cloudSunrise} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-[#F5F5F7]/60" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#F5F5F7]/50 via-transparent to-[#F5F5F7]/70" />
+  <div className="relative h-screen flex flex-col bg-[#0D0D0D] text-white overflow-hidden [contain:paint]">
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div className="absolute inset-0 dot-grid opacity-30" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full bg-[#FF6600]/10 blur-[130px]" />
     </div>
 
     {/* Top bar */}
-    <div className="liquid-glass rounded-none px-6 py-3 shrink-0">
-      <span className="font-display text-[18px] font-medium tracking-tight text-[#1D1D1F]">
+    <div className="px-6 py-4 shrink-0 border-b border-white/10 bg-[#121212]/80 backdrop-blur">
+      <span className="text-[17px] font-black uppercase tracking-wider text-white">
         Vakar Games
       </span>
     </div>
 
     {/* Main content */}
     <div className="flex-1 min-h-0 flex items-center justify-center px-6 py-6">
-      {/* max-h-full + overflow-y-auto is just a safety net for very short
-          viewports (e.g. landscape mobile) — the card scrolls internally
-          rather than the whole page growing past the viewport. */}
-      <div className="liquid-glass rounded-[32px] w-full max-w-4xl max-h-full overflow-y-auto px-8 py-10 sm:px-14 sm:py-12">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-10 text-center sm:text-left">
-          <div className="rounded-lg w-14 h-14 shrink-0 bg-white/70 border border-white/80 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#2AA69D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+      <div className="w-full max-w-2xl bg-[#121212] border border-white/12 p-8 sm:p-12 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 text-center sm:text-left">
+          <div className="w-14 h-14 shrink-0 rounded-full bg-[#FF6600]/10 border border-[#FF6600]/30 flex items-center justify-center text-[#FF6600]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
             </svg>
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-3xl sm:text-4xl font-medium tracking-[-0.01em] text-[#1D1D1F] mb-3 leading-tight">
-              Under maintenance
+            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white mb-3">
+              Under Maintenance
             </h1>
 
-            <p className="text-[#1D1D1F]/80 leading-relaxed font-medium">
+            <p className="text-white/60 leading-relaxed text-sm">
               {announcement || "We're currently performing improvements to enhance your experience. We'll be back very soon — thank you for your patience!"}
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-3">
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/70 border border-white/80">
-                <div className="w-2 h-2 rounded-full bg-[#2AA69D] animate-pulse" />
-                <span className="text-xs font-semibold text-[#1D1D1F] tracking-[0.12em] uppercase">Work in progress</span>
+            <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 text-xs font-mono text-[#FF6600] uppercase tracking-wider">
+                <div className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
+                <span>Work in progress</span>
               </div>
               <a
                 href="mailto:support@vakargames.com"
-                className="text-xs font-semibold text-[#1D1D1F]/80 hover:text-[#1D1D1F] transition-colors"
+                className="text-xs text-white/50 hover:text-[#FF6600] underline transition-colors"
               >
                 support@vakargames.com
               </a>
               <Link
                 to="/login"
-                className="rounded-full inline-flex items-center gap-2 text-xs font-semibold text-[#1D1D1F] hover:text-white border border-[#1D1D1F]/15 hover:border-[#1D1D1F] hover:bg-[#1D1D1F] bg-white px-4 py-2 transition-all"
+                className="btn-kefir text-xs py-2 px-4 inline-flex items-center gap-2"
               >
-                <LogIn size={12} />
-                Sign in
+                <LogIn size={13} />
+                Sign In
               </Link>
             </div>
           </div>
