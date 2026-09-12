@@ -16,26 +16,26 @@
 
 @layer base {
   :root {
-    /* Dark gaming theme — Kefir-inspired */
-    --background: 0 0% 5%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 95%;
+    /* Brand Theme — Off-White #FAFAF7 / Anthracite #1A1A1A / Orange #FF6600 */
+    --background: 40 20% 97.5%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
     /* Brand Orange — #FF6600 */
     --primary: 24 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 85%;
-    --muted: 0 0% 9%;
-    --muted-foreground: 0 0% 50%;
+    --secondary: 40 10% 92%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 40 10% 92%;
+    --muted-foreground: 0 0% 45%;
     --accent: 24 100% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
     --ring: 24 100% 50%;
     --radius: 0.5rem;
   }
@@ -75,13 +75,12 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-      "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    background-color: #0D0D0D;
-    color: #FFFFFF;
+    background-color: #FAFAF7;
+    color: #1A1A1A;
   }
 }
 
@@ -210,9 +209,9 @@
 }
 
 /* ── Public site — Hero & section utilities ──────────────────────────── */
-/* Hero: dark split background */
+/* Hero: light background with subtle warm radial accents */
 .hero-bg {
-  background: linear-gradient(135deg, #0D0D0D 0%, #111111 50%, #0D0D0D 100%);
+  background: linear-gradient(135deg, #FAFAF7 0%, #FFFFFF 50%, #FAFAF7 100%);
   position: relative;
 }
 .hero-bg::before {
@@ -220,29 +219,29 @@
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 20% 50%, rgba(255,102,0,0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.02) 0%, transparent 40%);
+    radial-gradient(circle at 20% 50%, rgba(255,102,0,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0,0,0,0.02) 0%, transparent 40%);
   pointer-events: none;
 }
 
-/* Section dark alternates */
+/* Section light alternates */
 .section-dark {
-  background-color: #111111;
+  background-color: #FFFFFF;
 }
 .section-darker {
-  background-color: #0D0D0D;
+  background-color: #FAFAF7;
 }
 .section-accent {
-  background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
+  background: linear-gradient(135deg, #FFF8F2 0%, #FFF1E6 100%);
 }
 
-/* Kefir-style uppercase bold label */
+/* Brand uppercase bold label */
 .kefir-label {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #555555;
+  color: #777777;
 }
 
 .stat-number {
@@ -250,56 +249,62 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  color: #FFFFFF;
+  color: #1A1A1A;
   white-space: nowrap;
 }
 
-/* Dot grid (adapted for dark) */
+/* Dot grid */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
   background-size: 28px 28px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 75%);
 }
 
-/* Kefir-style white CTA button */
+/* Brand CTA button — Orange Pill (Matches UI Elements in Brand Board) */
 .btn-kefir {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.6rem 1.75rem;
-  background: #FFFFFF;
-  color: #000000;
+  padding: 0.65rem 1.85rem;
+  background: #FF6600;
+  color: #FFFFFF;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 2px solid #FFFFFF;
+  border-radius: 9999px;
+  border: 2px solid #FF6600;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: all 0.2s ease;
 }
 .btn-kefir:hover {
-  background: transparent;
+  background: #e05a00;
+  border-color: #e05a00;
   color: #FFFFFF;
+  transform: translateY(-1px);
 }
+/* Brand Secondary CTA button — White Pill with Dark Border (Matches "LEARN MORE" in Brand Board) */
 .btn-kefir-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.6rem 1.75rem;
-  background: transparent;
-  color: #FFFFFF;
+  padding: 0.65rem 1.85rem;
+  background: #FFFFFF;
+  color: #1A1A1A;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 9999px;
+  border: 2px solid #1A1A1A;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
 }
 .btn-kefir-outline:hover {
-  border-color: #FFFFFF;
+  background: #1A1A1A;
   color: #FFFFFF;
+  transform: translateY(-1px);
 }
 
 /* Chevron bounce */

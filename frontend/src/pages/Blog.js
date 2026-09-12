@@ -47,20 +47,20 @@ export const BlogList = () => {
   }, [token]);
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh' }}>
       <PublicNav />
 
       {/* Page header */}
-      <div style={{ paddingTop: '60px', backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ paddingTop: '60px', backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="max-w-[1100px] mx-auto px-6 py-16">
-          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Studio</p>
+          <p className="kefir-label mb-4" style={{ color: 'rgba(26,26,26,0.5)' }}>Studio</p>
           <h1
-            className="font-black uppercase text-white"
+            className="font-black uppercase text-[#1A1A1A]"
             style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
           >
             Blog
           </h1>
-          <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <p className="mt-4 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
             News, updates and announcements from the studio.
           </p>
         </div>
@@ -68,19 +68,19 @@ export const BlogList = () => {
 
       <div className="max-w-[1100px] mx-auto px-6 py-14">
         {loading ? (
-          <div className="text-center py-20" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <div className="text-center py-20" style={{ color: 'rgba(26,26,26,0.4)' }}>
             <CircleNotch size={32} className="animate-spin mx-auto mb-4" />
             Loading…
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
-            <h2 className="font-black uppercase text-white/40 text-2xl tracking-tight mb-2">
+            <h2 className="font-black uppercase text-[#1A1A1A]/40 text-2xl tracking-tight mb-2">
               No Posts Yet
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.3)' }}>Check back soon for updates.</p>
+            <p style={{ color: 'rgba(26,26,26,0.5)' }}>Check back soon for updates.</p>
           </div>
         ) : (
-          <div className="space-y-2" data-testid="blog-posts-list">
+          <div className="space-y-4" data-testid="blog-posts-list">
             {posts.map((post) => {
               const isLocked = !!post.is_locked;
               const allowed = post.allowed_roles || [];
@@ -88,14 +88,15 @@ export const BlogList = () => {
                 <Link
                   key={post.slug}
                   to={`/blog/${post.slug}`}
-                  className="group block overflow-hidden transition-all"
+                  className="group block overflow-hidden rounded-xl transition-all"
                   style={{
-                    backgroundColor: '#111111',
-                    border: isLocked ? '1px solid rgba(245,158,11,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                    transition: 'border-color 0.3s',
+                    backgroundColor: '#FFFFFF',
+                    border: isLocked ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(0,0,0,0.08)',
+                    boxShadow: '0 2px 14px rgba(0,0,0,0.03)',
+                    transition: 'border-color 0.3s, transform 0.2s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.5)' : 'rgba(255, 102, 0,0.3)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)'}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.6)' : '#FF6600'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = isLocked ? 'rgba(245,158,11,0.3)' : 'rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                   data-testid={`blog-post-${post.slug}`}
                 >
                   <div className="flex flex-col sm:flex-row">
@@ -120,7 +121,7 @@ export const BlogList = () => {
                     <div className="p-7 flex-1 flex flex-col justify-between">
                       <div>
                         {isLocked && (
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20 mb-3">
                             <Lock size={12} weight="bold" />
                             <span>
                               Restricted: {allowed.map(r => rolesMap[r]?.name || r).join(', ') || 'Staff only'}
@@ -128,12 +129,12 @@ export const BlogList = () => {
                           </div>
                         )}
                         <h2
-                          className="font-black uppercase text-white group-hover:text-[#FF6600] transition-colors mb-3 leading-tight"
+                          className="font-black uppercase text-[#1A1A1A] group-hover:text-[#FF6600] transition-colors mb-3 leading-tight"
                           style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', letterSpacing: '-0.01em' }}
                         >
                           {post.title}
                         </h2>
-                        <p className="text-sm leading-relaxed line-clamp-2" style={{ color: isLocked ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.4)' }}>
+                        <p className="text-sm leading-relaxed line-clamp-2" style={{ color: isLocked ? 'rgba(26,26,26,0.5)' : 'rgba(26,26,26,0.65)' }}>
                           {isLocked ? (
                             <span className="italic">
                               🔒 This article is restricted to specific studio roles ({allowed.map(r => rolesMap[r]?.name || r).join(', ')}). Click to view details.
@@ -143,7 +144,7 @@ export const BlogList = () => {
                           )}
                         </p>
                       </div>
-                      <div className="flex items-center gap-5 mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      <div className="flex items-center gap-5 mt-4 text-xs" style={{ color: 'rgba(26,26,26,0.45)' }}>
                         <span className="flex items-center gap-1.5 uppercase tracking-wide font-bold" style={{ fontSize: '0.65rem' }}>
                           <User size={10} />{post.author}
                         </span>
@@ -170,7 +171,7 @@ export const BlogList = () => {
 
 export const BlogPost = () => {
   const { slug } = useParams();
-  const { user, token } = useAuth();
+  const { token, user } = useAuth();
   const [post, setPost] = useState(null);
   const [rolesMap, setRolesMap] = useState(DEFAULT_ROLES_MAP);
   const [loading, setLoading] = useState(true);
@@ -199,12 +200,12 @@ export const BlogPost = () => {
   }, [slug, token]);
 
   if (loading) return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <CircleNotch size={32} className="animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <CircleNotch size={32} className="animate-spin" style={{ color: '#FF6600' }} />
     </div>
   );
   if (!post) return (
-    <div style={{ backgroundColor: '#0D0D0D', color: 'rgba(255,255,255,0.3)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ backgroundColor: '#FAFAF7', color: 'rgba(26,26,26,0.5)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       Post not found
     </div>
   );
@@ -213,7 +214,7 @@ export const BlogPost = () => {
   const allowed = post.allowed_roles || [];
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh' }}>
       <PublicNav />
 
       <div style={{ paddingTop: '60px' }}>
@@ -221,21 +222,21 @@ export const BlogPost = () => {
           <Link
             to="/blog"
             className="inline-flex items-center gap-2 text-sm mb-10 transition-colors"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#FFFFFF'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+            style={{ color: 'rgba(26,26,26,0.5)' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#1A1A1A'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(26,26,26,0.5)'}
           >
             <ArrowLeft size={14} />
             <span className="text-[11px] font-bold uppercase tracking-wide">Back to Blog</span>
           </Link>
 
           {post.image_url && (
-            <div className="relative mb-10 overflow-hidden">
+            <div className="relative mb-10 overflow-hidden rounded-xl">
               <img
                 src={imgUrl(post.image_url)}
                 alt={post.title}
                 className={`w-full object-cover ${isLocked ? 'brightness-75 saturate-50' : ''}`}
-                style={{ maxHeight: '360px', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ maxHeight: '360px', border: '1px solid rgba(0,0,0,0.08)' }}
               />
               {isLocked && (
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
@@ -248,7 +249,7 @@ export const BlogPost = () => {
           )}
 
           <h1
-            className="font-black uppercase text-white mb-4 leading-tight"
+            className="font-black uppercase text-[#1A1A1A] mb-4 leading-tight"
             style={{ fontSize: 'clamp(1.8rem, 5vw, 3.5rem)', letterSpacing: '-0.02em' }}
           >
             {post.title}
@@ -256,7 +257,7 @@ export const BlogPost = () => {
 
           <div
             className="flex items-center gap-5 text-xs mb-10 pb-10"
-            style={{ color: 'rgba(255,255,255,0.25)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ color: 'rgba(26,26,26,0.45)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}
           >
             <span className="flex items-center gap-1.5 uppercase tracking-wider font-bold" style={{ fontSize: '0.65rem' }}>
               <User size={11} />{post.author}
@@ -273,9 +274,9 @@ export const BlogPost = () => {
             <div
               className="p-8 sm:p-12 text-center rounded-2xl border"
               style={{
-                backgroundColor: '#111111',
-                borderColor: 'rgba(245, 158, 11, 0.25)',
-                boxShadow: '0 0 50px rgba(245, 158, 11, 0.05)',
+                backgroundColor: '#FFFFFF',
+                borderColor: 'rgba(245, 158, 11, 0.3)',
+                boxShadow: '0 4px 30px rgba(245, 158, 11, 0.08)',
               }}
             >
               <div
@@ -289,10 +290,10 @@ export const BlogPost = () => {
                 <Lock size={32} weight="duotone" />
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-tight mb-2">
+              <h2 className="text-xl sm:text-2xl font-black uppercase text-[#1A1A1A] tracking-tight mb-2">
                 Restricted Article
               </h2>
-              <p className="text-sm max-w-md mx-auto text-white/50 mb-6 leading-relaxed">
+              <p className="text-sm max-w-md mx-auto text-[#1A1A1A]/60 mb-6 leading-relaxed">
                 This post is confidential and reserved exclusively for studio members holding at least one of the following roles:
               </p>
 
@@ -320,25 +321,25 @@ export const BlogPost = () => {
                 <div className="space-y-4">
                   <Link
                     to={`/login?redirect=/blog/${post.slug}`}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#FF6600] text-white hover:bg-[#e05a00] transition-colors shadow-lg shadow-[#FF6600]/10"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider bg-[#FF6600] text-white hover:bg-[#e05a00] transition-colors shadow-lg shadow-[#FF6600]/15"
                   >
                     <SignIn size={16} weight="bold" />
                     Log in to access
                   </Link>
-                  <p className="text-xs text-white/30">
+                  <p className="text-xs text-[#1A1A1A]/40">
                     Sign in with an authorized account to unlock this post.
                   </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl max-w-md mx-auto bg-white/[0.03] border border-white/[0.08] text-xs text-white/50 leading-relaxed">
-                  Logged in as <span className="text-white font-semibold">@{user.username}</span>. Your account does not currently possess the required role(s) to view this article.
+                <div className="p-4 rounded-xl max-w-md mx-auto bg-black/[0.03] border border-black/[0.08] text-xs text-[#1A1A1A]/60 leading-relaxed">
+                  Logged in as <span className="text-[#1A1A1A] font-semibold">@{user.username}</span>. Your account does not currently possess the required role(s) to view this article.
                 </div>
               )}
             </div>
           ) : (
             <div
               className="leading-relaxed whitespace-pre-wrap"
-              style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1rem', lineHeight: 1.8 }}
+              style={{ color: '#1A1A1A', fontSize: '1rem', lineHeight: 1.8 }}
               data-testid="blog-content"
             >
               {post.content}
