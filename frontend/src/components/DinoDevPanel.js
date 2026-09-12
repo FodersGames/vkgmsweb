@@ -606,21 +606,13 @@ export const DinoDevPanel = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
-              <Gamepad2 size={20} />
+            <div className="w-8 h-8 rounded-xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600] shrink-0">
+              <Gamepad2 size={18} />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1D1D1F] dark:text-white">
-                Idle Dino Clicker Tycoon — Dev Panel
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#1D1D1F] dark:text-white">
+                Idle Dino Clicker Tycoon - Dev Panel
               </h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
-                  PlayFab Title: {config?.title_id || '1C8E49'}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
-                  Super Admin Only
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -1572,7 +1564,7 @@ export const DinoDevPanel = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-[#1D1D1F] dark:text-white">
-                    Idle Dino Clicker Tycoon — Remote Maintenance
+                    Idle Dino Clicker Tycoon - Remote Maintenance
                   </h2>
                   <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa]">
                     Real-time PlayFab TitleData maintenance switch & automated scheduler
