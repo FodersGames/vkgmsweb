@@ -1,34 +1,43 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Terminal, ShieldAlert, Maximize2, Minimize2, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Terminal, ShieldAlert, Maximize2, Minimize2, Trash2, Copy, Check, Sparkles, ChevronRight } from 'lucide-react';
 import api from '../utils/api';
 import { CliCommandPopup } from './CliCommandPopup';
-import CriticalActionModal from './CriticalActionModal';
 
 const WELCOME = [
-  'Vakar Games : Super Admin CLI',
-  "Type 'help' to list available commands.",
-  "Prefix any command with $ (e.g. $player mute) to fill it in graphically.",
+  '╔════════════════════════════════════════════════════════════════════════════╗',
+  '║                  VAKAR GAMES  —  SUPER ADMIN CLI CONSOLE                  ║',
+  '║                    Secure System Engine • Production API                   ║',
+  '╚════════════════════════════════════════════════════════════════════════════╝',
+  '',
+  "Type 'help' to display the interactive command manual.",
+  "Prefix any command with $ (e.g. $user find) to open a visual parameter form.",
+  "Type 'clear' or click the trash icon to reset the screen.",
   '',
 ];
 
+const QUICK_COMMANDS = [
+  { label: 'help', cmd: 'help', desc: 'Display command guide' },
+  { label: 'vps', cmd: 'vps', desc: 'Server health, CPU, RAM & Disk' },
+  { label: 'stats', cmd: 'stats', desc: 'Global platform metrics' },
+  { label: 'survey list', cmd: 'survey list', desc: 'List active public surveys' },
+  { label: 'dino status', cmd: 'dino maintenance show', desc: 'Dino Tycoon maintenance state' },
+  { label: 'dino maint on', cmd: 'dino maintenance on', desc: 'Cut game servers immediately' },
+  { label: 'dino maint off', cmd: 'dino maintenance off', desc: 'Reopen game servers' },
+  { label: 'user list', cmd: 'user list', desc: 'List recent users & roles' },
+  { label: 'clear', cmd: 'clear', desc: 'Clear console output' },
+];
+
 export const CliConsole = () => {
-  const [lines, setLines]     = useState(() => WELCOME.map(text => ({ type: 'system', text })));
-  const [input, setInput]     = useState('');
-  const [busy, setBusy]       = useState(false);
-  const [pending, setPending] = useState(null); // command string awaiting y/n confirmation
+  const [lines, setLines]           = useState(() => WELCOME.map(text => ({ type: 'system', text })));
+  const [input, setInput]           = useState('');
+  const [busy, setBusy]             = useState(false);
+  const [pending, setPending]       = useState(null); // command string awaiting y/n confirmation
   const [fullscreen, setFullscreen] = useState(false);
+  const [copied, setCopied]         = useState(false);
 
-  const [commands, setCommands] = useState([]);
+  const [commands, setCommands]     = useState([]);
   const [dropdownIdx, setDropdownIdx] = useState(0);
-  const [popup, setPopup] = useState(null); // { command, prefill } | null
-
-  // Critical actions (admin_system.py's CRITICAL_ACTIONS) never run through
-  // the normal y/n confirm above : they open CriticalActionModal instead,
-  // which schedules a 30s cancellable countdown any super admin can abort
-  // (see CriticalActionBanner.js, rendered site-wide in Dashboard.js).
-  const [criticalActions, setCriticalActions] = useState([]);
-  const [criticalMenuOpen, setCriticalMenuOpen] = useState(false);
-  const [criticalTarget, setCriticalTarget] = useState(null); // { action_type, label } | null
+  const [popup, setPopup]           = useState(null); // { command, prefill } | null
 
   const historyRef = useRef([]);
   const historyIdxRef = useRef(-1);
@@ -36,36 +45,51 @@ export const CliConsole = () => {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    api.get('/api/admin/cli/commands').then(r => setCommands(r.data.commands || [])).catch(() => {});
-    api.get('/api/admin/critical-actions/catalog').then(r => setCriticalActions(r.data.actions || [])).catch(() => {});
+    api.get('/api/admin/cli/commands')
+      .then(r => setCommands(r.data.commands || []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [lines]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [lines, busy, pending]);
 
-  // Restore focus once the input re-enables (it's briefly disabled while a command runs),
-  // so the user can keep typing without having to click back into the terminal.
   useEffect(() => {
     if (!busy) inputRef.current?.focus();
   }, [busy]);
 
-  // Escape exits fullscreen, same convention as ConfirmDialog's Escape-to-close.
   useEffect(() => {
     if (!fullscreen) return;
-    const onKey = (e) => { if (e.key === 'Escape') setFullscreen(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setFullscreen(false);
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [fullscreen]);
 
+  const clearConsole = () => {
+    setLines(WELCOME.map(text => ({ type: 'system', text })));
+    setPending(null);
+  };
+
+  const copyConsoleOutput = () => {
+    const text = lines.map(l => l.text).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+
   const appendLines = (type, texts) => {
+    if (texts.length === 1 && texts[0] === '__CLEAR__') {
+      clearConsole();
+      return;
+    }
     setLines(prev => [...prev, ...texts.map(text => ({ type, text }))]);
   };
 
-  // Autocomplete : matches the catalog's command path against whatever's
-  // typed so far (stripping a leading $ so `$player mu` still suggests
-  // `player mute`), shown only while there's a partial match and no pending
-  // confirmation prompt in the way.
   const effectiveInput = input.startsWith('$') ? input.slice(1) : input;
   const dropdownMatches = useMemo(() => {
     const q = effectiveInput.trim().toLowerCase();
@@ -83,24 +107,29 @@ export const CliConsole = () => {
   };
 
   const runCommand = async (command, confirm) => {
+    if (command.trim().toLowerCase() === 'clear') {
+      clearConsole();
+      return;
+    }
     setBusy(true);
     try {
       const r = await api.post('/api/admin/cli/execute', { command, confirm });
       const { output, needs_confirm, error } = r.data;
-      appendLines(error ? 'error' : 'output', output || []);
+      if (output && output.length === 1 && output[0] === '__CLEAR__') {
+        clearConsole();
+      } else {
+        appendLines(error ? 'error' : 'output', output || []);
+      }
       if (needs_confirm) setPending(command);
       else setPending(null);
     } catch (e) {
-      appendLines('error', [e.response?.data?.detail || 'Command failed : see server logs.']);
+      appendLines('error', [e.response?.data?.detail || 'Command failed: check server telemetry.']);
       setPending(null);
     } finally {
       setBusy(false);
     }
   };
 
-  // Finds the longest catalog path that's a prefix of the given tokens :
-  // same matching a `$player mute alpha` needs to resolve to `player mute`
-  // (2-token path) rather than stopping at just `player`.
   const matchCommand = (tokens) => {
     let best = null;
     for (const c of commands) {
@@ -116,7 +145,7 @@ export const CliConsole = () => {
     const tokens = raw.trim().split(/\s+/);
     const match = matchCommand(tokens);
     if (!match) {
-      appendLines('error', [`Unknown command '${raw.trim()}'. Type 'help' for the command list.`]);
+      appendLines('error', [`Unknown command '${raw.trim()}'. Type 'help' for available commands.`]);
       return;
     }
     const prefill = tokens.slice(match.path.length);
@@ -124,19 +153,17 @@ export const CliConsole = () => {
   };
 
   const submit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     const raw = input;
     const cmd = raw.trim();
     if (!cmd || busy) return;
 
     if (dropdownMatches.length > 0) {
-      // A visible suggestion takes over Enter instead of submitting : matches
-      // CommandPalette's existing Enter-selects-highlighted convention.
       applyCompletion(dropdownMatches[dropdownIdx]);
       return;
     }
 
-    appendLines('input', [`vakargames-cli> ${raw}`]);
+    appendLines('input', [`admin@vkgms:~$ ${raw}`]);
     setInput('');
     historyRef.current.push(raw);
     historyIdxRef.current = -1;
@@ -146,7 +173,7 @@ export const CliConsole = () => {
       const cmdToRun = pending;
       setPending(null);
       if (!isYes) {
-        appendLines('system', ['Cancelled.']);
+        appendLines('system', ['Action cancelled by administrator.']);
         return;
       }
       await runCommand(cmdToRun, true);
@@ -190,126 +217,170 @@ export const CliConsole = () => {
     }
   };
 
-  const colorFor = (type) => {
-    switch (type) {
-      case 'input':  return 'text-[#FF6600]';
-      case 'error':  return 'text-red-400';
-      case 'system': return 'text-[#6E6E73]';
-      default:       return 'text-[#D6D3D1]';
+  const renderLine = (l, i) => {
+    const text = l.text;
+    if (l.type === 'input') {
+      return (
+        <div key={i} className="flex items-start gap-2 py-0.5 text-[#FF6600] font-semibold">
+          <ChevronRight size={14} className="shrink-0 mt-0.5" />
+          <span className="whitespace-pre-wrap break-words">{text}</span>
+        </div>
+      );
     }
+    if (l.type === 'error') {
+      return (
+        <div key={i} className="my-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border-l-2 border-rose-500 text-rose-400 text-xs font-mono">
+          {text}
+        </div>
+      );
+    }
+    if (text.startsWith('OK :') || text.startsWith('OK:')) {
+      return (
+        <div key={i} className="py-0.5 text-emerald-400 font-medium whitespace-pre-wrap break-words">
+          {text}
+        </div>
+      );
+    }
+    if (text.startsWith('Platform stats:') || text.startsWith('VPS Server Telemetry:') || text.startsWith('Dino Game Maintenance Status:') || text.startsWith('Player Profile')) {
+      return (
+        <div key={i} className="pt-2 pb-0.5 text-amber-300 font-bold uppercase tracking-wider text-[11px] whitespace-pre-wrap break-words">
+          {text}
+        </div>
+      );
+    }
+    if (l.type === 'system') {
+      return (
+        <div key={i} className="text-zinc-500 whitespace-pre-wrap break-words py-0.5">
+          {text}
+        </div>
+      );
+    }
+    return (
+      <div key={i} className="text-zinc-300 whitespace-pre-wrap break-words py-0.5">
+        {text}
+      </div>
+    );
   };
 
   return (
-    <div className={fullscreen ? 'fixed inset-0 z-[100] bg-[#0e0e12] p-6 overflow-y-auto' : 'p-6 max-w-4xl mx-auto space-y-6'}>
-      <div className={fullscreen ? 'max-w-5xl mx-auto space-y-6' : 'space-y-6'}>
-
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg w-10 h-10 bg-[#FF6600]/10 flex items-center justify-center">
-          <Terminal size={20} className="text-[#FF6600]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className={`text-lg font-bold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>CLI</h1>
-          <p className={`text-xs ${fullscreen ? 'text-[#8a8a92]' : 'text-[#A1A1A6]'}`}>Super admin only : whitelisted commands, every action is confirmed and logged.</p>
-        </div>
-        {criticalActions.length > 0 && (
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setCriticalMenuOpen(v => !v)}
-              className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-red-500 bg-red-500/10 border border-red-500/30 hover:bg-red-500/15 transition-all"
-            >
-              <AlertTriangle size={13} />
-              Critical Actions
-              <ChevronDown size={13} className={`transition-transform ${criticalMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {criticalMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-72 rounded-lg overflow-hidden border border-red-500/30 bg-white dark:bg-[#1a1a24] shadow-xl z-20">
-                {criticalActions.map(a => (
-                  <button
-                    key={a.action_type}
-                    type="button"
-                    onClick={() => { setCriticalMenuOpen(false); setCriticalTarget(a); }}
-                    className="w-full text-left px-3.5 py-2.5 text-xs text-[#1D1D1F] dark:text-[#e4e4e7] hover:bg-red-500/10 transition-colors"
-                  >
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
+    <div className={fullscreen ? 'fixed inset-0 z-[100] bg-[#0A0B10] p-4 lg:p-8 overflow-y-auto' : 'w-full max-w-6xl mx-auto space-y-6'}>
+      {/* Header Banner */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center shadow-inner">
+            <Terminal size={22} className="text-[#FF6600]" />
           </div>
-        )}
-      </div>
-
-      {/* Warning banner */}
-      <div className="rounded-lg flex items-start gap-2.5 bg-[#F2994A]/10 border border-[#F2994A]/30 px-4 py-3">
-        <ShieldAlert size={15} className="text-[#F2994A] shrink-0 mt-0.5" />
-        <p className={`text-xs leading-relaxed ${fullscreen ? 'text-[#c4c4c8]' : 'text-[#6E6E73]'}`}>
-          This console only runs a fixed set of predefined commands : there is no raw database access or code
-          execution. Destructive commands (suspend, ban, revoke, loyalty adjust…) always show a preview first
-          and require you to type <span className={`font-semibold ${fullscreen ? 'text-white' : 'text-[#1D1D1F]'}`}>y</span> to confirm.
-        </p>
-      </div>
-
-      {/* Terminal window */}
-      <div
-        className="rounded-xl overflow-hidden shadow-2xl ring-1 ring-black/10"
-        onClick={() => inputRef.current?.focus()}
-      >
-        {/* Title bar */}
-        <div className="relative flex items-center h-9 px-3.5 bg-gradient-to-b from-[#4a4a4a] to-[#383838] border-b border-black/40">
-          <div className="flex items-center gap-[7px]">
-            <span className="w-3 h-3 rounded-full bg-[#FF5F57] ring-1 ring-black/10" />
-            <span className="w-3 h-3 rounded-full bg-[#FEBC2E] ring-1 ring-black/10" />
-            <span className="w-3 h-3 rounded-full bg-[#28C840] ring-1 ring-black/10" />
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-bold text-[#1D1D1F] dark:text-white tracking-tight">CLI Terminal Engine</h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                ONLINE
+              </span>
+            </div>
+            <p className="text-xs text-[#6E6E73] dark:text-[#A1A1A6] mt-0.5">
+              Super Admin direct command console — secure system execution & production management.
+            </p>
           </div>
-          <span className="absolute left-1/2 -translate-x-1/2 text-[12.5px] font-medium text-white/70">
-            super-admin : vakargames-cli
-          </span>
+        </div>
+
+        {/* Console Action Bar */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setFullscreen(v => !v); }}
-            className="ml-auto text-white/50 hover:text-white/90 transition-colors"
-            title={fullscreen ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
+            onClick={clearConsole}
+            title="Effacer le terminal (clear)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] dark:text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          >
+            <Trash2 size={13} />
+            <span className="hidden sm:inline">Effacer</span>
+          </button>
+          <button
+            type="button"
+            onClick={copyConsoleOutput}
+            title="Copier la sortie"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] dark:text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          >
+            {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+            <span className="hidden sm:inline">{copied ? 'Copié !' : 'Copier'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFullscreen(v => !v)}
+            title={fullscreen ? 'Quitter plein écran (Esc)' : 'Plein écran'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#6E6E73] dark:text-[#A1A1A6] hover:text-[#1D1D1F] dark:hover:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           >
             {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            <span className="hidden sm:inline">{fullscreen ? 'Réduire' : 'Plein écran'}</span>
           </button>
         </div>
+      </div>
 
+      {/* Terminal Main Window */}
+      <div
+        className="rounded-3xl overflow-hidden border border-[#2A2B3C] bg-[#0A0B10] shadow-2xl transition-all"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {/* macOS Title Bar */}
+        <div className="relative flex items-center justify-between h-11 px-4 bg-gradient-to-r from-[#141522] via-[#10111A] to-[#141522] border-b border-[#232434] select-none">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-[#FF5F57] ring-1 ring-black/20" />
+            <span className="w-3 h-3 rounded-full bg-[#FEBC2E] ring-1 ring-black/20" />
+            <span className="w-3 h-3 rounded-full bg-[#28C840] ring-1 ring-black/20" />
+          </div>
+
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 text-xs font-mono font-medium text-zinc-400">
+            <span className="text-[#FF6600]">admin@vakargames</span>
+            <span className="text-zinc-600">:</span>
+            <span className="text-zinc-300">~ (production vps)</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-500">
+            <span className="hidden md:inline">UTF-8</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          </div>
+        </div>
+
+        {/* Output Console Screen */}
         <div
           ref={scrollRef}
-          className={`overflow-y-auto px-4 py-3 bg-[#1a1a1a] font-mono text-[13px] leading-relaxed ${fullscreen ? 'h-[calc(100vh-260px)]' : 'h-[440px]'}`}
+          className={`overflow-y-auto p-5 font-mono text-[13px] leading-relaxed scroll-smooth ${fullscreen ? 'h-[calc(100vh-280px)]' : 'h-[520px] lg:h-[580px]'}`}
         >
-          {lines.map((l, i) => (
-            <div key={i} className={`whitespace-pre-wrap break-words ${colorFor(l.type)}`}>
-              {l.text}
-            </div>
-          ))}
+          {lines.map((l, i) => renderLine(l, i))}
+
           {pending && (
-            <div className="text-[#F2994A]">Confirm? (y/n)</div>
+            <div className="my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-semibold flex items-center gap-2">
+              <span className="animate-pulse">⚠</span>
+              Confirmation required: please type <span className="underline">y</span> to execute or <span className="underline">n</span> to cancel.
+            </div>
           )}
 
-          <div className="relative">
+          {/* Autocomplete Menu */}
+          <div className="relative mt-2">
             {dropdownMatches.length > 0 && (
-              <div className="absolute bottom-full left-0 mb-1 w-full max-w-md rounded-lg overflow-hidden border border-white/10 bg-[#242424] shadow-xl z-10">
+              <div className="absolute bottom-full left-0 mb-2 w-full max-w-lg rounded-2xl overflow-hidden border border-[#2F3046] bg-[#141522] shadow-2xl z-20 backdrop-blur-md">
+                <div className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-zinc-500 border-b border-[#232434] bg-white/5">
+                  Suggestions (Tab ou Entrée pour sélectionner)
+                </div>
                 {dropdownMatches.map((c, i) => (
                   <button
                     type="button"
                     key={c.path.join(' ')}
                     onMouseEnter={() => setDropdownIdx(i)}
                     onClick={() => applyCompletion(c)}
-                    className={`w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors ${i === dropdownIdx ? 'bg-[#FF6600]/15' : ''}`}
+                    className={`w-full flex items-center justify-between gap-4 px-3.5 py-2 text-left transition-colors ${i === dropdownIdx ? 'bg-[#FF6600]/20 text-white' : 'text-zinc-300 hover:bg-white/5'}`}
                   >
-                    <span className={`font-mono text-[12px] ${i === dropdownIdx ? 'text-[#FF6600]' : 'text-[#D6D3D1]'}`}>{c.path.join(' ')}</span>
-                    <span className="text-[11px] text-[#7a7a7a] truncate">{c.description}</span>
+                    <span className="font-mono text-xs font-semibold text-[#FF6600]">{c.path.join(' ')}</span>
+                    <span className="text-[11px] text-zinc-400 truncate text-right">{c.description}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <form onSubmit={submit} className="flex items-center gap-2 mt-0.5">
-              <span className="font-mono text-[13px] text-[#FF6600] shrink-0">
-                {pending ? 'confirm>' : 'vakargames-cli>'}
+            {/* Terminal Prompt Line */}
+            <form onSubmit={submit} className="flex items-center gap-2.5 pt-1">
+              <span className="font-mono text-sm font-bold text-[#FF6600] shrink-0 select-none">
+                {pending ? 'confirm>' : 'admin@vkgms:~$'}
               </span>
               <input
                 ref={inputRef}
@@ -321,15 +392,50 @@ export const CliConsole = () => {
                 autoFocus
                 spellCheck={false}
                 autoComplete="off"
-                placeholder={pending ? 'y / n' : "type a command… ('help' for the list, $command for a form)"}
-                className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-[#6E6E73]/60 focus:outline-none disabled:opacity-50"
+                placeholder={pending ? 'Type y / n...' : "Tapez une commande (ex: vps, dino maintenance show, help...)"}
+                className="flex-1 bg-transparent font-mono text-[13px] text-white placeholder-zinc-600 focus:outline-none disabled:opacity-50"
               />
+              {busy && (
+                <div className="flex items-center gap-1.5 text-xs text-[#FF6600] shrink-0 font-mono animate-pulse">
+                  <span>Executing...</span>
+                </div>
+              )}
             </form>
           </div>
         </div>
-      </div>
+
+        {/* Quick Action Chips Bar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-[#0F101A] border-t border-[#1F2030] overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-mono uppercase text-zinc-500 shrink-0 flex items-center gap-1">
+            <Sparkles size={11} className="text-[#FF6600]" />
+            Accès rapide:
+          </span>
+          {QUICK_COMMANDS.map(q => (
+            <button
+              key={q.cmd}
+              type="button"
+              onClick={() => {
+                setInput(q.cmd);
+                inputRef.current?.focus();
+              }}
+              title={q.desc}
+              className="shrink-0 px-2.5 py-1 rounded-lg text-xs font-mono text-zinc-300 bg-[#1A1B28] hover:bg-[#FF6600]/20 hover:text-[#FF6600] border border-[#28293D] hover:border-[#FF6600]/40 transition-all cursor-pointer"
+            >
+              {q.label}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Safety Notice */}
+      <div className="rounded-2xl p-4 bg-[#FF6600]/5 border border-[#FF6600]/15 flex items-start gap-3">
+        <ShieldAlert size={17} className="text-[#FF6600] shrink-0 mt-0.5" />
+        <p className="text-xs text-[#6E6E73] dark:text-[#A1A1A6] leading-relaxed">
+          Console sécurisée en production. Les actions d'écriture (maintenance, ban, don PlayFab, rôles) demandent toujours une confirmation explicite (<code className="text-[#FF6600] font-mono font-semibold">y</code>) et sont automatiquement inscrites au journal d'audit de sécurité.
+        </p>
+      </div>
+
+      {/* Graphical Popup Modal for $command */}
       {popup && (
         <CliCommandPopup
           command={popup.command}
@@ -338,24 +444,10 @@ export const CliConsole = () => {
           onSubmit={(commandString) => {
             setPopup(null);
             setInput('');
-            appendLines('input', [`vakargames-cli> ${commandString}`]);
+            appendLines('input', [`admin@vkgms:~$ ${commandString}`]);
             historyRef.current.push(commandString);
             historyIdxRef.current = -1;
             runCommand(commandString, false);
-          }}
-        />
-      )}
-
-      {criticalTarget && (
-        <CriticalActionModal
-          actionType={criticalTarget.action_type}
-          label={criticalTarget.label}
-          onClose={() => setCriticalTarget(null)}
-          onScheduled={() => {
-            appendLines('system', [
-              `⚠ CRITICAL: '${criticalTarget.label}' scheduled : see the countdown banner to cancel.`,
-            ]);
-            setCriticalTarget(null);
           }}
         />
       )}

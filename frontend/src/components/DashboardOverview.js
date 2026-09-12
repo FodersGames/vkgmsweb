@@ -230,11 +230,11 @@ export const DashboardOverview = ({ goTo }) => {
     canViewVps
       ? {
           id: 'system',
-          label: 'Health & VPS Server',
-          desc: 'CPU, RAM telemetry, MongoDB latency, and system probes',
+          label: 'VPS Server & Telemetry',
+          desc: 'CPU, RAM, Disk usage, system probes, and live infrastructure metrics',
           icon: Activity,
           color: '#30D158',
-          action: () => goTo('system', 'health'),
+          action: () => goTo('system', 'vps'),
         }
       : null,
     canManageUsers

@@ -16,7 +16,6 @@ import { DashboardOverview }   from '../components/DashboardOverview';
 import { GamesManagement }     from '../components/GamesManagement';
 import { BlogManagement }      from '../components/BlogManagement';
 import { GlobalManagement }    from '../components/GlobalManagement';
-import { Health }              from '../components/Health';
 import { VpsStats }            from '../components/VpsStats';
 import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
@@ -71,9 +70,8 @@ const NAV_GROUPS = [
 
 // ── Workspace sub-tabs ────────────────────────────────────────────────────────
 const SYSTEM_SUBTABS = [
-  { id: 'vps',    label: 'VPS',    icon: Server,   component: VpsStats,   permission: 'view_vps' },
-  { id: 'health', label: 'Health', icon: Activity, component: Health,     permission: 'view_vps' },
-  { id: 'cli',    label: 'CLI',    icon: Terminal, component: CliConsole, superAdminOnly: true    },
+  { id: 'vps', label: 'VPS', icon: Server, component: VpsStats, permission: 'view_vps' },
+  { id: 'cli', label: 'CLI', icon: Terminal, component: CliConsole, superAdminOnly: true },
 ];
 
 const WEBSITE_SETTINGS_SUBTABS = [
