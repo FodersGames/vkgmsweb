@@ -17,10 +17,10 @@ const NAME_COOLDOWN_DAYS = 30;
 
 /* ─── Style helpers ────────────────────────────────────────────────────── */
 const inputDark = {
-  backgroundColor: '#FAFAF7',
-  border: '1px solid rgba(0,0,0,0.15)',
-  color: '#1A1A1A',
-  borderRadius: '0.5rem',
+  backgroundColor: '#0A0A0A',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: '#FFFFFF',
+  borderRadius: 0,
   outline: 'none',
   width: '100%',
   padding: '0.6rem 0.75rem',
@@ -29,10 +29,8 @@ const inputDark = {
 const inputFocusDark = { borderColor: '#FF6600' };
 
 const cardDark = {
-  backgroundColor: '#FFFFFF',
-  border: '1px solid rgba(0,0,0,0.08)',
-  borderRadius: '0.75rem',
-  boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
+  backgroundColor: '#111111',
+  border: '1px solid rgba(255,255,255,0.06)',
   padding: '1.5rem',
 };
 
@@ -67,7 +65,7 @@ const PasswordField = ({ label, value, onChange, autoComplete, placeholder }) =>
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.6)' }}>
+        <label style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
           {label}
         </label>
       </div>
@@ -110,7 +108,7 @@ const TextField = ({ label, value, onChange, placeholder, autoComplete, required
   const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.55)', marginBottom: '0.4rem' }}>
+      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: '0.4rem' }}>
         {label} {!required && <span style={{ color: 'rgba(255,255,255,0.2)', textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(optional)</span>}
       </label>
       <input
@@ -125,7 +123,7 @@ const TextField = ({ label, value, onChange, placeholder, autoComplete, required
         onBlur={() => setFocused(false)}
         style={{ ...inputDark, ...(focused && !disabled ? inputFocusDark : {}), opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'text' }}
       />
-      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: 'rgba(26,26,26,0.5)' }}>{hint}</p>}
+      {hint && <p style={{ marginTop: '0.25rem', fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>{hint}</p>}
     </div>
   );
 };
@@ -267,13 +265,13 @@ const Profile = () => {
   const customRoles = (user.roles || []).filter(r => !r.is_system);
 
   return (
-    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       <div style={{ flex: 1, paddingTop: '60px' }}>
 
         {/* ── Hero header ─────────────────────────────────────────── */}
-        <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
+        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '3.5rem 1.5rem 2.5rem' }}>
           <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
 
             {/* Roles / Badges DISPLAYED ABOVE THE PROFILE PHOTO */}
@@ -413,10 +411,10 @@ const Profile = () => {
             </div>
 
             {/* Display Name */}
-            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#1A1A1A', margin: 0, marginBottom: '0.25rem' }}>
+            <h1 style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.01em', fontSize: '1.5rem', color: '#FFFFFF', margin: 0, marginBottom: '0.25rem' }}>
               {displayName}
             </h1>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(26,26,26,0.6)', margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
               @{user.username} • {user.email}
             </p>
 
@@ -425,7 +423,7 @@ const Profile = () => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.65)', border: '1px solid rgba(255,255,255,0.12)', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.12)', padding: '0.45rem 0.85rem', textDecoration: 'none', transition: 'color 0.2s, border-color 0.2s' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
                   onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 >
@@ -462,14 +460,14 @@ const Profile = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <User size={15} style={{ color: '#FF6600' }} />
-                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#1A1A1A', margin: 0 }}>
+                <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                   Account Details
                 </h2>
               </div>
               {!editingProfile && (
                 <button
                   onClick={() => setEditingProfile(true)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.55)', border: '1px solid rgba(0,0,0,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.3rem 0.7rem', background: 'none', cursor: 'pointer' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
                   onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 >
@@ -497,8 +495,8 @@ const Profile = () => {
                   autoComplete="username"
                 />
                 <div>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', marginBottom: '0.25rem' }}>Email</p>
-                  <p style={{ fontSize: '0.85rem', color: 'rgba(26,26,26,0.6)', margin: 0 }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.25rem' }}>Email</p>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', margin: 0 }}>{user.email} <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.7rem' }}>(cannot be changed)</span></p>
                 </div>
                 {profileError && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.75rem', backgroundColor: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', color: '#FF6464', fontSize: '0.75rem' }}>
@@ -540,8 +538,8 @@ const Profile = () => {
                     { label: 'Status',   value: user.is_super_admin ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Player') },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', marginBottom: '0.2rem' }}>{label}</p>
-                      <p style={{ fontSize: '0.85rem', color: 'rgba(26,26,26,0.85)', wordBreak: 'break-all', margin: 0 }}>{value}</p>
+                      <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: '0.2rem' }}>{label}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', wordBreak: 'break-all', margin: 0 }}>{value}</p>
                     </div>
                   ))}
                 </div>
@@ -555,11 +553,11 @@ const Profile = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Lock size={15} style={{ color: '#FF6600' }} />
                 <div>
-                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#1A1A1A', margin: 0 }}>
+                  <h2 style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem', color: '#FFFFFF', margin: 0 }}>
                     Password & Security
                   </h2>
                   {!showPasswordChange && (
-                    <p style={{ fontSize: '0.75rem', color: 'rgba(26,26,26,0.55)', margin: 0, marginTop: '0.2rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', margin: 0, marginTop: '0.2rem' }}>
                       Keep your account secure by updating your password regularly.
                     </p>
                   )}
