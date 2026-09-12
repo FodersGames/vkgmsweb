@@ -201,6 +201,7 @@ def _serialize_settings(doc: dict) -> dict:
         effective_mode = True
     return {
         "maintenance_mode": effective_mode,
+        "maintenance_active": effective_mode,
         "maintenance_scheduled_at": scheduled_at.isoformat() if isinstance(scheduled_at, datetime) else scheduled_at,
         "maintenance_announcement": doc.get("maintenance_announcement", ""),
         "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,

@@ -5,6 +5,7 @@ import { ArrowLeft, Calendar, User, CircleNotch, Lock, ShieldCheck, SignIn } fro
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { BlogContentRenderer, stripMarkdownForExcerpt } from '../components/BlogContentRenderer';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
@@ -127,7 +128,7 @@ export const BlogList = () => {
                               This article is restricted to specific studio roles.
                             </span>
                           ) : (
-                            `${post.content?.replace(/<[^>]*>/g, '').substring(0, 220)}…`
+                            `${stripMarkdownForExcerpt(post.content, 220)}…`
                           )}
                         </p>
                       </div>
@@ -299,11 +300,8 @@ export const BlogPost = () => {
               )}
             </div>
           ) : (
-            <div
-              className="leading-relaxed whitespace-pre-wrap text-base sm:text-lg text-[#1D1D1F]/90 font-normal space-y-4"
-              data-testid="blog-content"
-            >
-              {post.content}
+            <div className="mt-8" data-testid="blog-content">
+              <BlogContentRenderer content={post.content} />
             </div>
           )}
         </div>
