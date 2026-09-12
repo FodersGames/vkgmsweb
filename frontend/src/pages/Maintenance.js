@@ -2,27 +2,32 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useLocation, Link } from 'react-router-dom';
 import { getWebsiteSettings } from '../utils/publicCache';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
-const MaintenancePage = ({ announcement }) => (
-  <div className="min-h-screen bg-white text-[#1D1D1F] flex flex-col justify-between p-6 sm:p-10 antialiased selection:bg-[#FF6600]/20 selection:text-[#FF6600]">
-    {/* Minimal Header */}
-    <header className="w-full max-w-[1040px] mx-auto flex items-center justify-between">
-      <Link to="/" className="flex items-center gap-2.5 group">
-        <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain transition-transform group-hover:scale-105" />
-        <span className="font-semibold text-sm tracking-tight text-[#1D1D1F]">
-          Vakar Games
-        </span>
-      </Link>
+const MaintenancePage = ({ announcement }) => {
+  const { user, isAdmin } = useAuth();
+  const targetLink = user && typeof isAdmin === 'function' && isAdmin() ? '/dashboard' : '/login';
 
-      <Link
-        to="/login"
-        className="text-xs font-medium text-[#86868B] hover:text-[#1D1D1F] transition-colors"
-      >
-        Staff Portal
-      </Link>
-    </header>
+  return (
+    <div className="min-h-screen bg-white text-[#1D1D1F] flex flex-col justify-between p-6 sm:p-10 antialiased selection:bg-[#FF6600]/20 selection:text-[#FF6600]">
+      {/* Minimal Header */}
+      <header className="w-full max-w-[1040px] mx-auto flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain transition-transform group-hover:scale-105" />
+          <span className="font-semibold text-sm tracking-tight text-[#1D1D1F]">
+            Vakar Games
+          </span>
+        </Link>
+
+        <Link
+          to={targetLink}
+          className="text-xs font-medium text-[#86868B] hover:text-[#1D1D1F] transition-colors"
+        >
+          Sign In
+        </Link>
+      </header>
 
     {/* Center Message */}
     <main className="w-full max-w-xl mx-auto py-16 text-center">
@@ -70,7 +75,8 @@ const MaintenancePage = ({ announcement }) => (
       </div>
     </footer>
   </div>
-);
+  );
+};
 
 export const MaintenanceCountdownBanner = ({ scheduledAt, announcement }) => {
   const [, forceTick] = useState(0);

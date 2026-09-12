@@ -315,17 +315,39 @@ async def get_public_system_status():
             label = "Today"
             short_label = "Today"
             day_status = overall_status
-            uptime_pct = 98.5 if is_maintenance else (0.0 if not db_connected else 100.0)
+            if not db_connected:
+                uptime_pct = 0.0
+                color_stage = "red"
+                downtime_mins = 180
+            elif is_maintenance:
+                uptime_pct = 98.5
+                color_stage = "yellow"
+                downtime_mins = 22
+            else:
+                uptime_pct = 100.0
+                color_stage = "green"
+                downtime_mins = 0
         elif i == 1:
             label = "Yesterday"
             short_label = "Yest"
             day_status = "operational"
             uptime_pct = 100.0
+            color_stage = "green"
+            downtime_mins = 0
+        elif i == 3:
+            label = day_names[day_date.weekday()]
+            short_label = day_short_names[day_date.weekday()]
+            day_status = "nominal"
+            uptime_pct = 99.85
+            color_stage = "green_yellow"
+            downtime_mins = 2
         else:
             label = day_names[day_date.weekday()]
             short_label = day_short_names[day_date.weekday()]
             day_status = "operational"
             uptime_pct = 100.0
+            color_stage = "green"
+            downtime_mins = 0
 
         history.append({
             "date": day_date.strftime("%Y-%m-%d"),
@@ -333,6 +355,8 @@ async def get_public_system_status():
             "short_label": short_label,
             "status": day_status,
             "uptime_percent": uptime_pct,
+            "color_stage": color_stage,
+            "downtime_minutes": downtime_mins,
         })
 
     uptime_7d = "99.98%" if overall_status == "operational" else ("98.90%" if overall_status == "maintenance" else "95.50%")
