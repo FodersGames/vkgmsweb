@@ -7,6 +7,8 @@ import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { BlogContentRenderer, stripMarkdownForExcerpt } from '../components/BlogContentRenderer';
 
+import { toast } from 'sonner';
+
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
@@ -29,7 +31,8 @@ export const BlogList = () => {
   const handleShare = async (e, post) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/blog/${post.slug}`;
+    const basePath = window.location.pathname.replace(/\/+$/, '');
+    const url = `${window.location.origin}${basePath}/#/blog/${post.slug}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -42,10 +45,31 @@ export const BlogList = () => {
         if (err.name === 'AbortError') return;
       }
     }
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
+    let copied = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {}
+    }
+    if (!copied) {
+      try {
+        const input = document.createElement('textarea');
+        input.value = url;
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        document.body.appendChild(input);
+        input.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(input);
+      } catch {}
+    }
+    if (copied) {
       setCopiedSlug(post.slug);
+      toast.success('Link copied to clipboard!');
       setTimeout(() => setCopiedSlug(null), 2500);
+    } else {
+      prompt('Copy this link:', url);
     }
   };
 
@@ -205,7 +229,8 @@ export const BlogPost = () => {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const basePath = window.location.pathname.replace(/\/+$/, '');
+    const url = `${window.location.origin}${basePath}/#/blog/${post?.slug || slug}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -218,10 +243,31 @@ export const BlogPost = () => {
         if (err.name === 'AbortError') return;
       }
     }
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(url);
+    let copiedSuccess = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(url);
+        copiedSuccess = true;
+      } catch {}
+    }
+    if (!copiedSuccess) {
+      try {
+        const input = document.createElement('textarea');
+        input.value = url;
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        document.body.appendChild(input);
+        input.select();
+        copiedSuccess = document.execCommand('copy');
+        document.body.removeChild(input);
+      } catch {}
+    }
+    if (copiedSuccess) {
       setCopied(true);
+      toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2500);
+    } else {
+      prompt('Copy this link:', url);
     }
   };
 

@@ -22,6 +22,7 @@ import TicketManagement        from '../components/TicketManagement';
 import { AccountSettings }     from '../components/AccountSettings';
 import CareersManagement      from '../components/CareersManagement';
 import { SurveysManagement }    from '../components/SurveysManagement';
+import { DinoDevPanel }        from '../components/DinoDevPanel';
 import { CliConsole }         from '../components/CliConsole';
 import { CommandPalette }     from '../components/CommandPalette';
 import CriticalActionBanner   from '../components/CriticalActionBanner';
@@ -53,6 +54,12 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: 'Studio Dev',
+    items: [
+      { id: 'dino-dev', label: 'Dino Tycoon Dev', icon: Gamepad2, superAdminOnly: true },
+    ],
+  },
+  {
     label: 'Team',
     items: [
       { id: 'users',  label: 'Users',  icon: Users,  permission: 'manage_users' },
@@ -75,7 +82,7 @@ const WEBSITE_SETTINGS_SUBTABS = [
 
 const VALID_TAB_IDS = new Set([
   'overview', 'account', 'website-games', 'website-blog',
-  'careers', 'website-settings', 'support', 'surveys', 'users', 'roles', 'system',
+  'careers', 'website-settings', 'support', 'surveys', 'dino-dev', 'users', 'roles', 'system',
 ]);
 
 const NAV_ORDER_KEY = 'vg_admin_nav_order';
@@ -640,6 +647,7 @@ const DashboardContent = () => {
               )}
               {activeTab === 'support'          && hasPermission('manage_tickets')  && <TicketManagement />}
               {activeTab === 'surveys'          && (hasPermission('manage_surveys') || hasPermission('manage_website') || isSuperAdmin) && <SurveysManagement />}
+              {activeTab === 'dino-dev'         && isSuperAdmin && <DinoDevPanel />}
               {activeTab === 'careers'          && hasPermission('manager_careers') && <CareersManagement />}
               {activeTab === 'system'           && (
                 <SystemWorkspace tab={systemTab} setTab={setSystemTab} hasPermission={hasPermission} isSuperAdmin={isSuperAdmin} />
@@ -655,6 +663,7 @@ const DashboardContent = () => {
                activeTab !== 'website-settings' &&
                !(activeTab === 'support' && hasPermission('manage_tickets')) &&
                !(activeTab === 'surveys' && (hasPermission('manage_surveys') || hasPermission('manage_website') || isSuperAdmin)) &&
+               !(activeTab === 'dino-dev' && isSuperAdmin) &&
                !(activeTab === 'careers' && hasPermission('manager_careers')) &&
                activeTab !== 'system' &&
                activeTab !== 'account' && (
