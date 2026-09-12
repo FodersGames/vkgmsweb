@@ -29,58 +29,43 @@ const AVAILABLE_ICONS = [
 
 const PERMISSION_CATEGORIES = [
   {
+    category: 'Users & Roles',
+    perms: [
+      { id: 'manage_users', label: 'Manage Users & Permissions' },
+    ],
+  },
+  {
     category: 'Website & Content',
     perms: [
-      { id: 'manage_website', label: 'Website Settings' },
+      { id: 'manage_website', label: 'Website Settings & Games' },
       { id: 'create_blog', label: 'Create Blog' },
       { id: 'edit_blog', label: 'Edit Blog' },
       { id: 'delete_blog', label: 'Delete Blog' },
-      { id: 'manage_chat', label: 'Manage Game Chat' },
     ],
   },
   {
     category: 'Community & Support',
     perms: [
       { id: 'manage_tickets', label: 'Manage Support Tickets' },
-      { id: 'manage_users', label: 'Manage Users & Permissions' },
-      { id: 'manager_careers', label: 'Manage Careers' },
+      { id: 'manage_surveys', label: 'Manage Surveys' },
+      { id: 'manage_careers', label: 'Manage Careers' },
+    ],
+  },
+  {
+    category: 'System & Security',
+    perms: [
+      { id: 'view_logs', label: 'View System Logs' },
+      { id: 'use_cli', label: 'Access CLI Terminal' },
     ],
   },
   {
     category: 'Games & Dev',
     perms: [
-      { id: 'create_games', label: 'Create Games' },
-      { id: 'edit_games', label: 'Edit Games' },
-      { id: 'delete_games', label: 'Delete Games' },
-      { id: 'game_dev_panel', label: 'In-Game Dev Panel' },
-      { id: 'game_logs_panel', label: 'In-Game Logs Panel' },
-      { id: 'manage_studio_apps', label: 'Studio App Builder' },
-      { id: 'manage_vakar_block', label: 'Vakar Block' },
-    ],
-  },
-  {
-    category: 'Economy & Items',
-    perms: [
-      { id: 'send_items', label: 'Send Items' },
-      { id: 'delete_items', label: 'Delete Items' },
-      { id: 'create_missions', label: 'Post Missions' },
-      { id: 'claim_missions', label: 'Claim Missions' },
-      { id: 'manage_missions', label: 'Manage Missions' },
-    ],
-  },
-  {
-    category: 'Server & Infra',
-    perms: [
-      { id: 'change_status', label: 'Change Server Status' },
-      { id: 'view_variables', label: 'View Server Variables' },
-      { id: 'create_variables', label: 'Create Variables' },
-      { id: 'edit_variables', label: 'Edit Variables' },
-      { id: 'delete_variables', label: 'Delete Variables' },
-      { id: 'view_logs', label: 'View System Logs' },
-      { id: 'view_vps', label: 'View VPS Health' },
+      { id: 'game_dev_panel', label: 'In-Game Dev Panel (Dino Tycoon)' },
     ],
   },
 ];
+
 
 export const RoleManagement = () => {
   const [roles, setRoles] = useState([]);

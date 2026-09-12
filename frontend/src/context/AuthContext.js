@@ -160,11 +160,9 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (permission) => {
     if (!user) return false;
     if (user.is_super_admin) return true;
-    if (permission === 'view_projects') {
-      return user.permissions?.some(p => p === 'view_all_projects' || p.startsWith('project:')) ?? false;
-    }
     return user.permissions?.includes(permission) ?? false;
   };
+
 
   const isAdmin = () => {
     if (!user) return false;

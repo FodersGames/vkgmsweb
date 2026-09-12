@@ -2,9 +2,6 @@ import os
 import asyncio
 import logging
 from pathlib import Path
-from datetime import datetime, timezone
-
-from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -13,22 +10,16 @@ from slowapi.errors import RateLimitExceeded
 
 from . import config
 from .database import db, client
-from .security import SecurityHeadersMiddleware, PlayCORSMiddleware
+from .security import SecurityHeadersMiddleware
 from .rate_limit import limiter
-from .play_auth import _ensure_super_admin, LEGACY_PLAY_SAVE_CATEGORIES
-from .deps import ALL_PERMISSIONS
+from .deps import ALL_PERMISSIONS, _ensure_super_admin
 
 from .routers import (
-    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads, surveys, dino_admin,
+    auth, users, website, admin_system, tickets, careers, roles, uploads, surveys, dino_admin,
 )
 
 logger = logging.getLogger(__name__)
 
-try:
-    import stripe
-    stripe.api_key = config.STRIPE_SECRET_KEY
-except ImportError:
-    stripe = None
 
 app = FastAPI(title="Vakar Games API", version=config.VERSION)
 app.state.limiter = limiter
@@ -92,7 +83,7 @@ async def get_all_permissions():
     return {"permissions": ALL_PERMISSIONS}
 
 for _router_module in (
-    auth, users, website, admin_system, me, files, tickets, careers, roles, uploads, surveys, dino_admin,
+    auth, users, website, admin_system, tickets, careers, roles, uploads, surveys, dino_admin,
 ):
     app.include_router(_router_module.router, prefix="/api")
 
@@ -124,123 +115,26 @@ app.add_middleware(
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(PlayCORSMiddleware)  # must be last : runs first, intercepts /api/play/* before CORSMiddleware
 
 
 async def _init_db_indexes_and_migrations():
     try:
         await db.users.create_index("username", unique=True)
         await db.users.create_index("email", unique=True, sparse=True)
-        await db.projects.create_index("slug", unique=True)
-        await db.items.create_index([("project_slug", 1), ("uid", 1)])
-        await db.logs.create_index([("project_slug", 1), ("type", 1)])
-        await db.logs.create_index("timestamp")
-        try:
-            await db.variables.drop_index("project_slug_1_variable_name_1")
-        except Exception:
-            pass
-        await db.variables.create_index([("project_slug", 1), ("variable_name", 1)], unique=True, sparse=True)
-        await db.variables.create_index([("project_slug", 1), ("name", 1)], unique=True, sparse=True)
         await db.website_games.create_index("slug", unique=True)
         await db.blog_posts.create_index("slug", unique=True)
-        await db.chat_messages.create_index([("project_slug", 1), ("timestamp", 1)])
-        await db.website_shop_products.create_index([("game_slug", 1), ("active", 1)])
-        await db.missions.create_index([("project_slug", 1), ("status", 1)])
-        await db.missions.create_index("created_at")
         await db.support_tickets.create_index("ticket_number", unique=True)
         await db.support_tickets.create_index([("user_email", 1), ("created_at", -1)])
         await db.support_tickets.create_index([("status", 1), ("updated_at", -1)])
-        await db.game_purchases.create_index([("email", 1), ("game_slug", 1)], unique=True)
-        await db.game_purchases.create_index("purchased_at")
-        await db.user_points.create_index("email", unique=True)
-        await db.website_shop_global_settings.create_index("_id")
-        await db.play_saves.create_index([("user_id", 1), ("project_slug", 1), ("category", 1)], unique=True)
-        await db.play_save_categories.create_index([("project_slug", 1), ("name", 1)], unique=True)
-        await db.play_refresh_tokens.create_index("jti", unique=True)
-        await db.play_refresh_tokens.create_index([("user_id", 1), ("is_revoked", 1)])
         await db.careers.create_index("created_at")
         await db.careers.create_index("is_open")
-        await db.studio_apps.create_index("slug", unique=True)
-        await db.studio_apps.create_index([("status", 1), ("visibility", 1)])
-        await db.studio_apps.create_index([("user_id", 1), ("updated_at", -1)], sparse=True)
-        await db.vakar_block_projects.create_index("slug", unique=True)
-        await db.vakar_block_projects.create_index([("user_id", 1), ("updated_at", -1)], sparse=True)
-        await db.users.create_index("stripe_customer_id", sparse=True)
-        await db.apk_builds.create_index([("app_id", 1), ("created_at", -1)])
-        await db.studio_records.create_index([("app_id", 1), ("collection", 1), ("created_at", -1)])
-        await db.studio_app_users.create_index([("app_id", 1), ("username", 1)], unique=True)
-        await db.studio_app_sessions.create_index("token", unique=True)
-        await db.studio_app_sessions.create_index("created_at", expireAfterSeconds=90 * 24 * 3600)
-        await db.studio_push_subscriptions.create_index([("app_id", 1), ("endpoint", 1)], unique=True)
-        await db.studio_push_subscriptions.create_index([("app_id", 1), ("app_user_id", 1)])
-        await db.play_nicknames.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
-        await db.play_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
-        await db.play_first_seen.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
-        await db.chat_messages.create_index([("project_slug", 1), ("channel", 1), ("guild_id", 1), ("timestamp", 1)])
-        await db.guilds.create_index([("project_slug", 1), ("name", 1)])
-        await db.guild_members.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
-        await db.guild_members.create_index([("guild_id", 1)])
-        await db.chat_bans.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
-        await db.chat_mutes.create_index([("user_id", 1), ("project_slug", 1)], unique=True)
+        await db.surveys.create_index("slug", unique=True)
+        await db.surveys.create_index("created_at")
+        await db.survey_responses.create_index([("survey_id", 1), ("submitted_at", -1)])
         await db.cli_destructive_log.create_index([("username", 1), ("timestamp", 1)])
         await db.cli_lockouts.create_index([("username", 1), ("locked_at", -1)])
+        await db.logs.create_index("timestamp")
         logger.info("Database indexes initialized")
-
-        global_shop = await db.website_shop_global_settings.find_one({})
-        if not global_shop or not global_shop.get("categories"):
-            merged, seen_labels = [], set()
-            async for doc in db.website_shop_settings.find({}):
-                for cat in doc.get("categories", []):
-                    label = (cat.get("label") or "").strip()
-                    if label and label.lower() not in seen_labels:
-                        seen_labels.add(label.lower())
-                        merged.append(cat)
-            if merged:
-                await db.website_shop_global_settings.update_one({}, {"$set": {"categories": merged}}, upsert=True)
-                logger.info(f"Shop categories migration: merged {len(merged)} categories from per-game settings")
-
-        legacy = await db.game_files.find(
-            {"cloned_from": {"$exists": True}, "stable_id": {"$exists": False}}
-        ).to_list(2000)
-        for f in legacy:
-            root_id = f["cloned_from"]
-            seen = set()
-            while root_id not in seen:
-                seen.add(root_id)
-                try:
-                    src = await db.game_files.find_one({"_id": ObjectId(root_id)})
-                except Exception:
-                    src = None
-                if src and src.get("stable_id"):
-                    root_id = src["stable_id"]
-                    break
-                if src and src.get("cloned_from"):
-                    root_id = src["cloned_from"]
-                else:
-                    break
-            await db.game_files.update_one({"_id": f["_id"]}, {"$set": {"stable_id": root_id}})
-        if legacy:
-            logger.info(f"Backfilled stable_id on {len(legacy)} cloned game files")
-
-        legacy_slugs = await db.play_saves.distinct("project_slug", {"category": {"$in": list(LEGACY_PLAY_SAVE_CATEGORIES)}})
-        backfilled = 0
-        for slug in legacy_slugs:
-            used_categories = await db.play_saves.distinct("category", {"project_slug": slug, "category": {"$in": list(LEGACY_PLAY_SAVE_CATEGORIES)}})
-            for cat_name in used_categories:
-                if await db.play_save_categories.find_one({"project_slug": slug, "name": cat_name}):
-                    continue
-                await db.play_save_categories.update_one(
-                    {"project_slug": slug, "name": cat_name},
-                    {"$setOnInsert": {
-                        "project_slug": slug, "name": cat_name, "label": cat_name.capitalize(),
-                        "player_scope": "all", "target_user_ids": [],
-                        "created_at": datetime.now(timezone.utc), "created_by": "system-migration",
-                    }},
-                    upsert=True,
-                )
-                backfilled += 1
-        if backfilled:
-            logger.info(f"Backfilled {backfilled} legacy save-category definition(s) across {len(legacy_slugs)} project(s)")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
 
