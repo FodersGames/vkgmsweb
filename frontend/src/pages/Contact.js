@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { PublicNav } from '../components/PublicNav';
 import { SiteFooter } from '../components/SiteFooter';
+import headerWaterfallJungle from '../assets/photos/header-waterfall-jungle.jpg';
 import { getWebsiteSettings } from '../utils/publicCache';
 import {
   PaperPlaneTilt, ChatCircle, EnvelopeSimple, Ticket, CheckCircle,
@@ -144,17 +145,36 @@ const Contact = () => {
       <PublicNav />
 
       <div style={{ flex: 1, paddingTop: '60px' }}>
-        {/* Header */}
-        <div style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '4rem 0' }}>
-          <div className="max-w-[1100px] mx-auto px-6">
-            <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Support</p>
+        {/* Header with cinematic backdrop */}
+        <div
+          className="relative overflow-hidden"
+          style={{ backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '4rem 0' }}
+        >
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+            <img
+              src={headerWaterfallJungle}
+              alt=""
+              className="w-full h-full object-cover object-center"
+              style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+            />
+          </div>
+          <div className="relative z-10 max-w-[1100px] mx-auto px-6">
+            <p className="kefir-label mb-4" style={{ color: '#FF6600' }}>// SUPPORT & INQUIRIES</p>
             <h1
-              className="font-black uppercase text-white"
+              className="font-black uppercase text-white drop-shadow-2xl"
               style={{ fontSize: 'clamp(2.5rem, 8vw, 5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
             >
               Contact & Support
             </h1>
-            <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)', maxWidth: '42ch' }}>
+            <p className="mt-4 text-sm text-white/60 max-w-[42ch]">
               We're here to help. Fill out the form below and we'll get back to you as soon as possible.
             </p>
           </div>

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { EnvelopeSimple, Lock, User, Eye, EyeSlash, Warning, CheckCircle } from '@phosphor-icons/react';
 import { PublicButton } from '../ui/PublicButton';
-import seaStackDusk from '../assets/photos/sea-stack-dusk.jpg';
+import heroCoastSunset from '../assets/photos/hero-coast-sunset.jpg';
 
 import { API_URL } from '../utils/api';
 
@@ -237,7 +237,7 @@ export const Login = () => {
   return (
     <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <img src={seaStackDusk} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={heroCoastSunset} alt="" className="absolute inset-0 w-full h-full object-cover" />
         {/* A heavy scrim (previously /90) hid the photo almost entirely just to
             fix text contrast — wrong trade. Keep the photo visible with a light
             scrim and instead give the two text elements sitting directly on it

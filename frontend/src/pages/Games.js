@@ -8,6 +8,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { HoverPreview } from '../components/HoverPreview';
 import { PublicButton } from '../ui/PublicButton';
 import { getPublicGames } from '../utils/publicCache';
+import headerAlpineDawn from '../assets/photos/header-alpine-dawn.jpg';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
@@ -102,20 +103,37 @@ const GamesPage = () => {
     <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav />
 
-      {/* ── Page header ─────────────────────────────────────────────── */}
+      {/* ── Page header with cinematic backdrop ───────────────────────── */}
       <div
-        style={{ paddingTop: '60px', backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        className="relative overflow-hidden"
+        style={{ paddingTop: '60px', backgroundColor: '#0D0D0D', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <div className="max-w-[1100px] mx-auto px-6 py-16">
-          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Our Productions</p>
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <img
+            src={headerAlpineDawn}
+            alt=""
+            className="w-full h-full object-cover object-center"
+            style={{ filter: 'brightness(0.38) contrast(1.18) saturate(1.05)', transform: 'scale(1.03)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 45%, rgba(13,13,13,0.95) 100%)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(ellipse 60% 50% at 85% 30%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)' }}
+          />
+        </div>
+        <div className="relative z-10 max-w-[1100px] mx-auto px-6 py-16 sm:py-20">
+          <p className="kefir-label mb-4" style={{ color: '#FF6600' }}>// OUR PRODUCTIONS</p>
           <h1
-            className="font-black uppercase text-white"
+            className="font-black uppercase text-white drop-shadow-2xl"
             style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
           >
             Games
           </h1>
-          <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Every title we release. Each one built with care.
+          <p className="mt-4 text-sm max-w-md text-white/60">
+            Every title we release. Each one built with care and passion.
           </p>
         </div>
       </div>
