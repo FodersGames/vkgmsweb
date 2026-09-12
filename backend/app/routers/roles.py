@@ -17,8 +17,8 @@ DEFAULT_ROLES = [
         "name": "Moderator",
         "color": "#3B82F6",
         "icon": "Shield",
-        "description": "Community moderation, support tickets and game chat management.",
-        "permissions": ["manage_chat", "manage_tickets"],
+        "description": "Community moderation and support tickets management.",
+        "permissions": ["manage_tickets"],
         "is_system": False,
     },
     {
@@ -26,8 +26,8 @@ DEFAULT_ROLES = [
         "name": "Game Developer",
         "color": "#10B981",
         "icon": "Gamepad2",
-        "description": "Game publishing, development panel, missions and logs.",
-        "permissions": ["create_games", "edit_games", "game_dev_panel", "game_logs_panel"],
+        "description": "Game catalog management and Dino Tycoon development panel.",
+        "permissions": ["create_games", "edit_games", "game_dev_panel"],
         "is_system": False,
     },
     {
@@ -35,8 +35,8 @@ DEFAULT_ROLES = [
         "name": "Community Manager",
         "color": "#EC4899",
         "icon": "Sparkles",
-        "description": "Blog posting, player announcements and community engagement.",
-        "permissions": ["create_blog", "edit_blog", "manage_chat", "create_missions"],
+        "description": "Blog posting and community surveys management.",
+        "permissions": ["create_blog", "edit_blog", "manage_surveys"],
         "is_system": False,
     },
     {
@@ -49,6 +49,7 @@ DEFAULT_ROLES = [
         "is_system": False,
     },
 ]
+
 
 async def _ensure_default_roles():
     count = await db.roles.count_documents({})
