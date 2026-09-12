@@ -47,6 +47,7 @@ const AppRoutes = () => {
 
   return (
     <>
+      <div className="film-grain" aria-hidden="true" />
       <MaintenanceCountdownBanner scheduledAt={scheduledAt} announcement={announcement} />
       <Routes>
         {/* Main studio showcase routes */}
