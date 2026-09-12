@@ -14,9 +14,9 @@ const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
 
 /* ─── Stat card ─────────────────────────────────────────────────────────── */
 const StatCard = ({ value, label }) => (
-  <div className="text-center px-4 py-7 flex flex-col items-center justify-center min-w-0" style={{ borderRight: '1px solid rgba(0,0,0,0.06)' }}>
+  <div className="text-center px-4 py-7 flex flex-col items-center justify-center min-w-0" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
     <p className="stat-number">{value}</p>
-    <p className="kefir-label mt-2" style={{ color: 'rgba(26,26,26,0.5)', fontSize: '0.65rem' }}>{label}</p>
+    <p className="kefir-label mt-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>{label}</p>
   </div>
 );
 
@@ -37,39 +37,38 @@ const Home = () => {
     studioRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav onAbout={scrollToStudio} />
 
-      {/* ── HERO ─ 100vh cinematic background with light blend ────────────────── */}
+      {/* ── HERO ─ 100vh cinematic background ───────────────────────────────────── */}
       <section
         className="relative flex flex-col items-center justify-center text-center overflow-hidden"
         style={{ height: '100vh', minHeight: '560px' }}
         data-testid="hero-section"
       >
-        {/* Background Image with Light Atmospheric Overlay */}
+        {/* Background Image with Dark Atmospheric Overlay */}
         <div className="absolute inset-0 z-0 overflow-hidden">
           <img
             src={seaStackDusk}
             alt="Vakar Games Hero Background"
             className="w-full h-full object-cover object-center"
             style={{
-              filter: 'brightness(1.05) contrast(1.02) saturate(0.85)',
-              opacity: 0.38,
-              transform: 'scale(1.04)',
+              filter: 'brightness(0.35) contrast(1.2) saturate(0.85)',
+              transform: 'scale(1.05)',
             }}
           />
-          {/* Gradients for clean text contrast and seamless fade into #FAFAF7 */}
+          {/* Gradients for text contrast and seamless bottom fade */}
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(250,250,247,0.7) 0%, rgba(250,250,247,0.3) 40%, rgba(250,250,247,0.92) 85%, #FAFAF7 100%)',
+              background: 'linear-gradient(180deg, rgba(13,13,13,0.7) 0%, rgba(13,13,13,0.3) 40%, rgba(13,13,13,0.85) 85%, #0D0D0D 100%)',
             }}
           />
-          {/* Radial orange glow centered behind title */}
+          {/* Radial teal glow centered behind title */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse 65% 50% at 50% 50%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 102, 0,0.09) 0%, transparent 70%)',
             }}
           />
         </div>
@@ -77,17 +76,17 @@ const Home = () => {
         {/* Center content */}
         <div className="relative z-10 px-6 fade-up max-w-4xl mx-auto">
           <h1
-            className="font-black uppercase tracking-tight text-[#1A1A1A]"
-            style={{ fontSize: 'clamp(3rem, 8.5vw, 6.5rem)', lineHeight: 0.95, letterSpacing: '-0.02em' }}
+            className="font-black uppercase tracking-tight text-white drop-shadow-2xl"
+            style={{ fontSize: 'clamp(3rem, 8.5vw, 6.5rem)', lineHeight: 0.95, letterSpacing: '-0.02em', textShadow: '0 4px 30px rgba(0,0,0,0.9)' }}
             data-testid="hero-title"
           >
             Vakar Games
           </h1>
           <p
             className="font-bold uppercase tracking-[0.28em] mt-5"
-            style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.2rem)', color: 'rgba(26,26,26,0.65)' }}
+            style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.2rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}
           >
-            Play a Brighter Tomorrow
+            Forged in Passion
           </p>
 
           {/* CTA buttons */}
@@ -104,7 +103,7 @@ const Home = () => {
         {/* Scroll chevron */}
         <button
           onClick={scrollToStudio}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[#1A1A1A]/35 hover:text-[#1A1A1A]/70 transition-colors animate-bounce-y"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 hover:text-white/60 transition-colors animate-bounce-y"
           aria-label="Scroll down"
         >
           <CaretDown size={28} weight="bold" />
@@ -112,9 +111,9 @@ const Home = () => {
       </section>
 
       {/* ── STATS BANNER ───────────────────────────────────────────────── */}
-      <section style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <section style={{ backgroundColor: '#111111', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
             <StatCard value="2024" label="Founded" />
             <StatCard value="France" label="HQ" />
             <StatCard value={games.length > 0 ? `${games.length}` : 'Original'} label="Productions" />
@@ -126,14 +125,14 @@ const Home = () => {
       {/* ── GAMES SHOWCASE ─────────────────────────────────────────────── */}
       <section
         id="games"
-        style={{ backgroundColor: '#FAFAF7', paddingTop: '6rem', paddingBottom: '6rem' }}
+        style={{ backgroundColor: '#0D0D0D', paddingTop: '6rem', paddingBottom: '6rem' }}
       >
         <div className="max-w-[1100px] mx-auto px-6">
           {/* Section header */}
           <div className="mb-12">
-            <p className="kefir-label mb-4" style={{ color: 'rgba(26,26,26,0.5)' }}>Our Productions</p>
+            <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Our Productions</p>
             <h2
-              className="font-black uppercase text-[#1A1A1A]"
+              className="font-black uppercase text-white"
               style={{ fontSize: 'clamp(2rem, 6vw, 4.5rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
             >
               Games
@@ -141,20 +140,19 @@ const Home = () => {
           </div>
 
           {games.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {games.map((game) => (
                 <Link
                   key={game.slug}
                   to="/games"
-                  className="group block relative overflow-hidden rounded-xl"
+                  className="group block relative overflow-hidden"
                   style={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                    transition: 'border-color 0.3s, transform 0.2s',
+                    backgroundColor: '#111111',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    transition: 'border-color 0.3s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#FF6600'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255, 102, 0,0.3)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
                   data-testid={`game-card-${game.slug}`}
                 >
                   <div className="flex flex-col sm:flex-row items-stretch">
@@ -170,8 +168,8 @@ const Home = () => {
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#F4F4F0' }}>
-                          <GameController size={40} style={{ color: '#FF6600', opacity: 0.6 }} />
+                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
+                          <GameController size={40} style={{ color: '#FF6600', opacity: 0.4 }} />
                         </div>
                       )}
                     </div>
@@ -181,22 +179,22 @@ const Home = () => {
                       <div>
                         <div className="flex items-center gap-4 mb-3">
                           <h3
-                            className="font-black uppercase text-[#1A1A1A] group-hover:text-[#FF6600] transition-colors"
+                            className="font-black uppercase text-white group-hover:text-[#FF6600] transition-colors"
                             style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '-0.01em', lineHeight: 1 }}
                           >
                             {game.name}
                           </h3>
                           {game.status === 'coming_soon' && (
                             <span
-                              className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-full"
-                              style={{ color: '#FF6600', border: '1px solid #FF6600' }}
+                              className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
+                              style={{ color: '#FF6600', border: '1px solid #FF6600', opacity: 0.8 }}
                             >
                               Coming Soon
                             </span>
                           )}
                         </div>
                         {game.description && (
-                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(26,26,26,0.6)' }}>
+                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
                             {game.description}
                           </p>
                         )}
@@ -213,14 +211,14 @@ const Home = () => {
             </div>
           ) : (
             <div
-              className="text-center py-20 rounded-xl"
-              style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)' }}
+              className="text-center py-20"
+              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <GameController size={48} style={{ color: '#FF6600', opacity: 0.4, margin: '0 auto 1rem' }} />
-              <h3 className="font-black uppercase text-[#1A1A1A] text-2xl tracking-tight mb-3">
+              <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
+              <h3 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
                 New Titles In Production
               </h3>
-              <p className="text-sm" style={{ color: 'rgba(26,26,26,0.5)', marginBottom: '2rem' }}>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: '2rem' }}>
                 Our games are currently in development. Follow the studio blog for updates.
               </p>
               <Link to="/blog" className="btn-kefir-outline">
@@ -241,22 +239,22 @@ const Home = () => {
       <section
         ref={studioRef}
         id="studio"
-        style={{ backgroundColor: '#FFFFFF', paddingTop: '6rem', paddingBottom: '6rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+        style={{ backgroundColor: '#111111', paddingTop: '6rem', paddingBottom: '6rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
         data-testid="about-section"
       >
         <div className="max-w-[1100px] mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-14 items-center">
             <div>
-              <p className="kefir-label mb-4" style={{ color: 'rgba(26,26,26,0.5)' }}>The Studio</p>
+              <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>The Studio</p>
               <h2
-                className="font-black uppercase text-[#1A1A1A]"
+                className="font-black uppercase text-white"
                 style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
               >
                 We Make<br />
                 <span style={{ color: '#FF6600' }}>Games</span><br />
                 We Love.
               </h2>
-              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(26,26,26,0.65)', fontSize: '1rem', maxWidth: '42ch' }}>
+              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '42ch' }}>
                 Vakar Games is an independent studio based in France. We keep our team compact by design — every developer, artist, and designer is closely tied to the vision. Small team, deliberate creative choices, zero shortcuts on gameplay.
               </p>
               <div className="mt-8 flex items-center gap-6 flex-wrap">
@@ -270,7 +268,7 @@ const Home = () => {
             </div>
 
             {/* Right — manifesto / philosophy cards */}
-            <div className="space-y-3">
+            <div className="space-y-px">
               {[
                 { label: 'Player-First Design', desc: 'Tight mechanics, deliberate pacing, rich atmospheres that respect the player\'s time.' },
                 { label: 'Original Universes', desc: 'Every world is built from scratch — atmospheric adventures to competitive multiplayer.' },
@@ -278,12 +276,12 @@ const Home = () => {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="px-6 py-5 flex items-start gap-4 rounded-lg"
-                  style={{ backgroundColor: '#FAFAF7', borderLeft: '3px solid #FF6600', border: '1px solid rgba(0,0,0,0.06)' }}
+                  className="px-6 py-5 flex items-start gap-4"
+                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(255,102,0,0.5)' }}
                 >
                   <div>
-                    <p className="font-bold uppercase text-[#1A1A1A] text-sm tracking-[0.08em] mb-1">{item.label}</p>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(26,26,26,0.6)' }}>{item.desc}</p>
+                    <p className="font-bold uppercase text-white text-sm tracking-[0.08em] mb-1">{item.label}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -295,17 +293,17 @@ const Home = () => {
       {/* ── CONTACT CTA ────────────────────────────────────────────────── */}
       <section
         id="contact"
-        style={{ backgroundColor: '#FAFAF7', paddingTop: '5rem', paddingBottom: '5rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+        style={{ backgroundColor: '#0D0D0D', paddingTop: '5rem', paddingBottom: '5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="max-w-[1100px] mx-auto px-6 text-center">
-          <p className="kefir-label mb-4" style={{ color: 'rgba(26,26,26,0.5)' }}>Let's Talk</p>
+          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Let's Talk</p>
           <h2
-            className="font-black uppercase text-[#1A1A1A]"
+            className="font-black uppercase text-white"
             style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
           >
             Let's Talk <span style={{ color: '#FF6600' }}>Games.</span>
           </h2>
-          <p className="mt-4 mx-auto" style={{ color: 'rgba(26,26,26,0.6)', fontSize: '0.9rem', maxWidth: '38ch' }}>
+          <p className="mt-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', maxWidth: '38ch' }}>
             Press inquiries, publishing opportunities, or general questions — we read every message.
           </p>
           <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">

@@ -8,10 +8,10 @@ import { useAuth } from '../context/AuthContext';
 const API = process.env.REACT_APP_API_URL || process.env.REACT_APP_BACKEND_URL || '';
 
 const inputStyle = {
-  backgroundColor: '#FAFAF7',
-  border: '1px solid rgba(0,0,0,0.14)',
-  color: '#1A1A1A',
-  borderRadius: '0.5rem',
+  backgroundColor: '#0D0D0D',
+  border: '1px solid rgba(255,255,255,0.12)',
+  color: '#FFFFFF',
+  borderRadius: 0,
   outline: 'none',
 };
 
@@ -70,13 +70,13 @@ function ApplyModal({ career, onClose, token, user }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="animate-appear w-full max-w-lg overflow-hidden bg-white border border-black/[0.08] shadow-2xl rounded-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06] bg-[#FAFAF7]">
+      <div className="animate-appear w-full max-w-lg overflow-hidden bg-[#111111] border border-white/[0.08] shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#141414]">
           <div>
             <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1" style={{ color: deptColor }}>// {career.department}</p>
-            <h3 className="font-black uppercase text-base text-[#1A1A1A] tracking-tight">{career.title}</h3>
+            <h3 className="font-black uppercase text-base text-white tracking-tight">{career.title}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-colors">
+          <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -85,7 +85,7 @@ function ApplyModal({ career, onClose, token, user }) {
           <div className="px-6 py-12 text-center">
             <CheckCircle size={40} className="mx-auto mb-4 text-[#FF6600]" />
             <h4 className="font-black uppercase text-white text-lg tracking-tight mb-2">Application Sent!</h4>
-            <p className="text-sm text-[#1A1A1A]/60 mb-6 max-w-xs mx-auto">
+            <p className="text-sm text-white/50 mb-6 max-w-xs mx-auto">
               We'll review your application and get back to you by email as soon as possible.
             </p>
             <button
@@ -107,7 +107,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/60 mb-1.5">Name</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Name</label>
                 <input
                   required
                   className="w-full px-3 py-2 text-sm"
@@ -117,7 +117,7 @@ function ApplyModal({ career, onClose, token, user }) {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/60 mb-1.5">Email</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">Email</label>
                 <input
                   required
                   type="email"
@@ -131,7 +131,7 @@ function ApplyModal({ career, onClose, token, user }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/60 mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
                 Portfolio / Links <span className="normal-case font-normal text-white/30">(optional)</span>
               </label>
               <input
@@ -143,7 +143,7 @@ function ApplyModal({ career, onClose, token, user }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/60 mb-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
                 Cover letter <span className="text-[#FF6600]">*</span>
               </label>
               <textarea
@@ -163,11 +163,11 @@ function ApplyModal({ career, onClose, token, user }) {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
+            <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
               <button
                 type="button"
                 onClick={onClose}
-                className="text-xs uppercase tracking-wider text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-colors"
+                className="text-xs uppercase tracking-wider text-white/40 hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -208,22 +208,22 @@ export default function Careers() {
   const available = ['All', ...DEPARTMENTS.filter(d => careers.some(c => c.department === d))];
 
   return (
-    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       {/* Hero */}
-      <section style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
+      <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
           <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// JOIN THE STUDIO</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
-                className="font-black uppercase text-[#1A1A1A]"
+                className="font-black uppercase text-white"
                 style={{ fontSize: 'clamp(2.4rem, 6vw, 4.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
               >
                 Build something<br className="hidden sm:block" /> that lasts.
               </h1>
-              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(26,26,26,0.65)', maxWidth: '52ch' }}>
+              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '52ch' }}>
                 We're a passionate independent studio crafting memorable games and creative experiences. If you want to contribute to ambitious projects, we'd love to hear from you.
               </p>
             </div>
@@ -231,12 +231,12 @@ export default function Careers() {
             {!loading && (
               <div
                 className="px-5 py-4 flex items-center gap-3 shrink-0 self-start lg:self-auto"
-                style={{ backgroundColor: '#FAFAF7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '0.75rem' }}
+                style={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 <Users size={20} style={{ color: '#FF6600' }} />
                 <div>
-                  <p className="font-black text-2xl text-[#1A1A1A] leading-none">{careers.length}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: 'rgba(26,26,26,0.5)' }}>
+                  <p className="font-black text-2xl text-white leading-none">{careers.length}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     Open position{careers.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -311,7 +311,7 @@ export default function Careers() {
             <h3 className="font-black uppercase text-lg text-white mb-2">
               {careers.length === 0 ? 'No open positions right now' : 'Nothing in this department'}
             </h3>
-            <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(26,26,26,0.5)' }}>
+            <p className="text-xs max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {careers.length === 0 ? 'Check back soon, or send an unsolicited application to ' : 'Try another department filter, or reach out at '}
               <a href="mailto:support@vakargames.com" style={{ color: '#FF6600' }} className="hover:underline">support@vakargames.com</a>
             </p>
@@ -345,15 +345,15 @@ export default function Careers() {
                             <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color }}>
                               {c.department}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-black/20" />
-                            <span className="text-[10px] uppercase font-bold text-[#1A1A1A]/50">
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            <span className="text-[10px] uppercase font-bold text-white/40">
                               {c.contract_type}
                             </span>
                           </div>
-                          <h2 className="font-black uppercase text-base sm:text-lg text-[#1A1A1A] tracking-tight mb-2">
+                          <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight mb-2">
                             {c.title}
                           </h2>
-                          <div className="flex items-center flex-wrap gap-4 text-xs text-[#1A1A1A]/50">
+                          <div className="flex items-center flex-wrap gap-4 text-xs text-white/40">
                             <span className="flex items-center gap-1.5">
                               <MapPin size={12} style={{ color: '#FF6600' }} />
                               {c.location}
@@ -380,7 +380,7 @@ export default function Careers() {
                               )}
                             </div>
                           )}
-                          <div className="text-[#1A1A1A]/50">
+                          <div className="text-white/40">
                             {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
                           </div>
                         </div>
@@ -392,12 +392,12 @@ export default function Careers() {
                   {isExpanded && (
                     <div
                       className="px-6 pb-6 pt-4 space-y-6"
-                      style={{ borderTop: '1px solid rgba(0,0,0,0.06)', backgroundColor: '#FAFAF7' }}
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: '#0E0E0E' }}
                     >
                       {c.description && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 mb-2">About the Role</h3>
-                          <p className="text-sm text-[#1A1A1A]/75 leading-relaxed whitespace-pre-wrap">
+                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">About the Role</h3>
+                          <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
                             {c.description}
                           </p>
                         </div>
@@ -405,10 +405,10 @@ export default function Careers() {
 
                       {c.requirements?.length > 0 && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 mb-3">What we're looking for</h3>
+                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">What we're looking for</h3>
                           <ul className="space-y-2">
                             {c.requirements.map((r, i) => (
-                              <li key={i} className="flex gap-2.5 text-xs text-[#1A1A1A]/75">
+                              <li key={i} className="flex gap-2.5 text-xs text-white/70">
                                 <span className="shrink-0 font-bold" style={{ color }}>—</span>
                                 <span>{r}</span>
                               </li>
@@ -419,12 +419,12 @@ export default function Careers() {
 
                       {c.tools?.length > 0 && (
                         <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 mb-3">Tools & Tech</h3>
+                          <h3 className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-3">Tools & Tech</h3>
                           <div className="flex flex-wrap gap-2">
                             {c.tools.map(t => (
                               <span
                                 key={t}
-                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#1A1A1A]/75"
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-white/70"
                                 style={{ backgroundColor: '#141414', border: '1px solid rgba(255,255,255,0.08)' }}
                               >
                                 <ToolIcon toolId={t} size={14} />

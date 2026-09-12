@@ -10,7 +10,7 @@ const SECTIONS = [
     title: 'Who We Are',
     content: (
       <>
-        <p>Vakar Games is an independent French video game studio. This Privacy Policy explains how we handle information when you visit <strong className="text-[#1A1A1A]">vakargames.com</strong>, create an account, make purchases, or use features within our games such as the in-game chat system.</p>
+        <p>Vakar Games is an independent French video game studio. This Privacy Policy explains how we handle information when you visit <strong className="text-white">vakargames.com</strong>, create an account, make purchases, or use features within our games such as the in-game chat system.</p>
       </>
     ),
   },
@@ -29,14 +29,14 @@ const SECTIONS = [
             'In-game chat messages (up to 200 characters each) and your in-game username',
             'Support ticket contents and staff replies',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-[#1A1A1A]/75">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600] mt-2 shrink-0" />
               <span>{item}</span>
             </li>
           ))}
         </ul>
-        <p className="text-xs text-[#1A1A1A]/60 border-l-2 border-[#FF6600]/50 pl-3 py-1">
-          Payment card details are processed directly by <strong className="text-[#1A1A1A]">Stripe</strong> and never touch our servers. See Stripe's privacy policy for details on payment processing.
+        <p className="text-xs text-white/50 border-l-2 border-[#FF6600]/50 pl-3 py-1">
+          Payment card details are processed directly by <strong className="text-white">Stripe</strong> and never touch our servers. See Stripe's privacy policy for details on payment processing.
         </p>
       </>
     ),
@@ -77,7 +77,7 @@ const SECTIONS = [
     title: 'Third-Party Services',
     content: (
       <>
-        <p>Payments are processed by <strong className="text-[#1A1A1A]">Stripe</strong>. Stripe may process your payment information according to its own privacy policy. We do not embed third-party advertising, social media trackers, or analytics scripts.</p>
+        <p>Payments are processed by <strong className="text-white">Stripe</strong>. Stripe may process your payment information according to its own privacy policy. We do not embed third-party advertising, social media trackers, or analytics scripts.</p>
       </>
     ),
   },
@@ -106,13 +106,13 @@ const SECTIONS = [
             'The right to object to or restrict processing',
             'The right to lodge a complaint with your national data protection authority (such as the CNIL in France)',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-[#1A1A1A]/75">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600] mt-2 shrink-0" />
               <span>{item}</span>
             </li>
           ))}
         </ul>
-        <p className="text-xs text-[#1A1A1A]/60">To exercise any of these rights, please email us directly or submit a ticket from your account.</p>
+        <p className="text-xs text-white/50">To exercise any of these rights, please email us directly or submit a ticket from your account.</p>
       </>
     ),
   },
@@ -161,34 +161,34 @@ const PrivacyPolicy = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       {/* Hero */}
-      <section style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
+      <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
           <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// DATA & PRIVACY</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
-                className="font-black uppercase text-[#1A1A1A]"
+                className="font-black uppercase text-white"
                 style={{ fontSize: 'clamp(2.4rem, 6vw, 4rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
               >
                 Privacy<br className="hidden sm:block" /> Policy.
               </h1>
-              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(26,26,26,0.65)', maxWidth: '54ch' }}>
+              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '54ch' }}>
                 We respect your privacy and design our systems with data minimization and transparency in mind. Here is how we protect your personal information.
               </p>
             </div>
 
             <div
               className="px-5 py-4 flex items-center gap-3.5 shrink-0 self-start lg:self-auto"
-              style={{ backgroundColor: '#FAFAF7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '0.75rem' }}
+              style={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               <LockKey size={22} style={{ color: '#FF6600' }} />
               <div>
-                <p className="font-mono text-xs text-[#1A1A1A] font-bold tracking-wider uppercase">GDPR Compliant</p>
-                <p className="text-[11px] font-mono text-[#1A1A1A]/40 mt-0.5">September 2026 · European Union</p>
+                <p className="font-mono text-xs text-white font-bold tracking-wider uppercase">GDPR Compliant</p>
+                <p className="text-[11px] font-mono text-white/40 mt-0.5">September 2026 · European Union</p>
               </div>
             </div>
           </div>
@@ -201,10 +201,10 @@ const PrivacyPolicy = () => {
 
           {/* Sticky Table of Contents sidebar */}
           <aside className="lg:col-span-4 hidden lg:block">
-            <div className="sticky top-28 space-y-1 p-4 bg-white border border-black/[0.08] rounded-xl">
-              <div className="flex items-center gap-2 pb-3 mb-2 border-b border-black/[0.06]">
+            <div className="sticky top-28 space-y-1 p-4 bg-[#111111] border border-white/[0.06]">
+              <div className="flex items-center gap-2 pb-3 mb-2 border-b border-white/[0.06]">
                 <BookOpen size={15} className="text-[#FF6600]" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#1A1A1A]">Table of Contents</span>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-white/80">Table of Contents</span>
               </div>
               <nav className="space-y-0.5 max-h-[calc(100vh-220px)] overflow-y-auto">
                 {SECTIONS.map((s) => {
@@ -216,7 +216,7 @@ const PrivacyPolicy = () => {
                       className={`w-full text-left px-2.5 py-1.5 text-xs font-mono transition-colors flex items-center gap-2 ${
                         isActive
                           ? 'text-[#FF6600] bg-[#FF6600]/10 font-bold'
-                          : 'text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-black/[0.03]'
+                          : 'text-white/40 hover:text-white hover:bg-white/[0.03]'
                       }`}
                     >
                       <span className="opacity-50 text-[10px]">{s.num}.</span>
@@ -234,17 +234,17 @@ const PrivacyPolicy = () => {
               <article
                 key={s.id}
                 id={s.id}
-                className="scroll-mt-28 p-6 sm:p-8 bg-white border border-black/[0.08] rounded-xl transition-all hover:border-[#FF6600]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
+                className="scroll-mt-28 p-6 sm:p-8 bg-[#111111] border border-white/[0.06] transition-all hover:border-white/[0.12]"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-[#FF6600]/10 text-[#FF6600] border border-[#FF6600]/20">
                     // {s.num}
                   </span>
-                  <h2 className="font-black uppercase text-base sm:text-lg text-[#1A1A1A] tracking-tight">
+                  <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight">
                     {s.title}
                   </h2>
                 </div>
-                <div className="text-sm text-[#1A1A1A]/75 leading-relaxed font-sans mt-3">
+                <div className="text-sm text-white/70 leading-relaxed font-sans mt-3">
                   {s.content}
                 </div>
               </article>
@@ -254,8 +254,8 @@ const PrivacyPolicy = () => {
             <div className="p-6 bg-[#141414] border border-white/[0.08] flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className="text-xs font-mono uppercase tracking-wider text-[#FF6600]">// TERMS</p>
-                <p className="text-sm font-bold text-[#1A1A1A] mt-0.5">Need to check our Terms of Service?</p>
-                <p className="text-xs text-[#1A1A1A]/40 mt-0.5">Review user obligations, rules, and store terms.</p>
+                <p className="text-sm font-bold text-white mt-0.5">Need to check our Terms of Service?</p>
+                <p className="text-xs text-white/40 mt-0.5">Review user obligations, rules, and store terms.</p>
               </div>
               <a
                 href="/terms"

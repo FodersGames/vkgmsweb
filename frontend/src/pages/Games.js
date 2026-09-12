@@ -99,22 +99,22 @@ const GamesPage = () => {
   const imgUrl = (url) => url?.startsWith('/') ? `${API_URL}${url}` : url;
 
   return (
-    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
       <PublicNav />
 
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div
-        style={{ paddingTop: '60px', backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+        style={{ paddingTop: '60px', backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div className="max-w-[1100px] mx-auto px-6 py-16">
-          <p className="kefir-label mb-4" style={{ color: 'rgba(26,26,26,0.5)' }}>Our Productions</p>
+          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Our Productions</p>
           <h1
-            className="font-black uppercase text-[#1A1A1A]"
+            className="font-black uppercase text-white"
             style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
           >
             Games
           </h1>
-          <p className="mt-4 text-sm" style={{ color: 'rgba(26,26,26,0.6)' }}>
+          <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
             Every title we release. Each one built with care.
           </p>
         </div>
@@ -123,28 +123,28 @@ const GamesPage = () => {
       {/* ── Games list ──────────────────────────────────────────────── */}
       <div className="max-w-[1100px] mx-auto px-6 py-16">
         {loading ? (
-          <div className="text-center py-20" style={{ color: 'rgba(26,26,26,0.4)' }}>
+          <div className="text-center py-20" style={{ color: 'rgba(255,255,255,0.3)' }}>
             <CircleNotch size={32} className="animate-spin mx-auto mb-4" />
             Loading…
           </div>
         ) : games.length === 0 ? (
           <div className="text-center py-20">
-            <GameController size={48} style={{ color: '#FF6600', opacity: 0.5, margin: '0 auto 1rem' }} />
-            <h2 className="font-black uppercase text-[#1A1A1A] text-2xl tracking-tight mb-3">
+            <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
+            <h2 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
               In Development
             </h2>
-            <p style={{ color: 'rgba(26,26,26,0.5)' }}>New games are in progress. Check the blog for updates.</p>
+            <p style={{ color: 'rgba(255,255,255,0.35)' }}>New games are in progress. Check the blog for updates.</p>
           </div>
         ) : (
-          <div className="space-y-16">
+          <div className="space-y-14">
             {games.map((game, idx) => (
               <div
                 key={game.slug}
-                className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-16 items-center p-8 rounded-2xl bg-white border border-black/[0.07] shadow-[0_4px_24px_rgba(0,0,0,0.03)]`}
+                className={`flex flex-col ${idx % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} gap-10 lg:gap-16 items-center`}
                 data-testid={`game-card-${game.slug}`}
               >
                 {/* Image */}
-                <div className="lg:w-1/2 relative overflow-hidden rounded-xl" style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+                <div className="lg:w-1/2 relative overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
                   {game.logo_url ? (
                     <img
                       src={imgUrl(game.logo_url)}
@@ -159,8 +159,8 @@ const GamesPage = () => {
                       className="w-full"
                     />
                   ) : (
-                    <div className="w-full aspect-video flex items-center justify-center" style={{ backgroundColor: '#F4F4F0' }}>
-                      <span className="font-black uppercase text-[#1A1A1A]/30 text-2xl tracking-tight">
+                    <div className="w-full aspect-video flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
+                      <span className="font-black uppercase text-white/20 text-2xl tracking-tight">
                         {game.name}
                       </span>
                     </div>
@@ -171,14 +171,14 @@ const GamesPage = () => {
                 <div className="lg:w-1/2 space-y-5">
                   <div className="flex items-center gap-4 flex-wrap">
                     <h2
-                      className="font-black uppercase text-[#1A1A1A]"
+                      className="font-black uppercase text-white"
                       style={{ fontSize: 'clamp(1.8rem, 4vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1 }}
                     >
                       {game.name}
                     </h2>
                     {game.status === 'coming_soon' && (
                       <span
-                        className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-full"
+                        className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
                         style={{ color: '#FF6600', border: '1px solid #FF6600' }}
                       >
                         Coming Soon
@@ -187,7 +187,7 @@ const GamesPage = () => {
                   </div>
 
                   {game.description && (
-                    <p className="leading-relaxed" style={{ color: 'rgba(26,26,26,0.65)', fontSize: '0.95rem' }}>
+                    <p className="leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem' }}>
                       {game.description}
                     </p>
                   )}
@@ -201,8 +201,8 @@ const GamesPage = () => {
                             <img
                               src={full}
                               alt=""
-                              className="h-16 sm:h-20 object-cover rounded"
-                              style={{ border: '1px solid rgba(0,0,0,0.1)' }}
+                              className="h-16 sm:h-20 object-cover"
+                              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
                             />
                           </HoverPreview>
                         );
@@ -220,18 +220,17 @@ const GamesPage = () => {
                             href={p.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all"
                             style={{
-                              color: '#1A1A1A',
-                              border: '1px solid rgba(0,0,0,0.12)',
+                              color: 'rgba(255,255,255,0.5)',
+                              border: '1px solid rgba(255,255,255,0.12)',
                               fontSize: '0.8rem',
-                              backgroundColor: '#FFFFFF',
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#FF6600'; e.currentTarget.style.borderColor = '#FF6600'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = '#1A1A1A'; e.currentTarget.style.borderColor = 'rgba(0,0,0,0.12)'; }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#FF6600'; e.currentTarget.style.borderColor = 'rgba(255,102,0,0.4)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                             data-testid={`platform-${p.name}`}
                           >
-                            <span style={{ color: 'rgba(26,26,26,0.45)' }}>{pl.svg}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>{pl.svg}</span>
                             {pl.label}
                             <ArrowSquareOut size={11} />
                           </a>
@@ -244,20 +243,20 @@ const GamesPage = () => {
                   {game.price_cents > 0 && game.status === 'published' && (
                     <div>
                       {purchaseError.slug === game.slug && (
-                        <p className="text-xs text-red-500 mb-2">{purchaseError.msg}</p>
+                        <p className="text-xs text-red-400 mb-2">{purchaseError.msg}</p>
                       )}
                       {ownedSlugs.has(game.slug) ? (
-                        <span className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-full" style={{ color: '#FF6600', border: '1px solid rgba(255,102,0,0.4)', backgroundColor: 'rgba(255,102,0,0.06)' }}>
+                        <span className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold" style={{ color: '#FF6600', border: '1px solid rgba(255,102,0,0.4)' }}>
                           <CheckCircle size={14} />
                           Owned
                         </span>
                       ) : buyingSlug === game.slug ? (
-                        <div className="p-4 space-y-3 max-w-xs rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 4px 16px rgba(0,0,0,0.05)' }}>
+                        <div className="p-4 space-y-3 max-w-xs" style={{ backgroundColor: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)' }}>
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-bold uppercase tracking-wide text-[#1A1A1A]">
-                              Promo code <span style={{ color: 'rgba(26,26,26,0.45)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                            <p className="text-xs font-bold uppercase tracking-wide text-white">
+                              Promo code <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
                             </p>
-                            <button onClick={() => setBuyingSlug(null)} style={{ color: 'rgba(26,26,26,0.4)' }} className="hover:text-[#1A1A1A]">
+                            <button onClick={() => setBuyingSlug(null)} style={{ color: 'rgba(255,255,255,0.3)' }} className="hover:text-white">
                               <X size={13} />
                             </button>
                           </div>
@@ -267,14 +266,14 @@ const GamesPage = () => {
                               value={couponCode}
                               onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponStatus(null); }}
                               placeholder="VG-XXXXXXXX"
-                              className="flex-1 text-xs px-2.5 py-2 focus:outline-none font-mono tracking-wide rounded"
-                              style={{ backgroundColor: '#FAFAF7', border: '1px solid rgba(0,0,0,0.15)', color: '#1A1A1A' }}
+                              className="flex-1 text-xs px-2.5 py-2 focus:outline-none font-mono tracking-wide"
+                              style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.12)', color: '#FFFFFF' }}
                             />
                             <button
                               onClick={() => checkGameCoupon(game.slug)}
                               disabled={!couponCode.trim() || couponChecking}
-                              className="text-xs font-bold uppercase tracking-wide px-3 py-2 rounded transition-colors disabled:opacity-40"
-                              style={{ border: '1px solid rgba(0,0,0,0.2)', color: '#1A1A1A' }}
+                              className="text-xs font-bold uppercase tracking-wide px-3 py-2 transition-colors disabled:opacity-40"
+                              style={{ border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)' }}
                             >
                               {couponChecking ? '…' : 'Apply'}
                             </button>
@@ -285,7 +284,7 @@ const GamesPage = () => {
                             </p>
                           )}
                           {couponStatus?.valid === false && (
-                            <p className="text-xs text-red-500">{couponStatus.error}</p>
+                            <p className="text-xs text-red-400">{couponStatus.error}</p>
                           )}
                           <button
                             onClick={() => buyGame(game)}
