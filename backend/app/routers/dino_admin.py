@@ -267,34 +267,43 @@ async def grant_gift_to_player(req: DinoGiftRequest, user=Depends(require_super_
 
     data_payload: Dict[str, str] = {}
     summary_items = []
+    keys_to_remove = []
 
-    if req.dino_name:
-        data_payload["gift_dino"] = req.dino_name.strip()
-        summary_items.append(f"Dino: {req.dino_name}")
-
+    # 1. Dinosaurs: if multi-dinos provided, never set legacy gift_dino to avoid double-granting
     if req.dinos and len(req.dinos) > 0:
         data_payload["gift_dinos"] = json.dumps(req.dinos)
-        summary_items.append(f"{len(req.dinos)} Dinos")
+        keys_to_remove.append("gift_dino")
+        dino_parts = [f"{d.get('count', 1)}x {d.get('name', 'Dino')}" for d in req.dinos if isinstance(d, dict)]
+        summary_items.append(f"Dinos: {', '.join(dino_parts)}")
+    elif req.dino_name and req.dino_name.strip():
+        data_payload["gift_dino"] = req.dino_name.strip()
+        summary_items.append(f"Dino: 1x {req.dino_name.strip()}")
 
+    # 2. Currencies
     if req.gems and req.gems > 0:
         data_payload["gift_gems"] = str(req.gems)
-        summary_items.append(f"{req.gems} Gems")
+        summary_items.append(f"{req.gems:,} Gems")
 
     if req.dna and req.dna > 0:
-        data_payload["gift_dna"] = str(req.dna)
-        summary_items.append(f"{req.dna} DNA")
+        dna_val = int(req.dna) if req.dna == int(req.dna) else req.dna
+        data_payload["gift_dna"] = str(dna_val)
+        summary_items.append(f"{dna_val:,} DNA")
 
+    # 3. Items, Eggs, Chests with exact counts in logs
     if req.items and len(req.items) > 0:
         data_payload["gift_items"] = json.dumps(req.items)
-        summary_items.append(f"{len(req.items)} Items")
+        item_parts = [f"{i.get('count', 1)}x {i.get('id', 'Item')}" for i in req.items if isinstance(i, dict)]
+        summary_items.append(f"Items: {', '.join(item_parts)}")
 
     if req.eggs and len(req.eggs) > 0:
         data_payload["gift_eggs"] = json.dumps(req.eggs)
-        summary_items.append(f"{len(req.eggs)} Eggs")
+        egg_parts = [f"{e.get('count', 1)}x {e.get('eggName', 'Egg')}" for e in req.eggs if isinstance(e, dict)]
+        summary_items.append(f"Eggs: {', '.join(egg_parts)}")
 
     if req.chests and len(req.chests) > 0:
         data_payload["gift_chests"] = json.dumps(req.chests)
-        summary_items.append(f"{len(req.chests)} Chests")
+        chest_parts = [f"{c.get('count', 1)}x {c.get('chestName', 'Chest')}" for c in req.chests if isinstance(c, dict)]
+        summary_items.append(f"Chests: {', '.join(chest_parts)}")
 
     if req.message and req.message.strip():
         data_payload["gift_message"] = req.message.strip()
@@ -303,13 +312,17 @@ async def grant_gift_to_player(req: DinoGiftRequest, user=Depends(require_super_
         raise HTTPException(status_code=400, detail="Please select at least one gift reward to send.")
 
     # Call PlayFab Server/UpdateUserData
+    update_user_payload = {
+        "PlayFabId": clean_id,
+        "Data": data_payload,
+        "Permission": "Public"
+    }
+    if keys_to_remove:
+        update_user_payload["KeysToRemove"] = keys_to_remove
+
     await call_playfab(
         "Server/UpdateUserData",
-        {
-            "PlayFabId": clean_id,
-            "Data": data_payload,
-            "Permission": "Public"
-        },
+        update_user_payload,
         secret_key,
         title_id
     )
