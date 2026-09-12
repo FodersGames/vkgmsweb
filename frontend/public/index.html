@@ -21,6 +21,14 @@
             href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,460;0,9..144,560;1,9..144,460&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
             rel="stylesheet"
         />
+        <script>
+            (function() {
+                var p = window.location.pathname;
+                if (p && p !== '/' && p !== '/index.html' && !window.location.hash) {
+                    window.location.replace('/#' + p + window.location.search);
+                }
+            })();
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
