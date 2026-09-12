@@ -21,6 +21,17 @@ from ..utils import log_action, _create_notification
 from ..chat_common import get_banned_words, contains_banned_word
 from ..rate_limit import limiter
 from ..schemas import CliExecuteRequest
+from .dino_admin import (
+    get_dino_maintenance,
+    set_dino_maintenance,
+    DinoMaintenanceRequest,
+    get_player_profile,
+    ban_player,
+    unban_player,
+    grant_gift_to_player,
+    DinoGiftRequest,
+    DinoBanRequest,
+)
 
 router = APIRouter()
 
@@ -261,198 +272,149 @@ async def get_system_health_detailed(user=Depends(require_permission("view_vps")
 # happens when the client resends the identical command with confirm=True.
 
 _CLI_HELP_TEXT = [
-    "Available commands:",
+    "================================================================",
+    "  VAKAR GAMES - SUPER ADMIN CLI CONSOLE",
+    "================================================================",
     "",
-    "  User accounts",
-    "  help",
-    "  user find <email|username>",
-    "  user list [role]",
-    "  user suspend <email|username>",
-    "  user unsuspend <email|username>",
-    "  user role <email|username> <user|admin>",
-    "  user reset-password <email|username>",
-    "  user delete <email|username>",
+    "  [ SYSTEM & INFRASTRUCTURE ]",
+    "  help                                    Show this command manual",
+    "  clear                                   Clear the console output",
+    "  stats                                   Live database & user metrics",
+    "  vps                                     Real-time VPS CPU, RAM, Disk & Uptime",
+    "  history [n]                             Recent admin commands executed",
+    "  broadcast <message>                     Send push notification to all users",
+    "  logs recent [type] [n]                  Tail recent activity logs",
+    "  logs search <keyword>                   Search logs by keyword",
     "",
-    "  Projects",
-    "  project status <project_slug> <open|closed|maintenance>",
-    "  project stats <project_slug>",
+    "  [ WEBSITE CONTROLS ]",
+    "  maintenance on|off                      Toggle immediate maintenance mode",
+    "  maintenance schedule <min> [msg]        Schedule countdown maintenance",
+    "  maintenance cancel-schedule             Cancel pending maintenance schedule",
+    "  settings show                           Display website global configuration",
+    "  settings set support_email <value>      Update contact email",
     "",
-    "  Support",
-    "  ticket show <ticket_number>",
-    "  ticket close <ticket_number>",
+    "  [ IDLE DINO CLICKER TYCOON - PLAYFAB ]",
+    "  dino maintenance on|off|reset           Emergency game server maintenance toggle",
+    "  dino inspect <playfab_id>               Query live player cloud profile",
+    "  dino ban <playfab_id> [reason]          Suspend/ban player from game",
+    "  dino unban <playfab_id>                 Reactivate player account",
+    "  dino gift <playfab_id> <gems> [dna]     Grant in-game currencies",
     "",
-    "  System",
-    "  maintenance on|off",
-    "  maintenance schedule <minutes> [message]",
-    "  maintenance cancel-schedule",
-    "  broadcast <message>",
-    "  stats",
-    "  history [n]",
-    "  history all [n]",
+    "  [ USERS & COMMUNITY ]",
+    "  user list [role]                        List registered accounts (user/admin/super_admin)",
+    "  user find <email|username>              Search account details",
+    "  user role <query> <user|admin>          Promote or demote user account",
+    "  user suspend <query>                    Suspend user login access",
+    "  user unsuspend <query>                  Reactivate suspended user",
+    "  user reset-password <query>             Generate secure temporary password",
+    "  survey list                             List all surveys & response counts",
     "",
+    "  [ SUPPORT TICKETS ]",
+    "  ticket list [status]                    List open/resolved support tickets",
+    "  ticket show <number>                    Inspect ticket conversation thread",
+    "  ticket reply <number> <msg>             Send support agent reply",
+    "  ticket close <number>                   Close ticket",
     "",
-    "  Studio apps & Vakar+",
-    "  app list [draft|published]",
-    "  app show <slug>",
-    "  app reviews [pending|approved|rejected]",
-    "  app approve <slug>",
-    "  app reject <slug> <reason>",
-    "  vakarplus show <email>",
-    "  vakarplus grant <email>",
-    "  vakarplus revoke <email>",
-    "",
-    "  Blog & careers",
-    "  blog list [published|draft]",
-    "  blog publish <slug>",
-    "  blog unpublish <slug>",
-    "  blog delete <slug>",
-    "  career list [open|closed]",
-    "  career open <career_id>",
-    "  career close <career_id>",
-    "",
-    "  Variables & items",
-    "  var get <project_slug> <name>",
-    "  var set <project_slug> <name> <value>",
-    "  item list <project_slug>",
-    "  item send <project_slug> <query> <item_name> <amount>",
-    "",
-    "  Project extras",
-    "  project logs <project_slug> [n]",
-    "  project files <project_slug>",
-    "  project keys <project_slug>",
-    "",
-    "  Tickets, notifications, logs & settings",
-    "  ticket list [status]",
-    "  ticket reply <ticket_number> <message>",
-    "  notify user <query> <message>",
-    "  notify list <query>",
-    "  logs recent [type] [n]",
-    "  logs search <keyword>",
-    "  settings show",
-    "  settings set support_email <value>",
-    "",
-    "  Accounts & players extras",
-    "  user set-pseudo <query> <new_pseudo>",
-    "  user reset-cooldown <query> <firstname|pseudo>",
-    "  player nickname <project_slug> <query>",
-    "  player firstseen <project_slug> <query>",
-    "",
-    "Destructive commands ask for confirmation before applying any change.",
-    "Repeated destructive actions in a short window auto-lock the CLI as an anomaly safeguard.",
+    "  [ BLOG ]",
+    "  blog list [published|draft]             List published articles",
+    "================================================================",
 ]
 
 # ── CLI catalog ───────────────────────────────────────────────────────────────
-# Read-only metadata describing every command above : powers GET /admin/cli/commands,
-# used by the frontend for autocomplete and for generating the "$command" popup
-# form. It does NOT execute anything; it's purely descriptive data that mirrors
-# _cli_dispatch's branches. type is one of: text | number | select | textarea.
 _T = "text"; _N = "number"; _TA = "textarea"
 def _sel(choices):
     return {"type": "select", "choices": choices}
 
 _CLI_CATALOG = [
-    # User accounts
-    {"path": ["help"], "category": "System", "description": "Show the command list.", "args": [], "confirm": False},
-    {"path": ["stats"], "category": "System", "description": "Platform-wide counters.", "args": [], "confirm": False},
-    {"path": ["history"], "category": "System", "description": "Your own recent CLI commands.", "args": [{"name": "n", "label": "Count", "type": _N, "required": False}], "confirm": False},
-    {"path": ["user", "find"], "category": "Users", "description": "Look up a user account.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": False},
-    {"path": ["user", "list"], "category": "Users", "description": "List users, optionally by role.", "args": [{"name": "role", "label": "Role", **_sel(["user", "admin", "super_admin"]), "required": False}], "confirm": False},
-    {"path": ["user", "suspend"], "category": "Users", "description": "Suspend a user account.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": True},
-    {"path": ["user", "unsuspend"], "category": "Users", "description": "Reactivate a suspended account.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": True},
-    {"path": ["user", "role"], "category": "Users", "description": "Change a user's role.", "args": [
-        {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
-        {"name": "role", "label": "New role", **_sel(["user", "admin"]), "required": True},
-    ], "confirm": True},
-    {"path": ["user", "reset-password"], "category": "Users", "description": "Generate a temporary password.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": True},
-    {"path": ["user", "delete"], "category": "Users", "description": "Permanently delete a user account.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": True},
-    {"path": ["user", "set-pseudo"], "category": "Users", "description": "Admin-set a user's pseudo directly.", "args": [
-        {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
-        {"name": "new_pseudo", "label": "New pseudo", "type": _T, "required": True},
-    ], "confirm": True},
-    {"path": ["user", "reset-cooldown"], "category": "Users", "description": "Reset a user's own change cooldown.", "args": [
-        {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
-        {"name": "field", "label": "Field", **_sel(["firstname", "pseudo"]), "required": True},
-    ], "confirm": True},
+    # System & Telemetry
+    {"path": ["help"], "category": "System", "description": "Show list of available CLI commands.", "args": [], "confirm": False},
+    {"path": ["clear"], "category": "System", "description": "Clear the terminal screen output.", "args": [], "confirm": False},
+    {"path": ["stats"], "category": "System", "description": "Display live platform counters (Users, Surveys, Tickets).", "args": [], "confirm": False},
+    {"path": ["vps"], "category": "System", "description": "Show real-time server telemetry: CPU, RAM, Disk, Uptime.", "args": [], "confirm": False},
+    {"path": ["history"], "category": "System", "description": "Show recent admin CLI command executions.", "args": [{"name": "n", "label": "Count", "type": _N, "required": False}], "confirm": False},
+    {"path": ["broadcast"], "category": "System", "description": "Broadcast an in-app notification to all registered users.", "args": [{"name": "message", "label": "Message", "type": _TA, "required": True}], "confirm": True},
+    {"path": ["logs", "recent"], "category": "System", "description": "Tail the latest platform activity logs.", "args": [
+        {"name": "type", "label": "Log type", "type": _T, "required": False},
+        {"name": "n", "label": "Count (max 100)", "type": _N, "required": False},
+    ], "confirm": False},
+    {"path": ["logs", "search"], "category": "System", "description": "Search activity logs by keyword.", "args": [{"name": "keyword", "label": "Keyword", "type": _T, "required": True}], "confirm": False},
 
-    # Projects
-    {"path": ["project", "status"], "category": "Projects", "description": "Set a project's server status.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "status", "label": "Status", **_sel(["open", "closed", "maintenance"]), "required": True},
+    # Website Settings & Maintenance
+    {"path": ["maintenance"], "category": "Website", "description": "Toggle immediate website maintenance mode (on/off).", "args": [{"name": "state", "label": "State", **_sel(["on", "off"]), "required": True}], "confirm": True},
+    {"path": ["maintenance", "schedule"], "category": "Website", "description": "Schedule website maintenance in N minutes with visitor notice.", "args": [
+        {"name": "minutes", "label": "Minutes from now", "type": _N, "required": True},
+        {"name": "message", "label": "Notice message", "type": _TA, "required": False},
     ], "confirm": True},
-    {"path": ["project", "stats"], "category": "Projects", "description": "Quick stats for a project.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    {"path": ["project", "logs"], "category": "Projects", "description": "Recent logs for a project.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "n", "label": "Count", "type": _N, "required": False},
-    ], "confirm": False},
-    {"path": ["project", "files"], "category": "Projects", "description": "Latest uploaded build files.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    {"path": ["project", "keys"], "category": "Projects", "description": "Show a project's chat/files API keys.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    # CRITICAL : routed through the dedicated confirmation modal, same as
-    # app delete-all (see CRITICAL ACTIONS above _cli_dispatch). Listed
-    # here purely for discoverability via 'help'/the command catalog popup.
-    {"path": ["project", "delete-all"], "category": "Projects", "description": "⚠ CRITICAL : permanently delete every hosted game project on the platform.", "args": [], "confirm": True},
-    {"path": ["var", "get"], "category": "Projects", "description": "Read a project variable.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "name", "label": "Variable name", "type": _T, "required": True},
-    ], "confirm": False},
-    {"path": ["var", "set"], "category": "Projects", "description": "Set a project variable.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "name", "label": "Variable name", "type": _T, "required": True},
+    {"path": ["maintenance", "cancel-schedule"], "category": "Website", "description": "Cancel pending scheduled website maintenance.", "args": [], "confirm": True},
+    {"path": ["settings", "show"], "category": "Website", "description": "View current global website configuration.", "args": [], "confirm": False},
+    {"path": ["settings", "set"], "category": "Website", "description": "Update a website setting.", "args": [
+        {"name": "key", "label": "Setting key", **_sel(["support_email"]), "required": True},
         {"name": "value", "label": "New value", "type": _T, "required": True},
     ], "confirm": True},
-    {"path": ["item", "list"], "category": "Projects", "description": "Recent item sends for a project.", "args": [{"name": "slug", "label": "Project", "type": _T, "required": True}], "confirm": False},
-    {"path": ["item", "send"], "category": "Projects", "description": "Send an in-game item to a player.", "args": [
-        {"name": "slug", "label": "Project", "type": _T, "required": True},
-        {"name": "query", "label": "Player UID", "type": _T, "required": True},
-        {"name": "item_name", "label": "Item / variable name", "type": _T, "required": True},
-        {"name": "amount", "label": "Amount", "type": _N, "required": True},
-    ], "confirm": True},
 
-    # Vakar+ Memberships
-    {"path": ["vakarplus", "show"], "category": "Vakar+", "description": "Show a user's Vakar+ status.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": False},
-    {"path": ["vakarplus", "grant"], "category": "Vakar+", "description": "Manually grant Vakar+ to a user.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
-    {"path": ["vakarplus", "revoke"], "category": "Vakar+", "description": "Revoke a user's Vakar+.", "args": [{"name": "email", "label": "Email", "type": _T, "required": True}], "confirm": True},
-
-    # Blog & careers
-    {"path": ["blog", "list"], "category": "Blog & careers", "description": "List blog posts.", "args": [{"name": "status", "label": "Status", **_sel(["published", "draft"]), "required": False}], "confirm": False},
-    {"path": ["blog", "publish"], "category": "Blog & careers", "description": "Publish a blog post.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["blog", "unpublish"], "category": "Blog & careers", "description": "Unpublish a blog post.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["blog", "delete"], "category": "Blog & careers", "description": "Permanently delete a blog post.", "args": [{"name": "slug", "label": "Slug", "type": _T, "required": True}], "confirm": True},
-    {"path": ["career", "list"], "category": "Blog & careers", "description": "List career postings.", "args": [{"name": "state", "label": "State", **_sel(["open", "closed"]), "required": False}], "confirm": False},
-    {"path": ["career", "open"], "category": "Blog & careers", "description": "Reopen a career posting.", "args": [{"name": "career_id", "label": "Posting ID", "type": _T, "required": True}], "confirm": True},
-    {"path": ["career", "close"], "category": "Blog & careers", "description": "Close a career posting.", "args": [{"name": "career_id", "label": "Posting ID", "type": _T, "required": True}], "confirm": True},
-
-    # Support
-    {"path": ["ticket", "show"], "category": "Support", "description": "Ticket detail.", "args": [{"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True}], "confirm": False},
-    {"path": ["ticket", "close"], "category": "Support", "description": "Close a ticket.", "args": [{"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True}], "confirm": True},
-    {"path": ["ticket", "list"], "category": "Support", "description": "List tickets, optionally by status.", "args": [{"name": "status", "label": "Status", **_sel(["open", "in_progress", "resolved", "closed"]), "required": False}], "confirm": False},
-    {"path": ["ticket", "reply"], "category": "Support", "description": "Reply to a ticket as support.", "args": [
-        {"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True},
-        {"name": "message", "label": "Message", "type": _TA, "required": True},
+    # Idle Dino Clicker Tycoon (PlayFab Dev)
+    {"path": ["dino", "maintenance"], "category": "Dino Game", "description": "Control Idle Dino Clicker Tycoon maintenance via PlayFab.", "args": [
+        {"name": "state", "label": "Action", **_sel(["on", "off", "reset"]), "required": True}
     ], "confirm": True},
-    {"path": ["notify", "user"], "category": "Support", "description": "Send a notification to one user.", "args": [
-        {"name": "query", "label": "Email or pseudo", "type": _T, "required": True},
-        {"name": "message", "label": "Message", "type": _TA, "required": True},
-    ], "confirm": True},
-    {"path": ["notify", "list"], "category": "Support", "description": "Recent notifications for a user.", "args": [{"name": "query", "label": "Email or pseudo", "type": _T, "required": True}], "confirm": False},
-
-    # System
-    {"path": ["maintenance"], "category": "System", "description": "Toggle site-wide maintenance mode.", "args": [{"name": "state", "label": "State", **_sel(["on", "off"]), "required": True}], "confirm": True},
-    {"path": ["maintenance", "schedule"], "category": "System", "description": "Schedule maintenance to start in N minutes, with an optional visitor-facing message.", "args": [
-        {"name": "minutes", "label": "Minutes from now", "type": _N, "required": True},
-        {"name": "message", "label": "Message shown to visitors (optional)", "type": _TA, "required": False},
-    ], "confirm": True},
-    {"path": ["maintenance", "cancel-schedule"], "category": "System", "description": "Cancel a pending scheduled maintenance.", "args": [], "confirm": True},
-    {"path": ["broadcast"], "category": "System", "description": "Notify every user.", "args": [{"name": "message", "label": "Message", "type": _TA, "required": True}], "confirm": True},
-    {"path": ["logs", "recent"], "category": "System", "description": "Tail the general activity log.", "args": [
-        {"name": "type", "label": "Type filter", "type": _T, "required": False},
-        {"name": "n", "label": "Count", "type": _N, "required": False},
+    {"path": ["dino", "inspect"], "category": "Dino Game", "description": "Inspect player cloud profile directly from PlayFab.", "args": [
+        {"name": "playfab_id", "label": "PlayFab ID", "type": _T, "required": True}
     ], "confirm": False},
-    {"path": ["logs", "search"], "category": "System", "description": "Search the activity log by keyword.", "args": [{"name": "keyword", "label": "Keyword", "type": _T, "required": True}], "confirm": False},
-    {"path": ["settings", "show"], "category": "System", "description": "Show website settings.", "args": [], "confirm": False},
-    {"path": ["settings", "set"], "category": "System", "description": "Set a website setting.", "args": [
-        {"name": "key", "label": "Key", **_sel(["support_email"]), "required": True},
-        {"name": "value", "label": "Value", "type": _T, "required": True},
+    {"path": ["dino", "ban"], "category": "Dino Game", "description": "Suspend / ban a player account from mobile game servers.", "args": [
+        {"name": "playfab_id", "label": "PlayFab ID", "type": _T, "required": True},
+        {"name": "reason", "label": "Reason", "type": _T, "required": False},
     ], "confirm": True},
+    {"path": ["dino", "unban"], "category": "Dino Game", "description": "Unban and restore access for a player.", "args": [
+        {"name": "playfab_id", "label": "PlayFab ID", "type": _T, "required": True}
+    ], "confirm": True},
+    {"path": ["dino", "gift"], "category": "Dino Game", "description": "Dispatch in-game currencies gift (Gems & DNA) to player.", "args": [
+        {"name": "playfab_id", "label": "PlayFab ID", "type": _T, "required": True},
+        {"name": "gems", "label": "Gems amount", "type": _N, "required": True},
+        {"name": "dna", "label": "DNA amount", "type": _N, "required": False},
+    ], "confirm": True},
+
+    # User Accounts & Permissions
+    {"path": ["user", "list"], "category": "Users", "description": "List users, optionally filtered by role.", "args": [
+        {"name": "role", "label": "Role", **_sel(["user", "admin", "super_admin"]), "required": False}
+    ], "confirm": False},
+    {"path": ["user", "find"], "category": "Users", "description": "Search user by email, username, or Mongo ID.", "args": [
+        {"name": "query", "label": "Email or username", "type": _T, "required": True}
+    ], "confirm": False},
+    {"path": ["user", "role"], "category": "Users", "description": "Promote or change a user's role.", "args": [
+        {"name": "query", "label": "Email or username", "type": _T, "required": True},
+        {"name": "role", "label": "Role", **_sel(["user", "admin"]), "required": True},
+    ], "confirm": True},
+    {"path": ["user", "suspend"], "category": "Users", "description": "Suspend a user account.", "args": [
+        {"name": "query", "label": "Email or username", "type": _T, "required": True}
+    ], "confirm": True},
+    {"path": ["user", "unsuspend"], "category": "Users", "description": "Reactivate a suspended user account.", "args": [
+        {"name": "query", "label": "Email or username", "type": _T, "required": True}
+    ], "confirm": True},
+    {"path": ["user", "reset-password"], "category": "Users", "description": "Generate a temporary login password.", "args": [
+        {"name": "query", "label": "Email or username", "type": _T, "required": True}
+    ], "confirm": True},
+
+    # Surveys & Community
+    {"path": ["survey", "list"], "category": "Surveys", "description": "List all surveys with status and response counts.", "args": [], "confirm": False},
+
+    # Support Tickets
+    {"path": ["ticket", "list"], "category": "Support", "description": "List support tickets by status.", "args": [
+        {"name": "status", "label": "Status", **_sel(["open", "in_progress", "resolved", "closed"]), "required": False}
+    ], "confirm": False},
+    {"path": ["ticket", "show"], "category": "Support", "description": "Show ticket conversation thread.", "args": [
+        {"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True}
+    ], "confirm": False},
+    {"path": ["ticket", "close"], "category": "Support", "description": "Close a support ticket.", "args": [
+        {"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True}
+    ], "confirm": True},
+    {"path": ["ticket", "reply"], "category": "Support", "description": "Post support agent reply to a ticket.", "args": [
+        {"name": "ticket_number", "label": "Ticket number", "type": _T, "required": True},
+        {"name": "message", "label": "Reply message", "type": _TA, "required": True},
+    ], "confirm": True},
+
+    # Blog Posts
+    {"path": ["blog", "list"], "category": "Blog", "description": "List all blog articles.", "args": [
+        {"name": "status", "label": "Status", **_sel(["published", "draft"]), "required": False}
+    ], "confirm": False},
 ]
 
 async def _cli_find_user_doc(query: str):
@@ -505,27 +467,7 @@ class _CliError(Exception):
 # ============================================================
 CRITICAL_ACTION_COUNTDOWN_SECONDS = 30
 
-async def _execute_delete_all_projects(payload: dict) -> str:
-    # Mirrors DELETE /api/projects/{slug} (projects.py) exactly, just
-    # without the per-slug filter : same collection list, so "delete all"
-    # cascades exactly as far as deleting one project already does today
-    # (notably: does NOT touch missions/guilds/chat/players : that's a
-    # pre-existing scope of the single-project delete too, not something
-    # introduced here).
-    counts = {}
-    result = await db.projects.delete_many({})
-    counts["projects"] = result.deleted_count
-    for coll in ["items", "server_status", "variables", "logs"]:
-        result = await db[coll].delete_many({})
-        counts[coll] = result.deleted_count
-    return "deleted " + ", ".join(f"{v} {k}" for k, v in counts.items())
-
-CRITICAL_ACTIONS = {
-    "delete_all_projects": {
-        "label": "Delete ALL Projects : every hosted game project, platform-wide",
-        "handler": _execute_delete_all_projects,
-    },
-}
+CRITICAL_ACTIONS = {}
 
 async def _run_critical_action_after_delay(hold_id):
     hold = await db.critical_action_holds.find_one({"_id": hold_id})
@@ -620,17 +562,42 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
     if verb == "help":
         return _CLI_HELP_TEXT, False, False
 
+    if verb == "clear":
+        return ["__CLEAR__"], False, False
+
     if verb == "stats" and len(tokens) == 1:
         users_count = await db.users.count_documents({})
-        projects_count = await db.projects.count_documents({})
+        surveys_count = await db.surveys.count_documents({})
         open_tickets = await db.support_tickets.count_documents({"status": {"$in": ["open", "in_progress"]}})
-        open_missions = await db.missions.count_documents({"status": "open"})
+        blog_count = await db.blog_posts.count_documents({})
         return [
             "Platform stats:",
             f"  users:         {users_count}",
-            f"  projects:      {projects_count}",
+            f"  surveys:       {surveys_count}",
             f"  open tickets:  {open_tickets}",
-            f"  open missions: {open_missions}",
+            f"  blog posts:    {blog_count}",
+        ], False, False
+
+    if verb == "vps":
+        stats = await get_system_stats(admin)
+        cpu = stats.get("cpu", {})
+        ram = stats.get("ram", {})
+        disk = stats.get("disk", {})
+        uptime_sec = stats.get("uptime_seconds", 0)
+        uptime_hrs = uptime_sec / 3600 if uptime_sec else 0
+        ram_used_gb = ram.get("used", 0) / (1024**3)
+        ram_total_gb = ram.get("total", 1) / (1024**3)
+        disk_used_gb = disk.get("used", 0) / (1024**3)
+        disk_total_gb = disk.get("total", 1) / (1024**3)
+        return [
+            "VPS Server Telemetry:",
+            f"  os:          {stats.get('os_info', 'Unknown')}",
+            f"  environment: {stats.get('server_environment', 'Unknown')}",
+            f"  cpu usage:   {cpu.get('percent', 0)}% ({cpu.get('count', 1)} cores)",
+            f"  ram:         {ram_used_gb:.1f} GB / {ram_total_gb:.1f} GB ({ram.get('percent', 0)}%)",
+            f"  disk:        {disk_used_gb:.1f} GB / {disk_total_gb:.1f} GB ({disk.get('percent', 0)}%)",
+            f"  processes:   {stats.get('processes_count', 0)}",
+            f"  uptime:      {uptime_hrs:.1f} hours",
         ], False, False
 
     if verb == "history":
@@ -794,45 +761,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             await log_action("user_action", f"[CLI] User '{target.get('username')}' ({target.get('email')}) permanently deleted", user=admin["username"])
             return [f"OK : account '{target.get('username')}' permanently deleted."], False, True
 
-    if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "status":
-        if len(tokens) < 4:
-            raise _CliError("Usage: project status <project_slug> <open|closed|maintenance>")
-        slug, new_status = tokens[2], tokens[3].lower()
-        if new_status not in ("open", "closed", "maintenance"):
-            raise _CliError("Status must be one of: open, closed, maintenance")
-        project = await db.projects.find_one({"slug": slug})
-        if not project:
-            raise _CliError(f"No project with slug '{slug}'.")
-        if not confirm:
-            return [f"Set status of project '{slug}' to '{new_status}'?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.server_status.update_one(
-            {"project_slug": slug},
-            {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc), "updated_by": admin["username"]}},
-            upsert=True,
-        )
-        await log_action("status", f"[CLI] Project '{slug}' status set to '{new_status}'", project_slug=slug, user=admin["username"])
-        return [f"OK : project '{slug}' status set to '{new_status}'."], False, True
-
-    if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "stats":
-        slug = tokens[2]
-        project = await db.projects.find_one({"slug": slug})
-        if not project:
-            raise _CliError(f"No project with slug '{slug}'.")
-        status_doc = await db.server_status.find_one({"project_slug": slug})
-        open_missions = await db.missions.count_documents({"project_slug": slug, "status": "open"})
-        in_progress = await db.missions.count_documents({"project_slug": slug, "status": "in_progress"})
-        bans = await db.chat_bans.count_documents({"project_slug": slug})
-        mutes = await db.chat_mutes.count_documents({"project_slug": slug})
-        return [
-            f"Project '{slug}':",
-            f"  status:        {status_doc.get('status', 'open') if status_doc else 'open'}",
-            f"  open missions: {open_missions}",
-            f"  in progress:   {in_progress}",
-            f"  chat bans:     {bans}",
-            f"  chat mutes:    {mutes}",
-        ], False, False
-
     if verb == "ticket" and len(tokens) >= 3 and tokens[1].lower() == "show":
         tn = tokens[2].upper()
         t = await db.support_tickets.find_one({"ticket_number": tn})
@@ -863,45 +791,129 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await log_action("support", f"[CLI] Ticket '{tn}' closed", user=admin["username"])
         return [f"OK : ticket '{tn}' closed."], False, True
 
-    # ── Retired app builder commands ──────────────────────────────────────────
-    if verb in ("app", "apps"):
-        raise _CliError("App builder features have been retired.")
+    # ── Surveys ──────────────────────────────────────────────────────────────
+    if verb == "survey" and len(tokens) >= 2 and tokens[1].lower() == "list":
+        surveys = await db.surveys.find({}).sort("createdAt", -1).to_list(30)
+        if not surveys:
+            return ["No surveys found."], False, False
+        lines = [f"{len(surveys)} survey(s):"]
+        for s in surveys:
+            status = "active" if s.get("is_active", True) else "closed"
+            resp_count = await db.survey_responses.count_documents({"survey_id": s["_id"]})
+            lines.append(f"  {s.get('slug', '?'):<25} [{status:<6}] {resp_count} responses - {s.get('title', '')}")
+        return lines, False, False
 
-    if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() == "show":
-        email = tokens[2].lower().strip()
-        target = await db.users.find_one({"email": email})
-        if not target:
-            raise _CliError(f"No user with email '{email}'.")
-        status = target.get("vakar_plus_status", "none")
-        return [
-            f"email:  {email}",
-            f"active: {status == 'active'}",
-            f"status: {status}",
-            f"plan:   {target.get('vakar_plus_plan') or ':'}",
-        ], False, False
+    # ── Dino Idle Tycoon ──────────────────────────────────────────────────────
+    if verb == "dino" and len(tokens) >= 2:
+        sub = tokens[1].lower()
+        if sub == "maintenance":
+            action = tokens[2].lower() if len(tokens) > 2 else "show"
+            if action == "show":
+                maint = await get_dino_maintenance(user=admin)
+                status = "ACTIVE (Cut)" if maint.get("effective_active") else "ONLINE"
+                if maint.get("is_scheduled"):
+                    status = f"SCHEDULED (in {int(maint.get('seconds_until_scheduled', 0)//60)} mins at {maint.get('target_iso')})"
+                return [
+                    "Dino Game Maintenance Status:",
+                    f"  status:    {status}",
+                    f"  message:   {maint.get('maintenance_message')}",
+                    f"  scheduled: {maint.get('scheduled_maintenance_utc')}",
+                ], False, False
 
-    if verb == "vakarplus" and len(tokens) >= 3 and tokens[1].lower() in ("grant", "revoke"):
-        grant = tokens[1].lower() == "grant"
-        email = tokens[2].lower().strip()
-        target = await db.users.find_one({"email": email})
-        if not target:
-            raise _CliError(f"No user with email '{email}'.")
-        if not confirm:
-            return [f"{'Grant' if grant else 'Revoke'} Vakar+ for '{email}'?",
-                    "Type 'y' to confirm, or anything else to cancel."], True, False
-        if grant:
-            update = {"vakar_plus_status": "active", "vakar_plus_plan": "manual", "vakar_plus_current_period_end": None, "vakar_plus_cancel_at_period_end": False}
-            message = "🎉 You've been granted Vakar+ by an admin!"
-            notif_type = "vakar_plus_started"
-        else:
-            update = {"vakar_plus_status": "none", "vakar_plus_plan": None}
-            message = "Your Vakar+ access was revoked by an admin."
-            notif_type = "vakar_plus_ended"
-        await db.users.update_one({"_id": target["_id"]}, {"$set": update})
-        action = "granted" if grant else "revoked"
-        await log_action("user_action", f"[CLI] Admin '{admin['username']}' {action} Vakar+ for '{target.get('username', email)}'", user=admin["username"])
-        await _create_notification(user_id=str(target["_id"]), message=message, notif_type=notif_type)
-        return [f"OK : Vakar+ {action} for '{email}'."], False, True
+            if action in ("on", "cut", "immediate"):
+                msg = " ".join(tokens[3:]) if len(tokens) > 3 else "Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée."
+                if not confirm:
+                    return [f"Activate IMMEDIATE game maintenance for Idle Dino Tycoon?",
+                            f"Message: \"{msg}\"",
+                            "Type 'y' to confirm, or anything else to cancel."], True, False
+                await set_dino_maintenance(DinoMaintenanceRequest(action="immediate", maintenance_message=msg), user=admin)
+                return [f"OK : Dino game maintenance activated (immediate cut)."], False, True
+
+            if action in ("off", "cancel", "reopen"):
+                if not confirm:
+                    return ["Reopen Dino Idle Tycoon servers (disable maintenance)?",
+                            "Type 'y' to confirm, or anything else to cancel."], True, False
+                await set_dino_maintenance(DinoMaintenanceRequest(action="cancel"), user=admin)
+                return ["OK : Dino game maintenance deactivated, servers are back online."], False, True
+
+            if action == "schedule":
+                if len(tokens) < 4:
+                    raise _CliError("Usage: dino maintenance schedule <delay_minutes> [message]")
+                try:
+                    mins = float(tokens[3])
+                except ValueError:
+                    raise _CliError("Delay minutes must be a number.")
+                if mins <= 0:
+                    raise _CliError("Delay minutes must be greater than 0.")
+                msg = " ".join(tokens[4:]) if len(tokens) > 4 else "Nos serveurs entreront bientôt en maintenance."
+                if not confirm:
+                    return [f"Schedule Dino game maintenance in {mins:g} minute(s)?",
+                            f"Message: \"{msg}\"",
+                            "Type 'y' to confirm, or anything else to cancel."], True, False
+                await set_dino_maintenance(DinoMaintenanceRequest(action="schedule", delay_minutes=mins, maintenance_message=msg), user=admin)
+                return [f"OK : Dino game maintenance scheduled in {mins:g} minute(s)."], False, True
+
+            raise _CliError("Usage: dino maintenance <show|on|off|schedule>")
+
+        if sub == "inspect":
+            if len(tokens) < 3:
+                raise _CliError("Usage: dino inspect <playfab_id>")
+            pid = tokens[2].strip()
+            player = await get_player_profile(pid, user=admin)
+            ban_str = f"BANNED ({player.get('ban_reason')})" if player.get("is_banned") else "Active (OK)"
+            return [
+                f"Player Profile [{pid}]:",
+                f"  Status:       {ban_str}",
+                f"  DNA:          {player.get('player_dna', '0')}",
+                f"  Gems:         {player.get('player_gems', '0')}",
+                f"  Rebirth:      {player.get('rebirth_level', '1')}",
+                f"  Total Dinos:  {player.get('total_dinos', '0')}",
+                f"  Equipped:     {player.get('equipped_dinos', 'None')}",
+                f"  Last Sync:    {player.get('last_sync', 'Never')}",
+                f"  Pending Gift: {'Yes' if player.get('has_pending_gift') else 'No'}",
+            ], False, False
+
+        if sub == "ban":
+            if len(tokens) < 4:
+                raise _CliError("Usage: dino ban <playfab_id> <reason>")
+            pid = tokens[2].strip()
+            reason = " ".join(tokens[3:]).strip()
+            if not confirm:
+                return [f"BAN Dino player '{pid}'?",
+                        f"Reason: \"{reason}\"",
+                        "Type 'y' to confirm, or anything else to cancel."], True, False
+            await ban_player(pid, DinoBanRequest(reason=reason), user=admin)
+            return [f"OK : Player '{pid}' has been banned."], False, True
+
+        if sub == "unban":
+            if len(tokens) < 3:
+                raise _CliError("Usage: dino unban <playfab_id>")
+            pid = tokens[2].strip()
+            if not confirm:
+                return [f"Unban Dino player '{pid}'?",
+                        "Type 'y' to confirm, or anything else to cancel."], True, False
+            await unban_player(pid, user=admin)
+            return [f"OK : Player '{pid}' has been unbanned."], False, True
+
+        if sub == "gift":
+            if len(tokens) < 5:
+                raise _CliError("Usage: dino gift <playfab_id> <gems> <dna> [dino_name]")
+            pid = tokens[2].strip()
+            try:
+                gems = int(tokens[3])
+                dna = float(tokens[4])
+            except ValueError:
+                raise _CliError("Gems and DNA must be valid numbers.")
+            dino_name = tokens[5].strip() if len(tokens) > 5 else None
+            gift_desc = f"{gems:,} Gems, {dna:g} DNA" + (f", 1x {dino_name}" if dino_name else "")
+            if not confirm:
+                return [f"Gift to player '{pid}': {gift_desc}?",
+                        "Type 'y' to confirm, or anything else to cancel."], True, False
+            req = DinoGiftRequest(playfab_id=pid, gems=gems, dna=dna, dino_name=dino_name)
+            res = await grant_gift_to_player(req, user=admin)
+            return [f"OK : {res.get('message')}"], False, True
+
+        raise _CliError("Usage: dino <maintenance|inspect|ban|unban|gift>")
 
     # ── Blog ─────────────────────────────────────────────────────────────────
     if verb == "blog" and len(tokens) >= 2 and tokens[1].lower() == "list":
@@ -969,101 +981,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         await log_action("careers", f"[CLI] Posting '{c.get('title')}' {'opened' if want_open else 'closed'}", user=admin["username"])
         return [f"OK : '{c.get('title')}' is now {'open' if want_open else 'closed'}."], False, True
 
-    # ── Variables & items ────────────────────────────────────────────────────
-    if verb == "var" and len(tokens) >= 4 and tokens[1].lower() == "get":
-        slug, name = tokens[2], tokens[3]
-        v = await db.variables.find_one({"project_slug": slug, "$or": [{"name": name}, {"variable_name": name}]})
-        if not v:
-            raise _CliError(f"No variable '{name}' found in project '{slug}'.")
-        return [f"{name} = {v.get('value', '')}"], False, False
-
-    if verb == "var" and len(tokens) >= 5 and tokens[1].lower() == "set":
-        slug, name, value = tokens[2], tokens[3], " ".join(tokens[4:])
-        v = await db.variables.find_one({"project_slug": slug, "$or": [{"name": name}, {"variable_name": name}]})
-        if not v:
-            raise _CliError(f"No variable '{name}' found in project '{slug}'.")
-        if not confirm:
-            return [f"Set variable '{name}' in '{slug}' to '{value}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.variables.update_one({"_id": v["_id"]}, {"$set": {"value": value}})
-        await log_action("variable_action", f"[CLI] Variable '{name}' set to '{value}'", project_slug=slug, user=admin["username"], variable=name)
-        return [f"OK : '{name}' set to '{value}' in '{slug}'."], False, True
-
-    if verb == "item" and len(tokens) >= 3 and tokens[1].lower() == "list":
-        slug = tokens[2]
-        docs = await db.items.find({"project_slug": slug}).sort("_id", -1).to_list(50)
-        if not docs:
-            return [f"No item log entries found for '{slug}'."], False, False
-        lines = [f"Last {len(docs)} item send(s) in '{slug}':"]
-        for i in docs:
-            lines.append(f"  {i.get('uid','?')}: {i.get('variable','?')} +{i.get('amount','')}")
-        return lines, False, False
-
-    if verb == "item" and len(tokens) >= 6 and tokens[1].lower() == "send":
-        slug, query, item_name = tokens[2], tokens[3], tokens[4]
-        try:
-            amount = int(tokens[5])
-        except ValueError:
-            raise _CliError(f"'{tokens[5]}' is not a valid integer amount.")
-        project = await db.projects.find_one({"slug": slug})
-        if not project:
-            raise _CliError(f"No project with slug '{slug}'.")
-        if not confirm:
-            return [f"Send {amount}x '{item_name}' to '{query}' in '{slug}'?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await db.items.insert_one({
-            "project_slug": slug, "uid": query, "variable": item_name, "amount": amount,
-            "created_at": datetime.now(timezone.utc), "created_by": admin["username"],
-        })
-        await log_action("send", f"[CLI] Sent {amount}x {item_name} to {query}", project_slug=slug, user=admin["username"],
-                          uid=query, variable=item_name, amount=amount)
-        return [f"OK : {amount}x '{item_name}' sent to '{query}' in '{slug}'."], False, True
-
-    # ── Project ops (logs / files / keys) ───────────────────────────────────
-    if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "logs":
-        slug = tokens[2]
-        n = 20
-        if len(tokens) > 3:
-            try: n = max(1, min(100, int(tokens[3])))
-            except ValueError: pass
-        docs = await db.logs.find({"project_slug": slug}).sort("timestamp", -1).to_list(n)
-        if not docs:
-            return [f"No logs found for '{slug}'."], False, False
-        lines = [f"Last {len(docs)} log entr{'y' if len(docs) == 1 else 'ies'} for '{slug}':"]
-        for d in reversed(docs):
-            ts = d["timestamp"].strftime("%Y-%m-%d %H:%M") if isinstance(d.get("timestamp"), datetime) else ""
-            lines.append(f"  [{ts}] [{d.get('type','?')}] {d.get('message','')}")
-        return lines, False, False
-
-    if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "files":
-        slug = tokens[2]
-        docs = await db.game_files.find({"project_slug": slug, "is_latest": True}).sort("uploaded_at", -1).to_list(50)
-        if not docs:
-            return [f"No files found for '{slug}'."], False, False
-        lines = [f"{len(docs)} latest file(s) for '{slug}':"]
-        for f in docs:
-            size_mb = f.get("size_bytes", 0) / (1024 * 1024)
-            lines.append(f"  {f.get('name','?'):<30} v{f.get('version_tag','')}  {size_mb:.1f} MB  {f.get('download_count',0)} downloads")
-        return lines, False, False
-
-    if verb == "project" and len(tokens) >= 3 and tokens[1].lower() == "keys":
-        slug = tokens[2]
-        project = await db.projects.find_one({"slug": slug})
-        if not project:
-            raise _CliError(f"No project with slug '{slug}'.")
-        return [
-            f"chat_api_key:  {project.get('chat_api_key') or '(not set)'}",
-            f"files_api_key: {project.get('files_api_key') or '(not set)'}",
-        ], False, False
-
-    if verb == "project" and len(tokens) >= 2 and tokens[1].lower() == "delete-all":
-        # Same pattern as app delete-all : never executes here, only
-        # discoverable via 'help'/the catalog popup; the real flow is the
-        # dedicated confirmation modal (POST /admin/critical-actions/
-        # delete_all_projects/schedule).
-        return [
-            "This is a CRITICAL action and can't be run from typed CLI text.",
-            "Use the \"⚠ Critical Actions\" button in the CLI panel to go through the full confirmation flow.",
-        ], False, False
-
     # ── Tickets: list / reply (show / close already above) ─────────────────
     if verb == "ticket" and len(tokens) >= 2 and tokens[1].lower() == "list":
         status_filter = tokens[2].lower() if len(tokens) > 2 else None
@@ -1095,33 +1012,6 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
         )
         await log_action("support", f"[CLI] Replied to ticket '{tn}'", user=admin["username"])
         return [f"OK : reply sent on ticket '{tn}'."], False, True
-
-    # ── Notifications ────────────────────────────────────────────────────────
-    if verb == "notify" and len(tokens) >= 4 and tokens[1].lower() == "user":
-        query = tokens[2]
-        message = " ".join(tokens[3:])
-        target = await _cli_find_user_doc(query)
-        if not target:
-            raise _CliError(f"No user found matching '{query}'.")
-        if not confirm:
-            return [f"Send notification to '{target.get('username')}': \"{message}\"?", "Type 'y' to confirm, or anything else to cancel."], True, False
-        await _create_notification(user_id=str(target["_id"]), message=message, notif_type="cli_message")
-        await log_action("user_action", f"[CLI] Notification sent to '{target.get('username')}'", user=admin["username"])
-        return [f"OK : notification sent to '{target.get('username')}'."], False, True
-
-    if verb == "notify" and len(tokens) >= 3 and tokens[1].lower() == "list":
-        query = tokens[2]
-        target = await _cli_find_user_doc(query)
-        if not target:
-            raise _CliError(f"No user found matching '{query}'.")
-        docs = await db.notifications.find({"userId": target["_id"]}).sort("createdAt", -1).to_list(15)
-        if not docs:
-            return [f"No notifications found for '{target.get('username')}'."], False, False
-        lines = [f"Last {len(docs)} notification(s) for '{target.get('username')}':"]
-        for n in docs:
-            read = "read" if n.get("read") else "unread"
-            lines.append(f"  [{read}] {n.get('message','')}")
-        return lines, False, False
 
     # ── Logs & audit (beyond CLI's own history) ─────────────────────────────
     if verb == "logs" and len(tokens) >= 2 and tokens[1].lower() == "recent":

@@ -223,11 +223,13 @@ export default function PublicSurvey() {
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E5E5EA]">
         <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 font-semibold text-[#1D1D1F] tracking-tight">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FF6600] to-[#FF8533] flex items-center justify-center text-white font-black text-sm shadow-xs">
-              V
-            </div>
-            <span>Vakar Games</span>
+          <Link to="/" className="flex items-center gap-2.5 font-semibold text-[#1D1D1F] tracking-tight group">
+            <img
+              src="/logo.png"
+              alt="Vakar Games"
+              className="h-7 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+            <span className="font-bold text-[#1D1D1F]">Vakar Games</span>
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[#86868B] font-medium hidden sm:inline">
