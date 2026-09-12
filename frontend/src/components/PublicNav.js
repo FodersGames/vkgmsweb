@@ -32,10 +32,10 @@ export const PublicNav = ({ onAbout }) => {
       className="fixed left-0 right-0 z-50 transition-[top,background] duration-200"
       style={{
         top: 'var(--vkg-banner-h, 0px)',
-        backgroundColor: scrolled ? '#0D0D0D' : 'rgba(13,13,13,0.85)',
+        backgroundColor: scrolled ? '#FAFAF7' : 'rgba(250,250,247,0.92)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
       }}
     >
       <div className="max-w-[1100px] mx-auto px-6 h-[60px] flex items-center justify-between">
@@ -49,7 +49,7 @@ export const PublicNav = ({ onAbout }) => {
               alt="Vakar Games"
               className="h-6 w-auto object-contain transition-transform group-hover:scale-105"
             />
-            <span className="font-black text-white tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
+            <span className="font-black text-[#1A1A1A] tracking-[0.08em] uppercase text-[17px] group-hover:text-[#FF6600] transition-colors">
               Vakar Games
             </span>
           </Link>
@@ -60,7 +60,7 @@ export const PublicNav = ({ onAbout }) => {
                 key={to}
                 to={to}
                 className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                  active(to) ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
+                  active(to) ? 'text-[#FF6600]' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
                 }`}
               >
                 {label}
@@ -69,7 +69,7 @@ export const PublicNav = ({ onAbout }) => {
             <Link
               to="/contact"
               className={`text-[11px] font-bold uppercase tracking-[0.12em] transition-colors ${
-                active('/contact') ? 'text-[#FF6600]' : 'text-white/70 hover:text-white'
+                active('/contact') ? 'text-[#FF6600]' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
               }`}
             >
               Contact
@@ -84,7 +84,7 @@ export const PublicNav = ({ onAbout }) => {
               {isAdmin && isAdmin() && (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 hover:text-white border border-white/15 hover:border-white/40 px-3 py-1.5 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1A1A]/70 hover:text-[#1A1A1A] border border-black/15 hover:border-black/40 px-3 py-1.5 rounded-full transition-colors"
                 >
                   <SquaresFour size={11} />
                   Admin
@@ -92,7 +92,7 @@ export const PublicNav = ({ onAbout }) => {
               )}
               <Link
                 to="/profile"
-                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"
               >
                 <div className="w-6 h-6 rounded-full bg-[#FF6600]/20 border border-[#FF6600]/40 flex items-center justify-center text-[10px] font-bold text-[#FF6600] overflow-hidden">
                   {user.avatar_url ? (
@@ -111,7 +111,7 @@ export const PublicNav = ({ onAbout }) => {
           ) : (
             <Link
               to="/login"
-              className="btn-kefir text-[10px] py-2 px-4"
+              className="btn-kefir text-[10px] py-2 px-5"
             >
               Sign In
             </Link>
@@ -119,7 +119,7 @@ export const PublicNav = ({ onAbout }) => {
         </div>
 
         <button
-          className="md:hidden p-2 -mr-1 text-white/70 hover:text-white transition-colors"
+          className="md:hidden p-2 -mr-1 text-[#1A1A1A]/70 hover:text-[#1A1A1A] transition-colors"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -131,7 +131,7 @@ export const PublicNav = ({ onAbout }) => {
       {open && (
         <div
           className="md:hidden px-6 py-4 space-y-1"
-          style={{ backgroundColor: '#0D0D0D', borderTop: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ backgroundColor: '#FAFAF7', borderTop: '1px solid rgba(0,0,0,0.07)' }}
         >
           {links.map(({ to, label }) => (
             <Link
@@ -139,7 +139,7 @@ export const PublicNav = ({ onAbout }) => {
               to={to}
               onClick={() => setOpen(false)}
               className={`block text-[11px] font-bold uppercase tracking-[0.12em] py-3 transition-colors ${
-                active(to) ? 'text-[#FF6600]' : 'text-white/60 hover:text-white'
+                active(to) ? 'text-[#FF6600]' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
               }`}
             >
               {label}
@@ -148,7 +148,7 @@ export const PublicNav = ({ onAbout }) => {
           <Link
             to="/contact"
             onClick={() => setOpen(false)}
-            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+            className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#1A1A1A]/70 hover:text-[#1A1A1A] py-3 transition-colors"
           >
             Contact
           </Link>
@@ -158,7 +158,7 @@ export const PublicNav = ({ onAbout }) => {
               <Link
                 to="/profile"
                 onClick={() => setOpen(false)}
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#1A1A1A]/70 hover:text-[#1A1A1A] py-3 transition-colors"
               >
                 My Account ({user.name || user.firstName || user.username})
               </Link>
@@ -166,7 +166,7 @@ export const PublicNav = ({ onAbout }) => {
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
-                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:text-white py-3 transition-colors"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#1A1A1A]/70 hover:text-[#1A1A1A] py-3 transition-colors"
                 >
                   Admin Dashboard
                 </Link>
@@ -176,7 +176,7 @@ export const PublicNav = ({ onAbout }) => {
             <Link
               to="/login"
               onClick={() => setOpen(false)}
-              className="block text-[11px] font-bold uppercase tracking-[0.12em] text-white py-3 transition-colors"
+              className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[#FF6600] py-3 transition-colors"
             >
               Sign In
             </Link>

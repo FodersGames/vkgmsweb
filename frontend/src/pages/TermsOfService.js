@@ -10,7 +10,7 @@ const SECTIONS = [
     title: 'Acceptance of Terms',
     content: (
       <>
-        <p>By accessing or using the Vakar Games website (<strong className="text-white">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
+        <p>By accessing or using the Vakar Games website (<strong className="text-[#1A1A1A]">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.</p>
       </>
     ),
   },
@@ -49,7 +49,7 @@ const SECTIONS = [
             'Accept that messages may be moderated or removed without prior notice',
             'Acknowledge that banned words are automatically filtered and replaced with asterisks',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-[#1A1A1A]/75">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600] mt-2 shrink-0" />
               <span>{item}</span>
             </li>
@@ -74,7 +74,7 @@ const SECTIONS = [
             'Reverse-engineer, scrape, or systematically copy our backend services or content',
             'Use our services for any unlawful purpose',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-white/70">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-[#1A1A1A]/75">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 shrink-0" />
               <span>{item}</span>
             </li>
@@ -99,7 +99,7 @@ const SECTIONS = [
     title: 'Disclaimer of Warranties',
     content: (
       <>
-        <p>Our website and games are provided <strong className="text-white">"as is"</strong> and <strong className="text-white">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
+        <p>Our website and games are provided <strong className="text-[#1A1A1A]">"as is"</strong> and <strong className="text-[#1A1A1A]">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.</p>
       </>
     ),
   },
@@ -129,7 +129,7 @@ const SECTIONS = [
     title: 'Governing Law',
     content: (
       <>
-        <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-white">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
+        <p>These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-[#1A1A1A]">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.</p>
       </>
     ),
   },
@@ -168,34 +168,34 @@ const TermsOfService = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <PublicNav />
 
       {/* Hero */}
-      <section style={{ backgroundColor: '#111111', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
+      <section style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingTop: '90px', paddingBottom: '3.5rem' }}>
         <div className="max-w-[1100px] mx-auto px-6">
           <p className="kefir-label mb-3" style={{ color: '#FF6600' }}>// LEGAL & COMPLIANCE</p>
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1
-                className="font-black uppercase text-white"
+                className="font-black uppercase text-[#1A1A1A]"
                 style={{ fontSize: 'clamp(2.4rem, 6vw, 4rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
               >
                 Terms of<br className="hidden sm:block" /> Service.
               </h1>
-              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '54ch' }}>
+              <p className="mt-4 text-sm leading-relaxed" style={{ color: 'rgba(26,26,26,0.65)', maxWidth: '54ch' }}>
                 Please review the terms and conditions governing your access to and use of the Vakar Games platform, store, and game services.
               </p>
             </div>
 
             <div
               className="px-5 py-4 flex items-center gap-3.5 shrink-0 self-start lg:self-auto"
-              style={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ backgroundColor: '#FAFAF7', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '0.75rem' }}
             >
               <Scales size={22} style={{ color: '#FF6600' }} />
               <div>
-                <p className="font-mono text-xs text-white font-bold tracking-wider uppercase">Last Revision</p>
-                <p className="text-[11px] font-mono text-white/40 mt-0.5">September 2026 · France</p>
+                <p className="font-mono text-xs text-[#1A1A1A] font-bold tracking-wider uppercase">Last Revision</p>
+                <p className="text-[11px] font-mono text-[#1A1A1A]/40 mt-0.5">September 2026 · France</p>
               </div>
             </div>
           </div>
@@ -208,10 +208,10 @@ const TermsOfService = () => {
 
           {/* Sticky Table of Contents sidebar */}
           <aside className="lg:col-span-4 hidden lg:block">
-            <div className="sticky top-28 space-y-1 p-4 bg-[#111111] border border-white/[0.06]">
-              <div className="flex items-center gap-2 pb-3 mb-2 border-b border-white/[0.06]">
+            <div className="sticky top-28 space-y-1 p-4 bg-white border border-black/[0.08] rounded-xl">
+              <div className="flex items-center gap-2 pb-3 mb-2 border-b border-black/[0.06]">
                 <BookOpen size={15} className="text-[#FF6600]" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-white/80">Table of Contents</span>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#1A1A1A]">Table of Contents</span>
               </div>
               <nav className="space-y-0.5 max-h-[calc(100vh-220px)] overflow-y-auto">
                 {SECTIONS.map((s) => {
@@ -223,7 +223,7 @@ const TermsOfService = () => {
                       className={`w-full text-left px-2.5 py-1.5 text-xs font-mono transition-colors flex items-center gap-2 ${
                         isActive
                           ? 'text-[#FF6600] bg-[#FF6600]/10 font-bold'
-                          : 'text-white/40 hover:text-white hover:bg-white/[0.03]'
+                          : 'text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-black/[0.03]'
                       }`}
                     >
                       <span className="opacity-50 text-[10px]">{s.num}.</span>
@@ -241,17 +241,17 @@ const TermsOfService = () => {
               <article
                 key={s.id}
                 id={s.id}
-                className="scroll-mt-28 p-6 sm:p-8 bg-[#111111] border border-white/[0.06] transition-all hover:border-white/[0.12]"
+                className="scroll-mt-28 p-6 sm:p-8 bg-white border border-black/[0.08] rounded-xl transition-all hover:border-[#FF6600]/40 shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 bg-[#FF6600]/10 text-[#FF6600] border border-[#FF6600]/20">
                     // {s.num}
                   </span>
-                  <h2 className="font-black uppercase text-base sm:text-lg text-white tracking-tight">
+                  <h2 className="font-black uppercase text-base sm:text-lg text-[#1A1A1A] tracking-tight">
                     {s.title}
                   </h2>
                 </div>
-                <div className="text-sm text-white/70 leading-relaxed font-sans mt-3">
+                <div className="text-sm text-[#1A1A1A]/75 leading-relaxed font-sans mt-3">
                   {s.content}
                 </div>
               </article>
@@ -261,8 +261,8 @@ const TermsOfService = () => {
             <div className="p-6 bg-[#141414] border border-white/[0.08] flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className="text-xs font-mono uppercase tracking-wider text-[#FF6600]">// PRIVACY</p>
-                <p className="text-sm font-bold text-white mt-0.5">Looking for our Privacy Policy?</p>
-                <p className="text-xs text-white/40 mt-0.5">Learn how we process, store, and protect your data.</p>
+                <p className="text-sm font-bold text-[#1A1A1A] mt-0.5">Looking for our Privacy Policy?</p>
+                <p className="text-xs text-[#1A1A1A]/40 mt-0.5">Learn how we process, store, and protect your data.</p>
               </div>
               <a
                 href="/privacy"
