@@ -408,55 +408,49 @@ export const DinoDevPanel = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maintStatus]);
 
-  const handleReopenServers = () => {
-    setDialog({
-      open: true,
-      title: 'Reopen Game Servers',
-      description: 'Are you sure you want to lift maintenance and reopen the game servers immediately to all mobile players?',
-      onConfirm: async () => {
-        setSavingMaint(true);
-        try {
-          const res = await axios.post(
-            `${API_URL}/api/admin/dino/maintenance`,
-            { action: 'cancel' },
-            { headers: authHeaders }
-          );
-          setMaintStatus(res.data);
-          toast.success('Servers reopened: Mobile game is now LIVE!');
-        } catch (err) {
-          toast.error(err.response?.data?.detail || 'Failed to reopen servers');
-        } finally {
-          setSavingMaint(false);
-        }
-      },
-    });
+  const handleReopenServers = async () => {
+    setSavingMaint(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/admin/dino/maintenance`,
+        { action: 'cancel' },
+        { headers: authHeaders }
+      );
+      setMaintStatus(res.data);
+      toast.success('Servers reopened: Mobile game is now LIVE & ONLINE!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to reopen servers');
+    } finally {
+      setSavingMaint(false);
+    }
   };
 
-  const handleImmediateCut = () => {
-    setDialog({
-      open: true,
-      title: 'Trigger Immediate In-Game Maintenance',
-      description: 'This will immediately disconnect and lock out all iOS & Android players with the maintenance screen. Are you sure?',
-      onConfirm: async () => {
-        setSavingMaint(true);
-        try {
-          const res = await axios.post(
-            `${API_URL}/api/admin/dino/maintenance`,
-            {
-              action: 'immediate',
-              maintenance_message: maintMessageInput.trim(),
-            },
-            { headers: authHeaders }
-          );
-          setMaintStatus(res.data);
-          toast.success('Immediate maintenance enabled! Game service cut.');
-        } catch (err) {
-          toast.error(err.response?.data?.detail || 'Failed to enable maintenance');
-        } finally {
-          setSavingMaint(false);
-        }
-      },
-    });
+  const handleImmediateCut = async () => {
+    setSavingMaint(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/admin/dino/maintenance`,
+        {
+          action: 'immediate',
+          maintenance_message: maintMessageInput.trim(),
+        },
+        { headers: authHeaders }
+      );
+      setMaintStatus(res.data);
+      toast.error('Game Maintenance ACTIVATED: Service cut to all mobile players!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to enable maintenance');
+    } finally {
+      setSavingMaint(false);
+    }
+  };
+
+  const handleToggleMaintenance = async () => {
+    if (maintStatus.effective_active) {
+      await handleReopenServers();
+    } else {
+      await handleImmediateCut();
+    }
   };
 
   const handleCancelSchedule = async () => {
@@ -1423,6 +1417,28 @@ export const DinoDevPanel = () => {
               </div>
             ) : (
               <>
+                {/* Instant Maintenance Toggle Switch */}
+                <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold text-[#1D1D1F] dark:text-white block">
+                      Immediate Maintenance Toggle (Instant Switch)
+                    </span>
+                    <p className="text-xs text-[#6E6E73] dark:text-[#a1a1aa] mt-0.5">
+                      Toggle ON to instantly cut service to all mobile players. Toggle OFF to immediately reopen servers and clear any active or scheduled maintenance.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                    <input
+                      type="checkbox"
+                      disabled={savingMaint}
+                      checked={maintStatus.effective_active}
+                      onChange={handleToggleMaintenance}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[#E5E5EA] dark:bg-[#2a2a3c] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#D2D2D7] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF6600]"></div>
+                  </label>
+                </div>
+
                 {/* Status Indicator Card */}
                 <div className={`p-5 rounded-2xl border transition-all ${
                   maintStatus.effective_active
@@ -1460,7 +1476,7 @@ export const DinoDevPanel = () => {
                     </div>
 
                     {/* Immediate Action Buttons */}
-                    <div className="shrink-0 flex items-center gap-2">
+                    <div className="shrink-0 flex items-center gap-2 flex-wrap sm:flex-nowrap">
                       {maintStatus.effective_active ? (
                         <button
                           type="button"
@@ -1469,7 +1485,7 @@ export const DinoDevPanel = () => {
                           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
                         >
                           <CheckCircle2 size={15} />
-                          <span>Reopen Servers (Set Online)</span>
+                          <span>{savingMaint ? 'Updating...' : 'Reopen Servers (Set Online)'}</span>
                         </button>
                       ) : (
                         <button
@@ -1479,9 +1495,20 @@ export const DinoDevPanel = () => {
                           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
                         >
                           <Power size={15} />
-                          <span>Trigger Immediate Maintenance</span>
+                          <span>{savingMaint ? 'Cutting...' : 'Trigger Immediate Maintenance'}</span>
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={handleReopenServers}
+                        disabled={savingMaint}
+                        title="Force clear all maintenance and reset PlayFab TitleData"
+                        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] text-[#6E6E73] dark:text-[#a1a1aa] text-xs font-semibold border border-[#E5E5EA] dark:border-[#2a2a3c] transition-colors"
+                      >
+                        <RefreshCw size={13} className={savingMaint ? 'animate-spin' : ''} />
+                        <span>Force Reset All</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1816,7 +1843,7 @@ export const DinoDevPanel = () => {
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
-        open={dialog.open}
+        isOpen={dialog.open}
         title={dialog.title}
         description={dialog.description}
         onConfirm={dialog.onConfirm}

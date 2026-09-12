@@ -437,11 +437,12 @@ async def set_dino_maintenance(req: DinoMaintenanceRequest, user=Depends(require
     is_immediate = False
     is_schedule = False
 
-    if req.action == "cancel" or (req.is_maintenance is False and not req.scheduled_maintenance_utc and not req.delay_minutes):
+    act = (req.action or "").lower().strip()
+    if act in ("cancel", "reopen", "disable", "off", "reset", "clear") or (req.is_maintenance is False and not req.scheduled_maintenance_utc and not req.delay_minutes):
         is_cancel = True
-    elif req.action == "immediate" or (req.is_maintenance is True and not req.scheduled_maintenance_utc and not req.delay_minutes):
+    elif act in ("immediate", "enable", "on", "active", "cut") or (req.is_maintenance is True and not req.scheduled_maintenance_utc and not req.delay_minutes):
         is_immediate = True
-    elif req.action == "schedule" or (req.delay_minutes and req.delay_minutes > 0) or (req.scheduled_maintenance_utc and req.scheduled_maintenance_utc not in ("none", "")):
+    elif act in ("schedule", "scheduled") or (req.delay_minutes and req.delay_minutes > 0) or (req.scheduled_maintenance_utc and req.scheduled_maintenance_utc not in ("none", "")):
         is_schedule = True
 
     if is_cancel:
