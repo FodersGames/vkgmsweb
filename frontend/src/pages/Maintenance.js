@@ -26,12 +26,6 @@ const MaintenancePage = ({ announcement }) => (
 
     {/* Center Message */}
     <main className="w-full max-w-xl mx-auto py-16 text-center">
-      {/* Pulsing Status Pill */}
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] border border-[#E5E5EA] text-xs font-medium text-[#1D1D1F] mb-6">
-        <span className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
-        <span>Maintenance du système</span>
-      </div>
-
       <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#1D1D1F] mb-4">
         Maintenance en cours.
       </h1>
