@@ -60,7 +60,7 @@ const Home = () => {
               transform: 'scale(1.03)',
             }}
           >
-            <source src={`${process.env.PUBLIC_URL || ''}/videos/autumn-landscape.mp4`} type="video/mp4" />
+            <source src={`${process.env.PUBLIC_URL || ''}/videos/programmer.mp4`} type="video/mp4" />
           </video>
           {/* Gradients for text contrast and seamless bottom fade */}
           <div
