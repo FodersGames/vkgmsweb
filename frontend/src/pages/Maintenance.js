@@ -1,70 +1,80 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useLocation, Link } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
 import { getWebsiteSettings } from '../utils/publicCache';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'https://vakargames.vercel.app';
 
 const MaintenancePage = ({ announcement }) => (
-  <div className="relative h-screen flex flex-col bg-[#F5F5F7] text-[#1D1D1F] overflow-hidden">
-    {/* Top bar */}
-    <div className="px-6 py-4 shrink-0 border-b border-[#E5E5EA] bg-white/80 backdrop-blur flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto" />
-        <span className="text-sm font-semibold tracking-tight text-[#1D1D1F]">
+  <div className="min-h-screen bg-white text-[#1D1D1F] flex flex-col justify-between p-6 sm:p-10 antialiased selection:bg-[#FF6600]/20 selection:text-[#FF6600]">
+    {/* Minimal Header */}
+    <header className="w-full max-w-[1040px] mx-auto flex items-center justify-between">
+      <Link to="/" className="flex items-center gap-2.5 group">
+        <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain transition-transform group-hover:scale-105" />
+        <span className="font-semibold text-sm tracking-tight text-[#1D1D1F]">
           Vakar Games
         </span>
-      </div>
+      </Link>
+
       <Link
         to="/login"
-        className="btn-apple text-xs !py-1.5 !px-3"
+        className="text-xs font-medium text-[#86868B] hover:text-[#1D1D1F] transition-colors"
       >
-        <LogIn size={13} className="mr-1.5" />
-        Staff Sign In
+        Espace Staff
       </Link>
-    </div>
+    </header>
 
-    {/* Main content */}
-    <div className="flex-1 min-h-0 flex items-center justify-center px-6 py-8">
-      <div className="w-full max-w-xl bg-white rounded-3xl border border-[#E5E5EA] p-8 sm:p-12 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-          <div className="w-14 h-14 shrink-0 rounded-2xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-            </svg>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1D1D1F] mb-3">
-              Under Maintenance
-            </h1>
-
-            <p className="text-[#6E6E73] leading-relaxed text-sm">
-              {announcement || "We're currently performing system improvements. We'll be back very soon. Thank you for your patience!"}
-            </p>
-
-            <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F5F5F7] rounded-lg border border-[#E5E5EA] text-xs text-[#1D1D1F] font-medium">
-                <div className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
-                <span>Work in progress</span>
-              </div>
-              <a
-                href="mailto:support@vakargames.com"
-                className="text-xs text-[#86868B] hover:text-[#1D1D1F] transition-colors"
-              >
-                support@vakargames.com
-              </a>
-            </div>
-          </div>
-        </div>
+    {/* Center Message */}
+    <main className="w-full max-w-xl mx-auto py-16 text-center">
+      {/* Pulsing Status Pill */}
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F5F7] border border-[#E5E5EA] text-xs font-medium text-[#1D1D1F] mb-6">
+        <span className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
+        <span>Maintenance du système</span>
       </div>
-    </div>
 
-    {/* Footer */}
-    <div className="px-6 py-3 text-center shrink-0 border-t border-[#E5E5EA] bg-white">
-      <p className="text-xs text-[#86868B]">© {new Date().getFullYear()} Vakar Games. All rights reserved.</p>
-    </div>
+      <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#1D1D1F] mb-4">
+        Maintenance en cours.
+      </h1>
+
+      <p className="text-[#6E6E73] text-base sm:text-lg leading-relaxed max-w-lg mx-auto mb-8 font-normal">
+        {announcement ||
+          "Nous effectuons des améliorations techniques sur nos serveurs. La plateforme sera de nouveau accessible très prochainement."}
+      </p>
+
+      {/* Action shortcuts */}
+      <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
+        <Link
+          to="/status"
+          className="inline-flex items-center gap-1.5 text-[#1D1D1F] hover:text-[#FF6600] transition-colors"
+        >
+          <span>Consulter l'état des services</span>
+          <span>→</span>
+        </Link>
+        <span className="text-[#D2D2D7]">·</span>
+        <a
+          href="mailto:support@vakargames.com"
+          className="text-[#86868B] hover:text-[#1D1D1F] transition-colors"
+        >
+          support@vakargames.com
+        </a>
+      </div>
+    </main>
+
+    {/* Clean Apple Footer with accessible Legal links */}
+    <footer className="w-full max-w-[1040px] mx-auto pt-6 border-t border-[#F5F5F7] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#86868B]">
+      <p>© {new Date().getFullYear()} Vakar Games. Tous droits réservés.</p>
+      <div className="flex items-center gap-5">
+        <Link to="/privacy" className="hover:text-[#1D1D1F] transition-colors">
+          Confidentialité
+        </Link>
+        <Link to="/terms" className="hover:text-[#1D1D1F] transition-colors">
+          Conditions d'utilisation
+        </Link>
+        <Link to="/status" className="hover:text-[#1D1D1F] transition-colors">
+          Statut
+        </Link>
+      </div>
+    </footer>
   </div>
 );
 

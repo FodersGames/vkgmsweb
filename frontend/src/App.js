@@ -48,9 +48,20 @@ const AppRoutes = () => {
   const isStatusPage = location.pathname === '/status' || location.pathname.startsWith('/status');
   const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/login');
   const isDashboard = location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard');
+  const isTermsPage = location.pathname === '/terms' || location.pathname.startsWith('/terms');
+  const isPrivacyPage = location.pathname === '/privacy' || location.pathname.startsWith('/privacy');
   const isStaff = user?.is_super_admin || user?.role === 'admin' || (user?.permissions && user.permissions.length > 0);
 
-  if (maintenance && !isAdminSubdomain && !isStatusPage && !isLoginPage && !isDashboard && !isStaff) {
+  if (
+    maintenance &&
+    !isAdminSubdomain &&
+    !isStatusPage &&
+    !isLoginPage &&
+    !isDashboard &&
+    !isTermsPage &&
+    !isPrivacyPage &&
+    !isStaff
+  ) {
     return <MaintenancePage announcement={announcement} />;
   }
 
