@@ -23,7 +23,7 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
   const isPassword = type === 'password';
   return (
     <div className="relative">
-      <Icon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] pointer-events-none" />
+      <Icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A] pointer-events-none" />
       <input
         id={id}
         type={isPassword && show ? 'text' : type}
@@ -32,16 +32,16 @@ const InputField = ({ icon: Icon, type, placeholder, value, onChange, id, autoCo
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
-        className="rounded-lg w-full pl-9 pr-9 py-2.5 bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all placeholder:text-[#A1A1A6]"
+        className="w-full pl-9 pr-9 py-2.5 bg-[#F8F9FA] border border-[#D4D4D8] text-[#0A0A0A] text-sm focus:outline-none focus:border-[#FF6600] transition-all placeholder:text-[#A1A1AA]"
       />
       {isPassword && (
         <button
           type="button"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1A6] hover:text-[#6E6E73] transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-[#0A0A0A] transition-colors"
           onClick={() => setShow(s => !s)}
           tabIndex={-1}
         >
-          {show ? <EyeSlash size={13} /> : <Eye size={13} />}
+          {show ? <EyeSlash size={14} /> : <Eye size={14} />}
         </button>
       )}
     </div>
@@ -70,21 +70,21 @@ const ChangePasswordModal = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="animate-appear rounded-2xl liquid-glass max-w-md w-full p-8">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="animate-appear bg-white border border-[#E5E7EB] shadow-2xl max-w-md w-full p-8">
         <div className="mb-6">
-          <div className="rounded-lg w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
+          <div className="w-11 h-11 bg-amber-50 border border-amber-200 flex items-center justify-center mb-4">
             <Warning size={18} className="text-amber-600" />
           </div>
-          <h2 className="font-display text-xl font-medium text-[#1D1D1F] mb-1">Change your password</h2>
-          <p className="text-sm text-[#6E6E73]">
+          <h2 className="text-xl font-bold text-[#0A0A0A] mb-1">Change your password</h2>
+          <p className="text-sm text-[#52525B]">
             You must set a new password before continuing.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+            <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
               New password
             </label>
             <InputField
@@ -97,7 +97,7 @@ const ChangePasswordModal = ({ onSuccess }) => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+            <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
               Confirm new password
             </label>
             <InputField
@@ -111,14 +111,14 @@ const ChangePasswordModal = ({ onSuccess }) => {
           </div>
 
           {error && (
-            <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm">
               {error}
             </div>
           )}
 
-          <PublicButton type="submit" disabled={loading} className="w-full">
+          <button type="submit" disabled={loading} className="btn-kefir w-full">
             {loading ? 'Saving…' : 'Set new password'}
-          </PublicButton>
+          </button>
         </form>
       </div>
     </div>
@@ -238,15 +238,8 @@ export const Login = () => {
     <div className="relative min-h-screen overflow-hidden [contain:paint] flex items-center justify-center p-4 bg-[#F5F5F7]">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <img src={heroCoastSunset} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        {/* A heavy scrim (previously /90) hid the photo almost entirely just to
-            fix text contrast — wrong trade. Keep the photo visible with a light
-            scrim and instead give the two text elements sitting directly on it
-            (subtitle, legal line) a strong halo via text-shadow, which stays
-            legible over both the bright sky and the dark mountain silhouette. */}
-        {/* Background glow — Brand Orange */}
-        <div className="absolute inset-0 bg-[#F5F5F7]/55" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#FF6600]/20 blur-[110px]" />
-        <div className="absolute top-1/2 left-1/2 translate-x-[10%] -translate-y-[30%] w-[420px] h-[420px] rounded-full bg-[#FF6600]/10 blur-[110px]" />
+        <div className="absolute inset-0 bg-white/70" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-[70%] -translate-y-[60%] w-[520px] h-[520px] rounded-full bg-[#FF6600]/10 blur-[110px]" />
       </div>
 
       {mustChange && (
@@ -259,33 +252,33 @@ export const Login = () => {
         }} />
       )}
 
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <Link
             to="/"
             className="inline-flex flex-col items-center gap-2 group transition-colors"
           >
             <img src="/logo.png" alt="Vakar Games" className="h-10 w-auto object-contain transition-transform group-hover:scale-105" />
-            <span className="font-display text-[18px] font-bold tracking-tight text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+            <span className="font-black text-[20px] tracking-tight uppercase text-[#0A0A0A] group-hover:text-[#FF6600] transition-colors">
               Vakar Games
             </span>
           </Link>
-          <p className="mt-1.5 text-sm font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+          <p className="mt-1.5 text-xs font-bold uppercase tracking-wider text-[#52525B]">
             {tab === 'login' ? 'Sign in to your account' : 'Create an account'}
           </p>
         </div>
 
-        <div className="animate-appear rounded-2xl liquid-glass overflow-hidden">
+        <div className="animate-appear bg-white border border-[#E5E7EB] shadow-2xl overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-[#D2D2D7]/60">
+          <div className="flex border-b border-[#E5E7EB]">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${
                   tab === id
-                    ? 'text-[#1D1D1F] border-b-2 border-[#1D1D1F] -mb-px'
-                    : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                    ? 'text-[#0A0A0A] border-b-2 border-[#FF6600] -mb-px bg-white'
+                    : 'text-[#71717A] hover:text-[#0A0A0A] bg-[#F8F9FA]'
                 }`}
               >
                 {label}
@@ -296,7 +289,7 @@ export const Login = () => {
           {tab === 'login' ? (
             <form onSubmit={handleLogin} className="px-7 py-7 space-y-4" data-testid="login-form">
               <div>
-                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
                   Email
                 </label>
                 <InputField
@@ -310,7 +303,7 @@ export const Login = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <InputField
@@ -325,42 +318,42 @@ export const Login = () => {
               </div>
 
               {loginError && (
-                <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="login-error">
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-medium" data-testid="login-error">
                   {loginError}
                 </div>
               )}
 
-              <PublicButton
+              <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full"
+                className="btn-kefir w-full text-center"
                 data-testid="login-submit-button"
               >
                 {loginLoading ? 'Signing in…' : 'Sign In'}
-              </PublicButton>
+              </button>
             </form>
           ) : (
             <div className="px-7 py-7">
               {regSuccess ? (
                 <div className="text-center py-4">
-                  <div className="rounded-lg w-11 h-11 bg-[#FF6600]/10 border border-[#FF6600]/20 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-11 h-11 bg-orange-50 border border-orange-200 flex items-center justify-center mx-auto mb-4">
                     <CheckCircle size={18} className="text-[#FF6600]" />
                   </div>
-                  <h3 className="font-display text-lg font-medium text-[#1D1D1F] mb-1">Account created</h3>
-                  <p className="text-sm text-[#6E6E73] mb-5">
+                  <h3 className="text-lg font-bold text-[#0A0A0A] mb-1">Account created</h3>
+                  <p className="text-xs text-[#52525B] mb-5">
                     You can now sign in with your email and password.
                   </p>
-                  <PublicButton
+                  <button
                     onClick={() => { setTab('login'); setEmail(reg.email); setRegSuccess(false); }}
-                    className="w-full"
+                    className="btn-kefir w-full"
                   >
                     Go to Sign In
-                  </PublicButton>
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-4" data-testid="register-form">
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
                       Name
                     </label>
                     <InputField
@@ -373,7 +366,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
                       Email
                     </label>
                     <InputField
@@ -386,7 +379,7 @@ export const Login = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#3A3A3C] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-bold text-[#52525B] uppercase tracking-wider mb-1.5">
                       Password
                     </label>
                     <InputField
@@ -400,28 +393,28 @@ export const Login = () => {
                   </div>
 
                   {regError && (
-                    <div className="rounded-lg p-3 bg-red-50 border border-red-100 text-red-600 text-sm" data-testid="register-error">
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-medium" data-testid="register-error">
                       {regError}
                     </div>
                   )}
 
-                  <PublicButton
+                  <button
                     type="submit"
                     disabled={regLoading}
-                    className="w-full"
+                    className="btn-kefir w-full text-center"
                     data-testid="register-submit-button"
                   >
                     {regLoading ? 'Creating account…' : 'Create Account'}
-                  </PublicButton>
+                  </button>
                 </form>
               )}
             </div>
           )}
         </div>
 
-        <p className="mt-5 text-center text-xs font-medium text-[#3A3A3C] [text-shadow:0_0_14px_rgba(245,245,247,0.9),0_0_28px_rgba(245,245,247,0.7)]">
+        <p className="mt-5 text-center text-xs font-medium text-[#52525B]">
           By creating an account you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-[#1D1D1F] transition-colors">Terms of Service</Link>.
+          <Link to="/terms" className="underline text-[#0A0A0A] hover:text-[#FF6600] transition-colors">Terms of Service</Link>.
         </p>
       </div>
     </div>

@@ -14,9 +14,9 @@ const img = (url) => (url?.startsWith('/') ? `${API_URL}${url}` : url);
 
 /* ─── Stat card ─────────────────────────────────────────────────────────── */
 const StatCard = ({ value, label }) => (
-  <div className="text-center px-4 py-7 flex flex-col items-center justify-center min-w-0" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+  <div className="text-center px-4 py-7 flex flex-col items-center justify-center min-w-0" style={{ borderRight: '1px solid #E5E7EB' }}>
     <p className="stat-number">{value}</p>
-    <p className="kefir-label mt-2" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>{label}</p>
+    <p className="kefir-label mt-2" style={{ color: '#71717A', fontSize: '0.65rem' }}>{label}</p>
   </div>
 );
 
@@ -37,16 +37,16 @@ const Home = () => {
     studioRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <div style={{ backgroundColor: '#0D0D0D', color: '#FFFFFF', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#FFFFFF', color: '#0A0A0A', minHeight: '100vh' }}>
       <PublicNav onAbout={scrollToStudio} />
 
-      {/* ── HERO ─ 100vh cinematic background ───────────────────────────────────── */}
+      {/* ── HERO ─ 100vh cinematic background with crisp white overlay ────────── */}
       <section
         className="relative flex flex-col items-center justify-center text-center overflow-hidden"
         style={{ height: '100vh', minHeight: '560px' }}
         data-testid="hero-section"
       >
-        {/* Cinematic Video Background with Dark Atmospheric Overlay */}
+        {/* Cinematic Video Background with Crisp White Overlay */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <video
             autoPlay
@@ -56,24 +56,25 @@ const Home = () => {
             poster={heroCoastSunset}
             className="w-full h-full object-cover object-center"
             style={{
-              filter: 'brightness(0.55) contrast(1.15) saturate(1.1)',
+              filter: 'brightness(1.0) contrast(1.05) saturate(1.1)',
+              opacity: 0.28,
               transform: 'scale(1.03)',
             }}
           >
             <source src={`${process.env.PUBLIC_URL || ''}/videos/programmer.mp4`} type="video/mp4" />
           </video>
-          {/* Gradients for text contrast and seamless bottom fade */}
+          {/* Gradients for crisp text contrast and seamless fade into pure #FFFFFF */}
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(13,13,13,0.55) 0%, rgba(13,13,13,0.2) 40%, rgba(13,13,13,0.85) 85%, #0D0D0D 100%)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 35%, rgba(255,255,255,0.92) 85%, #FFFFFF 100%)',
             }}
           />
           {/* Radial orange glow centered behind title */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 102, 0,0.09) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse 65% 50% at 50% 50%, rgba(255, 102, 0, 0.08) 0%, transparent 70%)',
             }}
           />
         </div>
@@ -81,15 +82,15 @@ const Home = () => {
         {/* Center content */}
         <div className="relative z-10 px-6 fade-up max-w-4xl mx-auto">
           <h1
-            className="font-black uppercase tracking-tight text-white drop-shadow-2xl"
-            style={{ fontSize: 'clamp(3rem, 8.5vw, 6.5rem)', lineHeight: 0.95, letterSpacing: '-0.02em', textShadow: '0 4px 30px rgba(0,0,0,0.9)' }}
+            className="font-black uppercase tracking-tight text-[#0A0A0A]"
+            style={{ fontSize: 'clamp(3rem, 8.5vw, 6.5rem)', lineHeight: 0.95, letterSpacing: '-0.02em' }}
             data-testid="hero-title"
           >
             Vakar Games
           </h1>
           <p
             className="font-bold uppercase tracking-[0.28em] mt-5"
-            style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.2rem)', color: 'rgba(255,255,255,0.75)', textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}
+            style={{ fontSize: 'clamp(0.85rem, 1.8vw, 1.2rem)', color: '#FF6600' }}
           >
             Forged in Passion
           </p>
@@ -108,7 +109,7 @@ const Home = () => {
         {/* Scroll chevron */}
         <button
           onClick={scrollToStudio}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 hover:text-white/60 transition-colors animate-bounce-y"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[#0A0A0A]/30 hover:text-[#0A0A0A]/70 transition-colors animate-bounce-y"
           aria-label="Scroll down"
         >
           <CaretDown size={28} weight="bold" />
@@ -116,9 +117,9 @@ const Home = () => {
       </section>
 
       {/* ── STATS BANNER ───────────────────────────────────────────────── */}
-      <section style={{ backgroundColor: '#111111', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <section style={{ backgroundColor: '#FFFFFF', borderTop: '1px solid #E5E7EB', borderBottom: '1px solid #E5E7EB' }}>
         <div className="max-w-[1100px] mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderLeft: '1px solid #E5E7EB' }}>
             <StatCard value="2024" label="Founded" />
             <StatCard value="France" label="HQ" />
             <StatCard value={games.length > 0 ? `${games.length}` : 'Original'} label="Productions" />
@@ -130,14 +131,14 @@ const Home = () => {
       {/* ── GAMES SHOWCASE ─────────────────────────────────────────────── */}
       <section
         id="games"
-        style={{ backgroundColor: '#0D0D0D', paddingTop: '6rem', paddingBottom: '6rem' }}
+        style={{ backgroundColor: '#F8F9FA', paddingTop: '6rem', paddingBottom: '6rem' }}
       >
         <div className="max-w-[1100px] mx-auto px-6">
           {/* Section header */}
           <div className="mb-12">
-            <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Our Productions</p>
+            <p className="kefir-label mb-4" style={{ color: '#71717A' }}>Our Productions</p>
             <h2
-              className="font-black uppercase text-white"
+              className="font-black uppercase text-[#0A0A0A]"
               style={{ fontSize: 'clamp(2rem, 6vw, 4.5rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
             >
               Games
@@ -152,12 +153,12 @@ const Home = () => {
                   to="/games"
                   className="group block relative overflow-hidden"
                   style={{
-                    backgroundColor: '#111111',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
                     transition: 'border-color 0.3s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255, 102, 0,0.3)'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#FF6600'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = '#E5E7EB'}
                   data-testid={`game-card-${game.slug}`}
                 >
                   <div className="flex flex-col sm:flex-row items-stretch">
@@ -173,8 +174,8 @@ const Home = () => {
                           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1A1A1A' }}>
-                          <GameController size={40} style={{ color: '#FF6600', opacity: 0.4 }} />
+                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#F4F4F5' }}>
+                          <GameController size={40} style={{ color: '#FF6600', opacity: 0.6 }} />
                         </div>
                       )}
                     </div>
@@ -184,7 +185,7 @@ const Home = () => {
                       <div>
                         <div className="flex items-center gap-4 mb-3">
                           <h3
-                            className="font-black uppercase text-white group-hover:text-[#FF6600] transition-colors"
+                            className="font-black uppercase text-[#0A0A0A] group-hover:text-[#FF6600] transition-colors"
                             style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '-0.01em', lineHeight: 1 }}
                           >
                             {game.name}
@@ -192,14 +193,14 @@ const Home = () => {
                           {game.status === 'coming_soon' && (
                             <span
                               className="text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-1"
-                              style={{ color: '#FF6600', border: '1px solid #FF6600', opacity: 0.8 }}
+                              style={{ color: '#FF6600', border: '1px solid #FF6600', backgroundColor: 'rgba(255,102,0,0.06)' }}
                             >
                               Coming Soon
                             </span>
                           )}
                         </div>
                         {game.description && (
-                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                          <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#52525B' }}>
                             {game.description}
                           </p>
                         )}
@@ -217,13 +218,13 @@ const Home = () => {
           ) : (
             <div
               className="text-center py-20"
-              style={{ backgroundColor: '#111111', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB' }}
             >
-              <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.3)', margin: '0 auto 1rem' }} />
-              <h3 className="font-black uppercase text-white text-2xl tracking-tight mb-3">
+              <GameController size={48} style={{ color: 'rgba(255, 102, 0,0.5)', margin: '0 auto 1rem' }} />
+              <h3 className="font-black uppercase text-[#0A0A0A] text-2xl tracking-tight mb-3">
                 New Titles In Production
               </h3>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)', marginBottom: '2rem' }}>
+              <p className="text-sm" style={{ color: '#71717A', marginBottom: '2rem' }}>
                 Our games are currently in development. Follow the studio blog for updates.
               </p>
               <Link to="/blog" className="btn-kefir-outline">
@@ -244,22 +245,22 @@ const Home = () => {
       <section
         ref={studioRef}
         id="studio"
-        style={{ backgroundColor: '#111111', paddingTop: '6rem', paddingBottom: '6rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ backgroundColor: '#FFFFFF', paddingTop: '6rem', paddingBottom: '6rem', borderTop: '1px solid #E5E7EB' }}
         data-testid="about-section"
       >
         <div className="max-w-[1100px] mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-14 items-center">
             <div>
-              <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>The Studio</p>
+              <p className="kefir-label mb-4" style={{ color: '#71717A' }}>The Studio</p>
               <h2
-                className="font-black uppercase text-white"
+                className="font-black uppercase text-[#0A0A0A]"
                 style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
               >
                 We Make<br />
                 <span style={{ color: '#FF6600' }}>Games</span><br />
                 We Love.
               </h2>
-              <p className="mt-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', maxWidth: '42ch' }}>
+              <p className="mt-6 leading-relaxed" style={{ color: '#52525B', fontSize: '1rem', maxWidth: '42ch' }}>
                 Vakar Games is an independent studio based in France. We keep our team compact by design — every developer, artist, and designer is closely tied to the vision. Small team, deliberate creative choices, zero shortcuts on gameplay.
               </p>
               <div className="mt-8 flex items-center gap-6 flex-wrap">
@@ -282,11 +283,11 @@ const Home = () => {
                 <div
                   key={item.label}
                   className="px-6 py-5 flex items-start gap-4"
-                  style={{ backgroundColor: '#0D0D0D', borderLeft: '2px solid rgba(255,102,0,0.5)' }}
+                  style={{ backgroundColor: '#F8F9FA', border: '1px solid #E5E7EB', borderLeftWidth: '3px', borderLeftColor: '#FF6600' }}
                 >
                   <div>
-                    <p className="font-bold uppercase text-white text-sm tracking-[0.08em] mb-1">{item.label}</p>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.desc}</p>
+                    <p className="font-bold uppercase text-[#0A0A0A] text-sm tracking-[0.08em] mb-1">{item.label}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: '#71717A' }}>{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -298,17 +299,17 @@ const Home = () => {
       {/* ── CONTACT CTA ────────────────────────────────────────────────── */}
       <section
         id="contact"
-        style={{ backgroundColor: '#0D0D0D', paddingTop: '5rem', paddingBottom: '5rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ backgroundColor: '#F8F9FA', paddingTop: '5rem', paddingBottom: '5rem', borderTop: '1px solid #E5E7EB' }}
       >
         <div className="max-w-[1100px] mx-auto px-6 text-center">
-          <p className="kefir-label mb-4" style={{ color: 'rgba(255,255,255,0.25)' }}>Let's Talk</p>
+          <p className="kefir-label mb-4" style={{ color: '#71717A' }}>Let's Talk</p>
           <h2
-            className="font-black uppercase text-white"
+            className="font-black uppercase text-[#0A0A0A]"
             style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', letterSpacing: '-0.02em', lineHeight: 1.05 }}
           >
             Let's Talk <span style={{ color: '#FF6600' }}>Games.</span>
           </h2>
-          <p className="mt-4 mx-auto" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', maxWidth: '38ch' }}>
+          <p className="mt-4 mx-auto" style={{ color: '#52525B', fontSize: '0.9rem', maxWidth: '38ch' }}>
             Press inquiries, publishing opportunities, or general questions — we read every message.
           </p>
           <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
