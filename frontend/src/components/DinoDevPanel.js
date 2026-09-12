@@ -113,6 +113,13 @@ export const DinoDevPanel = () => {
   const [inspectLoading, setInspectLoading] = useState(false);
   const [banReasonInput, setBanReasonInput] = useState('');
   const [showBanModal, setShowBanModal] = useState(false);
+  const [recentPlayers, setRecentPlayers] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dino_recent_players') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // ── 3. Maintenance Tab State ────────────────────────────────────────────────
   const [maintStatus, setMaintStatus] = useState({
@@ -305,15 +312,68 @@ export const DinoDevPanel = () => {
   };
 
   // ── Player Lookup Actions ───────────────────────────────────────────────────
-  const handleInspectPlayer = async (e) => {
-    if (e) e.preventDefault();
-    if (!inspectId.trim()) return;
+  const saveRecentPlayer = (playerInfo) => {
+    setRecentPlayers(prev => {
+      const filtered = prev.filter(p => p.id.toLowerCase() !== playerInfo.id.toLowerCase());
+      const updated = [playerInfo, ...filtered].slice(0, 15);
+      try {
+        localStorage.setItem('dino_recent_players', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
 
+  const removeRecentPlayer = (idToRemove, e) => {
+    if (e) e.stopPropagation();
+    setRecentPlayers(prev => {
+      const updated = prev.filter(p => p.id.toLowerCase() !== idToRemove.toLowerCase());
+      try {
+        localStorage.setItem('dino_recent_players', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const clearRecentPlayers = () => {
+    setRecentPlayers([]);
+    try {
+      localStorage.removeItem('dino_recent_players');
+    } catch (e) {}
+  };
+
+  const updateRecentPlayerStatus = (id, isBanned) => {
+    setRecentPlayers(prev => {
+      const updated = prev.map(p => (p.id.toLowerCase() === id.toLowerCase() ? { ...p, isBanned } : p));
+      try {
+        localStorage.setItem('dino_recent_players', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleInspectPlayer = async (e, directId = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const idToUse = (directId !== null && directId !== undefined ? directId : inspectId).trim();
+    if (!idToUse) {
+      toast.error('Please enter a PlayFab ID');
+      return;
+    }
+
+    setInspectId(idToUse);
     setInspectLoading(true);
     setPlayerData(null);
     try {
-      const res = await axios.get(`${API_URL}/api/admin/dino/player/${inspectId.trim()}`, { headers: authHeaders });
+      const res = await axios.get(`${API_URL}/api/admin/dino/player/${idToUse}`, { headers: authHeaders });
       setPlayerData(res.data);
+      saveRecentPlayer({
+        id: res.data.playfab_id,
+        isBanned: res.data.is_banned,
+        lastChecked: new Date().toISOString(),
+        rebirth: res.data.rebirth_level,
+        dna: res.data.player_dna,
+        gems: res.data.player_gems,
+        totalDinos: res.data.total_dinos,
+      });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Player not found on PlayFab');
     } finally {
@@ -335,7 +395,8 @@ export const DinoDevPanel = () => {
       toast.success(`Player ${inspectId} has been suspended/banned`);
       setShowBanModal(false);
       setBanReasonInput('');
-      handleInspectPlayer();
+      updateRecentPlayerStatus(inspectId.trim(), true);
+      handleInspectPlayer(null, inspectId.trim());
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to ban player');
     }
@@ -343,7 +404,7 @@ export const DinoDevPanel = () => {
 
   const handleUnbanClick = () => {
     setDialog({
-      open: true,
+      isOpen: true,
       title: 'Unban Player',
       description: `Are you sure you want to lift the suspension for player "${inspectId}"?`,
       onConfirm: async () => {
@@ -354,7 +415,8 @@ export const DinoDevPanel = () => {
             { headers: authHeaders }
           );
           toast.success('Player unbanned successfully');
-          handleInspectPlayer();
+          updateRecentPlayerStatus(inspectId.trim(), false);
+          handleInspectPlayer(null, inspectId.trim());
         } catch (err) {
           toast.error(err.response?.data?.detail || 'Failed to unban player');
         }
@@ -681,7 +743,7 @@ export const DinoDevPanel = () => {
                   {targetPlayFabId && (
                     <button
                       type="button"
-                      onClick={() => { setInspectId(targetPlayFabId); setActiveTab('player'); handleInspectPlayer(); }}
+                      onClick={() => { setActiveTab('player'); handleInspectPlayer(null, targetPlayFabId); }}
                       className="px-3 py-2.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] text-xs font-semibold text-[#1D1D1F] dark:text-white transition-colors"
                       title="Inspect this player"
                     >
@@ -689,6 +751,29 @@ export const DinoDevPanel = () => {
                     </button>
                   )}
                 </div>
+
+                {recentPlayers.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                    <span className="text-[11px] text-[#86868B] flex items-center gap-1 shrink-0">
+                      <History size={11} className="text-[#FF6600]" />
+                      <span>Recent:</span>
+                    </span>
+                    {recentPlayers.slice(0, 5).map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setTargetPlayFabId(p.id)}
+                        className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border transition-all ${
+                          targetPlayFabId === p.id
+                            ? 'bg-[#FF6600]/10 border-[#FF6600] text-[#FF6600] font-bold'
+                            : 'bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] dark:hover:bg-[#252538] border-[#E5E5EA] dark:border-[#2a2a3c] text-[#6E6E73] dark:text-[#a1a1aa]'
+                        }`}
+                      >
+                        {p.id}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1209,6 +1294,95 @@ export const DinoDevPanel = () => {
                 <span>Inspect Player</span>
               </button>
             </form>
+
+            {/* Recent Searches */}
+            {recentPlayers.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-[#E5E5EA] dark:border-[#2a2a3c]">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <History size={14} className="text-[#FF6600]" />
+                    <span className="text-xs font-bold text-[#1D1D1F] dark:text-white uppercase tracking-wider">
+                      Recent Player Searches
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#E5E5EA] dark:bg-[#2a2a3c] text-[10px] font-mono font-semibold text-[#6E6E73] dark:text-[#a1a1aa]">
+                      {recentPlayers.length}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearRecentPlayers}
+                    className="text-[11px] text-[#86868B] hover:text-red-500 font-medium transition-colors"
+                  >
+                    Clear History
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {recentPlayers.map(p => {
+                    const isSelected = playerData?.playfab_id === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => handleInspectPlayer(null, p.id)}
+                        className={`group relative p-2.5 rounded-2xl border text-left cursor-pointer transition-all flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#FF6600]/10 border-[#FF6600] ring-1 ring-[#FF6600]'
+                            : 'bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] dark:hover:bg-[#252538] border-[#E5E5EA] dark:border-[#2a2a3c]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                              p.isBanned
+                                ? 'bg-red-500 ring-2 ring-red-200 dark:ring-red-950'
+                                : 'bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-950'
+                            }`}
+                            title={p.isBanned ? 'Suspended / Banned' : 'Active'}
+                          />
+                          <div className="min-w-0">
+                            <p className="font-mono text-xs font-bold text-[#1D1D1F] dark:text-white truncate">
+                              {p.id}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-[#86868B]">
+                              {p.rebirth && <span>R{p.rebirth}</span>}
+                              {p.rebirth && p.totalDinos && p.totalDinos !== '0' && <span>•</span>}
+                              {p.totalDinos && p.totalDinos !== '0' && <span>{p.totalDinos} dinos</span>}
+                              {p.isBanned && <span className="text-red-500 font-semibold">• Banned</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Quick Send Gift */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTargetPlayFabId(p.id);
+                              setActiveTab('gift');
+                            }}
+                            title="Send gift to this player"
+                            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#151520] text-[#86868B] hover:text-[#FF6600] transition-colors"
+                          >
+                            <Gift size={13} />
+                          </button>
+
+                          {/* Remove from history */}
+                          <button
+                            type="button"
+                            onClick={(e) => removeRecentPlayer(p.id, e)}
+                            title="Remove from history"
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[#86868B] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 sm:opacity-0"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Player Results Card */}
