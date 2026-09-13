@@ -28,6 +28,9 @@ from .dino_admin import (
     get_player_profile,
     ban_player,
     unban_player,
+    reset_player_account,
+    remove_player_item,
+    DinoRemoveItemRequest,
     grant_gift_to_player,
     DinoGiftRequest,
     DinoBanRequest,
@@ -901,6 +904,30 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             await unban_player(pid, user=admin)
             return [f"OK : Player '{pid}' has been unbanned."], False, True
 
+        if sub == "reset":
+            if len(tokens) < 3:
+                raise _CliError("Usage: dino reset <playfab_id>")
+            pid = tokens[2].strip()
+            if not confirm:
+                return [f"CONFIRM : reset all progress for player '{pid}' to zero?",
+                        "All DNA, Gems, Dinos, and Items will be wiped.",
+                        "Re-run with --confirm to execute."], True, False
+            res = await reset_player_account(pid, user=admin)
+            return [f"OK : {res.get('message')}"], False, True
+
+        if sub == "remove":
+            if len(tokens) < 5:
+                raise _CliError("Usage: dino remove <playfab_id> <dino|inventory|equipped> <name>")
+            pid = tokens[2].strip()
+            cat = tokens[3].strip().lower()
+            name = " ".join(tokens[4:]).strip()
+            if not confirm:
+                return [f"CONFIRM : remove {cat} '{name}' from player '{pid}'?",
+                        "Re-run with --confirm to execute."], True, False
+            req = DinoRemoveItemRequest(category=cat, name=name, quantity=1)
+            res = await remove_player_item(pid, req, user=admin)
+            return [f"OK : {res.get('message')}"], False, True
+
         if sub == "gift":
             if len(tokens) < 5:
                 raise _CliError("Usage: dino gift <playfab_id> <gems> <dna> [dino_name]")
@@ -919,7 +946,7 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             res = await grant_gift_to_player(req, user=admin)
             return [f"OK : {res.get('message')}"], False, True
 
-        raise _CliError("Usage: dino <maintenance|inspect|ban|unban|gift>")
+        raise _CliError("Usage: dino <maintenance|inspect|ban|unban|reset|remove|gift>")
 
     # ── Blog ─────────────────────────────────────────────────────────────────
     if verb == "blog" and len(tokens) >= 2 and tokens[1].lower() == "list":

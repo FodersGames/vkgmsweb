@@ -5,7 +5,7 @@ import {
   Gamepad2, Gift, ShieldAlert, Wrench, History, Search, Check, Copy,
   User, RefreshCw, Key, AlertTriangle, Sparkles, Gem, Dna, Lock, Unlock,
   Plus, Minus, Trash2, Send, ExternalLink, HelpCircle, Flame, Egg, Box,
-  Clock, Calendar, Power, Radio, CheckCircle2, XCircle
+  Clock, Calendar, Power, Radio, CheckCircle2, XCircle, RotateCcw, Edit3, X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -113,6 +113,9 @@ export const DinoDevPanel = () => {
   const [inspectLoading, setInspectLoading] = useState(false);
   const [banReasonInput, setBanReasonInput] = useState('');
   const [showBanModal, setShowBanModal] = useState(false);
+  const [showEditStatsModal, setShowEditStatsModal] = useState(false);
+  const [editStatsForm, setEditStatsForm] = useState({ dna: '', gems: '', rebirth: '' });
+  const [savingStats, setSavingStats] = useState(false);
   const [recentPlayers, setRecentPlayers] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('dino_recent_players') || '[]');
@@ -405,6 +408,7 @@ export const DinoDevPanel = () => {
   const handleUnbanClick = () => {
     setDialog({
       isOpen: true,
+      open: true,
       title: 'Unban Player',
       description: `Are you sure you want to lift the suspension for player "${inspectId}"?`,
       onConfirm: async () => {
@@ -415,13 +419,99 @@ export const DinoDevPanel = () => {
             { headers: authHeaders }
           );
           toast.success('Player unbanned successfully');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
           updateRecentPlayerStatus(inspectId.trim(), false);
           handleInspectPlayer(null, inspectId.trim());
         } catch (err) {
           toast.error(err.response?.data?.detail || 'Failed to unban player');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
         }
       },
     });
+  };
+
+  const handleResetClick = () => {
+    setDialog({
+      isOpen: true,
+      open: true,
+      title: 'Reset Player Account',
+      description: `Are you sure you want to completely RESET all progress for player "${inspectId}"? All DNA, Gems, Dinos, Rebirth level, and Items will be wiped to zero. This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await axios.post(
+            `${API_URL}/api/admin/dino/player/${inspectId.trim()}/reset`,
+            {},
+            { headers: authHeaders }
+          );
+          toast.success('Player account has been reset to zero');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+          handleInspectPlayer(null, inspectId.trim());
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Failed to reset player account');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleRemoveItem = (category, name, quantity = 1) => {
+    const title = category === 'dino' ? 'Remove Dinosaur' : category === 'inventory' ? 'Remove Item' : 'Unequip Dinosaur';
+    const actionDesc = category === 'equipped' ? `unequip "${name}" from` : `remove "${name}" from`;
+
+    setDialog({
+      isOpen: true,
+      open: true,
+      title,
+      description: `Are you sure you want to ${actionDesc} player "${inspectId}"?`,
+      onConfirm: async () => {
+        try {
+          await axios.post(
+            `${API_URL}/api/admin/dino/player/${inspectId.trim()}/remove-item`,
+            { category, name, quantity },
+            { headers: authHeaders }
+          );
+          toast.success(`Item updated successfully`);
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+          handleInspectPlayer(null, inspectId.trim());
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Failed to remove item');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleOpenEditStats = () => {
+    if (!playerData) return;
+    setEditStatsForm({
+      dna: playerData.player_dna || '0',
+      gems: playerData.player_gems || '0',
+      rebirth: playerData.rebirth_level || '1',
+    });
+    setShowEditStatsModal(true);
+  };
+
+  const handleSaveStatsSubmit = async (e) => {
+    e.preventDefault();
+    setSavingStats(true);
+    try {
+      await axios.post(
+        `${API_URL}/api/admin/dino/player/${inspectId.trim()}/update-profile`,
+        {
+          player_dna: editStatsForm.dna.trim(),
+          player_gems: editStatsForm.gems.trim(),
+          rebirth_level: editStatsForm.rebirth.trim(),
+        },
+        { headers: authHeaders }
+      );
+      toast.success('Player currencies and stats updated successfully');
+      setShowEditStatsModal(false);
+      handleInspectPlayer(null, inspectId.trim());
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update player stats');
+    } finally {
+      setSavingStats(false);
+    }
   };
 
   // ── Maintenance Actions ─────────────────────────────────────────────────────
@@ -1406,7 +1496,7 @@ export const DinoDevPanel = () => {
                 </div>
 
                 {/* Moderation Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => { setTargetPlayFabId(playerData.playfab_id); setActiveTab('gift'); }}
@@ -1416,11 +1506,20 @@ export const DinoDevPanel = () => {
                     <span>Send Gift</span>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={handleOpenEditStats}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#1D1D1F] dark:text-white text-xs font-semibold transition-colors"
+                  >
+                    <Edit3 size={13} />
+                    <span>Edit Stats</span>
+                  </button>
+
                   {playerData.is_banned ? (
                     <button
                       type="button"
                       onClick={handleUnbanClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold transition-colors border border-emerald-200/50 dark:border-emerald-900/50"
                     >
                       <Unlock size={13} />
                       <span>Unban Player</span>
@@ -1429,12 +1528,22 @@ export const DinoDevPanel = () => {
                     <button
                       type="button"
                       onClick={() => setShowBanModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 text-xs font-semibold transition-colors border border-red-200/50 dark:border-red-900/50"
                     >
                       <Lock size={13} />
                       <span>Ban Player</span>
                     </button>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={handleResetClick}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-[#FF453A] text-xs font-semibold transition-colors border border-red-500/20"
+                    title="Reset player account progress to zero"
+                  >
+                    <RotateCcw size={13} />
+                    <span>Reset Account</span>
+                  </button>
                 </div>
               </div>
 
@@ -1491,11 +1600,20 @@ export const DinoDevPanel = () => {
                     {playerData.equipped_dinos && playerData.equipped_dinos !== 'None' ? (
                       playerData.equipped_dinos.split(',').map((d, i) => {
                         const clean = d.trim();
+                        if (!clean || clean.toLowerCase() === 'none') return null;
                         const icon = getItemIcon(clean, 'dino');
                         return (
-                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                          <div key={i} className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold group">
                             <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Flame} />
                             <span>{clean}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem('equipped', clean)}
+                              title={`Unequip ${clean}`}
+                              className="p-1 rounded-lg text-[#86868B] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors ml-0.5"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         );
                       })
@@ -1508,15 +1626,24 @@ export const DinoDevPanel = () => {
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-2">
                   <span className="font-bold text-[#1D1D1F] dark:text-white block">Owned Dinos Collection:</span>
                   <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
-                    {playerData.owned_dinos && playerData.owned_dinos !== 'None' ? (
+                    {playerData.owned_dinos && playerData.owned_dinos !== 'None' && playerData.owned_dinos !== '' ? (
                       playerData.owned_dinos.split(',').map((d, i) => {
                         const clean = d.trim();
-                        const baseName = clean.split('x')[0].trim();
+                        if (!clean || clean.toLowerCase() === 'none') return null;
+                        const baseName = clean.split(' x')[0].trim();
                         const icon = getItemIcon(baseName, 'dino');
                         return (
-                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                          <div key={i} className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold group">
                             <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Flame} />
                             <span>{clean}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem('dino', baseName, 1)}
+                              title={`Remove 1x ${baseName}`}
+                              className="p-1 rounded-lg text-[#86868B] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors ml-0.5"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         );
                       })
@@ -1529,15 +1656,24 @@ export const DinoDevPanel = () => {
                 <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-2">
                   <span className="font-bold text-[#1D1D1F] dark:text-white block">Inventory Items:</span>
                   <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
-                    {playerData.inventory_items && playerData.inventory_items !== 'Empty bag' ? (
+                    {playerData.inventory_items && playerData.inventory_items !== 'Empty bag' && playerData.inventory_items !== '' ? (
                       playerData.inventory_items.split(',').map((item, i) => {
                         const clean = item.trim();
-                        const baseId = clean.split('x')[0].trim();
+                        if (!clean || clean.toLowerCase() === 'empty bag') return null;
+                        const baseId = clean.split(' x')[0].trim();
                         const icon = getItemIcon(baseId, 'item');
                         return (
-                          <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold">
+                          <div key={i} className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-semibold group">
                             <ItemImage src={icon} className="w-5 h-5" fallbackIcon={Box} />
                             <span>{clean}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem('inventory', baseId, 1)}
+                              title={`Remove 1x ${baseId}`}
+                              className="p-1 rounded-lg text-[#86868B] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors ml-0.5"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         );
                       })
@@ -2013,13 +2149,105 @@ export const DinoDevPanel = () => {
         </div>
       )}
 
+      {/* ── Edit Stats Modal ────────────────────────────────────── */}
+      {showEditStatsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <form
+            onSubmit={handleSaveStatsSubmit}
+            className="w-full max-w-md rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] p-6 sm:p-7 shadow-2xl space-y-4 animate-appear"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <Edit3 size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#1D1D1F] dark:text-white">
+                    Edit Player Stats & Currencies
+                  </h3>
+                  <p className="text-xs text-[#86868B]">
+                    Player: {inspectId}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditStatsModal(false)}
+                className="p-1.5 rounded-lg text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] mb-1">
+                  DNA Bank
+                </label>
+                <input
+                  type="text"
+                  value={editStatsForm.dna}
+                  onChange={(e) => setEditStatsForm(f => ({ ...f, dna: e.target.value }))}
+                  placeholder="e.g. 10000"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] mb-1">
+                  Gems Stash
+                </label>
+                <input
+                  type="text"
+                  value={editStatsForm.gems}
+                  onChange={(e) => setEditStatsForm(f => ({ ...f, gems: e.target.value }))}
+                  placeholder="e.g. 500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] mb-1">
+                  Rebirth Level
+                </label>
+                <input
+                  type="text"
+                  value={editStatsForm.rebirth}
+                  onChange={(e) => setEditStatsForm(f => ({ ...f, rebirth: e.target.value }))}
+                  placeholder="e.g. 1"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA] dark:border-[#2a2a3c]">
+              <button
+                type="button"
+                onClick={() => setShowEditStatsModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingStats}
+                className="px-4 py-2 rounded-xl bg-[#FF6600] hover:bg-[#e65c00] text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+              >
+                {savingStats ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Confirmation Dialog */}
       <ConfirmDialog
-        isOpen={dialog.open}
+        isOpen={dialog.open || dialog.isOpen}
+        open={dialog.open || dialog.isOpen}
         title={dialog.title}
         description={dialog.description}
         onConfirm={dialog.onConfirm}
-        onClose={() => setDialog(d => ({ ...d, open: false }))}
+        onClose={() => setDialog(d => ({ ...d, open: false, isOpen: false }))}
       />
     </div>
   );
