@@ -428,7 +428,7 @@ async def unban_player(playfab_id: str, user=Depends(require_super_admin)):
     title_id, secret_key = await get_playfab_credentials()
     clean_id = playfab_id.strip()
 
-    # 1. Update UserData: set is_banned to "false" and remove ban_reason
+    # 1. Update UserData: set is_banned to "false" and clear ban_reason
     await call_playfab(
         "Server/UpdateUserData",
         {
@@ -437,7 +437,6 @@ async def unban_player(playfab_id: str, user=Depends(require_super_admin)):
                 "is_banned": "false",
                 "ban_reason": "",
             },
-            "KeysToRemove": ["ban_reason"],
             "Permission": "Public"
         },
         secret_key,
@@ -447,7 +446,7 @@ async def unban_player(playfab_id: str, user=Depends(require_super_admin)):
     # 2. Also revoke native PlayFab bans if any exist
     try:
         await call_playfab(
-            "Server/RevokeAllBansForUser",
+            "Admin/RevokeAllBansForUser",
             {"PlayFabId": clean_id},
             secret_key,
             title_id
