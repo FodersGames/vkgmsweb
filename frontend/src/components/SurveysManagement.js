@@ -114,9 +114,11 @@ export const SurveysManagement = () => {
             headers: authHeaders,
           });
           toast.success('Survey deleted successfully');
+          setDialog(d => ({ ...d, open: false }));
           fetchSurveys();
         } catch (err) {
           toast.error('Failed to delete survey');
+          setDialog(d => ({ ...d, open: false }));
         }
       },
     });
@@ -149,8 +151,8 @@ export const SurveysManagement = () => {
         },
         {
           id: `q_3`,
-          title: 'Any suggestions or improvements for the studio?',
-          description: '',
+          title: 'What should we improve next?',
+          description: 'Feel free to share any feedback or bug reports',
           type: 'long_text',
           options: [],
           required: false,
@@ -170,10 +172,7 @@ export const SurveysManagement = () => {
       slug: survey.slug || '',
       status: survey.status || 'active',
       allow_anonymous: survey.allow_anonymous !== false,
-      questions: (survey.questions || []).map(q => ({
-        ...q,
-        options: q.options || [],
-      })),
+      questions: survey.questions || [],
     });
     setView('edit');
   };
@@ -196,6 +195,82 @@ export const SurveysManagement = () => {
     } finally {
       setAnalyticsLoading(false);
     }
+  };
+
+  // Reload Analytics Data & Responses for selected survey
+  const reloadAnalytics = async (surveyTarget) => {
+    const s = surveyTarget || selectedSurvey;
+    if (!s) return;
+    try {
+      const [statsRes, respRes] = await Promise.all([
+        axios.get(`${API_URL}/api/admin/surveys/${s.id || s.slug}`, { headers: authHeaders }),
+        axios.get(`${API_URL}/api/admin/surveys/${s.id || s.slug}/responses`, { headers: authHeaders }),
+      ]);
+      setAnalyticsData(statsRes.data?.analytics || null);
+      const responses = respRes.data?.responses || [];
+      setResponsesList(responses);
+      setSelectedSurvey(prev => prev ? { ...prev, responses_count: responses.length } : prev);
+      fetchSurveys();
+    } catch (err) {
+      console.error('Failed to reload analytics:', err);
+    }
+  };
+
+  // Delete an individual response
+  const handleDeleteResponse = (response) => {
+    if (!selectedSurvey || !response) return;
+    const respId = response.id;
+    const author = response.username ? `@${response.username}` : 'Anonymous';
+
+    setDialog({
+      open: true,
+      title: 'Supprimer la réponse',
+      description: `Êtes-vous sûr de vouloir supprimer cette réponse de ${author} ? Cette action est irréversible et mettra à jour les statistiques du sondage.`,
+      onConfirm: async () => {
+        try {
+          await axios.delete(
+            `${API_URL}/api/admin/surveys/${selectedSurvey.id || selectedSurvey.slug}/responses/${respId}`,
+            { headers: authHeaders }
+          );
+          toast.success('Réponse supprimée avec succès');
+          setDialog(d => ({ ...d, open: false }));
+          await reloadAnalytics(selectedSurvey);
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Erreur lors de la suppression de la réponse');
+          setDialog(d => ({ ...d, open: false }));
+        }
+      },
+    });
+  };
+
+  // Delete all responses for the survey
+  const handleDeleteAllResponses = () => {
+    if (!selectedSurvey) return;
+    const count = responsesList.length;
+    if (count === 0) {
+      toast.info('Aucune réponse à supprimer');
+      return;
+    }
+
+    setDialog({
+      open: true,
+      title: 'Supprimer toutes les réponses',
+      description: `Êtes-vous sûr de vouloir supprimer définitivement les ${count} réponse(s) reçues pour ce sondage ? Les compteurs seront remis à 0. Cette action est irréversible.`,
+      onConfirm: async () => {
+        try {
+          await axios.delete(
+            `${API_URL}/api/admin/surveys/${selectedSurvey.id || selectedSurvey.slug}/responses`,
+            { headers: authHeaders }
+          );
+          toast.success(`Toutes les réponses (${count}) ont été supprimées`);
+          setDialog(d => ({ ...d, open: false }));
+          await reloadAnalytics(selectedSurvey);
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Erreur lors de la suppression de toutes les réponses');
+          setDialog(d => ({ ...d, open: false }));
+        }
+      },
+    });
   };
 
   // Builder actions
@@ -922,29 +997,43 @@ export const SurveysManagement = () => {
           </div>
 
           {/* Tab Navigation: Summary Analytics vs Submissions */}
-          <div className="flex items-center gap-2 border-b border-[#E5E5EA] dark:border-[#2a2a3c] pb-3">
-            <button
-              type="button"
-              onClick={() => setAnalyticsTab('summary')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                analyticsTab === 'summary'
-                  ? 'bg-[#FF6600] text-white shadow-xs'
-                  : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
-              }`}
-            >
-              Summary & Question Breakdown
-            </button>
-            <button
-              type="button"
-              onClick={() => setAnalyticsTab('submissions')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                analyticsTab === 'submissions'
-                  ? 'bg-[#FF6600] text-white shadow-xs'
-                  : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
-              }`}
-            >
-              Individual Submissions ({responsesList.length})
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5EA] dark:border-[#2a2a3c] pb-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAnalyticsTab('summary')}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  analyticsTab === 'summary'
+                    ? 'bg-[#FF6600] text-white shadow-xs'
+                    : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                Summary & Question Breakdown
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnalyticsTab('submissions')}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  analyticsTab === 'submissions'
+                    ? 'bg-[#FF6600] text-white shadow-xs'
+                    : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                Individual Submissions ({responsesList.length})
+              </button>
+            </div>
+
+            {responsesList.length > 0 && (
+              <button
+                type="button"
+                onClick={handleDeleteAllResponses}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-500/25 text-red-500 hover:bg-red-500/10 text-xs font-semibold transition-all"
+                title="Supprimer toutes les réponses de ce sondage"
+              >
+                <Trash2 size={13} />
+                <span>Clear All Responses</span>
+              </button>
+            )}
           </div>
 
           {analyticsLoading ? (
@@ -1075,12 +1164,24 @@ export const SurveysManagement = () => {
                             stats.feedbacks.map((item, fIdx) => (
                               <div
                                 key={fIdx}
-                                className="p-3.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-1"
+                                className="p-3.5 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs space-y-1 group"
                               >
-                                <p className="text-[#1D1D1F] dark:text-white leading-relaxed">
-                                  {item.text}
-                                </p>
-                                <div className="flex items-center justify-between text-[11px] text-[#86868B] dark:text-[#71717a] pt-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <p className="text-[#1D1D1F] dark:text-white leading-relaxed flex-1">
+                                    {item.text}
+                                  </p>
+                                  {item.id && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteResponse(item)}
+                                      title="Supprimer cette réponse"
+                                      className="p-1 rounded-lg text-[#86868B] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors shrink-0"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-[#86868B] dark:text-[#71717a] pt-1 border-t border-[#E5E5EA]/60 dark:border-[#2a2a3c]/60">
                                   <span className="font-medium">@{item.username || 'Anonymous'}</span>
                                   <span>
                                     {new Date(item.submitted_at).toLocaleDateString('en-US', {
@@ -1120,9 +1221,19 @@ export const SurveysManagement = () => {
                           @{resp.username || 'Anonymous'}
                         </span>
                       </div>
-                      <span className="text-xs text-[#86868B] dark:text-[#71717a]">
-                        {new Date(resp.submitted_at).toLocaleString('en-US')}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-[#86868B] dark:text-[#71717a]">
+                          {new Date(resp.submitted_at).toLocaleString('en-US')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResponse(resp)}
+                          title="Supprimer cette réponse"
+                          className="p-1.5 rounded-xl text-[#86868B] hover:text-[#FF453A] hover:bg-[#FF453A]/10 transition-colors"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Answers List */}
@@ -1162,6 +1273,7 @@ export const SurveysManagement = () => {
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
+        isOpen={dialog.open}
         open={dialog.open}
         title={dialog.title}
         description={dialog.description}
