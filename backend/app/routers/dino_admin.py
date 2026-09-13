@@ -126,8 +126,67 @@ async def call_playfab(endpoint_path: str, payload: dict, secret_key: str, title
     
     if res.get("code") and res.get("code") >= 400:
         err_msg = res.get("errorMessage") or res.get("status") or "PlayFab API Error"
+        if res.get("errorDetails") and isinstance(res.get("errorDetails"), dict):
+            details_parts = []
+            for k, v in res.get("errorDetails").items():
+                val_str = ", ".join(v) if isinstance(v, list) else str(v)
+                details_parts.append(f"{k}: {val_str}")
+            if details_parts:
+                joined_details = "; ".join(details_parts)
+                err_msg = f"{err_msg} ({joined_details})"
         raise HTTPException(status_code=res.get("code"), detail=f"PlayFab: {err_msg}")
     return res
+
+
+async def update_playfab_user_data(
+    playfab_id: str,
+    data: Optional[Dict[str, str]],
+    keys_to_remove: Optional[List[str]],
+    secret_key: str,
+    title_id: str,
+    permission: str = "Public"
+) -> None:
+    """
+    Safely updates PlayFab UserData respecting the hard limit of 10 keys per request.
+    Splits requests into chunks of at most 10 items and eliminates key collisions.
+    """
+    clean_id = playfab_id.strip()
+    data = dict(data) if data else {}
+    keys_to_remove = list(keys_to_remove) if keys_to_remove else []
+
+    # Filter out any keys that accidentally appear in both Data and KeysToRemove
+    keys_to_remove = [k for k in keys_to_remove if k not in data]
+
+    # Chunk keys_to_remove in batches of 10
+    for i in range(0, len(keys_to_remove), 10):
+        chunk = keys_to_remove[i:i + 10]
+        if chunk:
+            await call_playfab(
+                "Server/UpdateUserData",
+                {
+                    "PlayFabId": clean_id,
+                    "KeysToRemove": chunk,
+                    "Permission": permission
+                },
+                secret_key,
+                title_id
+            )
+
+    # Chunk data in batches of 10
+    data_items = list(data.items())
+    for i in range(0, len(data_items), 10):
+        chunk_data = dict(data_items[i:i + 10])
+        if chunk_data:
+            await call_playfab(
+                "Server/UpdateUserData",
+                {
+                    "PlayFabId": clean_id,
+                    "Data": chunk_data,
+                    "Permission": permission
+                },
+                secret_key,
+                title_id
+            )
 
 
 # ====================================================================
@@ -373,18 +432,11 @@ async def grant_gift_to_player(req: DinoGiftRequest, user=Depends(require_super_
     if not data_payload:
         raise HTTPException(status_code=400, detail="Please select at least one gift reward to send.")
 
-    # Call PlayFab Server/UpdateUserData
-    update_user_payload = {
-        "PlayFabId": clean_id,
-        "Data": data_payload,
-        "Permission": "Public"
-    }
-    if keys_to_remove:
-        update_user_payload["KeysToRemove"] = keys_to_remove
-
-    await call_playfab(
-        "Server/UpdateUserData",
-        update_user_payload,
+    # Call PlayFab Server/UpdateUserData safely
+    await update_playfab_user_data(
+        clean_id,
+        data_payload,
+        keys_to_remove,
         secret_key,
         title_id
     )
@@ -405,16 +457,13 @@ async def ban_player(playfab_id: str, req: DinoBanRequest, user=Depends(require_
     clean_id = playfab_id.strip()
     reason = req.reason.strip() if req.reason else "Violation of studio terms of service"
 
-    await call_playfab(
-        "Server/UpdateUserData",
+    await update_playfab_user_data(
+        clean_id,
         {
-            "PlayFabId": clean_id,
-            "Data": {
-                "is_banned": "true",
-                "ban_reason": reason,
-            },
-            "Permission": "Public"
+            "is_banned": "true",
+            "ban_reason": reason,
         },
+        None,
         secret_key,
         title_id
     )
@@ -428,17 +477,14 @@ async def unban_player(playfab_id: str, user=Depends(require_super_admin)):
     title_id, secret_key = await get_playfab_credentials()
     clean_id = playfab_id.strip()
 
-    # 1. Update UserData: set is_banned to "false" and clear ban_reason
-    await call_playfab(
-        "Server/UpdateUserData",
+    # 1. Update UserData: set is_banned to "false" and clear ban_reason safely
+    await update_playfab_user_data(
+        clean_id,
         {
-            "PlayFabId": clean_id,
-            "Data": {
-                "is_banned": "false",
-                "ban_reason": "",
-            },
-            "Permission": "Public"
+            "is_banned": "false",
+            "ban_reason": "",
         },
+        None,
         secret_key,
         title_id
     )
@@ -481,14 +527,10 @@ async def reset_player_account(playfab_id: str, user=Depends(require_super_admin
         "gift_items", "gift_eggs", "gift_chests", "gift_message"
     ]
 
-    await call_playfab(
-        "Server/UpdateUserData",
-        {
-            "PlayFabId": clean_id,
-            "Data": reset_data,
-            "KeysToRemove": keys_to_remove,
-            "Permission": "Public"
-        },
+    await update_playfab_user_data(
+        clean_id,
+        reset_data,
+        keys_to_remove,
         secret_key,
         title_id
     )
@@ -588,14 +630,11 @@ async def remove_player_item(playfab_id: str, req: DinoRemoveItemRequest, user=D
     else:
         raise HTTPException(status_code=400, detail=f"Invalid category '{cat}'. Must be 'dino', 'inventory', or 'equipped'.")
 
-    # Update in PlayFab
-    await call_playfab(
-        "Server/UpdateUserData",
-        {
-            "PlayFabId": clean_id,
-            "Data": updates,
-            "Permission": "Public"
-        },
+    # Update in PlayFab safely
+    await update_playfab_user_data(
+        clean_id,
+        updates,
+        None,
         secret_key,
         title_id
     )
@@ -634,13 +673,10 @@ async def update_player_profile(playfab_id: str, req: DinoUpdateProfileRequest, 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields provided to update")
 
-    await call_playfab(
-        "Server/UpdateUserData",
-        {
-            "PlayFabId": clean_id,
-            "Data": updates,
-            "Permission": "Public"
-        },
+    await update_playfab_user_data(
+        clean_id,
+        updates,
+        None,
         secret_key,
         title_id
     )
