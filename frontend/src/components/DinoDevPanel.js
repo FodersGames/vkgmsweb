@@ -1470,81 +1470,101 @@ export const DinoDevPanel = () => {
           {/* Player Results Card */}
           {playerData && (
             <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] shadow-xs space-y-6 animate-appear">
-              {/* Top Status Banner */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
-                <div>
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <h3 className="text-lg font-bold font-mono text-[#1D1D1F] dark:text-white">
-                      ID: {playerData.playfab_id}
-                    </h3>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+              {/* Top Status & Controls Header */}
+              <div className="pb-6 border-b border-[#E5E5EA] dark:border-[#2a2a3c] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  {/* Player Identity */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
                       playerData.is_banned
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                        ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
                     }`}>
-                      {playerData.is_banned ? 'SUSPENDED / BANNED' : 'ACTIVE / IN GOOD STANDING'}
-                    </span>
+                      <User size={20} />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-bold font-mono text-[#1D1D1F] dark:text-white tracking-tight">
+                          {playerData.playfab_id}
+                        </h3>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          playerData.is_banned
+                            ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${playerData.is_banned ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+                          {playerData.is_banned ? 'Banned' : 'Active'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#86868B] mt-0.5">
+                        Last Cloud Sync : <span className="text-[#1D1D1F] dark:text-[#f5f5f7] font-medium">{playerData.last_sync}</span>
+                      </p>
+                    </div>
                   </div>
-                  {playerData.is_banned && playerData.ban_reason && (
-                    <p className="text-xs text-red-600 font-medium">
-                      Ban Reason: {playerData.ban_reason}
-                    </p>
-                  )}
-                  <p className="text-xs text-[#86868B] mt-0.5">
-                    Last Cloud Sync: <b>{playerData.last_sync}</b>
-                  </p>
-                </div>
 
-                {/* Moderation Controls */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => { setTargetPlayFabId(playerData.playfab_id); setActiveTab('gift'); }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6600]/10 hover:bg-[#FF6600]/20 text-[#FF6600] text-xs font-semibold transition-colors"
-                  >
-                    <Gift size={13} />
-                    <span>Send Gift</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenEditStats}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[#1D1D1F] dark:text-white text-xs font-semibold transition-colors"
-                  >
-                    <Edit3 size={13} />
-                    <span>Edit Stats</span>
-                  </button>
-
-                  {playerData.is_banned ? (
+                  {/* Actions Toolbar */}
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={handleUnbanClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold transition-colors border border-emerald-200/50 dark:border-emerald-900/50"
+                      onClick={() => { setTargetPlayFabId(playerData.playfab_id); setActiveTab('gift'); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6600] hover:bg-[#E05A00] text-white text-xs font-semibold shadow-xs transition-all active:scale-95"
                     >
-                      <Unlock size={13} />
-                      <span>Unban Player</span>
+                      <Gift size={13} />
+                      <span>Send Gift</span>
                     </button>
-                  ) : (
+
                     <button
                       type="button"
-                      onClick={() => setShowBanModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400 text-xs font-semibold transition-colors border border-red-200/50 dark:border-red-900/50"
+                      onClick={handleOpenEditStats}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] dark:hover:bg-[#26263a] text-[#1D1D1F] dark:text-white text-xs font-semibold transition-all border border-[#E5E5EA] dark:border-[#2a2a3c] active:scale-95"
                     >
-                      <Lock size={13} />
-                      <span>Ban Player</span>
+                      <Edit3 size={13} />
+                      <span>Edit Stats</span>
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={handleResetClick}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-[#FF453A] text-xs font-semibold transition-colors border border-red-500/20"
-                    title="Reset player account progress to zero"
-                  >
-                    <RotateCcw size={13} />
-                    <span>Reset Account</span>
-                  </button>
+                    {playerData.is_banned ? (
+                      <button
+                        type="button"
+                        onClick={handleUnbanClick}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition-all border border-emerald-500/20 active:scale-95"
+                      >
+                        <Unlock size={13} />
+                        <span>Unban</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowBanModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold transition-all border border-amber-500/20 active:scale-95"
+                      >
+                        <Lock size={13} />
+                        <span>Ban</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleResetClick}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold transition-all border border-red-500/20 active:scale-95"
+                      title="Reset player account progress to zero"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Reset</span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Banned Alert Banner (if banned) */}
+                {playerData.is_banned && (
+                  <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-2.5 text-xs text-red-600 dark:text-red-400 animate-appear">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5 text-red-500" />
+                    <div className="min-w-0">
+                      <span className="font-bold">Player Suspended :</span>{' '}
+                      <span>{playerData.ban_reason || 'Violation of studio terms of service'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Stats KPIs */}
