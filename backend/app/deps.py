@@ -43,7 +43,34 @@ ALL_PERMISSIONS = [
 def is_valid_permission(p: str) -> bool:
     return p in ALL_PERMISSIONS
 
+
+async def _purge_deprecated_accounts():
+    """
+    Purge deprecated super admin / test accounts (vakargames@gmail, fodersgames@gmail)
+    while strictly keeping anthony@vakargames.com / anthony.
+    """
+    try:
+        purge_query = {
+            "$and": [
+                {
+                    "$or": [
+                        {"email": {"$regex": r"^(vakargames|fodersgames)@gmail", "$options": "i"}},
+                        {"username": {"$regex": r"^(vakargames|fodersgames)$", "$options": "i"}},
+                    ]
+                },
+                {"email": {"$ne": "anthony@vakargames.com"}},
+                {"username": {"$ne": "anthony"}}
+            ]
+        }
+        res = await db.users.delete_many(purge_query)
+        if res.deleted_count > 0:
+            logger.info(f"Purged {res.deleted_count} deprecated account(s) (vakargames/fodersgames)")
+    except Exception as e:
+        logger.error(f"Error purging deprecated user accounts: {e}")
+
+
 async def _ensure_super_admin():
+    await _purge_deprecated_accounts()
     if not SUPER_ADMIN_EMAIL or not SUPER_ADMIN_PASSWORD:
         return
     try:

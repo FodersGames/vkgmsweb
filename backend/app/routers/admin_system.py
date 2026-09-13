@@ -743,10 +743,14 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             ], False, True
 
         if sub == "delete":
-            if target.get("role") == "super_admin":
-                raise _CliError("Cannot delete a super admin account.")
             if str(target["_id"]) == admin["id"]:
                 raise _CliError("Cannot delete your own account.")
+            if target.get("role") == "super_admin":
+                if admin.get("role") != "super_admin":
+                    raise _CliError("Only a super admin can delete another super admin account.")
+                super_admin_count = await db.users.count_documents({"role": "super_admin"})
+                if super_admin_count <= 1:
+                    raise _CliError("Cannot delete the last super admin account.")
             if not confirm:
                 return [f"PERMANENTLY delete account '{target.get('username')}' ({target.get('email')})? This cannot be undone.",
                         "Type 'y' to confirm, or anything else to cancel."], True, False

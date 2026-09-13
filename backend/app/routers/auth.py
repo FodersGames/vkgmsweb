@@ -364,7 +364,7 @@ class BootstrapSuperAdminRequest(BaseModel):
     password: str
     username: Optional[str] = "anthony"
     firstName: Optional[str] = "Anthony"
-    lastName: Optional[str] = "Sichel"
+    lastName: Optional[str] = ""
 
 @router.post("/auth/bootstrap-superadmin")
 async def bootstrap_superadmin(body: BootstrapSuperAdminRequest):
@@ -380,7 +380,7 @@ async def bootstrap_superadmin(body: BootstrapSuperAdminRequest):
     email = body.email.lower().strip()
     username = (body.username or "anthony").strip()
     firstName = (body.firstName or "Anthony").strip()
-    lastName = (body.lastName or "Sichel").strip()
+    lastName = (body.lastName or "").strip()
 
     validate_password_strength(body.password)
 

@@ -166,10 +166,14 @@ async def delete_user(user_id: str, admin=Depends(require_permission("manage_use
         raise HTTPException(status_code=400, detail="Invalid user ID")
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
-    if target.get("role") == "super_admin":
-        raise HTTPException(status_code=403, detail="Cannot delete a super admin account")
     if str(target["_id"]) == admin["id"]:
         raise HTTPException(status_code=403, detail="Cannot delete your own account")
+    if target.get("role") == "super_admin":
+        if admin.get("role") != "super_admin":
+            raise HTTPException(status_code=403, detail="Only a super admin can delete another super admin account")
+        super_admin_count = await db.users.count_documents({"role": "super_admin"})
+        if super_admin_count <= 1:
+            raise HTTPException(status_code=403, detail="Cannot delete the last super admin account")
     await db.users.delete_one({"_id": ObjectId(user_id)})
     await log_action("user_action", f"User '{target.get('username', user_id)}' deleted", user=admin["username"])
     return {"success": True, "message": f"User '{target.get('username', user_id)}' deleted"}
