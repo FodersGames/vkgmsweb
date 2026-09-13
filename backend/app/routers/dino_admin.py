@@ -518,6 +518,33 @@ async def set_dino_maintenance(req: DinoMaintenanceRequest, user=Depends(require
                 title_id
             )
 
+    if is_immediate:
+        await db.website_settings.update_one({}, {"$set": {
+            "dino_maintenance_mode": True,
+            "dino_maintenance_started_at": now_utc,
+        }}, upsert=True)
+        await db.maintenance_history.insert_one({
+            "service": "dino",
+            "type": "maintenance",
+            "status": "active",
+            "started_at": now_utc,
+            "ended_at": None,
+            "message": msg or "Idle Dino Clicker Tycoon maintenance",
+        })
+    elif is_cancel:
+        await db.website_settings.update_one({}, {"$set": {
+            "dino_maintenance_mode": False,
+            "dino_maintenance_started_at": None,
+        }}, upsert=True)
+        active_dino = await db.maintenance_history.find({"service": "dino", "status": "active"}).to_list(10)
+        for s in active_dino:
+            started = s.get("started_at") or (now_utc - timedelta(minutes=15))
+            duration = max(1.0, (now_utc - started).total_seconds() / 60)
+            await db.maintenance_history.update_one(
+                {"_id": s["_id"]},
+                {"$set": {"status": "completed", "ended_at": now_utc, "duration_minutes": duration}}
+            )
+
     await log_action("dino_dev", f"Game Maintenance: {status_str}", user=user["username"])
     return await get_dino_maintenance(user=user)
 
