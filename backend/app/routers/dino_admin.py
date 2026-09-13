@@ -538,11 +538,19 @@ async def set_dino_maintenance(req: DinoMaintenanceRequest, user=Depends(require
         }}, upsert=True)
         active_dino = await db.maintenance_history.find({"service": "dino", "status": "active"}).to_list(10)
         for s in active_dino:
-            started = s.get("started_at") or (now_utc - timedelta(minutes=15))
-            duration = max(1.0, (now_utc - started).total_seconds() / 60)
+            raw_started = s.get("started_at")
+            if isinstance(raw_started, str):
+                try:
+                    raw_started = datetime.fromisoformat(raw_started.replace("Z", "+00:00"))
+                except Exception:
+                    raw_started = now_utc
+            if raw_started and getattr(raw_started, "tzinfo", None) is None:
+                raw_started = raw_started.replace(tzinfo=timezone.utc)
+            started = raw_started or now_utc
+            duration = max(0.1, (now_utc - started).total_seconds() / 60)
             await db.maintenance_history.update_one(
                 {"_id": s["_id"]},
-                {"$set": {"status": "completed", "ended_at": now_utc, "duration_minutes": duration}}
+                {"$set": {"status": "completed", "ended_at": now_utc, "duration_minutes": round(duration, 1)}}
             )
 
     await log_action("dino_dev", f"Game Maintenance: {status_str}", user=user["username"])
