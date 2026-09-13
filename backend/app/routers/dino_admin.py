@@ -152,12 +152,57 @@ class DinoGiftRequest(BaseModel):
 class DinoBanRequest(BaseModel):
     reason: str
 
+class DinoRemoveItemRequest(BaseModel):
+    category: str  # "dino", "inventory", "equipped"
+    name: str      # name or ID
+    quantity: Optional[int] = 1
+
+class DinoUpdateProfileRequest(BaseModel):
+    player_dna: Optional[str] = None
+    player_gems: Optional[str] = None
+    rebirth_level: Optional[str] = None
+    equipped_dinos: Optional[str] = None
+    owned_dinos: Optional[str] = None
+    inventory_items: Optional[str] = None
+
 class DinoMaintenanceRequest(BaseModel):
     action: Optional[str] = None  # "cancel", "immediate", "schedule"
     is_maintenance: Optional[bool] = None
     maintenance_message: Optional[str] = "Nos serveurs sont actuellement en cours de maintenance. Toutes nos excuses pour la gêne occasionnée."
     scheduled_maintenance_utc: Optional[str] = "none"
     delay_minutes: Optional[float] = None
+
+
+def _parse_item_list(raw_str: str) -> List[Dict[str, Any]]:
+    if not raw_str or raw_str.strip().lower() in ("none", "empty bag", "empty"):
+        return []
+    items = []
+    parts = [p.strip() for p in raw_str.split(",") if p.strip()]
+    for part in parts:
+        if " x" in part:
+            name, count_str = part.rsplit(" x", 1)
+            try:
+                count = max(1, int(count_str.strip()))
+            except ValueError:
+                count = 1
+            items.append({"name": name.strip(), "count": count})
+        else:
+            items.append({"name": part.strip(), "count": 1})
+    return items
+
+
+def _serialize_item_list(items: List[Dict[str, Any]], empty_val: str = "") -> str:
+    if not items:
+        return empty_val
+    parts = []
+    for it in items:
+        name = it.get("name", "").strip()
+        count = it.get("count", 1)
+        if count > 1:
+            parts.append(f"{name} x{count}")
+        elif count == 1:
+            parts.append(name)
+    return ", ".join(parts) if parts else empty_val
 
 
 # ====================================================================
@@ -229,6 +274,23 @@ async def get_player_profile(playfab_id: str, user=Depends(require_super_admin))
     # Parse player state
     is_banned = parsed_data.get("is_banned", "").lower() in ("true", "1")
     ban_reason = parsed_data.get("ban_reason", "")
+
+    # Also check native PlayFab bans if available
+    try:
+        bans_res = await call_playfab(
+            "Server/GetUserBans",
+            {"PlayFabId": clean_id},
+            secret_key,
+            title_id
+        )
+        ban_data = bans_res.get("data", {}).get("BanData", [])
+        active_bans = [b for b in ban_data if b.get("Active")]
+        if active_bans:
+            is_banned = True
+            if not ban_reason:
+                ban_reason = active_bans[0].get("Reason") or "PlayFab account suspension"
+    except Exception:
+        pass
 
     # Pending gift flags
     has_pending_gift = any([
@@ -366,18 +428,230 @@ async def unban_player(playfab_id: str, user=Depends(require_super_admin)):
     title_id, secret_key = await get_playfab_credentials()
     clean_id = playfab_id.strip()
 
+    # 1. Update UserData: set is_banned to "false" and remove ban_reason
     await call_playfab(
         "Server/UpdateUserData",
         {
             "PlayFabId": clean_id,
-            "KeysToRemove": ["is_banned", "ban_reason"],
+            "Data": {
+                "is_banned": "false",
+                "ban_reason": "",
+            },
+            "KeysToRemove": ["ban_reason"],
+            "Permission": "Public"
         },
         secret_key,
         title_id
     )
 
+    # 2. Also revoke native PlayFab bans if any exist
+    try:
+        await call_playfab(
+            "Server/RevokeAllBansForUser",
+            {"PlayFabId": clean_id},
+            secret_key,
+            title_id
+        )
+    except Exception:
+        pass
+
     await log_action("dino_dev", f"Player {clean_id} UNBANNED", user=user["username"])
     return {"success": True, "message": f"Player {clean_id} has been unbanned successfully."}
+
+
+@router.post("/admin/dino/player/{playfab_id}/reset")
+async def reset_player_account(playfab_id: str, user=Depends(require_super_admin)):
+    title_id, secret_key = await get_playfab_credentials()
+    clean_id = playfab_id.strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="PlayFab ID is required")
+
+    reset_data = {
+        "player_dna": "0",
+        "player_gems": "0",
+        "rebirth_level": "1",
+        "total_dinos": "0",
+        "equipped_dinos": "None",
+        "owned_dinos": "None",
+        "inventory_items": "Empty bag",
+        "last_sync": f"Account reset by admin on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+    }
+
+    keys_to_remove = [
+        "gift_dino", "gift_dinos", "gift_gems", "gift_dna",
+        "gift_items", "gift_eggs", "gift_chests", "gift_message"
+    ]
+
+    await call_playfab(
+        "Server/UpdateUserData",
+        {
+            "PlayFabId": clean_id,
+            "Data": reset_data,
+            "KeysToRemove": keys_to_remove,
+            "Permission": "Public"
+        },
+        secret_key,
+        title_id
+    )
+
+    await log_action("dino_dev", f"Player {clean_id} ACCOUNT RESET", user=user["username"])
+    return {
+        "success": True,
+        "message": f"Player {clean_id} account has been completely reset to zero.",
+        "reset_data": reset_data,
+    }
+
+
+@router.post("/admin/dino/player/{playfab_id}/remove-item")
+async def remove_player_item(playfab_id: str, req: DinoRemoveItemRequest, user=Depends(require_super_admin)):
+    title_id, secret_key = await get_playfab_credentials()
+    clean_id = playfab_id.strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="PlayFab ID is required")
+
+    cat = req.category.lower().strip()
+    target_name = req.name.strip()
+    qty_to_remove = req.quantity if req.quantity is not None else 1
+
+    # Fetch current UserData
+    res = await call_playfab(
+        "Server/GetUserData",
+        {"PlayFabId": clean_id},
+        secret_key,
+        title_id
+    )
+    data_block = res.get("data", {}).get("Data", {})
+    raw_data = {k: v.get("Value", "") for k, v in data_block.items()}
+
+    updates: Dict[str, str] = {}
+
+    if cat == "dino":
+        owned_dinos_str = raw_data.get("owned_dinos", "")
+        parsed = _parse_item_list(owned_dinos_str)
+        found = False
+        remaining_count = 0
+        new_list = []
+        for it in parsed:
+            if it["name"].lower() == target_name.lower():
+                found = True
+                if qty_to_remove == -1 or it["count"] <= qty_to_remove:
+                    remaining_count = 0
+                else:
+                    it["count"] -= qty_to_remove
+                    remaining_count = it["count"]
+                    new_list.append(it)
+            else:
+                new_list.append(it)
+
+        if not found:
+            raise HTTPException(status_code=404, detail=f"Dino '{target_name}' not found in player's collection")
+
+        new_owned_str = _serialize_item_list(new_list, empty_val="None")
+        updates["owned_dinos"] = new_owned_str
+        total_dinos = sum(it["count"] for it in new_list)
+        updates["total_dinos"] = str(total_dinos)
+
+        # If dino removed completely, unequip if equipped
+        if remaining_count == 0:
+            equipped_str = raw_data.get("equipped_dinos", "")
+            eq_parts = [p.strip() for p in equipped_str.split(",") if p.strip() and p.strip().lower() != "none"]
+            new_eq = [p for p in eq_parts if p.lower() != target_name.lower()]
+            updates["equipped_dinos"] = ", ".join(new_eq) if new_eq else "None"
+
+    elif cat == "inventory":
+        inv_str = raw_data.get("inventory_items", "")
+        parsed = _parse_item_list(inv_str)
+        found = False
+        new_list = []
+        for it in parsed:
+            if it["name"].lower() == target_name.lower():
+                found = True
+                if qty_to_remove == -1 or it["count"] <= qty_to_remove:
+                    pass  # removed completely
+                else:
+                    it["count"] -= qty_to_remove
+                    new_list.append(it)
+            else:
+                new_list.append(it)
+
+        if not found:
+            raise HTTPException(status_code=404, detail=f"Item '{target_name}' not found in player's inventory")
+
+        new_inv_str = _serialize_item_list(new_list, empty_val="Empty bag")
+        updates["inventory_items"] = new_inv_str
+
+    elif cat == "equipped":
+        equipped_str = raw_data.get("equipped_dinos", "")
+        eq_parts = [p.strip() for p in equipped_str.split(",") if p.strip() and p.strip().lower() != "none"]
+        new_eq = [p for p in eq_parts if p.lower() != target_name.lower()]
+        updates["equipped_dinos"] = ", ".join(new_eq) if new_eq else "None"
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid category '{cat}'. Must be 'dino', 'inventory', or 'equipped'.")
+
+    # Update in PlayFab
+    await call_playfab(
+        "Server/UpdateUserData",
+        {
+            "PlayFabId": clean_id,
+            "Data": updates,
+            "Permission": "Public"
+        },
+        secret_key,
+        title_id
+    )
+
+    log_desc = f"Removed {qty_to_remove}x {target_name} ({cat}) from player {clean_id}"
+    await log_action("dino_dev", log_desc, user=user["username"])
+
+    return {
+        "success": True,
+        "message": f"Successfully removed {target_name} from player.",
+        "updates": updates
+    }
+
+
+@router.post("/admin/dino/player/{playfab_id}/update-profile")
+async def update_player_profile(playfab_id: str, req: DinoUpdateProfileRequest, user=Depends(require_super_admin)):
+    title_id, secret_key = await get_playfab_credentials()
+    clean_id = playfab_id.strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="PlayFab ID is required")
+
+    updates = {}
+    if req.player_dna is not None:
+        updates["player_dna"] = str(req.player_dna).strip()
+    if req.player_gems is not None:
+        updates["player_gems"] = str(req.player_gems).strip()
+    if req.rebirth_level is not None:
+        updates["rebirth_level"] = str(req.rebirth_level).strip()
+    if req.equipped_dinos is not None:
+        updates["equipped_dinos"] = str(req.equipped_dinos).strip()
+    if req.owned_dinos is not None:
+        updates["owned_dinos"] = str(req.owned_dinos).strip()
+    if req.inventory_items is not None:
+        updates["inventory_items"] = str(req.inventory_items).strip()
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    await call_playfab(
+        "Server/UpdateUserData",
+        {
+            "PlayFabId": clean_id,
+            "Data": updates,
+            "Permission": "Public"
+        },
+        secret_key,
+        title_id
+    )
+
+    await log_action("dino_dev", f"Updated profile stats for player {clean_id} ({list(updates.keys())})", user=user["username"])
+    return {
+        "success": True,
+        "message": f"Player {clean_id} profile updated successfully.",
+        "updates": updates
+    }
 
 
 @router.get("/admin/dino/maintenance")
