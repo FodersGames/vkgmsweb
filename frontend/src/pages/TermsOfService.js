@@ -10,86 +10,93 @@ const SECTIONS = [
     title: 'Acceptance of Terms',
     content: (
       <p>
-        By accessing or using the Vakar Games website (<strong className="text-[#1D1D1F]">vakargames.com</strong>) or any of our games, you agree to be bound by these Terms of Service. If you do not agree, please stop using our services.
+        By accessing or using the Vakar Games website (<strong className="text-[#1D1D1F] dark:text-white">vakargames.com</strong>) or any video games, applications, or online services operated by Vakar Games, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you must discontinue your use of our website and services immediately.
       </p>
     ),
   },
   {
     id: 'services',
     num: '02',
-    title: 'Our Services',
+    title: 'Studio Services & Game Catalogue',
     content: (
       <p>
-        Vakar Games provides a public website to showcase our game catalogue, a development blog, an online shop for games and in-game items, and backend tools that support in-game features such as real-time global chat. Our games are primarily distributed through platforms such as TurboWarp and PC releases.
+        Vakar Games is an independent video game studio based in France. Our website provides a showcase of our current and upcoming video games, development updates, blog articles, studio recruitment opportunities, community surveys, and direct player support. Our games are distributed through authorized third-party platforms including Steam, the Google Play Store, the Apple App Store, and verified PC or web versions.
       </p>
     ),
   },
   {
-    id: 'accounts',
+    id: 'distribution',
     num: '03',
-    title: 'Accounts & Purchases',
-    content: (
-      <p>
-        Some features require a free account. You are responsible for keeping your credentials secure. Purchases are processed by Stripe; in-game items are delivered to the player ID you provide at checkout. Except where required by law, purchases of digital items are final and non-refundable once delivered.
-      </p>
-    ),
-  },
-  {
-    id: 'chat',
-    num: '04',
-    title: 'Chat System',
+    title: 'External Distribution & Purchases',
     content: (
       <>
-        <p className="mb-3">Some of our games include a real-time in-game chat. By using the chat system, you agree to the following:</p>
-        <ul className="space-y-2">
+        <p className="mb-3">
+          Vakar Games does not directly sell video games or process payment transactions on this website. All game purchases, license acquisitions, and software downloads are processed through authorized digital distribution storefronts:
+        </p>
+        <ul className="space-y-2 mb-3">
           {[
-            'Use an appropriate, non-offensive username',
-            'Not post hateful, discriminatory, threatening, or sexually explicit content',
-            'Understand that messages are visible to all players of the same game in real time',
-            'Accept that messages may be moderated or removed without prior notice',
-            'Acknowledge that banned words are automatically filtered and replaced with asterisks',
+            'Valve Corporation (Steam) for desktop titles',
+            'Google LLC (Google Play Store) for Android releases',
+            'Apple Inc. (App Store) for iOS and macOS releases',
+            'Official verified publisher partners and web portals',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-[#6E6E73]">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-[#6E6E73] dark:text-[#a1a1aa]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600] mt-2 shrink-0" />
               <span>{item}</span>
             </li>
           ))}
         </ul>
+        <p>
+          Any financial transaction, billing inquiry, refund request, or software licensing is governed exclusively by the terms, refund policies, and user agreements of the applicable third-party platform through which the game was obtained.
+        </p>
       </>
+    ),
+  },
+  {
+    id: 'accounts',
+    num: '04',
+    title: 'User Accounts & Security',
+    content: (
+      <p>
+        Certain features of our website (such as submitting support tickets, participating in community feedback surveys, or personalizing your profile) allow or require creating a user account. You are solely responsible for maintaining the confidentiality of your credentials and for all activities that occur under your account. You agree to notify Vakar Games immediately of any unauthorized access or security breach regarding your account.
+      </p>
     ),
   },
   {
     id: 'conduct',
     num: '05',
-    title: 'Prohibited Conduct',
+    title: 'Acceptable Use & Conduct',
     content: (
       <>
-        <p className="mb-3">When using any Vakar Games service, you agree not to:</p>
+        <p className="mb-3">When accessing our website, community tools, or customer support, you agree not to:</p>
         <ul className="space-y-2">
           {[
-            'Harass, threaten, or intimidate other players',
-            'Impersonate Vakar Games staff or other players',
-            'Spam, advertise third-party services, or distribute malicious links',
-            'Attempt to circumvent rate limits, security measures, or API protections',
-            'Reverse-engineer, scrape, or systematically copy our backend services or content',
-            'Use our services for any unlawful purpose',
+            'Impersonate any person, entity, or Vakar Games studio team member',
+            'Submit fraudulent, abusive, threatening, defamatory, or harassing messages via our support or feedback forms',
+            'Attempt to circumvent security measures, API authentication, rate limits, or access controls',
+            'Use automated bots, scrapers, crawlers, or extraction scripts to harvest data or disrupt our systems',
+            'Distribute malware, viruses, trojans, or malicious links through any of our services',
+            'Engage in any activity that interferes with or disrupts the integrity of our backend infrastructure',
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-[#6E6E73]">
+            <li key={i} className="flex items-start gap-2.5 text-sm text-[#6E6E73] dark:text-[#a1a1aa]">
               <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-2 shrink-0" />
               <span>{item}</span>
             </li>
           ))}
         </ul>
+        <p className="mt-3 text-xs text-[#86868B] dark:text-[#71717a]">
+          Vakar Games reserves the right to suspend or terminate accounts that violate these conduct principles without prior notice.
+        </p>
       </>
     ),
   },
   {
     id: 'ip',
     num: '06',
-    title: 'Intellectual Property',
+    title: 'Intellectual Property Rights',
     content: (
       <p>
-        All content on this website and in our games (including but not limited to artwork, source code, music, logos, and written content) is the property of Vakar Games and is protected by applicable copyright and intellectual property laws. You may not copy, redistribute, modify, or use our content without explicit written permission from Vakar Games.
+        All original content featured on this website and in our video games (including, without limitation, visual artwork, character designs, logos, trademarks, animations, source code, game mechanics, audio, music compositions, written lore, and studio branding) is the exclusive property of Vakar Games and is protected by French, European, and international intellectual property and copyright laws. You may not copy, reproduce, modify, redistribute, reverse-engineer, or create derivative works from our intellectual property without prior written authorization from Vakar Games.
       </p>
     ),
   },
@@ -99,7 +106,7 @@ const SECTIONS = [
     title: 'Disclaimer of Warranties',
     content: (
       <p>
-        Our website and games are provided <strong className="text-[#1D1D1F]">"as is"</strong> and <strong className="text-[#1D1D1F]">"as available"</strong> without warranties of any kind. We do not guarantee uninterrupted access, freedom from errors, or that our services will meet your specific expectations. We reserve the right to modify, suspend, or discontinue any service at any time without notice.
+        Our website, community tools, and game services are provided on an <strong className="text-[#1D1D1F] dark:text-white">"as is"</strong> and <strong className="text-[#1D1D1F] dark:text-white">"as available"</strong> basis, without warranties or representations of any kind, whether express, implied, or statutory. Vakar Games makes no guarantee that our services will operate continuously, error-free, or entirely secure from unauthorized interruptions.
       </p>
     ),
   },
@@ -109,37 +116,37 @@ const SECTIONS = [
     title: 'Limitation of Liability',
     content: (
       <p>
-        To the fullest extent permitted by applicable law, Vakar Games shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of, or inability to use, our services, even if we have been advised of the possibility of such damages.
+        To the fullest extent permissible under applicable French and European law, Vakar Games and its directors, employees, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data loss, or service interruption arising out of or related to your access to or inability to use our services.
       </p>
     ),
   },
   {
     id: 'changes',
     num: '09',
-    title: 'Changes to These Terms',
+    title: 'Modifications to These Terms',
     content: (
       <p>
-        We may revise these Terms of Service at any time. When we do, we will update the date at the top of this page. Continued use of our services after any changes constitutes your acceptance of the updated terms.
+        We reserve the right to revise or update these Terms of Service at any time to reflect operational, legal, or technical changes. Any revisions will take effect immediately upon posting on this page, indicated by the "Last updated" date. Your continued use of our website and services following any revisions constitutes your acceptance of the updated terms.
       </p>
     ),
   },
   {
     id: 'law',
     num: '10',
-    title: 'Governing Law',
+    title: 'Governing Law & Jurisdiction',
     content: (
       <p>
-        These Terms of Service are governed by and construed in accordance with the laws of <strong className="text-[#1D1D1F]">France</strong>. Any dispute arising out of or related to these terms shall be subject to the exclusive jurisdiction of the courts of France.
+        These Terms of Service shall be governed by and construed in accordance with the laws of <strong className="text-[#1D1D1F] dark:text-white">France</strong> and the regulations of the European Union. In the event of any controversy or dispute arising out of or relating to these terms, the competent courts of France shall have exclusive jurisdiction.
       </p>
     ),
   },
   {
     id: 'contact',
     num: '11',
-    title: 'Contact',
+    title: 'Contact & Inquiries',
     content: (
       <>
-        <p className="mb-2">If you have questions about these Terms of Service, please reach out to our team:</p>
+        <p className="mb-2">If you have any questions or require legal clarification regarding these Terms of Service, please contact our team:</p>
         <a
           href="mailto:support@vakargames.com"
           className="inline-flex items-center gap-1.5 text-[#FF6600] hover:underline font-medium text-sm"
@@ -168,28 +175,31 @@ const TermsOfService = () => {
   };
 
   return (
-    <div className="bg-white text-[#1D1D1F] min-h-screen flex flex-col">
+    <div className="bg-white dark:bg-[#0c0c12] text-[#1D1D1F] dark:text-[#e4e4e7] min-h-screen flex flex-col transition-colors">
       <PublicNav />
 
       {/* Hero Header */}
-      <section className="pt-28 pb-12 border-b border-[#E5E5EA]">
+      <section className="pt-28 pb-12 border-b border-[#E5E5EA] dark:border-[#20202e] bg-[#FAFAFA] dark:bg-[#0e0e16]">
         <div className="max-w-[1120px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              <p className="text-[13px] font-medium text-[#FF6600] mb-2">Legal</p>
-              <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
+              <p className="text-[13px] font-medium text-[#FF6600] mb-2">Legal & Governance</p>
+              <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F] dark:text-white">
                 Terms of Service
               </h1>
-              <p className="mt-3 text-base md:text-lg text-[#6E6E73] max-w-xl">
-                Please review the terms and conditions governing your access to and use of Vakar Games services.
+              <p className="mt-3 text-base md:text-lg text-[#6E6E73] dark:text-[#a1a1aa] max-w-xl">
+                Please review the terms and conditions governing your access to and use of Vakar Games services and titles.
+              </p>
+              <p className="text-xs text-[#86868B] dark:text-[#71717a] mt-2">
+                Last updated: September 2026
               </p>
             </div>
 
-            <div className="px-5 py-3.5 flex items-center gap-3 shrink-0 self-start lg:self-auto bg-[#F5F5F7] rounded-xl border border-[#E5E5EA]">
+            <div className="px-5 py-3.5 flex items-center gap-3 shrink-0 self-start lg:self-auto bg-white dark:bg-[#151520] rounded-2xl border border-[#E5E5EA] dark:border-[#2a2a3c] shadow-xs">
               <Scales size={22} className="text-[#FF6600]" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Jurisdiction</p>
-                <p className="text-[11px] text-[#86868B]">France · European Union</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F] dark:text-white">Jurisdiction</p>
+                <p className="text-[11px] text-[#86868B] dark:text-[#71717a]">France · European Union</p>
               </div>
             </div>
           </div>
@@ -202,10 +212,10 @@ const TermsOfService = () => {
 
           {/* Sticky Table of Contents sidebar */}
           <aside className="lg:col-span-4 hidden lg:block">
-            <div className="sticky top-24 p-5 bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA]">
-              <div className="flex items-center gap-2 pb-3 mb-3 border-b border-[#E5E5EA]">
+            <div className="sticky top-24 p-5 bg-[#F5F5F7] dark:bg-[#13131c] rounded-2xl border border-[#E5E5EA] dark:border-[#252536]">
+              <div className="flex items-center gap-2 pb-3 mb-3 border-b border-[#E5E5EA] dark:border-[#252536]">
                 <BookOpen size={16} className="text-[#FF6600]" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Table of Contents</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F] dark:text-white">Table of Contents</span>
               </div>
               <nav className="space-y-1">
                 {SECTIONS.map((s) => {
@@ -214,13 +224,13 @@ const TermsOfService = () => {
                     <button
                       key={s.id}
                       onClick={() => scrollTo(s.id)}
-                      className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors flex items-center gap-2 ${
+                      className={`w-full text-left px-3 py-1.5 text-xs rounded-xl transition-colors flex items-center gap-2 ${
                         isActive
-                          ? 'bg-white text-[#FF6600] font-semibold shadow-xs'
-                          : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                          ? 'bg-white dark:bg-[#1c1c2b] text-[#FF6600] font-semibold shadow-xs'
+                          : 'text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white'
                       }`}
                     >
-                      <span className="text-[#86868B] text-[10px]">{s.num}.</span>
+                      <span className="text-[#86868B] dark:text-[#71717a] text-[10px] font-mono">{s.num}.</span>
                       <span className="truncate">{s.title}</span>
                     </button>
                   );
@@ -235,35 +245,35 @@ const TermsOfService = () => {
               <article
                 key={s.id}
                 id={s.id}
-                className="scroll-mt-28 p-7 sm:p-8 bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] transition-all hover:border-[#D2D2D7]"
+                className="scroll-mt-28 p-7 sm:p-8 bg-[#F5F5F7] dark:bg-[#13131c] rounded-2xl border border-[#E5E5EA] dark:border-[#252536] transition-all hover:border-[#D2D2D7] dark:hover:border-[#35354a]"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-white text-[#FF6600] rounded-md border border-[#E5E5EA]">
+                  <span className="text-[11px] font-semibold px-2.5 py-0.5 bg-white dark:bg-[#1d1d2b] text-[#FF6600] rounded-lg border border-[#E5E5EA] dark:border-[#2a2a3c]">
                     {s.num}
                   </span>
-                  <h2 className="font-semibold text-lg text-[#1D1D1F]">
+                  <h2 className="font-semibold text-lg text-[#1D1D1F] dark:text-white">
                     {s.title}
                   </h2>
                 </div>
-                <div className="text-sm text-[#6E6E73] leading-relaxed mt-3">
+                <div className="text-sm text-[#6E6E73] dark:text-[#a1a1aa] leading-relaxed mt-3">
                   {s.content}
                 </div>
               </article>
             ))}
 
-            {/* Quick links to Privacy Policy */}
-            <div className="p-6 bg-white rounded-2xl border border-[#E5E5EA] flex items-center justify-between gap-4 flex-wrap shadow-xs">
+            {/* Quick link to Privacy Policy */}
+            <div className="p-6 bg-white dark:bg-[#151520] rounded-2xl border border-[#E5E5EA] dark:border-[#252536] flex items-center justify-between gap-4 flex-wrap shadow-xs">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#FF6600]">PRIVACY</p>
-                <p className="text-sm font-semibold text-[#1D1D1F] mt-0.5">Looking for our Privacy Policy?</p>
-                <p className="text-xs text-[#86868B] mt-0.5">Learn how we process, store, and protect your data.</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#FF6600]">DATA PRIVACY</p>
+                <p className="text-sm font-semibold text-[#1D1D1F] dark:text-white mt-0.5">Looking for our Privacy Policy?</p>
+                <p className="text-xs text-[#86868B] dark:text-[#71717a] mt-0.5">Learn how we process, store, and safeguard your personal information under GDPR.</p>
               </div>
               <a
                 href="/privacy"
-                className="btn-apple text-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#FF6600] text-white hover:bg-[#E05A00] transition-colors"
               >
-                <span>Read Policy</span>
-                <ArrowUpRight size={14} className="ml-1" />
+                <span>Read Privacy Policy</span>
+                <ArrowUpRight size={14} />
               </a>
             </div>
           </div>
