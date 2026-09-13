@@ -32,6 +32,7 @@ import { useTheme } from '../context/ThemeContext';
  */
 export const ConfirmDialog = ({
   isOpen,
+  open,
   onClose,
   onConfirm,
   title,
@@ -43,9 +44,10 @@ export const ConfirmDialog = ({
 }) => {
   const confirmBtnRef = useRef(null);
   const { isDark } = useTheme();
+  const isVisible = Boolean(isOpen ?? open);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isVisible) return;
     const handleKey = (e) => {
       if (e.key === 'Escape' && !loading) onClose();
     };
@@ -55,9 +57,9 @@ export const ConfirmDialog = ({
       document.removeEventListener('keydown', handleKey);
       clearTimeout(t);
     };
-  }, [isOpen, loading, onClose]);
+  }, [isVisible, loading, onClose]);
 
-  if (!isOpen) return null;
+  if (!isVisible) return null;
 
   return createPortal(
     // Portaled straight to <body>, outside the Dashboard's own `dark`-scoped

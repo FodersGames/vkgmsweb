@@ -264,6 +264,7 @@ async def get_survey_detail_admin(slug_or_id: str, user=Depends(require_any_of("
                     submitted = r.get("submitted_at")
                     submitted_str = submitted.isoformat() if isinstance(submitted, datetime) else str(submitted)
                     text_feedbacks.append({
+                        "id": str(r["_id"]),
                         "text": str(val).strip(),
                         "submitted_at": submitted_str,
                         "username": r.get("username", "Anonymous"),
@@ -352,9 +353,98 @@ async def delete_survey_admin(slug_or_id: str, user=Depends(require_any_of("mana
 @router.get("/admin/surveys/{slug_or_id}/responses")
 async def list_survey_responses_admin(slug_or_id: str, user=Depends(require_any_of("manage_surveys", "manage_website"))):
     survey = await _get_survey_by_id_or_slug(slug_or_id)
-    responses = await db.survey_responses.find({"survey_id": str(survey["_id"])}).sort("submitted_at", -1).to_list(1000)
+    survey_id_str = str(survey["_id"])
+    responses = await db.survey_responses.find({
+        "survey_id": {"$in": [survey_id_str, survey["_id"]]}
+    }).sort("submitted_at", -1).to_list(1000)
     return {
         "survey": serialize_doc(survey),
         "responses": [serialize_doc(r) for r in responses],
     }
+
+
+@router.delete("/admin/surveys/{slug_or_id}/responses/{response_id}")
+async def delete_survey_response_admin(
+    slug_or_id: str,
+    response_id: str,
+    user=Depends(require_any_of("manage_surveys", "manage_website"))
+):
+    survey = await _get_survey_by_id_or_slug(slug_or_id)
+    survey_id_str = str(survey["_id"])
+
+    resp_query = {
+        "survey_id": {"$in": [survey_id_str, survey["_id"]]},
+    }
+    if ObjectId.is_valid(response_id):
+        resp_query["$or"] = [{"_id": ObjectId(response_id)}, {"_id": response_id}]
+    else:
+        resp_query["_id"] = response_id
+
+    response_doc = await db.survey_responses.find_one(resp_query)
+    if not response_doc:
+        raise HTTPException(status_code=404, detail="Survey response not found")
+
+    await db.survey_responses.delete_one({"_id": response_doc["_id"]})
+
+    # Recalculate remaining responses count
+    remaining_count = await db.survey_responses.count_documents({
+        "survey_id": {"$in": [survey_id_str, survey["_id"]]}
+    })
+    await db.surveys.update_one(
+        {"_id": survey["_id"]},
+        {
+            "$set": {
+                "responses_count": remaining_count,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        }
+    )
+
+    await log_action(
+        "surveys",
+        f"Deleted response {response_id} from survey '{survey.get('title')}'",
+        user=user["username"]
+    )
+
+    return {
+        "success": True,
+        "message": "Survey response deleted successfully",
+        "remaining_count": remaining_count,
+    }
+
+
+@router.delete("/admin/surveys/{slug_or_id}/responses")
+async def delete_all_survey_responses_admin(
+    slug_or_id: str,
+    user=Depends(require_any_of("manage_surveys", "manage_website"))
+):
+    survey = await _get_survey_by_id_or_slug(slug_or_id)
+    survey_id_str = str(survey["_id"])
+
+    res = await db.survey_responses.delete_many({
+        "survey_id": {"$in": [survey_id_str, survey["_id"]]}
+    })
+
+    await db.surveys.update_one(
+        {"_id": survey["_id"]},
+        {
+            "$set": {
+                "responses_count": 0,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        }
+    )
+
+    await log_action(
+        "surveys",
+        f"Deleted all {res.deleted_count} response(s) from survey '{survey.get('title')}'",
+        user=user["username"]
+    )
+
+    return {
+        "success": True,
+        "message": f"Successfully deleted {res.deleted_count} response(s)",
+        "deleted_count": res.deleted_count,
+    }
+
 

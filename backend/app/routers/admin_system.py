@@ -783,15 +783,31 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
 
     # ── Surveys ──────────────────────────────────────────────────────────────
     if verb == "survey" and len(tokens) >= 2 and tokens[1].lower() == "list":
-        surveys = await db.surveys.find({}).sort("createdAt", -1).to_list(30)
+        surveys = await db.surveys.find({}).sort("created_at", -1).to_list(30)
         if not surveys:
             return ["No surveys found."], False, False
         lines = [f"{len(surveys)} survey(s):"]
         for s in surveys:
-            status = "active" if s.get("is_active", True) else "closed"
-            resp_count = await db.survey_responses.count_documents({"survey_id": s["_id"]})
+            status = s.get("status", "active")
+            s_id = str(s["_id"])
+            resp_count = await db.survey_responses.count_documents({"survey_id": {"$in": [s_id, s["_id"]]}})
             lines.append(f"  {s.get('slug', '?'):<25} [{status:<6}] {resp_count} responses - {s.get('title', '')}")
         return lines, False, False
+
+    if verb == "survey" and len(tokens) >= 3 and tokens[1].lower() == "clear":
+        slug = tokens[2].strip()
+        survey = await db.surveys.find_one({"$or": [{"slug": slug}, {"title": slug}]})
+        if not survey and ObjectId.is_valid(slug):
+            survey = await db.surveys.find_one({"_id": ObjectId(slug)})
+        if not survey:
+            raise _CliError(f"Survey '{slug}' not found.")
+        if not confirm:
+            return [f"CONFIRM : clear all responses for survey '{survey.get('title')}'? Re-run with --confirm to execute."], True, False
+        s_id = str(survey["_id"])
+        res = await db.survey_responses.delete_many({"survey_id": {"$in": [s_id, survey["_id"]]}})
+        await db.surveys.update_one({"_id": survey["_id"]}, {"$set": {"responses_count": 0, "updated_at": datetime.now(timezone.utc)}})
+        await log_action("surveys", f"[CLI] Cleared {res.deleted_count} response(s) from survey '{survey.get('title')}'", user=admin["username"])
+        return [f"OK : cleared {res.deleted_count} response(s) for survey '{survey.get('title')}'."], False, True
 
     # ── Dino Idle Tycoon ──────────────────────────────────────────────────────
     if verb == "dino" and len(tokens) >= 2:
