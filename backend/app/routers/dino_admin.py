@@ -76,18 +76,15 @@ CATALOG_ITEMS = [
 
 
 DEFAULT_TITLE_ID = "1C8E49"
-DEFAULT_SECRET_KEY = "SZKQXSKYW1H9Y3TQKT6DWJY5TRFF3NFAUXD1OX8SJYIF9XGFMA"
 
 async def get_playfab_credentials():
     title_id = os.environ.get("PLAYFAB_TITLE_ID") or DEFAULT_TITLE_ID
-    secret_key = os.environ.get("PLAYFAB_SECRET_KEY")
+    secret_key = os.environ.get("PLAYFAB_SECRET_KEY", "")
 
     if not secret_key:
         doc = await db.settings.find_one({"key": "playfab_secret_key"})
         if doc and doc.get("value"):
             secret_key = doc["value"]
-        else:
-            secret_key = DEFAULT_SECRET_KEY
 
     doc_tid = await db.settings.find_one({"key": "playfab_title_id"})
     if doc_tid and doc_tid.get("value"):
@@ -231,6 +228,10 @@ class DinoMaintenanceRequest(BaseModel):
     scheduled_maintenance_utc: Optional[str] = "none"
     delay_minutes: Optional[float] = None
 
+class DinoRawKeyUpdateRequest(BaseModel):
+    key: str
+    value: Optional[str] = None
+
 
 def _parse_item_list(raw_str: str) -> List[Dict[str, Any]]:
     if not raw_str or raw_str.strip().lower() in ("none", "empty bag", "empty"):
@@ -317,7 +318,7 @@ async def get_player_profile(playfab_id: str, user=Depends(require_super_admin))
     if not clean_id:
         raise HTTPException(status_code=400, detail="PlayFab ID is required")
 
-    # Fetch UserData from Server API
+    # 1. Fetch UserData from Server API
     res = await call_playfab(
         "Server/GetUserData",
         {"PlayFabId": clean_id},
@@ -326,13 +327,48 @@ async def get_player_profile(playfab_id: str, user=Depends(require_super_admin))
     )
 
     data_block = res.get("data", {}).get("Data", {})
-    parsed_data = {}
-    for k, v in data_block.items():
-        parsed_data[k] = v.get("Value", "")
+    parsed_data = {k: v.get("Value", "") for k, v in data_block.items()}
+
+    # 2. Also fetch UserReadOnlyData (some Roblox games save in ReadOnlyData)
+    readonly_data = {}
+    try:
+        res_ro = await call_playfab(
+            "Server/GetUserReadOnlyData",
+            {"PlayFabId": clean_id},
+            secret_key,
+            title_id
+        )
+        ro_block = res_ro.get("data", {}).get("Data", {})
+        readonly_data = {k: v.get("Value", "") for k, v in ro_block.items()}
+    except Exception:
+        pass
+
+    # 3. Merge all keys found for full inspection
+    all_keys = {**parsed_data, **readonly_data}
+
+    # If game saves in a JSON blob key like SaveData, PlayerData, Data, Slot1, Stats
+    blob_save = None
+    for candidate_key in ["SaveData", "PlayerData", "Data", "GameData", "Stats", "Save", "Slot1"]:
+        val = all_keys.get(candidate_key)
+        if val and (val.startswith("{") or val.startswith("[")):
+            try:
+                blob_save = json.loads(val)
+                break
+            except Exception:
+                pass
+
+    # If standard individual keys aren't found directly, extract from blob if available
+    player_dna = parsed_data.get("player_dna") or (blob_save.get("dna") if isinstance(blob_save, dict) else None) or "0"
+    player_gems = parsed_data.get("player_gems") or (blob_save.get("gems") if isinstance(blob_save, dict) else None) or "0"
+    rebirth_level = parsed_data.get("rebirth_level") or (blob_save.get("rebirth") if isinstance(blob_save, dict) else None) or "1"
+    total_dinos = parsed_data.get("total_dinos") or (blob_save.get("total_dinos") if isinstance(blob_save, dict) else None) or "0"
+    equipped_dinos = parsed_data.get("equipped_dinos") or "None"
+    owned_dinos = parsed_data.get("owned_dinos") or ""
+    inventory_items = parsed_data.get("inventory_items") or ""
 
     # Parse player state
-    is_banned = parsed_data.get("is_banned", "").lower() in ("true", "1")
-    ban_reason = parsed_data.get("ban_reason", "")
+    is_banned = parsed_data.get("is_banned", "").lower() in ("true", "1") or readonly_data.get("is_banned", "").lower() in ("true", "1")
+    ban_reason = parsed_data.get("ban_reason", "") or readonly_data.get("ban_reason", "")
 
     # Also check native PlayFab bans if available
     try:
@@ -353,29 +389,31 @@ async def get_player_profile(playfab_id: str, user=Depends(require_super_admin))
 
     # Pending gift flags
     has_pending_gift = any([
-        parsed_data.get("gift_dino"),
-        parsed_data.get("gift_dinos"),
-        parsed_data.get("gift_gems"),
-        parsed_data.get("gift_dna"),
-        parsed_data.get("gift_items"),
-        parsed_data.get("gift_eggs"),
-        parsed_data.get("gift_chests"),
+        all_keys.get("gift_dino"),
+        all_keys.get("gift_dinos"),
+        all_keys.get("gift_gems"),
+        all_keys.get("gift_dna"),
+        all_keys.get("gift_items"),
+        all_keys.get("gift_eggs"),
+        all_keys.get("gift_chests"),
     ])
 
     return {
         "playfab_id": clean_id,
         "is_banned": is_banned,
         "ban_reason": ban_reason,
-        "player_dna": parsed_data.get("player_dna", "0"),
-        "player_gems": parsed_data.get("player_gems", "0"),
-        "rebirth_level": parsed_data.get("rebirth_level", "1"),
-        "total_dinos": parsed_data.get("total_dinos", "0"),
-        "equipped_dinos": parsed_data.get("equipped_dinos", "None"),
-        "owned_dinos": parsed_data.get("owned_dinos", ""),
-        "inventory_items": parsed_data.get("inventory_items", ""),
+        "player_dna": str(player_dna),
+        "player_gems": str(player_gems),
+        "rebirth_level": str(rebirth_level),
+        "total_dinos": str(total_dinos),
+        "equipped_dinos": equipped_dinos,
+        "owned_dinos": owned_dinos,
+        "inventory_items": inventory_items,
         "last_sync": parsed_data.get("last_sync", "Never"),
         "has_pending_gift": has_pending_gift,
         "raw_data": parsed_data,
+        "readonly_data": readonly_data,
+        "all_keys": all_keys,
     }
 
 
@@ -511,7 +549,20 @@ async def reset_player_account(playfab_id: str, user=Depends(require_super_admin
     if not clean_id:
         raise HTTPException(status_code=400, detail="PlayFab ID is required")
 
-    reset_data = {
+    # 1. Inspect existing keys on this player
+    res = await call_playfab(
+        "Server/GetUserData",
+        {"PlayFabId": clean_id},
+        secret_key,
+        title_id
+    )
+    current_data = res.get("data", {}).get("Data", {})
+    existing_keys = set(current_data.keys())
+
+    # 2. Prepare base reset data
+    now_ts = str(int(datetime.now(timezone.utc).timestamp()))
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+    reset_data: Dict[str, str] = {
         "player_dna": "0",
         "player_gems": "0",
         "rebirth_level": "1",
@@ -519,13 +570,29 @@ async def reset_player_account(playfab_id: str, user=Depends(require_super_admin
         "equipped_dinos": "None",
         "owned_dinos": "None",
         "inventory_items": "Empty bag",
-        "last_sync": f"Account reset by admin on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        "last_sync": f"Account reset by admin on {now_str}",
+        # Universal reset flags for Roblox scripts:
+        "force_account_reset": "true",
+        "reset_account": "true",
+        "account_reset": "true",
+        "account_reset_timestamp": now_ts,
     }
 
-    keys_to_remove = [
+    # 3. Known blob or custom save keys to wipe if present
+    blob_keys = [
+        "SaveData", "PlayerData", "Data", "GameData", "Stats", "Save", "Slot1",
+        "InventoryData", "Profile", "Currency", "Currencies", "Dinos", "Eggs", "Chests"
+    ]
+    for bk in blob_keys:
+        if bk in existing_keys:
+            reset_data[bk] = "{}"
+
+    # 4. Remove all pending gifts
+    gift_keys = [
         "gift_dino", "gift_dinos", "gift_gems", "gift_dna",
         "gift_items", "gift_eggs", "gift_chests", "gift_message"
     ]
+    keys_to_remove = [k for k in gift_keys if k in existing_keys]
 
     await update_playfab_user_data(
         clean_id,
@@ -535,12 +602,73 @@ async def reset_player_account(playfab_id: str, user=Depends(require_super_admin
         title_id
     )
 
-    await log_action("dino_dev", f"Player {clean_id} ACCOUNT RESET", user=user["username"])
+    # 5. Also wipe any matching keys in UserReadOnlyData if present
+    try:
+        res_ro = await call_playfab(
+            "Server/GetUserReadOnlyData",
+            {"PlayFabId": clean_id},
+            secret_key,
+            title_id
+        )
+        ro_keys = set(res_ro.get("data", {}).get("Data", {}).keys())
+        if ro_keys:
+            ro_updates = {}
+            for k in ["player_dna", "player_gems", "rebirth_level", "total_dinos"]:
+                if k in ro_keys:
+                    ro_updates[k] = "0" if k != "rebirth_level" else "1"
+            for bk in blob_keys:
+                if bk in ro_keys:
+                    ro_updates[bk] = "{}"
+            if ro_updates:
+                for i in range(0, len(ro_updates), 10):
+                    chunk = dict(list(ro_updates.items())[i:i + 10])
+                    await call_playfab(
+                        "Server/UpdateUserReadOnlyData",
+                        {"PlayFabId": clean_id, "Data": chunk, "Permission": "Public"},
+                        secret_key,
+                        title_id
+                    )
+    except Exception:
+        pass
+
+    await log_action("dino_dev", f"Player {clean_id} ACCOUNT RESET (Comprehensive)", user=user["username"])
     return {
         "success": True,
         "message": f"Player {clean_id} account has been completely reset to zero.",
         "reset_data": reset_data,
+        "cleared_keys": list(existing_keys),
     }
+
+
+@router.post("/admin/dino/player/{playfab_id}/raw-key")
+async def update_player_raw_key(playfab_id: str, req: DinoRawKeyUpdateRequest, user=Depends(require_super_admin)):
+    title_id, secret_key = await get_playfab_credentials()
+    clean_id = playfab_id.strip()
+    key = req.key.strip()
+    if not key:
+        raise HTTPException(status_code=400, detail="Key name is required")
+
+    if req.value is None or req.value == "":
+        await update_playfab_user_data(
+            clean_id,
+            None,
+            [key],
+            secret_key,
+            title_id
+        )
+        msg = f"Key '{key}' deleted from player {clean_id}"
+    else:
+        await update_playfab_user_data(
+            clean_id,
+            {key: req.value},
+            None,
+            secret_key,
+            title_id
+        )
+        msg = f"Key '{key}' updated for player {clean_id}"
+
+    await log_action("dino_dev", msg, user=user["username"])
+    return {"success": True, "message": msg}
 
 
 @router.post("/admin/dino/player/{playfab_id}/remove-item")

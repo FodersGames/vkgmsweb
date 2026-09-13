@@ -5,7 +5,8 @@ import {
   Gamepad2, Gift, ShieldAlert, Wrench, History, Search, Check, Copy,
   User, RefreshCw, Key, AlertTriangle, Sparkles, Gem, Dna, Lock, Unlock,
   Plus, Minus, Trash2, Send, ExternalLink, HelpCircle, Flame, Egg, Box,
-  Clock, Calendar, Power, Radio, CheckCircle2, XCircle, RotateCcw, Edit3, X
+  Clock, Calendar, Power, Radio, CheckCircle2, XCircle, RotateCcw, Edit3, X,
+  Code, Database
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -116,6 +117,10 @@ export const DinoDevPanel = () => {
   const [showEditStatsModal, setShowEditStatsModal] = useState(false);
   const [editStatsForm, setEditStatsForm] = useState({ dna: '', gems: '', rebirth: '' });
   const [savingStats, setSavingStats] = useState(false);
+  const [showRawDataModal, setShowRawDataModal] = useState(false);
+  const [newRawKey, setNewRawKey] = useState({ key: '', value: '' });
+  const [editingRawKey, setEditingRawKey] = useState(null);
+  const [updatingRawKey, setUpdatingRawKey] = useState(false);
   const [recentPlayers, setRecentPlayers] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('dino_recent_players') || '[]');
@@ -435,7 +440,7 @@ export const DinoDevPanel = () => {
       isOpen: true,
       open: true,
       title: 'Reset Player Account',
-      description: `Are you sure you want to completely RESET all progress for player "${inspectId}"? All DNA, Gems, Dinos, Rebirth level, and Items will be wiped to zero. This action cannot be undone.`,
+      description: `ATTENTION : Assurez-vous que le joueur est DÉCONNECTÉ de la session Roblox avant de confirmer. Si le joueur est actif dans le jeu, le serveur Roblox réenregistrera les données en mémoire vive au moment de quitter.\n\nConfirmer la remise à zéro intégrale de "${inspectId}" ?`,
       onConfirm: async () => {
         try {
           await axios.post(
@@ -448,6 +453,53 @@ export const DinoDevPanel = () => {
           handleInspectPlayer(null, inspectId.trim());
         } catch (err) {
           toast.error(err.response?.data?.detail || 'Failed to reset player account');
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleSaveRawKey = async (keyName, keyValue) => {
+    if (!keyName || !keyName.trim()) {
+      toast.error('Key name is required');
+      return;
+    }
+    setUpdatingRawKey(true);
+    try {
+      await axios.post(
+        `${API_URL}/api/admin/dino/player/${inspectId.trim()}/raw-key`,
+        { key: keyName.trim(), value: keyValue },
+        { headers: authHeaders }
+      );
+      toast.success(`Key "${keyName}" saved`);
+      setEditingRawKey(null);
+      setNewRawKey({ key: '', value: '' });
+      handleInspectPlayer(null, inspectId.trim());
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save key');
+    } finally {
+      setUpdatingRawKey(false);
+    }
+  };
+
+  const handleDeleteRawKey = (keyName) => {
+    setDialog({
+      isOpen: true,
+      open: true,
+      title: `Delete Key "${keyName}"`,
+      description: `Are you sure you want to permanently delete "${keyName}" from PlayFab UserData?`,
+      onConfirm: async () => {
+        try {
+          await axios.post(
+            `${API_URL}/api/admin/dino/player/${inspectId.trim()}/raw-key`,
+            { key: keyName, value: null },
+            { headers: authHeaders }
+          );
+          toast.success(`Key "${keyName}" deleted`);
+          setDialog(d => ({ ...d, open: false, isOpen: false }));
+          handleInspectPlayer(null, inspectId.trim());
+        } catch (err) {
+          toast.error(err.response?.data?.detail || 'Failed to delete key');
           setDialog(d => ({ ...d, open: false, isOpen: false }));
         }
       },
@@ -1523,6 +1575,16 @@ export const DinoDevPanel = () => {
                       <span>Edit Stats</span>
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={() => setShowRawDataModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F5F7] dark:bg-[#1e1e2d] hover:bg-[#E5E5EA] dark:hover:bg-[#26263a] text-[#1D1D1F] dark:text-white text-xs font-semibold transition-all border border-[#E5E5EA] dark:border-[#2a2a3c] active:scale-95"
+                      title="Inspect and edit raw cloud data keys"
+                    >
+                      <Database size={13} />
+                      <span>Cloud Data ({Object.keys(playerData.all_keys || playerData.raw_data || {}).length})</span>
+                    </button>
+
                     {playerData.is_banned ? (
                       <button
                         type="button"
@@ -2257,6 +2319,165 @@ export const DinoDevPanel = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ── Raw Cloud Data Modal ─────────────────────────────────── */}
+      {showRawDataModal && playerData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-appear">
+          <div className="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-3xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5EA] dark:border-[#2a2a3c]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                  <Database size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1D1D1F] dark:text-white">
+                    PlayFab Cloud UserData
+                  </h3>
+                  <p className="text-[11px] font-mono text-[#86868B]">
+                    Player ID: {playerData.playfab_id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowRawDataModal(false); setEditingRawKey(null); }}
+                className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable Key List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Add New Key Form */}
+              <div className="p-4 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] space-y-3">
+                <span className="text-xs font-bold text-[#1D1D1F] dark:text-white block">
+                  Add or Override a Cloud Key
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <input
+                    type="text"
+                    placeholder="Key name (e.g. player_dna, SaveData)"
+                    value={newRawKey.key}
+                    onChange={(e) => setNewRawKey(k => ({ ...k, key: e.target.value }))}
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Value"
+                      value={newRawKey.value}
+                      onChange={(e) => setNewRawKey(k => ({ ...k, value: e.target.value }))}
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                    />
+                    <button
+                      type="button"
+                      disabled={updatingRawKey || !newRawKey.key.trim()}
+                      onClick={() => handleSaveRawKey(newRawKey.key, newRawKey.value)}
+                      className="px-3 py-1.5 rounded-xl bg-[#FF6600] hover:bg-[#e65c00] text-white text-xs font-semibold shrink-0 disabled:opacity-50 transition-all"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keys Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#86868B] px-1">
+                  <span>Cloud Keys ({Object.keys(playerData.all_keys || playerData.raw_data || {}).length})</span>
+                  <span>Actions</span>
+                </div>
+
+                {Object.keys(playerData.all_keys || playerData.raw_data || {}).length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[#86868B] bg-[#F5F5F7] dark:bg-[#1e1e2d] rounded-2xl">
+                    No keys found in PlayFab UserData for this player.
+                  </div>
+                ) : (
+                  Object.entries(playerData.all_keys || playerData.raw_data || {}).map(([key, value]) => {
+                    const isEditing = editingRawKey?.key === key;
+                    return (
+                      <div
+                        key={key}
+                        className="p-3 rounded-2xl bg-[#F5F5F7] dark:bg-[#1e1e2d] border border-[#E5E5EA] dark:border-[#2a2a3c] space-y-2 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-xs font-bold text-[#FF6600]">
+                            {key}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingRawKey(isEditing ? null : { key, value })}
+                              className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-[#86868B] hover:text-[#1D1D1F] dark:hover:text-white transition-colors"
+                              title="Edit key"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRawKey(key)}
+                              className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-[#86868B] hover:text-red-500 transition-colors"
+                              title="Delete key"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 pt-1">
+                            <input
+                              type="text"
+                              value={editingRawKey.value}
+                              onChange={(e) => setEditingRawKey(k => ({ ...k, value: e.target.value }))}
+                              className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-mono text-[#1D1D1F] dark:text-white focus:outline-none focus:border-[#FF6600]"
+                            />
+                            <button
+                              type="button"
+                              disabled={updatingRawKey}
+                              onClick={() => handleSaveRawKey(editingRawKey.key, editingRawKey.value)}
+                              className="px-3 py-1.5 rounded-xl bg-[#FF6600] text-white text-xs font-semibold"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingRawKey(null)}
+                              className="px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 text-xs text-[#86868B]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <pre className="text-[11px] font-mono text-[#1D1D1F] dark:text-[#E5E5EA] bg-white dark:bg-[#151520] p-2.5 rounded-xl border border-[#E5E5EA] dark:border-[#2a2a3c] overflow-x-auto whitespace-pre-wrap break-all max-h-32">
+                            {value || '<empty string>'}
+                          </pre>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-[#E5E5EA] dark:border-[#2a2a3c] bg-[#F5F5F7]/50 dark:bg-[#1e1e2d]/50 flex items-center justify-between">
+              <span className="text-[11px] text-[#86868B]">
+                Changes take effect directly on the PlayFab Title cloud.
+              </span>
+              <button
+                type="button"
+                onClick={() => { setShowRawDataModal(false); setEditingRawKey(null); }}
+                className="px-4 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-xs font-semibold text-[#1D1D1F] dark:text-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
