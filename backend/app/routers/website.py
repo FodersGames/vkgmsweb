@@ -202,8 +202,10 @@ def _serialize_settings(doc: dict) -> dict:
     return {
         "maintenance_mode": effective_mode,
         "maintenance_active": effective_mode,
+        "maintenance_started_at": doc.get("maintenance_started_at").isoformat() if isinstance(doc.get("maintenance_started_at"), datetime) else doc.get("maintenance_started_at"),
         "maintenance_scheduled_at": scheduled_at.isoformat() if isinstance(scheduled_at, datetime) else scheduled_at,
         "maintenance_announcement": doc.get("maintenance_announcement", ""),
+        "dino_maintenance_mode": bool(doc.get("dino_maintenance_mode", False)),
         "support_email": doc.get("support_email") or DEFAULT_SUPPORT_EMAIL,
         "announcement_banner": doc.get("announcement_banner", ""),
         "announcement_active": doc.get("announcement_active", False),
@@ -229,6 +231,29 @@ async def update_website_settings(req: WebsiteSettingsRequest, user=Depends(requ
         # (or fight an admin who just turned it back off) on a later read.
         updates["maintenance_scheduled_at"] = None
         updates["maintenance_announcement"] = ""
+        now_utc = datetime.now(timezone.utc)
+        if req.maintenance_mode:
+            updates["maintenance_started_at"] = now_utc
+            await db.maintenance_history.insert_one({
+                "service": "website",
+                "type": "maintenance",
+                "status": "active",
+                "started_at": now_utc,
+                "ended_at": None,
+                "message": req.maintenance_announcement or "",
+            })
+        else:
+            updates["maintenance_started_at"] = None
+            active_sessions = await db.maintenance_history.find({
+                "service": "website", "status": "active"
+            }).to_list(10)
+            for s in active_sessions:
+                started = s.get("started_at") or (now_utc - timedelta(minutes=15))
+                duration = max(1.0, (now_utc - started).total_seconds() / 60)
+                await db.maintenance_history.update_one(
+                    {"_id": s["_id"]},
+                    {"$set": {"status": "completed", "ended_at": now_utc, "duration_minutes": duration}}
+                )
         log_parts.append(f"maintenance {'enabled' if req.maintenance_mode else 'disabled'}")
     if req.maintenance_scheduled_at is not None:
         if req.maintenance_scheduled_at == "":
@@ -292,7 +317,9 @@ async def get_public_system_status():
 
     doc = await db.website_settings.find_one({}, {"_id": 0}) or {}
     settings = _serialize_settings(doc)
-    is_maintenance = bool(settings.get("maintenance_mode"))
+    website_maintenance = bool(settings.get("maintenance_mode"))
+    dino_maintenance = bool(doc.get("dino_maintenance_mode", False))
+    is_maintenance = website_maintenance or dino_maintenance
 
     if not db_connected:
         overall_status = "incident"
@@ -301,53 +328,113 @@ async def get_public_system_status():
     else:
         overall_status = "operational"
 
-    # Build 7-day history (from 6 days ago up to today)
     now = datetime.now(timezone.utc)
     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     day_short_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    history = []
 
+    # Fetch maintenance events within the last 8 days
+    eight_days_ago = now - timedelta(days=8)
+    events = await db.maintenance_history.find({
+        "$or": [
+            {"started_at": {"$gte": eight_days_ago}},
+            {"ended_at": {"$gte": eight_days_ago}},
+            {"status": "active"},
+        ]
+    }).to_list(150)
+
+    history = []
     for i in range(6, -1, -1):
         day_date = now - timedelta(days=i)
         is_today = (i == 0)
 
+        # UTC calendar day boundaries [00:00:00, 23:59:59.999]
+        day_start = datetime(day_date.year, day_date.month, day_date.day, 0, 0, 0, tzinfo=timezone.utc)
+        day_end = datetime(day_date.year, day_date.month, day_date.day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+        if is_today and now < day_end:
+            day_end = now
+
+        downtime_mins = 0.0
+        day_has_maintenance = False
+        day_has_incident = False
+
+        for ev in events:
+            ev_start = ev.get("started_at")
+            if not ev_start:
+                continue
+            if isinstance(ev_start, str):
+                try:
+                    ev_start = datetime.fromisoformat(ev_start.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+            if ev_start.tzinfo is None:
+                ev_start = ev_start.replace(tzinfo=timezone.utc)
+
+            ev_end = ev.get("ended_at")
+            if not ev_end:
+                ev_end = now if ev.get("status") == "active" else ev_start + timedelta(minutes=20)
+            elif isinstance(ev_end, str):
+                try:
+                    ev_end = datetime.fromisoformat(ev_end.replace("Z", "+00:00"))
+                except Exception:
+                    ev_end = now
+            if ev_end.tzinfo is None:
+                ev_end = ev_end.replace(tzinfo=timezone.utc)
+
+            # Calculate overlap with day
+            overlap_start = max(day_start, ev_start)
+            overlap_end = min(day_end, ev_end)
+            if overlap_end > overlap_start:
+                overlap_seconds = (overlap_end - overlap_start).total_seconds()
+                downtime_mins += (overlap_seconds / 60.0)
+                if ev.get("type") == "incident":
+                    day_has_incident = True
+                else:
+                    day_has_maintenance = True
+
+        # If today is currently active in maintenance or incident, reflect elapsed downtime
         if is_today:
-            label = "Today"
-            short_label = "Today"
-            day_status = overall_status
             if not db_connected:
-                uptime_pct = 0.0
-                color_stage = "red"
-                downtime_mins = 180
+                downtime_mins = max(downtime_mins, 180.0)
+                day_has_incident = True
             elif is_maintenance:
-                uptime_pct = 98.5
-                color_stage = "yellow"
-                downtime_mins = 22
-            else:
-                uptime_pct = 100.0
-                color_stage = "green"
-                downtime_mins = 0
-        elif i == 1:
-            label = "Yesterday"
-            short_label = "Yest"
-            day_status = "operational"
+                maint_start = settings.get("maintenance_started_at") or doc.get("dino_maintenance_started_at") or doc.get("updated_at")
+                if maint_start:
+                    if isinstance(maint_start, str):
+                        try:
+                            maint_start = datetime.fromisoformat(maint_start.replace("Z", "+00:00"))
+                        except Exception:
+                            maint_start = now
+                    if maint_start.tzinfo is None:
+                        maint_start = maint_start.replace(tzinfo=timezone.utc)
+                    elapsed = max(10.0, (now - maint_start).total_seconds() / 60.0)
+                    downtime_mins = max(downtime_mins, elapsed)
+                else:
+                    downtime_mins = max(downtime_mins, 20.0)
+                day_has_maintenance = True
+
+        downtime_mins = round(downtime_mins, 1)
+        if downtime_mins <= 0:
             uptime_pct = 100.0
             color_stage = "green"
+            day_status = "operational"
             downtime_mins = 0
-        elif i == 3:
-            label = day_names[day_date.weekday()]
-            short_label = day_short_names[day_date.weekday()]
-            day_status = "nominal"
-            uptime_pct = 99.85
-            color_stage = "green_yellow"
-            downtime_mins = 2
         else:
-            label = day_names[day_date.weekday()]
-            short_label = day_short_names[day_date.weekday()]
-            day_status = "operational"
-            uptime_pct = 100.0
-            color_stage = "green"
-            downtime_mins = 0
+            uptime_pct = max(0.0, min(100.0, round((1440.0 - downtime_mins) / 1440.0 * 100.0, 2)))
+            if day_has_incident or uptime_pct < 85:
+                color_stage = "red"
+                day_status = "incident"
+            elif uptime_pct < 97:
+                color_stage = "yellow_red"
+                day_status = "partial_outage"
+            elif day_has_maintenance or uptime_pct < 99.5:
+                color_stage = "yellow"
+                day_status = "maintenance"
+            else:
+                color_stage = "green_yellow"
+                day_status = "nominal"
+
+        label = "Today" if is_today else ("Yesterday" if i == 1 else day_names[day_date.weekday()])
+        short_label = "Today" if is_today else ("Yest" if i == 1 else day_short_names[day_date.weekday()])
 
         history.append({
             "date": day_date.strftime("%Y-%m-%d"),
@@ -356,10 +443,16 @@ async def get_public_system_status():
             "status": day_status,
             "uptime_percent": uptime_pct,
             "color_stage": color_stage,
-            "downtime_minutes": downtime_mins,
+            "downtime_minutes": int(downtime_mins),
         })
 
-    uptime_7d = "99.98%" if overall_status == "operational" else ("98.90%" if overall_status == "maintenance" else "95.50%")
+    # Mathematical 7-day average
+    avg_7d = round(sum(d["uptime_percent"] for d in history) / len(history), 2)
+    uptime_7d = f"{avg_7d:.2f}%"
+
+    announcement = settings.get("maintenance_announcement") or ""
+    if not announcement and dino_maintenance:
+        announcement = "Game server maintenance in progress."
 
     return {
         "status": overall_status,
@@ -367,7 +460,9 @@ async def get_public_system_status():
         "history": history,
         "maintenance": {
             "active": is_maintenance,
-            "announcement": settings.get("maintenance_announcement") or "",
+            "website_active": website_maintenance,
+            "game_active": dino_maintenance,
+            "announcement": announcement,
             "scheduled_at": settings.get("maintenance_scheduled_at"),
         },
         "updated_at": now.isoformat(),

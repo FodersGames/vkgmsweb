@@ -575,9 +575,39 @@ async def _cli_dispatch(tokens: List[str], confirm: bool, admin: dict):
             return [f"{'Enable' if want_on else 'Disable'} site-wide maintenance mode?",
                     "Type 'y' to confirm, or anything else to cancel."], True, False
         # A manual toggle always wins over any pending/past schedule.
-        await db.website_settings.update_one({}, {"$set": {
-            "maintenance_mode": want_on, "maintenance_scheduled_at": None, "maintenance_announcement": "",
-        }}, upsert=True)
+        now_utc = datetime.now(timezone.utc)
+        if want_on:
+            await db.website_settings.update_one({}, {"$set": {
+                "maintenance_mode": True,
+                "maintenance_started_at": now_utc,
+                "maintenance_scheduled_at": None,
+                "maintenance_announcement": "",
+            }}, upsert=True)
+            await db.maintenance_history.insert_one({
+                "service": "website",
+                "type": "maintenance",
+                "status": "active",
+                "started_at": now_utc,
+                "ended_at": None,
+                "message": "CLI maintenance mode enabled",
+            })
+        else:
+            await db.website_settings.update_one({}, {"$set": {
+                "maintenance_mode": False,
+                "maintenance_started_at": None,
+                "maintenance_scheduled_at": None,
+                "maintenance_announcement": "",
+            }}, upsert=True)
+            active_sessions = await db.maintenance_history.find({
+                "service": "website", "status": "active"
+            }).to_list(10)
+            for s in active_sessions:
+                started = s.get("started_at") or (now_utc - timedelta(minutes=15))
+                duration = max(1.0, (now_utc - started).total_seconds() / 60)
+                await db.maintenance_history.update_one(
+                    {"_id": s["_id"]},
+                    {"$set": {"status": "completed", "ended_at": now_utc, "duration_minutes": duration}}
+                )
         await log_action("website", f"[CLI] Maintenance mode {'enabled' if want_on else 'disabled'}", user=admin["username"])
         return [f"OK : maintenance mode {'enabled' if want_on else 'disabled'}."], False, True
 
