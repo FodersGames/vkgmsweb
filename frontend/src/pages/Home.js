@@ -28,25 +28,21 @@ const Home = () => {
 
       {/* ── HERO ─ Apple Dark Section ─────────────────────────────────── */}
       <section
-        className="relative flex flex-col items-center justify-center text-center overflow-hidden bg-[#1D1D1F]"
-        style={{ minHeight: '92vh' }}
+        className="relative flex flex-col items-center justify-center text-center overflow-hidden bg-[#1D1D1F] min-h-[110svh] md:min-h-[125vh]"
         data-testid="hero-section"
       >
-        {/* Background Video */}
+        {/* Background Image */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
+          <img
+            src={`${process.env.PUBLIC_URL || ''}/photos/calanques.jpg`}
+            alt=""
+            aria-hidden="true"
             className="w-full h-full object-cover object-center"
             style={{
-              filter: 'brightness(0.45) contrast(1.1)',
+              filter: 'brightness(0.5) contrast(1.05)',
               transform: 'scale(1.02)',
             }}
-          >
-            <source src={`${process.env.PUBLIC_URL || ''}/videos/programmer.mp4`} type="video/mp4" />
-          </video>
+          />
           <div
             className="absolute inset-0"
             style={{
@@ -91,32 +87,6 @@ const Home = () => {
         </button>
       </section>
 
-      {/* ── STATS STRIP ─ Clean White ─────────────────────────────────── */}
-      <section className="bg-white border-b border-[#E5E5EA]">
-        <div className="max-w-[1120px] mx-auto px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x-0 md:divide-x divide-[#E5E5EA]">
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">2024</p>
-              <p className="text-[13px] text-[#86868B] mt-1">Founded</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">France</p>
-              <p className="text-[13px] text-[#86868B] mt-1">Studio HQ</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">
-                {games.length > 0 ? games.length : '1'}
-              </p>
-              <p className="text-[13px] text-[#86868B] mt-1">Productions</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-semibold tracking-tight text-[#1D1D1F]">Mobile</p>
-              <p className="text-[13px] text-[#86868B] mt-1">Platforms</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── GAMES SHOWCASE ─ Clean White ──────────────────────────────── */}
       <section id="games" className="bg-white py-20 md:py-28">
         <div className="max-w-[1120px] mx-auto px-6">
@@ -153,11 +123,11 @@ const Home = () => {
                   </div>
                   <div className="p-7">
                     <div className="flex items-center justify-between gap-4 mb-2">
-                      <h3 className="text-2xl font-semibold text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors">
+                      <h3 className="text-2xl font-semibold text-[#1D1D1F]">
                         {game.name}
                       </h3>
                       {game.status === 'coming_soon' && (
-                        <span className="text-xs font-semibold text-[#FF6600]">
+                        <span className="text-xs font-semibold text-[#1D1D1F]">
                           Coming Soon
                         </span>
                       )}
@@ -167,7 +137,7 @@ const Home = () => {
                         {game.description}
                       </p>
                     )}
-                    <span className="inline-flex items-center text-sm font-medium text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors">
+                    <span className="inline-flex items-center text-sm font-medium text-[#1D1D1F]">
                       Discover &rarr;
                     </span>
                   </div>
@@ -207,7 +177,7 @@ const Home = () => {
         <div className="max-w-[1120px] mx-auto px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-14 lg:gap-20 items-center">
             <div>
-              <p className="text-[13px] font-medium text-[#FF6600] mb-3">
+              <p className="text-[13px] font-medium text-white/70 mb-3">
                 The Studio
               </p>
               <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
@@ -226,11 +196,11 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Real landscape photography (Provence cliffs from user's downloads) */}
+            {/* French coastline photography */}
             <div className="relative rounded-2xl overflow-hidden border border-white/15 shadow-2xl">
               <img
-                src="/photos/studio-landscape.jpg"
-                alt="Studio atmosphere"
+                src="/photos/coast-cliffs.jpg"
+                alt="The French coast"
                 className="w-full h-80 lg:h-96 object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1D1D1F]/70 via-transparent to-transparent" />

@@ -23,20 +23,20 @@
     --card-foreground: 240 4% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 4% 12%;
-    /* Brand Orange : #FF6600 */
-    --primary: 24 100% 50%;
+    /* Brand monochrome : black on light, white on dark */
+    --primary: 0 0% 12%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 4% 12%;
     --muted: 240 5% 96%;
     --muted-foreground: 240 3% 46%;
-    --accent: 24 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 4% 12%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 5% 88%;
     --input: 240 5% 88%;
-    --ring: 24 100% 50%;
+    --ring: 0 0% 12%;
     --radius: 0.5rem;
   }
 
@@ -48,19 +48,19 @@
     --card-foreground: 240 5% 91%;
     --popover: 244 20% 10%;
     --popover-foreground: 240 5% 91%;
-    --primary: 24 100% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 240 4% 12%;
     --secondary: 242 22% 15%;
     --secondary-foreground: 240 5% 91%;
     --muted: 244 22% 9%;
     --muted-foreground: 240 4% 46%;
-    --accent: 24 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 242 22% 15%;
+    --accent-foreground: 240 5% 91%;
     --destructive: 4 86% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 243 20% 20%;
     --input: 243 20% 20%;
-    --ring: 24 100% 50%;
+    --ring: 0 0% 100%;
     --radius: 0.5rem;
   }
 }
@@ -326,4 +326,24 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-bounce-y { animation: none; }
   .fade-up { animation: none; }
+}
+
+/* ── Monochrome brand mark ───────────────────────────────────────────── */
+.logo-black {
+  filter: brightness(0);
+  transition: filter 0.25s ease;
+}
+
+.logo-white {
+  filter: brightness(0) invert(1);
+  transition: filter 0.25s ease;
+}
+
+.logo-adaptive {
+  filter: brightness(0);
+  transition: filter 0.25s ease;
+}
+
+.dark .logo-adaptive {
+  filter: brightness(0) invert(1);
 }

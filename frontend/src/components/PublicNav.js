@@ -50,7 +50,9 @@ export const PublicNav = ({ onAbout }) => {
               <img
                 src="/logo.png"
                 alt="Vakar Games"
-                className="h-5 w-auto object-contain transition-transform group-hover:scale-105"
+                className={`h-5 w-auto object-contain transition-transform group-hover:scale-105 ${
+                  isHomeHero ? 'logo-white' : 'logo-black'
+                }`}
               />
               <span
                 className={`font-semibold tracking-tight text-[15px] transition-colors ${
@@ -68,7 +70,9 @@ export const PublicNav = ({ onAbout }) => {
                   to={to}
                   className={`text-[13px] font-normal transition-colors ${
                     active(to)
-                      ? 'text-[#FF6600] font-medium'
+                      ? isHomeHero
+                        ? 'text-white font-medium'
+                        : 'text-[#1D1D1F] font-medium'
                       : isHomeHero
                       ? 'text-white/80 hover:text-white'
                       : 'text-[#1D1D1F]/80 hover:text-[#1D1D1F]'
@@ -103,7 +107,13 @@ export const PublicNav = ({ onAbout }) => {
                     isHomeHero ? 'text-white/90 hover:text-white' : 'text-[#1D1D1F]/90 hover:text-[#1D1D1F]'
                   }`}
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#FF6600]/15 border border-[#FF6600]/30 flex items-center justify-center text-[11px] font-medium text-[#FF6600] overflow-hidden">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-medium overflow-hidden border ${
+                      isHomeHero
+                        ? 'bg-white/15 border-white/30 text-white'
+                        : 'bg-black/[0.06] border-black/15 text-[#1D1D1F]'
+                    }`}
+                  >
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url}
@@ -155,7 +165,7 @@ export const PublicNav = ({ onAbout }) => {
                 to={to}
                 onClick={() => setOpen(false)}
                 className={`block text-[14px] py-2 transition-colors ${
-                  active(to) ? 'text-[#FF6600] font-medium' : 'text-[#1D1D1F]/80 hover:text-[#1D1D1F]'
+                  active(to) ? 'text-[#1D1D1F] font-medium' : 'text-[#1D1D1F]/80 hover:text-[#1D1D1F]'
                 }`}
               >
                 {label}

@@ -37,7 +37,7 @@ const renderInline = (text) => {
       return (
         <code
           key={index}
-          className="text-xs font-mono bg-[#F5F5F7] px-1.5 py-0.5 rounded border border-[#E5E5EA] text-[#FF6600]"
+          className="text-xs font-mono bg-[#F5F5F7] px-1.5 py-0.5 rounded border border-[#E5E5EA] text-[#1D1D1F]"
         >
           {part.slice(1, -1)}
         </code>
@@ -52,7 +52,7 @@ const renderInline = (text) => {
             href={match[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#FF6600] font-medium underline underline-offset-4 decoration-[#FF6600]/40 hover:decoration-[#FF6600] transition-colors"
+            className="text-[#1D1D1F] font-medium underline underline-offset-4 decoration-[#1D1D1F]/30 hover:decoration-[#1D1D1F] transition-colors"
           >
             {match[1]}
           </a>
@@ -216,7 +216,7 @@ export const BlogContentRenderer = ({ content }) => {
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="border-l-3 border-[#FF6600] bg-[#F5F5F7] px-5 py-3 my-6 rounded-r-2xl italic text-[#1D1D1F] text-base leading-relaxed"
+          className="border-l-3 border-[#1D1D1F] bg-[#F5F5F7] px-5 py-3 my-6 rounded-r-2xl italic text-[#1D1D1F] text-base leading-relaxed"
         >
           {renderInline(line.slice(2))}
         </blockquote>

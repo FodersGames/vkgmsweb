@@ -77,7 +77,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
         {success ? (
           <div className="px-6 py-12 text-center">
-            <CheckCircle size={44} className="mx-auto mb-4 text-[#FF6600]" />
+            <CheckCircle size={44} className="mx-auto mb-4 text-[#1D1D1F]" />
             <h4 className="font-semibold text-xl text-[#1D1D1F] mb-2">Application Sent</h4>
             <p className="text-sm text-[#6E6E73] mb-6 max-w-xs mx-auto">
               We'll review your application and get back to you by email as soon as possible.
@@ -135,7 +135,7 @@ function ApplyModal({ career, onClose, token, user }) {
 
             <div>
               <label className="block text-[11px] font-medium uppercase tracking-wider text-[#6E6E73] mb-1.5">
-                Cover letter <span className="text-[#FF6600]">*</span>
+                Cover letter <span className="text-[#1D1D1F]">*</span>
               </label>
               <textarea
                 required
@@ -206,7 +206,7 @@ export default function Careers() {
         <div className="max-w-[1120px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
-              <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+              <p className="text-[13px] font-medium text-[#1D1D1F] mb-2">
                 Opportunities
               </p>
               <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
@@ -219,7 +219,7 @@ export default function Careers() {
 
             {!loading && (
               <div className="px-5 py-3.5 flex items-center gap-3 shrink-0 self-start lg:self-auto bg-[#F5F5F7] rounded-xl border border-[#E5E5EA]">
-                <Users size={22} className="text-[#FF6600]" />
+                <Users size={22} className="text-[#1D1D1F]" />
                 <div>
                   <p className="font-semibold text-2xl text-[#1D1D1F] leading-none">{careers.length}</p>
                   <p className="text-[11px] font-medium text-[#86868B] mt-0.5">
@@ -265,7 +265,7 @@ export default function Careers() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 px-6 bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA]">
-            <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4 rounded-full bg-white text-[#FF6600] shadow-sm">
+            <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4 rounded-full bg-white text-[#1D1D1F] shadow-sm">
               <Users size={24} />
             </div>
             <h3 className="font-semibold text-lg text-[#1D1D1F] mb-1">
@@ -273,7 +273,7 @@ export default function Careers() {
             </h3>
             <p className="text-sm text-[#6E6E73] max-w-sm mx-auto leading-relaxed">
               {careers.length === 0 ? 'Check back soon, or send an unsolicited application to ' : 'Try another department filter, or reach out at '}
-              <a href="mailto:support@vakargames.com" className="text-[#FF6600] hover:underline font-medium">support@vakargames.com</a>
+              <a href="mailto:support@vakargames.com" className="text-[#1D1D1F] hover:underline font-medium">support@vakargames.com</a>
             </p>
           </div>
         ) : (
@@ -310,11 +310,11 @@ export default function Careers() {
                           </h2>
                           <div className="flex items-center flex-wrap gap-4 text-xs text-[#6E6E73]">
                             <span className="flex items-center gap-1.5">
-                              <MapPin size={13} className="text-[#FF6600]" />
+                              <MapPin size={13} className="text-[#1D1D1F]" />
                               {c.location}
                             </span>
                             <span className="flex items-center gap-1.5">
-                              <Briefcase size={13} className="text-[#FF6600]" />
+                              <Briefcase size={13} className="text-[#1D1D1F]" />
                               {c.contract_type}
                             </span>
                           </div>

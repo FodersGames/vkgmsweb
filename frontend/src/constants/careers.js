@@ -8,9 +8,9 @@ import React from 'react';
 // only place either side should define these.
 
 export const DEPARTMENT_META = {
-  'Development':  { color: '#FF6600' },
+  'Development':  { color: '#1D1D1F' },
   'Art & Design': { color: '#6C5CE7' },
-  'Game Design':  { color: '#F2994A' },
+  'Game Design':  { color: '#6E6E73' },
   'Marketing':    { color: '#EB5757' },
   'Community':    { color: '#2F80ED' },
   'Sound':        { color: '#9B59B6' },

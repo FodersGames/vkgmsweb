@@ -139,7 +139,7 @@ const Contact = () => {
         {/* Header: Apple Clean White */}
         <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
           <div className="max-w-[1120px] mx-auto px-6">
-            <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+            <p className="text-[13px] font-medium text-[#1D1D1F] mb-2">
               Support
             </p>
             <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
@@ -194,7 +194,7 @@ const Contact = () => {
             {activeView === 'new' ? (
               success ? (
                 <div className="bg-[#F5F5F7] rounded-2xl p-12 text-center border border-[#E5E5EA]">
-                  <CheckCircle size={44} className="mx-auto mb-4 text-[#FF6600]" />
+                  <CheckCircle size={44} className="mx-auto mb-4 text-[#1D1D1F]" />
                   <h2 className="text-2xl font-semibold text-[#1D1D1F] mb-2">
                     Ticket Submitted
                   </h2>
@@ -253,7 +253,7 @@ const Contact = () => {
 
                   {!token ? (
                     <div className="p-8 sm:p-12 text-center rounded-2xl bg-white border border-[#E5E5EA] space-y-4">
-                      <div className="w-12 h-12 mx-auto rounded-full bg-[#FF6600]/10 flex items-center justify-center text-[#FF6600]">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-black/[0.05] flex items-center justify-center text-[#1D1D1F]">
                         <LockKey size={24} weight="bold" />
                       </div>
                       <div>
@@ -372,7 +372,7 @@ const Contact = () => {
 
                 {loadingTickets ? (
                   <div className="py-16 text-center text-[#86868B]">
-                    <CircleNotch size={24} className="animate-spin text-[#FF6600] mx-auto mb-2" />
+                    <CircleNotch size={24} className="animate-spin text-[#1D1D1F] mx-auto mb-2" />
                     <p className="text-xs">Loading tickets...</p>
                   </div>
                 ) : tickets.length === 0 ? (
@@ -393,7 +393,7 @@ const Contact = () => {
                     {tickets.map(t => {
                       const isExpanded = expandedTicketNumber === t.ticket_number;
                       const isClosed = t.status === 'closed';
-                      const statusColor = t.status === 'open' ? '#FF6600' : t.status === 'in_progress' ? '#F59E0B' : '#86868B';
+                      const statusColor = t.status === 'open' ? '#1D1D1F' : t.status === 'in_progress' ? '#F59E0B' : '#86868B';
                       const statusLabel = t.status === 'open' ? 'Open' : t.status === 'in_progress' ? 'In Progress' : 'Closed';
 
                       return (
@@ -407,7 +407,7 @@ const Contact = () => {
                           >
                             <div className="flex-1 min-w-0 mr-4">
                               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span className="text-xs font-mono font-medium text-[#FF6600]">{t.ticket_number}</span>
+                                <span className="text-xs font-mono font-medium text-[#1D1D1F]">{t.ticket_number}</span>
                                 <span className="text-[11px] uppercase font-medium text-[#86868B]">• {t.category}</span>
                                 <span
                                   className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full"
@@ -439,11 +439,11 @@ const Contact = () => {
                                       className={`p-3.5 text-xs rounded-xl ${
                                         isUser
                                           ? 'bg-white border border-[#E5E5EA] ml-0 mr-8'
-                                          : 'bg-[#FF6600]/10 border border-[#FF6600]/25 mr-0 ml-8'
+                                          : 'bg-[#F5F5F7] border border-[#E5E5EA] mr-0 ml-8'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="font-semibold text-[11px]" style={{ color: isUser ? '#1D1D1F' : '#FF6600' }}>
+                                        <span className="font-semibold text-[11px] text-[#1D1D1F]">
                                           {m.author_name || (isUser ? 'You' : 'Support')}
                                         </span>
                                         <span className="text-[10px] text-[#86868B]">
@@ -500,7 +500,7 @@ const Contact = () => {
           <div className="space-y-4">
             <div className="p-6 rounded-2xl border border-[#E5E5EA] bg-[#F5F5F7]">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#FF6600]">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#1D1D1F]">
                   <EnvelopeSimple size={16} weight="bold" />
                 </div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Direct Email</h3>
@@ -515,7 +515,7 @@ const Contact = () => {
 
             <div className="p-6 rounded-2xl border border-[#E5E5EA] bg-[#F5F5F7]">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#FF6600]">
+                <div className="w-8 h-8 rounded-lg bg-white border border-[#E5E5EA] flex items-center justify-center text-[#1D1D1F]">
                   <ChatCircle size={16} weight="bold" />
                 </div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1D1D1F]">Live Support Widget</h3>

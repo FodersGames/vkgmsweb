@@ -238,7 +238,7 @@ const Profile = () => {
               {user.is_super_admin && (
                 <div
                   title="Super Admin"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-[#FF6600] shadow-sm"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#D2D2D7] text-[#1D1D1F] shadow-sm"
                 >
                   <Crown size={16} weight="bold" />
                 </div>
@@ -273,7 +273,7 @@ const Profile = () => {
               onClick={() => avatarInputRef.current?.click()}
               title="Change avatar"
             >
-              <div className="w-24 h-24 rounded-full border-2 border-white shadow-md flex items-center justify-center text-2xl font-bold text-[#FF6600] bg-white overflow-hidden">
+              <div className="w-24 h-24 rounded-full border-2 border-white shadow-md flex items-center justify-center text-2xl font-bold text-[#1D1D1F] bg-white overflow-hidden">
                 {avatarPreview || user.avatar_url ? (
                   <img
                     src={avatarPreview || (user.avatar_url?.startsWith('/') ? `${API_URL}${user.avatar_url}` : user.avatar_url)}
@@ -337,7 +337,7 @@ const Profile = () => {
           <div className="bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] p-7">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
-                <User size={18} className="text-[#FF6600]" />
+                <User size={18} className="text-[#1D1D1F]" />
                 <h2 className="font-semibold text-base text-[#1D1D1F]">
                   Account Details
                 </h2>
@@ -426,7 +426,7 @@ const Profile = () => {
           <div className="bg-[#F5F5F7] rounded-2xl border border-[#E5E5EA] p-7">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <Lock size={18} className="text-[#FF6600]" />
+                <Lock size={18} className="text-[#1D1D1F]" />
                 <div>
                   <h2 className="font-semibold text-base text-[#1D1D1F]">
                     Password & Security

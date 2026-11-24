@@ -27,7 +27,7 @@ export const SiteFooter = ({ onAbout }) => {
               <img
                 src="/logo.png"
                 alt="Vakar Games"
-                className="h-5 w-auto object-contain transition-transform group-hover:scale-105"
+                className="logo-white h-5 w-auto object-contain transition-transform group-hover:scale-105"
               />
               <span className="font-semibold text-white tracking-tight text-[15px]">
                 Vakar Games
@@ -72,7 +72,7 @@ export const SiteFooter = ({ onAbout }) => {
               <li>
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="text-[#86868B] hover:text-[#FF6600] transition-colors"
+                  className="text-[#86868B] hover:text-white transition-colors"
                 >
                   {supportEmail}
                 </a>

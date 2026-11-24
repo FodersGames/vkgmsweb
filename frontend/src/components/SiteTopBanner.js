@@ -106,7 +106,7 @@ export const SiteTopBanner = () => {
     >
       {/* 1. Scheduled Maintenance Banner (highest priority) */}
       {maintenanceVisible && (
-        <div className="w-full bg-[#FF6600] text-white px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 flex-wrap tracking-tight">
+        <div className="w-full bg-[#1D1D1F] text-white px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 flex-wrap tracking-tight">
           <div className="flex items-center gap-1.5 bg-black/15 px-2 py-0.5 rounded-full">
             <Wrench size={12} className="animate-pulse" />
             <span>Maintenance</span>
@@ -123,7 +123,7 @@ export const SiteTopBanner = () => {
       {/* 2. Public Announcement Banner */}
       {announcementVisible && (
         <div className="w-full relative bg-[#1D1D1F] text-white px-8 py-2 text-xs flex items-center justify-center gap-2 border-t border-white/10">
-          <Megaphone size={12} className="shrink-0 text-[#FF6600]" />
+          <Megaphone size={12} className="shrink-0 text-white" />
           <p className="text-[12px] font-medium text-center truncate max-w-[800px]">{announcementText}</p>
           <button
             onClick={dismissAnnouncement}

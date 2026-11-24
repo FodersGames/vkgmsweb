@@ -257,7 +257,7 @@ export const Login = () => {
             to="/"
             className="inline-flex flex-col items-center gap-2 group"
           >
-            <img src="/logo.png" alt="Vakar Games" className="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
+            <img src="/logo.png" alt="Vakar Games" className="logo-black h-9 w-auto object-contain transition-transform group-hover:scale-105" />
             <span className="text-lg font-semibold tracking-tight text-[#1D1D1F]">
               Vakar Games
             </span>
@@ -270,12 +270,16 @@ export const Login = () => {
         {/* Card */}
         <div className="bg-white rounded-2xl border border-[#E5E5EA] shadow-sm overflow-hidden">
           {/* Segmented control tabs */}
-          <div className="flex border-b border-[#E5E5EA] bg-[#FBFBFD] p-1 gap-1">
+          <div className="flex border-b border-[#E5E5EA] bg-[#FBFBFD] p-1">
             {[{ id: 'login', label: 'Sign In' }, { id: 'register', label: 'Create Account' }].map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${
+                className={`flex-1 py-2 text-xs font-medium transition-all ${
+                  id === 'login'
+                    ? 'rounded-tl-xl rounded-bl-xl rounded-tr-none rounded-br-none'
+                    : 'rounded-tr-xl rounded-br-xl rounded-tl-none rounded-bl-none'
+                } ${
                   tab === id
                     ? 'bg-white text-[#1D1D1F] shadow-sm font-semibold'
                     : 'text-[#86868B] hover:text-[#1D1D1F]'

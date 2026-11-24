@@ -37,7 +37,7 @@ const GamesPage = () => {
       {/* Page Header: Apple Clean White */}
       <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
         <div className="max-w-[1120px] mx-auto px-6">
-          <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+          <p className="text-[13px] font-medium text-[#1D1D1F] mb-2">
             Catalogue
           </p>
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
@@ -104,7 +104,7 @@ const GamesPage = () => {
                       {game.name}
                     </h2>
                     {game.status === 'coming_soon' && (
-                      <span className="text-xs font-semibold text-[#FF6600]">
+                      <span className="text-xs font-semibold text-[#1D1D1F]">
                         Coming Soon
                       </span>
                     )}

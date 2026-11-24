@@ -11,11 +11,11 @@ const MaintenancePage = ({ announcement }) => {
   const targetLink = user && typeof isAdmin === 'function' && isAdmin() ? '/dashboard' : '/login';
 
   return (
-    <div className="min-h-screen bg-white text-[#1D1D1F] flex flex-col justify-between p-6 sm:p-10 antialiased selection:bg-[#FF6600]/20 selection:text-[#FF6600]">
+    <div className="min-h-screen bg-white text-[#1D1D1F] flex flex-col justify-between p-6 sm:p-10 antialiased selection:bg-[#1D1D1F]/10 selection:text-[#1D1D1F]">
       {/* Minimal Header */}
       <header className="w-full max-w-[1040px] mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain transition-transform group-hover:scale-105" />
+          <img src="/logo.png" alt="Vakar Games" className="logo-black h-5 w-auto object-contain transition-transform group-hover:scale-105" />
           <span className="font-semibold text-sm tracking-tight text-[#1D1D1F]">
             Vakar Games
           </span>
@@ -44,7 +44,7 @@ const MaintenancePage = ({ announcement }) => {
       <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
         <Link
           to="/status"
-          className="inline-flex items-center gap-1.5 text-[#1D1D1F] hover:text-[#FF6600] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[#1D1D1F] hover:text-[#6E6E73] transition-colors"
         >
           <span>Check System Status</span>
           <span>→</span>
@@ -94,7 +94,7 @@ export const MaintenanceCountdownBanner = ({ scheduledAt, announcement }) => {
   const ss = totalSec % 60;
 
   return (
-    <div className="sticky top-0 z-[200] px-4 py-2 bg-[#FF6600] text-white text-center text-xs font-medium flex items-center justify-center gap-2 flex-wrap shadow-sm">
+    <div className="sticky top-0 z-[200] px-4 py-2 bg-[#1D1D1F] text-white text-center text-xs font-medium flex items-center justify-center gap-2 flex-wrap shadow-sm">
       <span>
         Scheduled maintenance in {mm}:{String(ss).padStart(2, '0')}
       </span>

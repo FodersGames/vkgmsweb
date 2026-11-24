@@ -143,7 +143,7 @@ export default function StatusPage() {
             <img
               src="/logo.png"
               alt="Vakar Games"
-              className="h-5 w-auto object-contain transition-transform group-hover:scale-105"
+              className="logo-adaptive h-5 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <span className="font-semibold text-[15px] tracking-tight text-[#1D1D1F] dark:text-white">
               Vakar Games
@@ -160,7 +160,7 @@ export default function StatusPage() {
               title="Refresh status"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#151520] border border-[#E5E5EA] dark:border-[#2a2a3c] text-xs font-medium text-[#6E6E73] dark:text-[#a1a1aa] hover:text-[#1D1D1F] dark:hover:text-white hover:border-[#D2D2D7] dark:hover:border-[#3a3a4c] shadow-xs transition-all disabled:opacity-50"
             >
-              <RefreshCw size={12} className={refreshing ? 'animate-spin text-[#FF6600]' : ''} />
+              <RefreshCw size={12} className={refreshing ? 'animate-spin text-[#1D1D1F]' : ''} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
@@ -373,7 +373,7 @@ export default function StatusPage() {
             </Link>
             <Link
               to="/"
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-[#FF6600] text-white hover:bg-[#E05A00] transition-colors"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-[#1D1D1F] text-white hover:bg-[#333336] transition-colors"
             >
               <span>Back to Home</span>
               <ArrowRight size={12} />

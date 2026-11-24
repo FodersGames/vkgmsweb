@@ -128,7 +128,7 @@ export default function PublicSurvey() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex flex-col items-center justify-center p-6 text-center">
-        <CircleNotch size={36} className="animate-spin text-[#FF6600] mb-4" />
+        <CircleNotch size={36} className="animate-spin text-[#1D1D1F] mb-4" />
         <p className="text-sm font-medium text-[#86868B]">Loading survey...</p>
       </div>
     );
@@ -227,7 +227,7 @@ export default function PublicSurvey() {
             <img
               src="/logo.png"
               alt="Vakar Games"
-              className="h-7 w-auto object-contain transition-transform group-hover:scale-105"
+              className="logo-black h-7 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <span className="font-bold text-[#1D1D1F]">Vakar Games</span>
           </Link>
@@ -237,7 +237,7 @@ export default function PublicSurvey() {
             </span>
             <div className="w-24 h-2 bg-[#E5E5EA] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#FF6600] transition-all duration-300 rounded-full"
+                className="h-full bg-[#1D1D1F] transition-all duration-300 rounded-full"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -249,7 +249,7 @@ export default function PublicSurvey() {
       <main className="max-w-3xl mx-auto px-6 py-10 w-full">
         {/* Survey Title Card */}
         <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E5E5EA] shadow-xs mb-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-2 bg-[#FF6600]" />
+          <div className="absolute top-0 left-0 right-0 h-2 bg-[#1D1D1F]" />
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#1D1D1F] mb-3">
             {survey.title}
           </h1>
@@ -269,7 +269,7 @@ export default function PublicSurvey() {
                 placeholder="e.g. Alex or Gamer99 (or leave blank to remain anonymous)"
                 value={respondentName}
                 onChange={(e) => setRespondentName(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm rounded-xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#FF6600] focus:ring-1 focus:ring-[#FF6600] outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm rounded-xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#1D1D1F] focus:ring-1 focus:ring-[#1D1D1F] outline-none transition-all"
               />
             </div>
           )}
@@ -313,14 +313,14 @@ export default function PublicSurvey() {
                           onClick={() => handleChoiceSelect(q.id, opt)}
                           className={`flex items-center gap-3.5 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${
                             isSelected
-                              ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#1D1D1F] font-medium'
+                              ? 'border-[#1D1D1F] bg-black/[0.03] text-[#1D1D1F] font-medium'
                               : 'border-[#E5E5EA] hover:border-[#D2D2D7] hover:bg-[#F5F5F7] text-[#1D1D1F]'
                           }`}
                         >
                           <div
                             className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                               isSelected
-                                ? 'border-[#FF6600] bg-[#FF6600]'
+                                ? 'border-[#1D1D1F] bg-[#1D1D1F]'
                                 : 'border-[#D2D2D7] bg-white'
                             }`}
                           >
@@ -345,14 +345,14 @@ export default function PublicSurvey() {
                           onClick={() => handleMultipleChoiceToggle(q.id, opt)}
                           className={`flex items-center gap-3.5 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${
                             isChecked
-                              ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#1D1D1F] font-medium'
+                              ? 'border-[#1D1D1F] bg-black/[0.03] text-[#1D1D1F] font-medium'
                               : 'border-[#E5E5EA] hover:border-[#D2D2D7] hover:bg-[#F5F5F7] text-[#1D1D1F]'
                           }`}
                         >
                           <div
                             className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-colors ${
                               isChecked
-                                ? 'border-[#FF6600] bg-[#FF6600] text-white'
+                                ? 'border-[#1D1D1F] bg-[#1D1D1F] text-white'
                                 : 'border-[#D2D2D7] bg-white'
                             }`}
                           >
@@ -383,14 +383,14 @@ export default function PublicSurvey() {
                             onClick={() => handleRatingSelect(q.id, star)}
                             className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl border transition-all ${
                               isFilled
-                                ? 'border-[#FF6600] bg-[#FF6600]/10 text-[#FF6600]'
+                                ? 'border-[#1D1D1F] bg-black/[0.05] text-[#1D1D1F]'
                                 : 'border-[#E5E5EA] hover:border-[#D2D2D7] hover:bg-[#F5F5F7] text-[#86868B]'
                             }`}
                           >
                             <Star
                               size={24}
                               weight={isFilled ? 'fill' : 'regular'}
-                              className={isFilled ? 'text-[#FF6600]' : 'text-[#86868B]'}
+                              className={isFilled ? 'text-[#1D1D1F]' : 'text-[#86868B]'}
                             />
                             <span className="text-[11px] font-semibold mt-0.5">{star}</span>
                           </button>
@@ -408,7 +408,7 @@ export default function PublicSurvey() {
                       placeholder="Type your response here..."
                       value={answers[q.id] || ''}
                       onChange={(e) => handleTextChange(q.id, e.target.value)}
-                      className="w-full px-4 py-3 text-sm rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#FF6600] focus:ring-1 focus:ring-[#FF6600] outline-none transition-all"
+                      className="w-full px-4 py-3 text-sm rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#1D1D1F] focus:ring-1 focus:ring-[#1D1D1F] outline-none transition-all"
                     />
                   </div>
                 )}
@@ -421,7 +421,7 @@ export default function PublicSurvey() {
                       placeholder="Type your detailed thoughts here..."
                       value={answers[q.id] || ''}
                       onChange={(e) => handleTextChange(q.id, e.target.value)}
-                      className="w-full px-4 py-3 text-sm rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#FF6600] focus:ring-1 focus:ring-[#FF6600] outline-none transition-all resize-y"
+                      className="w-full px-4 py-3 text-sm rounded-2xl bg-[#F5F5F7] border border-[#E5E5EA] text-[#1D1D1F] placeholder-[#86868B] focus:bg-white focus:border-[#1D1D1F] focus:ring-1 focus:ring-[#1D1D1F] outline-none transition-all resize-y"
                     />
                   </div>
                 )}
@@ -448,7 +448,7 @@ export default function PublicSurvey() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#FF6600] hover:bg-[#E65C00] text-white font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#1D1D1F] hover:bg-[#333336] text-white font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? (
                 <>

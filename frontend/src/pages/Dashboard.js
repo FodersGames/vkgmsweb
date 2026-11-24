@@ -229,7 +229,7 @@ const SidebarContent = ({
   <div className="flex flex-col h-full bg-[#F5F5F7] dark:bg-[#151520] border-r border-[#D2D2D7] dark:border-[#2a2a3c]">
     {/* Logo */}
     <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-[#D2D2D7] dark:border-[#2a2a3c]">
-      <img src="/logo.png" alt="Vakar Games" className="h-6 w-auto object-contain shrink-0" />
+      <img src="/logo.png" alt="Vakar Games" className="logo-adaptive h-6 w-auto object-contain shrink-0" />
       <p className="flex-1 min-w-0 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white truncate">
         Vakar Games
       </p>
@@ -554,7 +554,7 @@ const DashboardContent = () => {
           </button>
 
           <span className="lg:hidden flex items-center gap-2 text-[14.5px] font-bold tracking-tight text-[#1D1D1F] dark:text-white">
-            <img src="/logo.png" alt="Vakar Games" className="h-5 w-auto object-contain" />
+            <img src="/logo.png" alt="Vakar Games" className="logo-adaptive h-5 w-auto object-contain" />
             Vakar Games
           </span>
 

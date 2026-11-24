@@ -101,7 +101,7 @@ export const BlogList = () => {
       {/* Page Header: Apple Clean */}
       <div className="pt-28 pb-12 border-b border-[#E5E5EA]">
         <div className="max-w-[1120px] mx-auto px-6">
-          <p className="text-[13px] font-medium text-[#FF6600] mb-2">
+          <p className="text-[13px] font-medium text-[#1D1D1F] mb-2">
             Dispatches
           </p>
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-[#1D1D1F]">
@@ -167,7 +167,7 @@ export const BlogList = () => {
                             </span>
                           </div>
                         )}
-                        <h2 className="text-xl sm:text-2xl font-semibold text-[#1D1D1F] group-hover:text-[#FF6600] transition-colors mb-2 leading-snug">
+                        <h2 className="text-xl sm:text-2xl font-semibold text-[#1D1D1F] mb-2 leading-snug">
                           {post.title}
                         </h2>
                         <p className="text-sm text-[#6E6E73] leading-relaxed line-clamp-2">
@@ -385,7 +385,7 @@ export const BlogPost = () => {
 
               <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
                 {allowed.map(r => {
-                  const roleInfo = rolesMap[r] || { name: r, color: '#FF6600' };
+                  const roleInfo = rolesMap[r] || { name: r, color: '#1D1D1F' };
                   return (
                     <span
                       key={r}
